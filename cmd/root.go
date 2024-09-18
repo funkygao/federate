@@ -77,12 +77,13 @@ func Execute() {
 func init() {
 	log.SetFlags(0) // log.Lshortfile
 
+	// root
+	rootCmd.AddCommand(microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
+
 	// groups
 	microserviceCmdGroup.AddCommand(mergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
 	chatgptCmdGroup.AddCommand(promptCmd, tokensCmd)
 	explainCmdGroup.AddCommand(taintCmd, assumptionCmd)
 	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
 	imageCmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)
-	// root
-	rootCmd.AddCommand(abcCmd, microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
 }
