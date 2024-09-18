@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -19,16 +20,10 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "federate",
 		Short: "federate - A tool for merging and deploying microservices",
-		Long: `federate is a Swiss Army knife CLI tool for merging and managing microservices based on manifest DSL.
+		Long: color.New(color.Bold).Sprintf("federate") + ` is a swiss army knife for microservices consolidation based on manifest DSL.
 
   Find more information at: https://joyspace.jd.com/pages/Ksl7N7wr1XxFanCRIR1y
 `,
-	}
-
-	explainCmdGroup = &cobra.Command{
-		Use:   "explain",
-		Short: "Describes microservice fusion key mechanisms",
-		Long:  `The explain command describes microservice fusion key mechanisms`,
 	}
 
 	microserviceCmdGroup = &cobra.Command{
@@ -45,6 +40,12 @@ Key benefits:
 
 This approach decouples logical boundaries (code development) from physical boundaries (deployment strategy) of
 microservices, offering greater flexibility in system design and operation.`,
+	}
+
+	explainCmdGroup = &cobra.Command{
+		Use:   "explain",
+		Short: "Describes microservice fusion key mechanisms",
+		Long:  `The explain command describes microservice fusion key mechanisms`,
 	}
 
 	chatgptCmdGroup = &cobra.Command{
