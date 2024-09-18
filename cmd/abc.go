@@ -14,10 +14,14 @@ import (
 )
 
 var (
-	maxLetters      int
-	maxContexts     int
-	bzFile          string
+	maxLetters  int
+	maxContexts int
+	maxArticles int
+	bzFile      string
+
 	wikiMarkupRegex = regexp.MustCompile(`\{\{.*?\}\}|\[\[.*?\]\]|<.*?>`)
+	urlRegex        = regexp.MustCompile(`https?://\S+`)
+	nonLetterRegex  = regexp.MustCompile(`[^a-zA-Z\s.,!?]`)
 )
 
 var abcCmd = &cobra.Command{
@@ -50,7 +54,7 @@ func analyzeLetterDistributions(combinations []string) {
 		corpusText = corpus.GetCorpus()
 		analyzeFunc = analyzeDistributionBrown
 	} else {
-		corpusText = corpus.GetSimplewikiCorpus(bzFile)
+		corpusText = corpus.GetSimplewikiCorpus(bzFile, maxArticles)
 		analyzeFunc = analyzeDistributionWikipedia
 	}
 
@@ -80,31 +84,43 @@ func analyzeDistributionWikipedia(text, combo string) (map[rune]int, map[rune]in
 	sentences := strings.Split(text, ".")
 	for _, sentence := range sentences {
 		cleanSentence := cleanWikiText(sentence)
-		if len(cleanSentence) < 10 || len(cleanSentence) > 200 {
+		if len(cleanSentence) < 30 || len(cleanSentence) > 150 {
 			continue // 跳过过短或过长的句子
 		}
 
-		words := strings.Fields(cleanSentence)
-		for _, word := range words {
-			cleanWord := strings.ToLower(word)
-			cleanWord = strings.Trim(cleanWord, ".,!?:;\"'()[]{}") // 移除标点符号
+		lowercaseSentence := strings.ToLower(cleanSentence)
+		if strings.Contains(lowercaseSentence, combo) {
+			// 检查是否包含至少3个不同的单词
+			words := strings.Fields(lowercaseSentence)
+			uniqueWords := make(map[string]bool)
+			for _, word := range words {
+				uniqueWords[word] = true
+				if len(uniqueWords) >= 3 {
+					break
+				}
+			}
+			if len(uniqueWords) < 3 {
+				continue
+			}
 
-			index := strings.Index(cleanWord, combo)
-			if index != -1 {
-				if index > 0 {
-					letter := rune(cleanWord[index-1])
-					if unicode.IsLetter(letter) {
-						preceding[letter]++
+			contexts[cleanSentence]++
+
+			for _, word := range words {
+				index := strings.Index(word, combo)
+				if index != -1 {
+					if index > 0 {
+						letter := rune(word[index-1])
+						if unicode.IsLetter(letter) {
+							preceding[letter]++
+						}
+					}
+					if index+len(combo) < len(word) {
+						letter := rune(word[index+len(combo)])
+						if unicode.IsLetter(letter) {
+							following[letter]++
+						}
 					}
 				}
-				if index+len(combo) < len(cleanWord) {
-					letter := rune(cleanWord[index+len(combo)])
-					if unicode.IsLetter(letter) {
-						following[letter]++
-					}
-				}
-				// 记录整个句子作为上下文
-				contexts[cleanSentence]++
 			}
 		}
 	}
@@ -206,7 +222,7 @@ func formatContextsWikipedia(combo string, contexts map[string]int) string {
 
 	pairs := make([]pair, 0, len(contexts))
 	for context, count := range contexts {
-		if strings.Contains(context, combo) && len(context) > 20 {
+		if strings.Count(context, " ") >= 5 { // 至少包含5个单词
 			pairs = append(pairs, pair{context, count})
 		}
 	}
@@ -216,25 +232,65 @@ func formatContextsWikipedia(combo string, contexts map[string]int) string {
 	})
 
 	var result strings.Builder
-	for i, p := range pairs {
-		if i > 0 {
-			result.WriteString("\n")
+	addedContexts := make(map[string]bool)
+	for _, p := range pairs {
+		if len(addedContexts) >= maxContexts {
+			break
 		}
 		context := p.context
 		if len(context) > 100 {
-			context = context[:97] + "..."
+			words := strings.Fields(context)
+			for j, word := range words {
+				if strings.Contains(strings.ToLower(word), combo) {
+					start := max(0, j-3)
+					end := min(len(words), j+4)
+					context = strings.Join(words[start:end], " ")
+					if start > 0 {
+						context = "... " + context
+					}
+					if end < len(words) {
+						context = context + " ..."
+					}
+					break
+				}
+			}
 		}
-		result.WriteString(fmt.Sprintf("%s (%d)", context, p.count))
-		if i == maxContexts-1 {
-			break
+		// 检查是否已经添加了相似的上下文
+		isDuplicate := false
+		for addedContext := range addedContexts {
+			if strings.Contains(addedContext, context) || strings.Contains(context, addedContext) {
+				isDuplicate = true
+				break
+			}
+		}
+		if !isDuplicate {
+			if len(addedContexts) > 0 {
+				result.WriteString("\n")
+			}
+			result.WriteString(fmt.Sprintf("%s (%d)", context, p.count))
+			addedContexts[context] = true
 		}
 	}
 
-	if len(pairs) > maxContexts {
-		result.WriteString(fmt.Sprintf("\n... (%d more contexts)", len(pairs)-maxContexts))
+	if len(pairs) > len(addedContexts) {
+		result.WriteString(fmt.Sprintf("\n... (%d more contexts)", len(pairs)-len(addedContexts)))
 	}
 
 	return result.String()
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func formatContextsBrown(contexts map[string]int) string {
@@ -279,13 +335,26 @@ func formatContextsBrown(contexts map[string]int) string {
 func cleanWikiText(text string) string {
 	// 移除维基标记
 	text = wikiMarkupRegex.ReplaceAllString(text, "")
+	// 移除URL
+	text = urlRegex.ReplaceAllString(text, "")
+	// 只保留字母、空格和基本标点
+	text = nonLetterRegex.ReplaceAllString(text, " ")
 	// 移除多余的空白字符
 	text = strings.Join(strings.Fields(text), " ")
+	// 移除重复单词
+	words := strings.Fields(text)
+	var result []string
+	for i, word := range words {
+		if i == 0 || strings.ToLower(word) != strings.ToLower(words[i-1]) {
+			result = append(result, word)
+		}
+	}
 	return text
 }
 
 func init() {
 	abcCmd.Flags().IntVarP(&maxLetters, "max-letters", "m", 5, "How many context shown at most")
 	abcCmd.Flags().IntVarP(&maxContexts, "max-contexts", "c", 5, "How many contexts shown at most")
+	abcCmd.Flags().IntVarP(&maxArticles, "max-articles", "a", 5000, "How many articles to scan at most")
 	abcCmd.Flags().StringVarP(&bzFile, "wikipedia", "w", "", "Downloaded simple wikipedia corpus bz2 file")
 }

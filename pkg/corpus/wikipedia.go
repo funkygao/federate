@@ -10,7 +10,7 @@ import (
 	"github.com/dustin/go-wikiparse"
 )
 
-func GetSimplewikiCorpus(bzFile string) string {
+func GetSimplewikiCorpus(bzFile string, maxArticles int) string {
 	f, err := os.Open(bzFile)
 	if err != nil {
 		panic(err)
@@ -41,6 +41,9 @@ func GetSimplewikiCorpus(bzFile string) string {
 			corpusData.WriteString(page.Revisions[0].Text)
 			corpusData.WriteString("\n")
 			articleCount++
+			if maxArticles > 0 && articleCount >= maxArticles {
+				break
+			}
 		}
 	}
 	log.Printf("%d articles read", articleCount)
