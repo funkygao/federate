@@ -34,7 +34,20 @@ var (
 	microserviceCmdGroup = &cobra.Command{
 		Use:   "microservice",
 		Short: "Commands for managing the lifecycle of microservices",
-		Long:  `The microservice command group provides a set of commands to manage the lifecycle of microservices.`,
+		Long: `The microservice command group provides a set of commands to manage the lifecycle of microservices.
+
+It addresses the issue of overly granular microservices and helps in their consolidation and optimization.
+
+Key benefits include:
+- Reduced class loading and conversion of RPC calls to JVM method calls
+- More efficient resource utilization and higher effective deployment density
+- Lower deployment costs and improved performance
+- Enhanced stability and reduced complexity in service chains
+- Decreased overall system complexity by simplifying service interactions and dependencies
+
+This approach decouples the logical boundaries of microservices (code development)
+from their physical boundaries (deployment strategy), offering greater flexibility
+in system design and operation.`,
 	}
 
 	chatgptCmdGroup = &cobra.Command{
