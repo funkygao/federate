@@ -1,0 +1,434 @@
+package merge
+
+import (
+	"bufio"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"federate/pkg/java"
+	"federate/pkg/manifest"
+	"federate/pkg/tablerender"
+	"federate/pkg/util"
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"gopkg.in/yaml.v2"
+)
+
+type PropertySourcesManager struct {
+	yamlConflictKeys map[string]map[string]interface{} // [key][componentName]
+	mergedYaml       map[string]interface{}
+
+	propertiesConflictKeys map[string]map[string]interface{}
+	mergedProperties       map[string]interface{}
+
+	propertySourceExts map[string]struct{}
+
+	reservedYamlKeys map[string]ValueOverride
+	reservedValues   map[string][]ComponentKeyValue
+}
+
+func NewPropertySourcesManager() *PropertySourcesManager {
+	return &PropertySourcesManager{
+		yamlConflictKeys:       make(map[string]map[string]interface{}),
+		propertiesConflictKeys: make(map[string]map[string]interface{}),
+		mergedYaml:             make(map[string]interface{}),
+		mergedProperties:       make(map[string]interface{}),
+		propertySourceExts: map[string]struct{}{
+			".properties": {},
+		},
+		reservedYamlKeys: reservedKeyHandlers,
+		reservedValues:   make(map[string][]ComponentKeyValue),
+	}
+}
+
+func (cm *PropertySourcesManager) PrepareMergeApplicationYaml(m *manifest.Manifest) error {
+	for _, component := range m.Components {
+		for _, baseDir := range component.ResourceBaseDirs {
+			sourceDir := component.SrcDir(baseDir)
+			if err := cm.planMergeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
+				return err
+			}
+			if component.SpringProfile != "" {
+				if err := cm.planMergeYamlFile(filepath.Join(sourceDir, "application-"+component.SpringProfile+".yml"), component.SpringProfile, component); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	cm.finalizeReservedKeys()
+	return nil
+}
+
+func (cm *PropertySourcesManager) PrepareMergePropertiesFiles(m *manifest.Manifest) error {
+	for _, component := range m.Components {
+		for _, baseDir := range component.ResourceBaseDirs {
+			for _, propertySource := range component.PropertySources {
+				ext := filepath.Ext(propertySource)
+				if _, present := cm.propertySourceExts[ext]; !present {
+					return fmt.Errorf("Invalid property source: %s", propertySource)
+				}
+
+				sourceDir := component.SrcDir(baseDir)
+				if err := cm.planMergePropertiesFile(filepath.Join(sourceDir, propertySource), component); err != nil {
+					return err
+				}
+			}
+
+		}
+	}
+
+	cm.finalizeReservedKeys()
+	return nil
+}
+
+func (cm *PropertySourcesManager) GetPropertiesConflicts() map[string]map[string]interface{} {
+	return cm.getConflicts(cm.propertiesConflictKeys)
+}
+
+func (cm *PropertySourcesManager) GetYamlConflicts() map[string]map[string]interface{} {
+	return cm.getConflicts(cm.yamlConflictKeys)
+}
+
+func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest) error {
+	conflictKeys := cm.GetYamlConflicts()
+	if len(conflictKeys) == 0 {
+		return nil
+	}
+
+	// Group keys by component
+	componentKeys := make(map[string][]string)
+	var cellData [][]string
+	for key, components := range conflictKeys {
+		for componentName, value := range components {
+			componentKeys[componentName] = append(componentKeys[componentName], key)
+
+			prefixedKey := cm.componentKeyPrefix(componentName) + key
+			if value == nil {
+				value = ""
+			}
+			cm.mergedYaml[prefixedKey] = value
+			// delete(cm.mergedYaml, key) TODO 先不删旧key，都调通了再删
+
+			cellData = append(cellData, []string{prefixedKey, util.Truncate(fmt.Sprintf("%v", value), 60)})
+		}
+	}
+
+	header := []string{"New Key", "Value"}
+	tablerender.DisplayTable(header, cellData, false, -1)
+	log.Printf("Reconciled %d conflicting keys into %d keys", len(conflictKeys), len(cellData))
+
+	for componentName, keys := range componentKeys {
+		log.Printf("[%s] Fixing ref keys: %v", componentName, keys)
+		component := m.ComponentByName(componentName)
+		prefix := cm.componentKeyPrefix(componentName)
+
+		if err := cm.prefixKeyReferences(component.RootDir(), keys, prefix, true, java.IsJavaMainSource, cm.createJavaRegex); err != nil {
+			return err
+		}
+
+		if err := cm.prefixKeyReferences(component.TargetResourceDir(), keys, prefix, true, java.IsXml, cm.createXmlRegex); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (cm *PropertySourcesManager) componentKeyPrefix(componentName string) string {
+	return componentName + "."
+}
+
+func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []string, prefix string, dryRun bool, fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
+	keyRegexes := make([]*regexp.Regexp, len(keys))
+	for i, key := range keys {
+		keyRegexes[i] = createRegex(key)
+	}
+
+	return filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fileFilter(info, path) {
+			content, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			oldContent := string(content)
+			newContent := oldContent
+			changed := false
+
+			for i, regex := range keyRegexes {
+				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
+				if len(matches) > 0 {
+					if !changed {
+						log.Printf("Replacing %s", path)
+					}
+					changed = true
+					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
+						replaced := cm.replaceKeyInMatch(match, keys[i], prefix)
+						dmp := diffmatchpatch.New()
+						diffs := dmp.DiffMain(match, replaced, false)
+						log.Printf("%s", dmp.DiffPrettyText(diffs))
+						return replaced
+					})
+				}
+			}
+
+			if changed && !dryRun {
+				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
+}
+
+func (cm *PropertySourcesManager) createJavaRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
+}
+
+func (cm *PropertySourcesManager) createXmlRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
+}
+
+func (cm *PropertySourcesManager) replaceKeyInMatch(match, key, prefix string) string {
+	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
+}
+
+func (cm *PropertySourcesManager) planMergePropertiesFile(filePath string, component manifest.ComponentInfo) error {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return handleFileErr(component.Name, filePath, err)
+	}
+	defer file.Close()
+
+	log.Printf("[%s] Processing %s", component.Name, filePath)
+
+	properties := make(map[string]interface{})
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		parts := strings.SplitN(line, "=", 2)
+		if len(parts) == 2 {
+			key := strings.TrimSpace(parts[0])
+			value := strings.TrimSpace(parts[1])
+			properties[key] = value
+		}
+	}
+
+	if err = scanner.Err(); err != nil {
+		return err
+	}
+
+	mergeMaps(cm.mergedProperties, properties, cm.propertiesConflictKeys, cm, component)
+	return nil
+}
+
+func (cm *PropertySourcesManager) planMergeYamlFile(filePath string, springProfile string, component manifest.ComponentInfo) error {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return handleFileErr(component.Name, filePath, err)
+	}
+
+	log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
+
+	dataStr := string(data)
+	dataStr = strings.ReplaceAll(dataStr, springProfileActive, springProfile)
+
+	var config map[interface{}]interface{}
+	if err = yaml.Unmarshal([]byte(dataStr), &config); err != nil {
+		return err
+	}
+
+	flatConfig := make(map[string]interface{})
+	cm.flattenYamlMap(config, "", flatConfig)
+
+	mergeMaps(cm.mergedYaml, flatConfig, cm.yamlConflictKeys, cm, component)
+
+	// 处理 spring.profiles.include
+	if includes, ok := flatConfig[springProfileInclude]; ok {
+		if includeProfiles, ok := includes.(string); ok {
+			for _, includeProfile := range strings.Split(includeProfiles, ",") {
+				includeProfile = strings.TrimSpace(includeProfile)
+				log.Printf("[%s:%s] Detected spring.profiles.include: %s", component.Name, springProfile, includeProfile)
+				if includeProfile != "" {
+					cm.planMergeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+includeProfile+".yml"), includeProfile, component)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (cm *PropertySourcesManager) recordConflict(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
+	if _, exists := conflictMap[key]; !exists {
+		conflictMap[key] = make(map[string]interface{})
+	}
+	conflictMap[key][componentName] = trimValue(value)
+}
+
+func (cm *PropertySourcesManager) getConflicts(conflictKeys map[string]map[string]interface{}) map[string]map[string]interface{} {
+	filteredConflicts := make(map[string]map[string]interface{})
+	for key, components := range conflictKeys {
+		if len(components) == 1 {
+			// 如果只在一个组件中出现，不算冲突
+			continue
+		}
+
+		uniqueValues := make(map[string]bool)
+		for _, value := range components {
+			if !isEmptyValue(value) {
+				uniqueValues[fmt.Sprintf("%v", value)] = true
+			}
+		}
+
+		if len(uniqueValues) > 1 {
+			filteredConflicts[key] = components
+		}
+	}
+	return filteredConflicts
+}
+
+func (cm *PropertySourcesManager) WriteMergedYaml(targetFile string) {
+	data, err := yaml.Marshal(cm.mergedYaml)
+	if err != nil {
+		log.Fatalf("Error marshalling merged config: %v", err)
+	}
+
+	if err := os.MkdirAll(filepath.Dir(targetFile), 0755); err != nil {
+		log.Fatalf("Error creating directory for merged config: %v", err)
+	}
+
+	if err := os.WriteFile(targetFile, data, 0644); err != nil {
+		log.Fatalf("Error writing merged config to %s: %v", targetFile, err)
+	}
+}
+
+func (cm *PropertySourcesManager) WriteMergedProperties(targetFile string) {
+	var builder strings.Builder
+	for key, value := range cm.mergedProperties {
+		builder.WriteString(fmt.Sprintf("%s=%v\n", key, value))
+	}
+
+	if err := os.MkdirAll(filepath.Dir(targetFile), 0755); err != nil {
+		log.Fatalf("Error creating directory for merged properties: %v", err)
+	}
+
+	if err := os.WriteFile(targetFile, []byte(builder.String()), 0644); err != nil {
+		log.Fatalf("Error writing merged properties to %s: %v", targetFile, err)
+	}
+}
+
+func (cm *PropertySourcesManager) flattenYamlMap(data map[interface{}]interface{}, parentKey string, result map[string]interface{}) {
+	for k, v := range data {
+		fullKey := strings.TrimPrefix(fmt.Sprintf("%s.%v", parentKey, k), ".")
+		switch vTyped := v.(type) {
+		case map[interface{}]interface{}:
+			cm.flattenYamlMap(vTyped, fullKey, result)
+		default:
+			result[fullKey] = v
+		}
+	}
+}
+
+func (cm *PropertySourcesManager) unflattenYamlMap(data map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for key, value := range data {
+		keys := strings.Split(key, ".")
+		currentMap := result
+		for i, k := range keys {
+			if i == len(keys)-1 {
+				currentMap[k] = value
+			} else {
+				if _, ok := currentMap[k]; !ok {
+					currentMap[k] = make(map[string]interface{})
+				}
+				currentMap = currentMap[k].(map[string]interface{})
+			}
+		}
+	}
+	return result
+}
+
+func mergeMaps(dest, src map[string]interface{}, conflictMap map[string]map[string]interface{}, cm *PropertySourcesManager, component manifest.ComponentInfo) {
+	for k, v := range src {
+		if !cm.isReservedKey(k) {
+			cm.recordValue(conflictMap, k, component.Name, v)
+		} else {
+			cm.recordReservedValue(k, component, v)
+		}
+
+		dest[k] = v
+	}
+}
+
+// 记录值并检查冲突
+func (cm *PropertySourcesManager) recordValue(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
+	if _, exists := conflictMap[key]; !exists {
+		conflictMap[key] = make(map[string]interface{})
+	}
+	conflictMap[key][componentName] = value
+}
+
+func (cm *PropertySourcesManager) recordReservedValue(key string, component manifest.ComponentInfo, value interface{}) {
+	if _, exists := cm.reservedValues[key]; !exists {
+		cm.reservedValues[key] = []ComponentKeyValue{}
+	}
+	cm.reservedValues[key] = append(cm.reservedValues[key], ComponentKeyValue{Component: component, Value: value})
+}
+
+func (cm *PropertySourcesManager) finalizeReservedKeys() {
+	for key, values := range cm.reservedValues {
+		if handler, exists := cm.reservedYamlKeys[key]; exists {
+			if value := handler(values); value != nil {
+				log.Printf("Reserved property[%s]=%v", key, value)
+				cm.mergedYaml[key] = value
+			} else {
+				delete(cm.mergedYaml, key)
+				log.Printf("Reserved property[%s] removed", key)
+			}
+		}
+	}
+}
+
+func isEmptyValue(value interface{}) bool {
+	switch v := value.(type) {
+	case nil:
+		return true
+	case string:
+		return v == ""
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return v == 0
+	case bool:
+		return !v
+	case []interface{}:
+		return len(v) == 0
+	case map[string]interface{}:
+		return len(v) == 0
+	default:
+		return false
+	}
+}
+
+func trimValue(value interface{}) interface{} {
+	if str, ok := value.(string); ok {
+		return strings.TrimSpace(str)
+	}
+	return value
+}
+
+func (cm *PropertySourcesManager) isReservedKey(key string) bool {
+	_, exists := cm.reservedYamlKeys[key]
+	return exists
+}
