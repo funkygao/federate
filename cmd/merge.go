@@ -19,7 +19,7 @@ const (
 
 var (
 	yamlConflictCellMaxWidth int
-	dryRun                   bool
+	dryRunMerge              bool
 	autoYes                  bool
 	showReport               bool
 )
@@ -88,7 +88,7 @@ func mergeResources(m *manifest.Manifest) {
 			reconcilePropertiesConflicts(m, propertySourcesManager)
 		}},
 		{"Reconciling Target XML beans conflicts", func() {
-			reconcileTargetXmlBeanConflicts(m, xmlBeanManager, dryRun)
+			reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
 		}},
 		{"Generating Spring Bootstrap XML", func() {
 			generateSpringBootstrapXML(m)
@@ -119,5 +119,5 @@ func init() {
 	mergeCmd.Flags().BoolVarP(&showReport, "report", "r", false, "Show the merge report")
 	mergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
 	mergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
-	mergeCmd.Flags().BoolVarP(&dryRun, "dry-run", "d", false, "Perform a dry run without making any changes")
+	mergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
 }

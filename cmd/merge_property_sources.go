@@ -30,7 +30,7 @@ func prepareMergeApplicationYaml(m *manifest.Manifest, manager *merge.PropertySo
 }
 
 func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertySourcesManager) {
-	if err := manager.ReconcileConflicts(m); err != nil {
+	if err := manager.ReconcileConflicts(m, dryRunMerge); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 
@@ -82,7 +82,7 @@ func showYamlConflicts(m *manifest.Manifest, manager *merge.PropertySourcesManag
 		return
 	}
 
-	color.Red("Found application.yml conflicts: %d", len(conflictKeys))
+	color.Yellow("Found application.yml conflicts: %d", len(conflictKeys))
 	keys := make([]string, 0, len(conflictKeys))
 	for key := range conflictKeys {
 		keys = append(keys, key)

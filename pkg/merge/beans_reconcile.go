@@ -102,6 +102,10 @@ func (b *XmlBeanManager) removeRedundantBeanClassesInFile(filePath string) error
 }
 
 func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modifications map[string]string) error {
+	if len(modifications) < 1 {
+		return fmt.Errorf("Empty plan: %v", modifications)
+	}
+
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(filePath); err != nil {
 		return err
@@ -114,18 +118,18 @@ func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modifications map[
 	}
 
 	modifiedCount := b.updateBeanIdsInElement(root, modifications, filePath)
-	if modifiedCount > 0 {
-		newXml, err := doc.WriteToString()
-		if err != nil {
-			return err
-		}
-
-		log.Printf("Updated %d bean id: %s", modifiedCount, filePath)
-		showRelevantDiffs(oldXml, newXml)
-		return doc.WriteToFile(filePath)
+	if modifiedCount != len(modifications) {
+		return fmt.Errorf("Expected %d, actual %d updates on %s", len(modifications), modifiedCount, filePath)
 	}
 
-	return fmt.Errorf("Failed to update bean id: %s", filePath)
+	newXml, err := doc.WriteToString()
+	if err != nil {
+		return err
+	}
+
+	log.Printf("Updated %d/%d bean id: %s", modifiedCount, len(modifications), filePath)
+	showRelevantDiffs(oldXml, newXml)
+	return doc.WriteToFile(filePath)
 }
 
 func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifications map[string]string, filePath string) int {

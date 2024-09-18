@@ -94,7 +94,7 @@ func (cm *PropertySourcesManager) GetYamlConflicts() map[string]map[string]inter
 	return cm.getConflicts(cm.yamlConflictKeys)
 }
 
-func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest) error {
+func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRun bool) error {
 	conflictKeys := cm.GetYamlConflicts()
 	if len(conflictKeys) == 0 {
 		return nil
@@ -112,7 +112,7 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest) error
 				value = ""
 			}
 			cm.mergedYaml[prefixedKey] = value
-			// delete(cm.mergedYaml, key) TODO 先不删旧key，都调通了再删
+			delete(cm.mergedYaml, key)
 
 			cellData = append(cellData, []string{prefixedKey, util.Truncate(fmt.Sprintf("%v", value), 60)})
 		}
@@ -127,11 +127,11 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest) error
 		component := m.ComponentByName(componentName)
 		prefix := cm.componentKeyPrefix(componentName)
 
-		if err := cm.prefixKeyReferences(component.RootDir(), keys, prefix, true, java.IsJavaMainSource, cm.createJavaRegex); err != nil {
+		if err := cm.prefixKeyReferences(component.RootDir(), keys, prefix, dryRun, java.IsJavaMainSource, cm.createJavaRegex); err != nil {
 			return err
 		}
 
-		if err := cm.prefixKeyReferences(component.TargetResourceDir(), keys, prefix, true, java.IsXml, cm.createXmlRegex); err != nil {
+		if err := cm.prefixKeyReferences(component.TargetResourceDir(), keys, prefix, dryRun, java.IsXml, cm.createXmlRegex); err != nil {
 			return err
 		}
 	}
@@ -166,7 +166,7 @@ func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []str
 				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
 				if len(matches) > 0 {
 					if !changed {
-						log.Printf("Replacing %s", path)
+						log.Printf("Plan to replace %s", path)
 					}
 					changed = true
 					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
@@ -184,6 +184,7 @@ func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []str
 				if err != nil {
 					return err
 				}
+				log.Printf("Updated %s", path)
 			}
 		}
 		return nil
