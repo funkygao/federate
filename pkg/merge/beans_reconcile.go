@@ -33,8 +33,8 @@ func (b *XmlBeanManager) executeReconcilePlan() {
 	log.Printf("Executing reconcile plan ...")
 
 	// 修改 bean id
-	for xmlPath, modifications := range b.plan.beanIdModificationFiles {
-		err := b.updateBeanIdsInFile(xmlPath, modifications)
+	for xmlPath, modificationPlan := range b.plan.beanIdModificationFiles {
+		err := b.updateBeanIdsInFile(xmlPath, modificationPlan)
 		if err != nil {
 			log.Fatalf("Error updating bean ids in file %s: %v", xmlPath, err)
 		}
@@ -101,9 +101,9 @@ func (b *XmlBeanManager) removeRedundantBeanClassesInFile(filePath string) error
 	return nil
 }
 
-func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modifications map[string]string) error {
-	if len(modifications) < 1 {
-		return fmt.Errorf("Empty plan: %v", modifications)
+func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modificationPlan map[string]string) error {
+	if len(modificationPlan) < 1 {
+		return fmt.Errorf("Empty plan: %v", modificationPlan)
 	}
 
 	doc := etree.NewDocument()
@@ -117,9 +117,9 @@ func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modifications map[
 		return err
 	}
 
-	modifiedCount := b.updateBeanIdsInElement(root, modifications, filePath)
-	if modifiedCount != len(modifications) {
-		return fmt.Errorf("Expected %d, actual %d updates on %s", len(modifications), modifiedCount, filePath)
+	modifiedCount := b.updateBeanIdsInElement(root, modificationPlan, filePath)
+	if modifiedCount != len(modificationPlan) {
+		return fmt.Errorf("Expected %d, actual %d updates on %s", len(modificationPlan), modifiedCount, filePath)
 	}
 
 	newXml, err := doc.WriteToString()
@@ -127,12 +127,12 @@ func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modifications map[
 		return err
 	}
 
-	log.Printf("Updated %d/%d bean id: %s", modifiedCount, len(modifications), filePath)
+	log.Printf("Updated %d/%d bean id: %s", modifiedCount, len(modificationPlan), filePath)
 	showRelevantDiffs(oldXml, newXml)
 	return doc.WriteToFile(filePath)
 }
 
-func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifications map[string]string, filePath string) int {
+func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modificationPlan map[string]string, filePath string) int {
 	modifiedCount := 0
 
 	// 处理所有具有 'id' 属性的元素，而不仅仅是 'bean' 元素
@@ -142,7 +142,7 @@ func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifica
 	beans := element.FindElements(".//*[@id]")
 	for _, bean := range beans {
 		if beanId := bean.SelectAttrValue("id", ""); beanId != "" {
-			if newId, ok := modifications[beanId]; ok {
+			if newId, ok := modificationPlan[beanId]; ok {
 				bean.RemoveAttr("id")
 				bean.CreateAttr("id", newId)
 				modifiedCount++
@@ -152,7 +152,7 @@ func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifica
 
 	// 递归处理子元素
 	for _, child := range element.ChildElements() {
-		modifiedCount += b.updateBeanIdsInElement(child, modifications, filePath)
+		modifiedCount += b.updateBeanIdsInElement(child, modificationPlan, filePath)
 	}
 	return modifiedCount
 }
@@ -164,8 +164,8 @@ func (b *XmlBeanManager) updateBeanRefsInDir(dir, componentName string) error {
 			return err
 		}
 		if java.IsXml(info, path) {
-			if modifications, exists := b.plan.beanIdModificationFiles[path]; exists {
-				if err := b.updateBeanRefsInFile(path, modifications, componentName); err != nil {
+			if modificationPlan, exists := b.plan.beanIdModificationFiles[path]; exists {
+				if err := b.updateBeanRefsInFile(path, modificationPlan, componentName); err != nil {
 					return err
 				}
 			}
@@ -174,7 +174,7 @@ func (b *XmlBeanManager) updateBeanRefsInDir(dir, componentName string) error {
 	})
 }
 
-func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modifications map[string]string, componentName string) error {
+func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modificationPlan map[string]string, componentName string) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(filePath); err != nil {
 		return err
@@ -186,7 +186,7 @@ func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modifications map
 		return err
 	}
 
-	modifiedCount := b.updateBeanRefsInElement(root, modifications, filePath)
+	modifiedCount := b.updateBeanRefsInElement(root, modificationPlan, filePath)
 	if modifiedCount > 0 {
 		newXml, err := doc.WriteToString()
 		if err != nil {
@@ -200,14 +200,14 @@ func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modifications map
 	return nil
 }
 
-func (b *XmlBeanManager) updateBeanRefsInElement(element *etree.Element, modifications map[string]string, xmlFile string) int {
+func (b *XmlBeanManager) updateBeanRefsInElement(element *etree.Element, modificationPlan map[string]string, xmlFile string) int {
 	modifiedCount := 0
 
 	// 定义需要更新的属性列表
 	refAttributes := []string{"ref", "value-ref", "bean", "properties-ref"}
 	for _, attr := range refAttributes {
 		if ref := element.SelectAttrValue(attr, ""); ref != "" {
-			if newRef, ok := modifications[ref]; ok {
+			if newRef, ok := modificationPlan[ref]; ok {
 				element.RemoveAttr(attr)
 				element.CreateAttr(attr, newRef)
 				modifiedCount++
@@ -217,7 +217,7 @@ func (b *XmlBeanManager) updateBeanRefsInElement(element *etree.Element, modific
 
 	// 递归处理子元素，例如：list/map 等内部的 ref 值修改
 	for _, child := range element.ChildElements() {
-		modifiedCount += b.updateBeanRefsInElement(child, modifications, xmlFile)
+		modifiedCount += b.updateBeanRefsInElement(child, modificationPlan, xmlFile)
 	}
 	return modifiedCount
 }
