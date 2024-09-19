@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"federate/cmd/onpremise"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -89,7 +90,7 @@ func init() {
 	log.SetFlags(0) // log.Lshortfile
 
 	// root
-	rootCmd.AddCommand(microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
+	rootCmd.AddCommand(onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
 
 	// groups
 	microserviceCmdGroup.AddCommand(mergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
