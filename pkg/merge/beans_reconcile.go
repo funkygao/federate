@@ -50,7 +50,7 @@ func (b *XmlBeanManager) executeReconcilePlan() {
 	// 更新引用
 	for _, component := range b.m.Components {
 		if err := b.updateBeanRefsInDir(component.TargetResourceDir(), component.Name); err != nil {
-			log.Fatalf("Error updating bean refs: %v", err)
+			log.Fatalf("Error fixing bean refs: %v", err)
 		}
 	}
 }
@@ -193,7 +193,7 @@ func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modificationPlan 
 			return err
 		}
 
-		log.Printf("Updated %d bean ref: %s", modifiedCount, filePath)
+		log.Printf("Fixed %d bean ref: %s", modifiedCount, filePath)
 		showRelevantDiffs(oldXml, newXml)
 		return doc.WriteToFile(filePath)
 	}

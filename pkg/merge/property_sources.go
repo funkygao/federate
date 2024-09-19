@@ -166,7 +166,7 @@ func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []str
 				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
 				if len(matches) > 0 {
 					if !changed {
-						log.Printf("Plan to replace %s", path)
+						log.Printf("Plan to fix %s", path)
 					}
 					changed = true
 					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {

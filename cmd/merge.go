@@ -66,12 +66,6 @@ func mergeResources(m *manifest.Manifest) {
 		{"Generating federate system scaffold", func() {
 			createFederatedSystem(m)
 		}},
-		{"Prepare Merging PropertySources of .properties files", func() {
-			prepareMergePropertiesFiles(m, propertySourcesManager)
-		}},
-		{"Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'", func() {
-			prepareMergeApplicationYaml(m, propertySourcesManager)
-		}},
 		{"Reconciling ENV variables conflicts", func() {
 			reconcileEnvConflicts(m)
 		}},
@@ -83,6 +77,12 @@ func mergeResources(m *manifest.Manifest) {
 		}},
 		{"Recursively Merging Resources: reconcile.mergeResources", func() {
 			recursiveMergeResources(m, resourceManager)
+		}},
+		{"Prepare Merging PropertySources of .properties files", func() {
+			prepareMergePropertiesFiles(m, propertySourcesManager)
+		}},
+		{"Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'", func() {
+			prepareMergeApplicationYaml(m, propertySourcesManager)
 		}},
 		{"Reconciling placeholder conflicts references by updating .java/.xml files", func() {
 			reconcilePropertiesConflicts(m, propertySourcesManager)
