@@ -190,8 +190,9 @@ func (t *Taint) ResourceFiles() []string {
 }
 
 type ReconcileSpec struct {
-	SingletonBeanClasses []string `yaml:"singletonBeanClasses"`
-	ExcludedBeanClasses  []string `yaml:"excludedBeanClasses"`
+	Logger               string   `yaml:"logger"`
+	SingletonBeanClasses []string `yaml:"singletonClasses"`
+	ExcludedBeanClasses  []string `yaml:"excludeClasses"`
 	MergeResourceFiles   []string `yaml:"mergeResources"`
 	IgnoredFiles         []string `yaml:"ignoreResources"`
 
