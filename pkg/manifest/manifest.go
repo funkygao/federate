@@ -12,7 +12,7 @@ import (
 )
 
 type Manifest struct {
-	Main       MainSystem      `yaml:"main"`
+	Main       MainSystem      `yaml:"target"`
 	Components []ComponentInfo `yaml:"components"`
 
 	// Dir of the manifest file
@@ -154,7 +154,6 @@ type MainSystem struct {
 	Dependencies    []DependencyInfo `yaml:"-"`
 
 	ComponentScan ComponentScan `yaml:"componentScan"`
-	Taint         Taint         `yaml:"taint"`
 	Reconcile     ReconcileSpec `yaml:"reconcile"`
 
 	Features []string `yaml:"features"`
@@ -179,18 +178,9 @@ type ComponentScan struct {
 	ExcludedTypes []string `yaml:"excludedTypes"`
 }
 
-type Taint struct {
-	LogConfigXml     string `yaml:"logConfigXml"`
-	MybatisConfigXml string `yaml:"mybatisConfigXml"`
-}
-
-func (t *Taint) ResourceFiles() []string {
-	return []string{t.LogConfigXml, t.MybatisConfigXml}
-
-}
-
 type ReconcileSpec struct {
 	Logger               string   `yaml:"logger"`
+	Taint                Taint    `yaml:"taint"`
 	SingletonBeanClasses []string `yaml:"singletonClasses"`
 	ExcludedBeanClasses  []string `yaml:"excludeClasses"`
 	MergeResourceFiles   []string `yaml:"mergeResources"`
@@ -205,6 +195,16 @@ func (s *ReconcileSpec) ExcludeBeanClass(class string) bool {
 
 func (s *ReconcileSpec) SingletonBeanClass(class string) bool {
 	return util.Contains(class, s.SingletonBeanClasses)
+}
+
+type Taint struct {
+	LogConfigXml     string `yaml:"logConfigXml"`
+	MybatisConfigXml string `yaml:"mybatisConfigXml"`
+}
+
+func (t *Taint) ResourceFiles() []string {
+	return []string{t.LogConfigXml, t.MybatisConfigXml}
+
 }
 
 type ComponentInfo struct {

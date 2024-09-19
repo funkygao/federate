@@ -121,7 +121,7 @@ func copyTaint(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 
-	for _, f := range m.Main.Taint.ResourceFiles() {
+	for _, f := range m.Main.Reconcile.Taint.ResourceFiles() {
 		src := filepath.Join(m.Dir, f)
 		target := filepath.Join(root, "src", "main", "resources", f)
 		if err := merge.CopyFile(src, target); err != nil {

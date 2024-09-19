@@ -1,4 +1,4 @@
-main:
+target:
   name: demo-starter
   mainClass: com.jdwl.wms.DemoDeepFusionApplication
   features:

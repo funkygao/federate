@@ -27,9 +27,11 @@ func LoadManifest(filePath string) (*Manifest, error) {
 		Main: MainSystem{
 			Version: defaultMainVersion,
 			JvmSize: defaultJvmSize,
-			Taint: Taint{
-				LogConfigXml:     defaultLogConfigXml,
-				MybatisConfigXml: defaultMybatisConfigXml,
+			Reconcile: ReconcileSpec{
+				Taint: Taint{
+					LogConfigXml:     defaultLogConfigXml,
+					MybatisConfigXml: defaultMybatisConfigXml,
+				},
 			},
 		},
 	}
