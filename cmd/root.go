@@ -95,7 +95,7 @@ func init() {
 	// groups
 	microserviceCmdGroup.AddCommand(mergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
 	chatgptCmdGroup.AddCommand(promptCmd, tokensCmd)
-	explainCmdGroup.AddCommand(taintCmd, assumptionCmd)
+	explainCmdGroup.AddCommand(manifestCmd, taintCmd, assumptionCmd)
 	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
 	imageCmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)
 }

@@ -14,7 +14,7 @@ var assumptionCmd = &cobra.Command{
 	Long: `The assumption command displays all the federation assumptions in a table format.
 
 Example usage:
-  federate microservice assumption`,
+  federate microservice explain assumption`,
 	Run: func(cmd *cobra.Command, args []string) {
 		displayAssumptions()
 	},

@@ -1,0 +1,95 @@
+target: # 目标系统
+  name: wms-inv-stock-rule
+  parent: com.x.wms:wms-parent:2.3.0-SNAPSHOT
+  mainClass: com.x.wms.federation.MainApp # 启动类
+  springProfile: on-premise
+  dependencies: # 通过插件扩展，结合 componentScan.excludedTypes 实现运行时仲裁
+    - org.apache.dubbo:dubbo-spring-boot-starter:2.7.23
+  componentScan:
+    basePackages:
+      - com.x.wms
+      - io.github.dddplus
+    excludedTypes:
+      - com.x.wms.stock.ApiProviderApplication
+      - com.x.wms.inventory.WebApplication
+      - com.x.wms.stock.datasource.DataSourceConfig
+      - com.x.wms.inventory.datasource.DataSourceConfig
+      - com.x.wms.stock.common.WebMvcConfig
+      - com.x.wms.inventory.intercept.WebMvcConfig
+      - com.x.wms.stock.common.config.SwaggerConfig
+  reconcile: # 资源调和
+    taint: # 污点：无法自动合并，用户提供
+      logConfigXml: logback-test.xml
+      mybatisConfigXml: mybatis-config.xml
+    logger: logback # log4j2
+    excludeClasses:
+    singletonClasses:
+      - com.x.jim.cli.ReloadableJimClientFactoryBean
+      - com.x.wms.common.redis.jimdb.JimdbClient
+      - com.x.wms.common.lock.JimdbLocker
+      - com.x.wms.common.workload.RateLimiterRedis
+      - org.springframework.kafka.core.DefaultKafkaProducerFactory
+    ignoreResources:
+      - "jsf*xml"
+      - "*jmq*"
+    mergeResources:
+      - "*.html"
+      - "*.json"
+
+components:
+  # 微服务构成：库存服务
+  - name: wms-stock
+    springProfile: on-premise
+    dependencies:
+      - com.x.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
+    propertySources:
+      - important.properties
+    resourceBasedirs:
+      - wms-stock-api-provider/src/main/resources
+      - wms-stock-api/src/main/resources
+    importSpringXmls:
+      - kafka/kafka-producer.xml
+      - kafka/kafka-consumer.xml
+      - sequence-bean.xml
+      - dubbo/dubbo-provider.xml
+    dubboConsumerXmls:
+      - wms-stock-api-provider/src/main/resources/dubbo/dubbo-consumer.xml
+    jsfConsumerXmls:
+
+  # 微服务构成：在库作业服务
+  - name: wms-inventory
+    springProfile: on-premise-test
+    dependencies:
+      - com.x.wms:wms-inventory-web:1.0.0-SNAPSHOT
+    propertySources:
+      - important.properties
+    resourceBasedirs:
+      - /wms-inventory-web/src/main/resources
+    importSpringXmls:
+      - kafka/kafka-producer.xml
+      - common/sequence-config.xml
+      - common/spring-bean.xml
+      - config/*.xml
+      - dubbo/dubbo-provider.xml
+    dubboConsumerXmls:
+      - wms-inventory-web/src/main/resources/dubbo/dubbo-consumer.xml
+    jsfConsumerXmls:
+
+  # 微服务构成：规则中心
+  - name: wms-rule
+    springProfile: on-premise-test
+    dependencies:
+      - com.x.wms:wms-rule-web:1.0.0-SNAPSHOT
+    propertySources:
+      - important.properties
+    resourceBasedirs:
+      - /wms-rule-web/src/main/resources
+    importSpringXmls:
+      - kafka/kafka-producer.xml
+      - common/sequence-config.xml
+      - common/spring-bean.xml
+      - config/*.xml
+      - dubbo/dubbo-provider.xml
+    dubboConsumerXmls:
+      - wms-rule-web/src/main/resources/dubbo/dubbo-consumer-bootstrap.xml
+    jsfConsumerXmls:

@@ -12,7 +12,7 @@ var taintCmd = &cobra.Command{
 	Long: `The taint command shows resources that cannot be automatically merged.
 
 Example usage:
-  federate explain taint`,
+  federate microservice explain taint`,
 	Run: func(cmd *cobra.Command, args []string) {
 		showTaint()
 	},
