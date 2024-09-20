@@ -167,14 +167,20 @@ func buildRPM() {
 		}
 	}(tempFiles)
 
-	log.Println("正在构建 Docker 镜像...")
-	dockerBuildCmd := exec.Command("docker", "buildx", "build", "--platform", "linux/amd64", "-f", "Dockerfile.rpmbuilder",
+	log.Printf("正在构建 Docker 镜像: %s ...", dockerImage)
+	dockerBuildCmd := exec.Command("docker", "buildx", "build",
+		"--platform", "linux/amd64",
+		"-f", "Dockerfile.rpmbuilder",
 		"--build-arg", "APP_NAME="+appName,
 		"--build-arg", "APP_SOURCE_PATH="+appSourcePath,
-		"-t", dockerImage, "--load", ".")
+		"-t", dockerImage,
+		"--load", ".")
 	dockerBuildCmd.Stdout = os.Stdout
 	dockerBuildCmd.Stderr = os.Stderr
 	if err := dockerBuildCmd.Run(); err != nil {
+		for _, file := range tempFiles {
+			os.Remove(file)
+		}
 		log.Fatalf("Docker build 失败: %v", err)
 	}
 
