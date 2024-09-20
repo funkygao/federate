@@ -153,17 +153,6 @@ func buildRPM() {
 		"MAIN_MODULE": mainModule,
 	})
 
-	log.Println("正在构建 Docker 镜像...")
-	dockerBuildCmd := exec.Command("docker", "buildx", "build", "--platform", "linux/amd64", "-f", "Dockerfile.rpmbuilder",
-		"--build-arg", "APP_NAME="+appName,
-		"--build-arg", "APP_SOURCE_PATH="+appSourcePath,
-		"-t", dockerImage, "--load", ".")
-	dockerBuildCmd.Stdout = os.Stdout
-	dockerBuildCmd.Stderr = os.Stderr
-	if err := dockerBuildCmd.Run(); err != nil {
-		log.Fatalf("Docker build 失败: %v", err)
-	}
-
 	// Defer removal of temporary files
 	tempFiles := []string{
 		"Dockerfile.rpmbuilder",
@@ -177,6 +166,17 @@ func buildRPM() {
 			os.Remove(file)
 		}
 	}(tempFiles)
+
+	log.Println("正在构建 Docker 镜像...")
+	dockerBuildCmd := exec.Command("docker", "buildx", "build", "--platform", "linux/amd64", "-f", "Dockerfile.rpmbuilder",
+		"--build-arg", "APP_NAME="+appName,
+		"--build-arg", "APP_SOURCE_PATH="+appSourcePath,
+		"-t", dockerImage, "--load", ".")
+	dockerBuildCmd.Stdout = os.Stdout
+	dockerBuildCmd.Stderr = os.Stderr
+	if err := dockerBuildCmd.Run(); err != nil {
+		log.Fatalf("Docker build 失败: %v", err)
+	}
 
 	// 获取当前时间并格式化
 	if rpmRelease == "" {
