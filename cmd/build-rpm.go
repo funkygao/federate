@@ -21,7 +21,7 @@ var (
 	cpuAffinity       string
 	mainModule        string
 	debugImage        bool
-	defaultRpmRelease = time.Now().Format("200601021504")
+	defaultRpmRelease = time.Now().Format("20060102150405")
 	rpmRelease        string
 )
 
