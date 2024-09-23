@@ -27,12 +27,14 @@ var (
 
 var buildRpmCmd = &cobra.Command{
 	Use:   "build-rpm",
-	Short: "Build app into rpm to upload to yum repo",
-	Long: `Build app into rpm to upload to yum repo.
+	Short: "Build app into rpm to upload to yum repo for automatic deployment",
+	Long: `Build app into rpm to upload to yum repo for automatic deployment.
 
 Example Makefile:
+package:
+	@mvn package -U -Dmaven.test.skip=true -T8
 
-build-rpm:
+build-rpm:package
 	@federate image build-rpm --app-name wms-outbound --app-source-path wms-outbound-web/target/wms-outbound-web-1.0.0-SNAPSHOT-package --jvm-size large --main-module com.jdwl.wms.WebApplication --tomcat-port 8098`,
 	Run: func(cmd *cobra.Command, args []string) {
 		buildRPM()
