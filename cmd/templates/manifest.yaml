@@ -67,6 +67,7 @@ components:
       - /wms-inventory-web/src/main/resources
     importSpringXmls:
       - kafka/kafka-producer.xml
+      - kafka/kafka-consumer.xml
       - common/sequence-config.xml
       - common/spring-bean.xml
       - config/*.xml

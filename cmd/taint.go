@@ -19,6 +19,6 @@ Example usage:
 }
 
 func showTaint() {
-	log.Printf("log_config_xml")
-	log.Printf("mybatis_config_xml")
+	log.Printf("target.reconcile.taint.logConfigXml")
+	log.Printf("target.reconcile.taint.mybatisConfigXml")
 }
