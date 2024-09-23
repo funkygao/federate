@@ -18,7 +18,7 @@ type getBeanRisk struct {
 
 func (b *XmlBeanManager) showRisk() {
 	if b.plan.HasConflict() {
-		log.Printf("⚠️  Detecting getBean(name) risks caused by Bean Id Reconcilation ...")
+		log.Printf("Detecting getBean(name) risks caused by Bean Id Reconcilation ...")
 		if err := b.showGetBeanRisk(); err != nil {
 			log.Fatalf("%v", err)
 		}
