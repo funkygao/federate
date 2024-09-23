@@ -33,11 +33,10 @@ var (
 		Long: `The microservice command group manages the lifecycle of microservices, addressing issues of granularity and facilitating consolidation.
 
 Key benefits:
-- Reduced class loading and conversion of RPC calls to JVM method calls
-- More efficient resource utilization and higher deployment density
-- Lower costs and improved performance
-- Enhanced stability and reduced complexity in service chains
-- Simplified service interactions and dependencies
+- Improved performance through reduced class loading and conversion of RPC to JVM calls
+- Enhanced resource efficiency and reduced duplicate resource consumption across services
+- Higher deployment density and lower operational costs
+- Simplified service interactions and reduced complexity in service chains
 
 This approach decouples logical boundaries (code development) from physical boundaries (deployment strategy) of
 microservices, offering greater flexibility in system design and operation.`,
