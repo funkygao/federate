@@ -89,7 +89,7 @@ func init() {
 	log.SetFlags(0) // log.Lshortfile
 
 	// root
-	rootCmd.AddCommand(onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
+	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
 
 	// groups
 	microserviceCmdGroup.AddCommand(mergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
