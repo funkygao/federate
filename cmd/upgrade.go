@@ -89,7 +89,11 @@ func upgradeBinary() {
 		log.Fatalf("Failed to download the latest version: %v", err)
 	}
 
-	binPath := filepath.Join("/usr/local", "bin", "federate")
+	homebrewPrefix := os.Getenv("HOMEBREW_PREFIX")
+	if homebrewPrefix == "" {
+		homebrewPrefix = "/usr/local"
+	}
+	binPath := filepath.Join(homebrewPrefix, "bin", "federate")
 
 	// 替换当前的二进制文件
 	if err := os.Rename(tmpFile.Name(), binPath); err != nil {
