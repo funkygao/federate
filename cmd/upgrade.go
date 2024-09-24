@@ -99,7 +99,12 @@ func upgradeBinary() {
 		log.Fatalf("Failed to replace the binary: %v", err)
 	}
 
-	fmt.Println("Upgrade successful")
+	if err := os.Chmod(binPath, 0755); err != nil {
+		log.Printf("Warning: Failed to set executable permissions: %v", err)
+		log.Println("You may need to manually set the executable permission using 'chmod a+x'")
+	}
+
+	fmt.Println("🍺 Upgrade successful")
 	showVersion()
 }
 
