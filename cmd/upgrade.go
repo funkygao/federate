@@ -10,16 +10,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/spf13/cobra"
 )
 
 const (
-	githubAPIURL = "https://api.github.com/repos/funkygao/federate/releases/latest"
-	cacheDir     = ".federate"
-	cacheFile    = "release_cache.json"
-	etagFile     = "etag"
+	cacheDir  = ".federate"
+	cacheFile = "release_cache.json"
 )
 
 type GithubRelease struct {
@@ -37,7 +34,7 @@ var upgradeCmd = &cobra.Command{
 from the official GitHub repository and replaces the current binary with the new version.
 
 Example usage:
-  federate upgrade`,
+  federate version upgrade`,
 	Run: func(cmd *cobra.Command, args []string) {
 		upgradeBinary()
 	},
@@ -105,70 +102,81 @@ func upgradeBinary() {
 	}
 
 	fmt.Println("🍺 Upgrade successful")
-	showVersion()
 }
 
 func getLatestRelease() (*GithubRelease, error) {
-	client := &http.Client{}
-	req, err := http.NewRequest("GET", githubAPIURL, nil)
-	if err != nil {
-		return nil, err
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
 	}
 
-	req.Header.Add("Authorization", "token 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")
-
-	// 添加条件请求头
-	if etag, err := loadETag(); err == nil {
-		req.Header.Add("If-None-Match", etag)
-	}
-
-	resp, err := client.Do(req)
+	resp, err := client.Get("https://github.com/funkygao/federate/releases/latest")
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == http.StatusNotModified {
-		return loadCachedRelease()
-	}
-
-	if resp.StatusCode == http.StatusForbidden {
-		// 检查是否是因为速率限制
-		if resp.Header.Get("X-RateLimit-Remaining") == "0" {
-			retryAfter, _ := time.Parse(time.RFC1123, resp.Header.Get("X-RateLimit-Reset"))
-			log.Printf("Rate limit exceeded. Retry after %v", retryAfter)
-			time.Sleep(time.Until(retryAfter))
-			return getLatestRelease()
-		}
-	}
-
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != http.StatusFound {
 		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	location := resp.Header.Get("Location")
+	if location == "" {
+		return nil, fmt.Errorf("location header not found")
+	}
+
+	parts := strings.Split(location, "/")
+	if len(parts) == 0 {
+		return nil, fmt.Errorf("invalid location header")
+	}
+
+	tagName := parts[len(parts)-1]
+
+	release := &GithubRelease{
+		TagName: tagName,
+	}
+
+	// 获取资源列表
+	assetsURL := fmt.Sprintf("https://github.com/funkygao/federate/releases/expanded_assets/%s", tagName)
+	assetsResp, err := http.Get(assetsURL)
+	if err != nil {
+		return nil, err
+	}
+	defer assetsResp.Body.Close()
+
+	body, err := io.ReadAll(assetsResp.Body)
 	if err != nil {
 		return nil, err
 	}
 
-	var release GithubRelease
-	if err := json.Unmarshal(body, &release); err != nil {
-		return nil, err
-	}
-
-	// 缓存结果
-	if err := cacheRelease(&release); err != nil {
-		log.Printf("Failed to cache release: %v", err)
-	}
-
-	// 保存 ETag
-	if etag := resp.Header.Get("ETag"); etag != "" {
-		if err := saveETag(etag); err != nil {
-			log.Printf("Failed to save ETag: %v", err)
+	// 解析 HTML 以获取资源列表
+	// 这里需要一个简单的 HTML 解析来提取下载链接
+	// 为了简化，我们可以使用字符串操作来提取链接
+	lines := strings.Split(string(body), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "href") && strings.Contains(line, "download") {
+			parts := strings.Split(line, "href=\"")
+			if len(parts) > 1 {
+				downloadURL := strings.Split(parts[1], "\"")[0]
+				name := filepath.Base(downloadURL)
+				release.Assets = append(release.Assets, struct {
+					Name               string `json:"name"`
+					BrowserDownloadURL string `json:"browser_download_url"`
+				}{
+					Name:               name,
+					BrowserDownloadURL: "https://github.com" + downloadURL,
+				})
+			}
 		}
 	}
 
-	return &release, nil
+	// 缓存结果
+	if err := cacheRelease(release); err != nil {
+		log.Printf("Failed to cache release: %v", err)
+	}
+
+	return release, nil
 }
 
 func cacheRelease(release *GithubRelease) error {
@@ -200,15 +208,6 @@ func getCachePath() string {
 	return filepath.Join(homeDir, cacheDir, cacheFile)
 }
 
-func getETagPath() string {
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		log.Printf("Failed to get home directory: %v", err)
-		return etagFile
-	}
-	return filepath.Join(homeDir, cacheDir, etagFile)
-}
-
 func ensureCacheDir() error {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -216,18 +215,6 @@ func ensureCacheDir() error {
 	}
 	cacheDir := filepath.Join(homeDir, cacheDir)
 	return os.MkdirAll(cacheDir, 0755)
-}
-
-func saveETag(etag string) error {
-	return os.WriteFile(getETagPath(), []byte(etag), 0644)
-}
-
-func loadETag() (string, error) {
-	data, err := os.ReadFile(getETagPath())
-	if err != nil {
-		return "", err
-	}
-	return string(data), nil
 }
 
 func downloadFile(filepath string, url string) error {
