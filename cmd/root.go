@@ -38,8 +38,10 @@ Key benefits:
 - Higher deployment density and lower operational costs
 - Simplified service interactions and reduced complexity in service chains
 
-This approach decouples logical boundaries (code development) from physical boundaries (deployment strategy) of
-microservices, offering greater flexibility in system design and operation.`,
+This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed), offering 
+greater flexibility in system design and operation.
+
+wms-microfusion acts as logical monoliths, offload the decisions of how to distribute and run applications to federate runtime.`,
 	}
 
 	explainCmdGroup = &cobra.Command{
