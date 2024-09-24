@@ -29,6 +29,8 @@ var mergeCmd = &cobra.Command{
 	Short: "Merge resources of components from the manifest file",
 	Long: `The merge command generates merged resource files based on the provided manifest file. 
 
+  See: https://mwhittaker.github.io/publications/service_weaver_HotOS2023.pdf
+
 References:
   git Three-way merge
   GoogleDoc OT(Operational Transform) merge
