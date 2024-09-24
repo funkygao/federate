@@ -1,83 +1,243 @@
 package cmd
 
 import (
-	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
 
 const (
-	codingReleaseBaseUrl = "https://coding.jd.com/webapi/wms-ng/wms-microfusion/files"
-	codingReleaseID      = 18465
+	githubAPIURL = "https://api.github.com/repos/funkygao/federate/releases/latest"
+	cacheDir     = ".federate"
+	cacheFile    = "release_cache.json"
+	etagFile     = "etag"
 )
+
+type GithubRelease struct {
+	TagName string `json:"tag_name"`
+	Assets  []struct {
+		Name               string `json:"name"`
+		BrowserDownloadURL string `json:"browser_download_url"`
+	} `json:"assets"`
+}
 
 var upgradeCmd = &cobra.Command{
 	Use:   "upgrade",
 	Short: "Automatically upgrade the federate tool",
 	Long: `The upgrade command downloads the latest version of the federate tool
-from the official repository and replaces the current binary with the new version.
+from the official GitHub repository and replaces the current binary with the new version.
 
 Example usage:
-  federate version upgrade`,
+  federate upgrade`,
 	Run: func(cmd *cobra.Command, args []string) {
 		upgradeBinary()
 	},
 }
 
 func upgradeBinary() {
+	if err := ensureCacheDir(); err != nil {
+		log.Printf("Warning: Failed to create cache directory: %v", err)
+	}
+
+	// 获取最新的 release 信息
+	release, err := getLatestRelease()
+	if err != nil {
+		log.Printf("Failed to get latest release: %v", err)
+		log.Println("Using cached release information if available")
+		release, err = loadCachedRelease()
+		if err != nil {
+			log.Fatalf("Failed to load cached release: %v", err)
+		}
+	}
+
+	// 确定当前系统架构
 	arch := runtime.GOARCH
 	if arch != "amd64" && arch != "arm64" {
 		log.Fatalf("Unsupported architecture: %s", arch)
 	}
-	url := fmt.Sprintf("%s/%d/federate.%s.%s", codingReleaseBaseUrl, codingReleaseID, runtime.GOOS, arch)
-	log.Printf("Downloading: %s", url)
 
-	// Create a temporary file
+	// 查找匹配的资源文件
+	var downloadURL string
+	for _, asset := range release.Assets {
+		if strings.Contains(asset.Name, "darwin") && strings.Contains(asset.Name, arch) {
+			downloadURL = asset.BrowserDownloadURL
+			break
+		}
+	}
+
+	if downloadURL == "" {
+		log.Fatalf("No matching binary found for %s-%s", runtime.GOOS, arch)
+	}
+
+	log.Printf("Downloading: %s", downloadURL)
+
+	// 创建临时文件
 	tmpFile, err := os.CreateTemp("", "federate-*")
 	if err != nil {
 		log.Fatalf("Failed to create temporary file: %v", err)
 	}
 	defer os.Remove(tmpFile.Name())
 
-	// Download the latest binary
-	cmd := exec.Command("curl", "-s", "-f", "-L", "-o", tmpFile.Name(), url)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
+	// 下载最新的二进制文件
+	if err := downloadFile(tmpFile.Name(), downloadURL); err != nil {
 		log.Fatalf("Failed to download the latest version: %v", err)
 	}
 
-	// Check if the downloaded file is a binary or an HTML page
-	magicNumber := make([]byte, 4)
-	_, err = tmpFile.Read(magicNumber)
-	if err != nil {
-		log.Fatalf("Failed to read the temporary file: %v", err)
-	}
-	if !bytes.Equal(magicNumber, []byte{0xcf, 0xfa, 0xed, 0xfe}) { // Check for Mach-O binary magic number
-		log.Fatalf("Downloaded file is not a valid binary")
-	}
+	binPath := filepath.Join("/usr/local", "bin", "federate")
 
-	// Get the absolute path of the current executable
-	execPath, err := os.Executable()
-	if err != nil {
-		log.Fatalf("Failed to get the executable path: %v", err)
-	}
-	execPath, err = filepath.EvalSymlinks(execPath)
-	if err != nil {
-		log.Fatalf("Failed to resolve symlinks: %v", err)
-	}
-
-	// Replace the current binary
-	if err := os.Rename(tmpFile.Name(), execPath); err != nil {
+	// 替换当前的二进制文件
+	if err := os.Rename(tmpFile.Name(), binPath); err != nil {
 		log.Fatalf("Failed to replace the binary: %v", err)
 	}
 
 	fmt.Println("Upgrade successful")
 	showVersion()
+}
+
+func getLatestRelease() (*GithubRelease, error) {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", githubAPIURL, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Authorization", "token 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")
+
+	// 添加条件请求头
+	if etag, err := loadETag(); err == nil {
+		req.Header.Add("If-None-Match", etag)
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotModified {
+		return loadCachedRelease()
+	}
+
+	if resp.StatusCode == http.StatusForbidden {
+		// 检查是否是因为速率限制
+		if resp.Header.Get("X-RateLimit-Remaining") == "0" {
+			retryAfter, _ := time.Parse(time.RFC1123, resp.Header.Get("X-RateLimit-Reset"))
+			log.Printf("Rate limit exceeded. Retry after %v", retryAfter)
+			time.Sleep(time.Until(retryAfter))
+			return getLatestRelease()
+		}
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var release GithubRelease
+	if err := json.Unmarshal(body, &release); err != nil {
+		return nil, err
+	}
+
+	// 缓存结果
+	if err := cacheRelease(&release); err != nil {
+		log.Printf("Failed to cache release: %v", err)
+	}
+
+	// 保存 ETag
+	if etag := resp.Header.Get("ETag"); etag != "" {
+		if err := saveETag(etag); err != nil {
+			log.Printf("Failed to save ETag: %v", err)
+		}
+	}
+
+	return &release, nil
+}
+
+func cacheRelease(release *GithubRelease) error {
+	data, err := json.Marshal(release)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(getCachePath(), data, 0644)
+}
+
+func loadCachedRelease() (*GithubRelease, error) {
+	data, err := os.ReadFile(getCachePath())
+	if err != nil {
+		return nil, err
+	}
+	var release GithubRelease
+	if err := json.Unmarshal(data, &release); err != nil {
+		return nil, err
+	}
+	return &release, nil
+}
+
+func getCachePath() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Printf("Failed to get home directory: %v", err)
+		return cacheFile
+	}
+	return filepath.Join(homeDir, cacheDir, cacheFile)
+}
+
+func getETagPath() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		log.Printf("Failed to get home directory: %v", err)
+		return etagFile
+	}
+	return filepath.Join(homeDir, cacheDir, etagFile)
+}
+
+func ensureCacheDir() error {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("failed to get home directory: %v", err)
+	}
+	cacheDir := filepath.Join(homeDir, cacheDir)
+	return os.MkdirAll(cacheDir, 0755)
+}
+
+func saveETag(etag string) error {
+	return os.WriteFile(getETagPath(), []byte(etag), 0644)
+}
+
+func loadETag() (string, error) {
+	data, err := os.ReadFile(getETagPath())
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func downloadFile(filepath string, url string) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	out, err := os.Create(filepath)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	return err
 }
