@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"time"
 
+	"federate/internal/fs"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/spf13/cobra"
 )
@@ -142,16 +143,16 @@ func buildRPM() {
 	jmxExporterPort := jmxExporterPortBase + tomcatPort
 
 	// 生成中间文件
-	generateFileFromTmpl("templates/Dockerfile.rpmbuilder", "Dockerfile.rpmbuilder", nil)
-	generateFileFromTmpl("templates/config_rpm.sh", "config_rpm.sh", map[string]string{
+	fs.GenerateFileFromTmpl("templates/Dockerfile.rpmbuilder", "Dockerfile.rpmbuilder", nil)
+	fs.GenerateFileFromTmpl("templates/config_rpm.sh", "config_rpm.sh", map[string]string{
 		"TOMCAT_PORT":       fmt.Sprintf("%d", tomcatPort),
 		"JMX_EXPORTER_PORT": fmt.Sprintf("%d", jmxExporterPort),
 		"JVM_SIZE":          jvmSize,
 		"CPU_AFFINITY":      cpuAffinity,
 	})
-	generateFileFromTmpl("templates/build_rpm.sh", "build_rpm.sh", nil)
-	generateFileFromTmpl("templates/myapp.spec.template", "myapp.spec.template", nil)
-	generateFileFromTmpl("templates/run.sh", "run.sh", map[string]string{
+	fs.GenerateFileFromTmpl("templates/build_rpm.sh", "build_rpm.sh", nil)
+	fs.GenerateFileFromTmpl("templates/myapp.spec.template", "myapp.spec.template", nil)
+	fs.GenerateFileFromTmpl("templates/run.sh", "run.sh", map[string]string{
 		"MAIN_MODULE": mainModule,
 	})
 

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"embed"
 	"log"
 	"os"
 
@@ -12,9 +11,6 @@ import (
 
 var (
 	manifestFile string
-
-	//go:embed templates/*
-	templates embed.FS
 )
 
 var (

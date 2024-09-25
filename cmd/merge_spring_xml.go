@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"federate/internal/fs"
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"github.com/fatih/color"
@@ -17,7 +18,7 @@ func generateSpringBootstrapXML(m *manifest.Manifest) {
 	}
 
 	targetFile := filepath.Join(targetDir, targetSpringXml)
-	generateFileFromTmpl("templates/spring.xml", targetFile, m)
+	fs.GenerateFileFromTmpl("templates/spring.xml", targetFile, m)
 
 	color.Green("🍺 Generated %s", targetFile)
 }

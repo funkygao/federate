@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"federate/internal/fs"
 	"github.com/alecthomas/chroma/formatters"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
@@ -23,7 +24,7 @@ Example usage:
 }
 
 func showManifest() {
-	yaml, _ := templates.ReadFile("templates/manifest.yaml")
+	yaml, _ := fs.FS.ReadFile("templates/manifest.yaml")
 	lexer := lexers.Get("yaml")
 	iterator, err := lexer.Tokenise(nil, string(yaml))
 	if err != nil {

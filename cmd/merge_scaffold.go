@@ -6,9 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"federate/internal/fs"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
-
 	"github.com/fatih/color"
 )
 
@@ -43,7 +43,7 @@ func generatePomFile(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "pom.xml")
-	generateFileFromTmpl("templates/pom.xml", fn, pomData)
+	fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
 	color.Cyan("Generated %s", fn)
 }
 
@@ -54,7 +54,7 @@ func generateMetaInf(m *manifest.Manifest) {
 	}
 
 	fn := filepath.Join(root, "src", "main", "resources", "META-INF", "spring.factories")
-	generateFileFromTmpl("templates/spring.factories", fn, nil)
+	fs.GenerateFileFromTmpl("templates/spring.factories", fn, nil)
 	color.Cyan("Generated %s", fn)
 }
 
@@ -78,7 +78,7 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	}
 	mainClassDir := filepath.Join(root, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	fn := filepath.Join(mainClassDir, className+".java")
-	generateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
+	fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
 	color.Cyan("Generated %s", fn)
 }
 
@@ -101,7 +101,7 @@ func generateMakefile(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "Makefile")
-	generateFileFromTmpl("templates/Makefile", fn, data)
+	fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
 	color.Cyan("Generated %s", fn)
 }
 
@@ -111,7 +111,7 @@ func generatePackageXml(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "src", "main", "assembly", "package.xml")
-	generateFileFromTmpl("templates/package.xml", fn, nil)
+	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil)
 	color.Cyan("Generated %s", fn)
 }
 
