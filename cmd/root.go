@@ -4,6 +4,8 @@ import (
 	"log"
 	"os"
 
+	"federate/cmd/chatgpt"
+	"federate/cmd/merge"
 	"federate/cmd/onpremise"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -46,17 +48,6 @@ wms-microfusion acts as logical monoliths, offload the decisions of how to distr
 		Long:  `The explain command describes microservice fusion key mechanisms`,
 	}
 
-	chatgptCmdGroup = &cobra.Command{
-		Use:   "chatgpt",
-		Short: "Commands for managing chatgpt prompt generation",
-		Long:  `The chatgpt command group provides a set of commands to manage chatgpt prompt generation.`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				promptCmd.Run(cmd, args)
-			}
-		},
-	}
-
 	versionCmdGroup = &cobra.Command{
 		Use:   "version",
 		Short: "Commands for managing version of the federate tool",
@@ -87,11 +78,10 @@ func init() {
 	log.SetFlags(0) // log.Lshortfile
 
 	// root
-	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
+	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgpt.CmdGroup, imageCmdGroup, ygrepCmd)
 
 	// groups
-	microserviceCmdGroup.AddCommand(mergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
-	chatgptCmdGroup.AddCommand(promptCmd, tokensCmd)
+	microserviceCmdGroup.AddCommand(merge.MergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
 	explainCmdGroup.AddCommand(manifestCmd, taintCmd, assumptionCmd)
 	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
 	imageCmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)

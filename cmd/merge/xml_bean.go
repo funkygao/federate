@@ -1,4 +1,4 @@
-package cmd
+package merge
 
 import (
 	"federate/pkg/manifest"
