@@ -3,6 +3,7 @@ package cmd
 import (
 	"sort"
 
+	"federate/internal/fs"
 	"federate/pkg/convention"
 	"federate/pkg/tablerender"
 	"github.com/spf13/cobra"
@@ -21,7 +22,7 @@ Example usage:
 }
 
 func displayAssumptions() {
-	allAssumptions := convention.GetAll(templates, "templates/assumptions.yml")
+	allAssumptions := convention.GetAll(fs.FS, "templates/assumptions.yml")
 	kinds := allAssumptions.Kinds()
 
 	// Collect all assumptions into a slice for sorting

@@ -1,4 +1,4 @@
-package cmd
+package merge
 
 import (
 	"bufio"
@@ -18,16 +18,19 @@ const (
 )
 
 var (
+	manifestFile             string
 	yamlConflictCellMaxWidth int
 	dryRunMerge              bool
 	autoYes                  bool
 	showReport               bool
 )
 
-var mergeCmd = &cobra.Command{
+var MergeCmd = &cobra.Command{
 	Use:   "merge",
 	Short: "Merge resources of components from the manifest file",
 	Long: `The merge command generates merged resource files based on the provided manifest file. 
+
+  See: https://mwhittaker.github.io/publications/service_weaver_HotOS2023.pdf
 
 References:
   git Three-way merge
@@ -115,9 +118,10 @@ func promptToProceed(seq, total int, step string) {
 }
 
 func init() {
-	addRequiredInputFlag(mergeCmd)
-	mergeCmd.Flags().BoolVarP(&showReport, "report", "r", false, "Show the merge report")
-	mergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
-	mergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
-	mergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
+	MergeCmd.Flags().StringVarP(&manifestFile, "input", "i", "", "Path to the manifest file")
+	MergeCmd.MarkFlagRequired("input")
+	MergeCmd.Flags().BoolVarP(&showReport, "report", "r", false, "Show the merge report")
+	MergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
+	MergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
+	MergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
 }

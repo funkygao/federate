@@ -1,4 +1,4 @@
-package cmd
+package chatgpt
 
 import (
 	"federate/pkg/prompt"

@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"embed"
 	"log"
 	"os"
 
+	"federate/cmd/chatgpt"
+	"federate/cmd/merge"
 	"federate/cmd/onpremise"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -12,9 +13,6 @@ import (
 
 var (
 	manifestFile string
-
-	//go:embed templates/*
-	templates embed.FS
 )
 
 var (
@@ -38,25 +36,16 @@ Key benefits:
 - Higher deployment density and lower operational costs
 - Simplified service interactions and reduced complexity in service chains
 
-This approach decouples logical boundaries (code development) from physical boundaries (deployment strategy) of
-microservices, offering greater flexibility in system design and operation.`,
+This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed), offering 
+greater flexibility in system design and operation.
+
+wms-microfusion acts as logical monoliths, offload the decisions of how to distribute and run applications to federate runtime.`,
 	}
 
 	explainCmdGroup = &cobra.Command{
 		Use:   "explain",
 		Short: "Describes microservice fusion key mechanisms",
 		Long:  `The explain command describes microservice fusion key mechanisms`,
-	}
-
-	chatgptCmdGroup = &cobra.Command{
-		Use:   "chatgpt",
-		Short: "Commands for managing chatgpt prompt generation",
-		Long:  `The chatgpt command group provides a set of commands to manage chatgpt prompt generation.`,
-		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				promptCmd.Run(cmd, args)
-			}
-		},
 	}
 
 	versionCmdGroup = &cobra.Command{
@@ -89,11 +78,10 @@ func init() {
 	log.SetFlags(0) // log.Lshortfile
 
 	// root
-	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgptCmdGroup, imageCmdGroup, ygrepCmd)
+	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgpt.CmdGroup, imageCmdGroup, ygrepCmd)
 
 	// groups
-	microserviceCmdGroup.AddCommand(mergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
-	chatgptCmdGroup.AddCommand(promptCmd, tokensCmd)
+	microserviceCmdGroup.AddCommand(merge.MergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
 	explainCmdGroup.AddCommand(manifestCmd, taintCmd, assumptionCmd)
 	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
 	imageCmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)

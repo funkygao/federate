@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"time"
 
+	"federate/internal/fs"
 	"github.com/spf13/cobra"
 )
 
@@ -32,10 +33,10 @@ func buildDockerImage() {
 	startTime := time.Now()
 
 	// 生成中间文件
-	generateFileFromTmpl("templates/Dockerfile.jdcloud", ".Dockerfile", map[string]string{
+	fs.GenerateFileFromTmpl("templates/Dockerfile.jdcloud", ".Dockerfile", map[string]string{
 		"APP_SOURCE_PATH": appSourcePath,
 	})
-	generateFileFromTmpl("templates/docker-deploy.sh", ".docker-deploy.sh", map[string]string{
+	fs.GenerateFileFromTmpl("templates/docker-deploy.sh", ".docker-deploy.sh", map[string]string{
 		"PROFILE":    profile,
 		"IMAGE_REPO": appName,
 	})

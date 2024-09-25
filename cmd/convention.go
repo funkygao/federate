@@ -3,6 +3,7 @@ package cmd
 import (
 	"sort"
 
+	"federate/internal/fs"
 	"federate/pkg/convention"
 	"federate/pkg/tablerender"
 	"github.com/fatih/color"
@@ -23,7 +24,7 @@ Example usage:
 }
 
 func displayConventions() {
-	allConventions := convention.GetAll(templates, "templates/conventions.yml")
+	allConventions := convention.GetAll(fs.FS, "templates/conventions.yml")
 	kinds := allConventions.Kinds()
 
 	if len(kinds) == 0 {

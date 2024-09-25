@@ -19,6 +19,8 @@ Example usage:
 }
 
 func showTaint() {
-	log.Printf("target.reconcile.taint.logConfigXml")
-	log.Printf("target.reconcile.taint.mybatisConfigXml")
+	log.Printf("taint: borrowed from Kubernetes")
+	log.Printf("In federate, it means unreconcilable resources:")
+	log.Printf("  target.reconcile.taint.logConfigXml")
+	log.Printf("  target.reconcile.taint.mybatisConfigXml")
 }
