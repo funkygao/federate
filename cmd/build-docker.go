@@ -14,11 +14,11 @@ var profile string
 
 var buildDockerCmd = &cobra.Command{
 	Use:   "build-docker",
-	Short: "Build app into docker image to push to jdcloud image registry",
-	Long: `Build app into docker image to push to jdcloud image registry.
+	Short: "Build app into Docker image to push to jdcloud image registry",
+	Long: `Build app into Docker image to push to jdcloud image registry.
 
 Example usage:
-  federate build-docker --image-repo wms-outbound --app-source-path wms-outbound-web-1.0.0-SNAPSHOT-package`,
+  federate image build-docker --image-repo wms-outbound --app-source-path wms-outbound-web-1.0.0-SNAPSHOT-package`,
 	Run: func(cmd *cobra.Command, args []string) {
 		buildDockerImage()
 	},

@@ -28,8 +28,8 @@ var (
 
 var buildRpmCmd = &cobra.Command{
 	Use:   "build-rpm",
-	Short: "Build app into rpm to upload to yum repo for automatic deployment",
-	Long: `Build app into rpm to upload to yum repo for automatic deployment.
+	Short: "Build app into RPM to upload to yum repo for automatic deployment",
+	Long: `Build app into RPM to upload to yum repo for automatic deployment.
 
 Example Makefile:
 package:
