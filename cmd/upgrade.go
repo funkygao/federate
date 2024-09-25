@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 )
@@ -41,6 +42,8 @@ Example usage:
 }
 
 func upgradeBinary() {
+	t0 := time.Now()
+
 	if err := ensureCacheDir(); err != nil {
 		log.Printf("Warning: Failed to create cache directory: %v", err)
 	}
@@ -48,12 +51,13 @@ func upgradeBinary() {
 	// 获取最新的 release 信息
 	release, err := getLatestRelease()
 	if err != nil {
-		log.Printf("Failed to get latest release: %v", err)
-		log.Println("Using cached release information if available")
-		release, err = loadCachedRelease()
-		if err != nil {
-			log.Fatalf("Failed to load cached release: %v", err)
-		}
+		log.Fatalf("Failed to get latest release: %v", err)
+	}
+
+	cachedRelease, err := loadCachedRelease()
+	if err == nil && release.TagName <= cachedRelease.TagName {
+		log.Println("Already lastest stable version")
+		return
 	}
 
 	// 确定当前系统架构
@@ -94,6 +98,7 @@ func upgradeBinary() {
 		homebrewPrefix = "/usr/local"
 	}
 	binPath := filepath.Join(homebrewPrefix, "bin", "federate")
+	log.Printf("Installing to %s", binPath)
 
 	// 替换当前的二进制文件
 	if err := os.Rename(tmpFile.Name(), binPath); err != nil {
@@ -105,7 +110,10 @@ func upgradeBinary() {
 		log.Println("You may need to manually set the executable permission using 'chmod a+x'")
 	}
 
-	fmt.Println("🍺 Upgrade successful")
+	// 缓存结果
+	cacheRelease(release)
+
+	fmt.Printf("🍺 Upgrade successful, cost: %s\n", time.Since(t0))
 }
 
 func getLatestRelease() (*GithubRelease, error) {
@@ -173,11 +181,6 @@ func getLatestRelease() (*GithubRelease, error) {
 				})
 			}
 		}
-	}
-
-	// 缓存结果
-	if err := cacheRelease(release); err != nil {
-		log.Printf("Failed to cache release: %v", err)
 	}
 
 	return release, nil
