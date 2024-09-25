@@ -20,6 +20,8 @@ const (
 	cacheFile = "release_cache.json"
 )
 
+var forceUpgrade bool
+
 type GithubRelease struct {
 	TagName string `json:"tag_name"`
 	Assets  []struct {
@@ -54,10 +56,12 @@ func upgradeBinary() {
 		log.Fatalf("Failed to get latest release: %v", err)
 	}
 
-	cachedRelease, err := loadCachedRelease()
-	if err == nil && release.TagName <= cachedRelease.TagName {
-		log.Println("Already lastest stable version")
-		return
+	if !forceUpgrade {
+		cachedRelease, err := loadCachedRelease()
+		if err == nil && release.TagName <= cachedRelease.TagName {
+			log.Println("Already lastest stable version")
+			return
+		}
 	}
 
 	// 确定当前系统架构
@@ -239,4 +243,8 @@ func downloadFile(filepath string, url string) error {
 
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+func init() {
+	upgradeCmd.Flags().BoolVarP(&forceUpgrade, "force", "f", false, "Force upgrade")
 }
