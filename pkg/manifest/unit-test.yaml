@@ -1,6 +1,7 @@
 target:
   name: demo-starter
-  mainClass: com.jdwl.wms.DemoDeepFusionApplication
+  mainClass:
+    name: com.jdwl.wms.DemoDeepFusionApplication
   features:
     - spring-configsec-sdk
     - redis

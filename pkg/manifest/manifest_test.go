@@ -88,7 +88,9 @@ func TestLoadManifest(t *testing.T) {
 func TestParseMainClass(t *testing.T) {
 	manifest := &Manifest{
 		Main: MainSystem{
-			MainClass: "com.example.MainClass",
+			MainClass: MainClass{
+				Name: "com.example.MainClass",
+			},
 		},
 	}
 
@@ -166,7 +168,9 @@ func TestHasFeature(t *testing.T) {
 
 func TestGroupId(t *testing.T) {
 	main := MainSystem{
-		MainClass: "com.jdl.wms.ob.Foo",
+		MainClass: MainClass{
+			Name: "com.jdl.wms.ob.Foo",
+		},
 	}
 	assert.Equal(t, "com.jdl.wms", main.GroupId())
 }

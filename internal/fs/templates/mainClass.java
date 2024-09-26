@@ -9,16 +9,29 @@ import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+/**
+ * Main entry point.
+ */
+@SpringBootApplication(exclude = {DataSourceAutoConfiguration.class})
 @PropertySources(value = {
         @PropertySource(value = {"/federated/federated.properties"}, encoding = "utf-8"),
         @PropertySource(value = {"/federated/application.yml"}, encoding = "utf-8"),
 })
 @ImportResource(locations = {"/federated/spring.xml"})
 @Import({
-    {{- range $index, $import := .Imports}}
-        {{if $index}}, {{end}}{{$import}}.class
+    {{- range .Imports}}
+        {{.}}.class,
     {{- end}}
 })
+@ComponentScan(
+        basePackages = {
+        {{- range .BasePackages}}
+            "{{.}}",
+        {{- end}}
+        },
+        nameGenerator = FederatedAnnotationBeanNameGenerator.class,
+        excludeFilters = @ComponentScan.Filter(type = FilterType.CUSTOM, classes = FederatedExcludedTypeFilter.class)
+)
 @EnableAspectJAutoProxy(exposeProxy = true, proxyTargetClass = true)
 @EnableTransactionManagement
 @EnableAsync

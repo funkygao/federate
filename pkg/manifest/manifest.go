@@ -21,7 +21,7 @@ type Manifest struct {
 }
 
 func (m *Manifest) ParseMainClass() (string, string) {
-	parts := strings.Split(m.Main.MainClass, ".")
+	parts := strings.Split(m.Main.MainClass.Name, ".")
 	packageName := strings.Join(parts[:len(parts)-1], ".")
 	className := parts[len(parts)-1]
 	return packageName, className
@@ -141,11 +141,12 @@ func (s *IntermediateState) isMergeSource(file string, component ComponentInfo) 
 
 type MainSystem struct {
 	Name          string `yaml:"name"`
-	MainClass     string `yaml:"mainClass"`
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
-	TomcatPort    int16  `yaml:"tomcatPort"`
-	JvmSize       string `yaml:"jvmSize"`
+
+	TomcatPort int16     `yaml:"tomcatPort"`
+	JvmSize    string    `yaml:"jvmSize"`
+	MainClass  MainClass `yaml:"mainClass"`
 
 	RawParent string         `yaml:"parent"`
 	Parent    DependencyInfo `yaml:"-"`
@@ -153,15 +154,20 @@ type MainSystem struct {
 	RawDependencies []string         `yaml:"dependencies"`
 	Dependencies    []DependencyInfo `yaml:"-"`
 
-	ComponentScan ComponentScan `yaml:"componentScan"`
-	Reconcile     ReconcileSpec `yaml:"reconcile"`
-	Imports       []string      `yaml:"import"`
+	Reconcile ReconcileSpec `yaml:"reconcile"`
 
+	// Deprecated
 	Features []string `yaml:"features"`
 }
 
+type MainClass struct {
+	Name          string        `yaml:"name"`
+	ComponentScan ComponentScan `yaml:"componentScan"`
+	Imports       []string      `yaml:"import"`
+}
+
 func (m *MainSystem) GroupId() string {
-	parts := strings.Split(m.MainClass, ".")
+	parts := strings.Split(m.MainClass.Name, ".")
 	return strings.Join(parts[:3], ".")
 }
 

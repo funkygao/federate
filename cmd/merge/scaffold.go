@@ -70,9 +70,9 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 		Package:       packageName,
 		ClassName:     className,
 		Profile:       m.Main.SpringProfile,
-		BasePackages:  m.Main.ComponentScan.BasePackages,
-		ExcludedTypes: m.Main.ComponentScan.ExcludedTypes,
-		Imports:       m.Main.Imports,
+		BasePackages:  m.Main.MainClass.ComponentScan.BasePackages,
+		ExcludedTypes: m.Main.MainClass.ComponentScan.ExcludedTypes,
+		Imports:       m.Main.MainClass.Imports,
 	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {
@@ -95,7 +95,7 @@ func generateMakefile(m *manifest.Manifest) {
 		AppName:    m.Main.Name,
 		AppSrc:     fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
 		JvmSize:    m.Main.JvmSize,
-		ClassName:  m.Main.MainClass,
+		ClassName:  m.Main.MainClass.Name,
 		TomcatPort: m.Main.TomcatPort,
 	}
 	root, err := m.CreateTargetSystemDir()
