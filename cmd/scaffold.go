@@ -31,10 +31,12 @@ Example usage:
 
 func scaffoldProject(m *manifest.Manifest) {
 	generatePomFile(m)
+	generateMakefile(m)
+	color.Green("🍺 Starter scaffold generated for federated system: %s", m.Main.Name)
 }
 
 func generatePomFile(m *manifest.Manifest) {
-	pomData := struct {
+	data := struct {
 		Name                  string
 		ComponentDependencies []manifest.DependencyInfo
 	}{
@@ -42,7 +44,18 @@ func generatePomFile(m *manifest.Manifest) {
 		ComponentDependencies: m.ComponentDependencies(),
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
-	fs.GenerateFileFromTmpl("templates/starter.pom.xml", fn, pomData)
+	fs.GenerateFileFromTmpl("templates/starter.pom.xml", fn, data)
+	color.Cyan("Generated %s", fn)
+}
+
+func generateMakefile(m *manifest.Manifest) {
+	data := struct {
+		AppName string
+	}{
+		AppName: m.Main.Name,
+	}
+	fn := filepath.Join(m.Dir, "Makefile")
+	fs.GenerateFileFromTmpl("templates/starter.Makefile", fn, data)
 	color.Cyan("Generated %s", fn)
 }
 
