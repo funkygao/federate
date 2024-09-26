@@ -11,10 +11,7 @@ help: ## Display this help.
 clean:
 	@mvn clean
 
-install-federate-starter:
-	@(cd ../../projects/{{.AppName}} && mvn install -U -Dmaven.test.skip=true -T8)
-
-package:clean install-federate-starter ## Compile and package {{.AppName}}.
+package:clean ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8
 
 run: ## Bootstrap {{.AppName}} from your host.
