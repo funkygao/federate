@@ -34,12 +34,12 @@
     </dependencies>
 
     <build>
+        <finalName>{{.ArtifactId}}-${project.version}</finalName>
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
             </resource>
         </resources>
-        <finalName>{{.ArtifactId}}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
