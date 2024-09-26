@@ -59,7 +59,7 @@ func upgradeBinary() {
 	if !forceUpgrade {
 		cachedRelease, err := loadCachedRelease()
 		if err == nil && release.TagName <= cachedRelease.TagName {
-			log.Println("Already lastest stable version")
+			log.Println("Already lastest stable version.")
 			return
 		}
 	}
