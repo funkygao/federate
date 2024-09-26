@@ -65,12 +65,14 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 		Profile       string
 		BasePackages  []string
 		ExcludedTypes []string
+		Imports       []string
 	}{
 		Package:       packageName,
 		ClassName:     className,
 		Profile:       m.Main.SpringProfile,
 		BasePackages:  m.Main.ComponentScan.BasePackages,
 		ExcludedTypes: m.Main.ComponentScan.ExcludedTypes,
+		Imports:       m.Main.Imports,
 	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {

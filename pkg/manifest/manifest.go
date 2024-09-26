@@ -155,6 +155,7 @@ type MainSystem struct {
 
 	ComponentScan ComponentScan `yaml:"componentScan"`
 	Reconcile     ReconcileSpec `yaml:"reconcile"`
+	Imports       []string      `yaml:"import"`
 
 	Features []string `yaml:"features"`
 }

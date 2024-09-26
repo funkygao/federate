@@ -17,6 +17,12 @@ target: # 目标系统
       - com.x.wms.stock.common.WebMvcConfig
       - com.x.wms.inventory.intercept.WebMvcConfig
       - com.x.wms.stock.common.config.SwaggerConfig
+    import:
+      - com.jdwl.wms.demo.DataSource
+      - com.jdwl.wms.demo.WebInterceptor
+      - com.jdwl.wms.cache.WmsCacheConfiguration
+      - com.jdwl.wms.common.web.XssAutoConfiguration
+      - com.jd.security.configsec.spring.config.JDSecurityPropertyCleanService
   reconcile: # 资源调谐
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml

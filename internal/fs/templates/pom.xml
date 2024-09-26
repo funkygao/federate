@@ -14,13 +14,6 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <dependencies>
-        <!-- common -->
-        <dependency>
-            <groupId>com.jdwl.wms</groupId>
-            <artifactId>wms-common-federation</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- main -->
         {{- range .MainDependencies }}
         <dependency>
@@ -30,14 +23,12 @@
         </dependency>
         {{- end }}
 
-        <!-- components -->
-        {{- range .ComponentDependencies }}
+        <!-- project federate starter -->
         <dependency>
             <groupId>{{.GroupId}}</groupId>
-            <artifactId>{{.ArtifactId}}</artifactId>
-            <version>{{.Version}}</version>
+            <artifactId>{{.ArtifactId}}-federate-starter</artifactId>
+            <version>${project.version}</version>
         </dependency>
-        {{- end }}
     </dependencies>
 
     <build>

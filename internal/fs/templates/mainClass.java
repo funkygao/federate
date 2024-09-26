@@ -14,6 +14,11 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
         @PropertySource(value = {"/federated/application.yml"}, encoding = "utf-8"),
 })
 @ImportResource(locations = {"/federated/spring.xml"})
+@Import({
+    {{- range $index, $import := .Imports}}
+        {{if $index}}, {{end}}{{$import}}.class
+    {{- end}}
+})
 @EnableAspectJAutoProxy(exposeProxy = true, proxyTargetClass = true)
 @EnableTransactionManagement
 @EnableAsync
