@@ -4,15 +4,15 @@
 ##@ General
 
 help: ## Display this help.
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-28s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Build
 
 clean:
 	@mvn clean
 
-install-federate-starter: ## Local install {{.AppName}}'s federate starter dependency.
-	@(cd ../../deployments/{{.AppName}} && mvn install -U -Dmaven.test.skip=true -T8)
+install-federate-starter:
+	@(cd ../../projects/{{.AppName}} && mvn install -U -Dmaven.test.skip=true -T8)
 
 package:clean install-federate-starter ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8

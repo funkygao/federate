@@ -135,7 +135,7 @@ func generateStartStopScripts(m *manifest.Manifest) {
 	fs.GenerateExecutableFileFromTmpl("templates/start.sh", start, data)
 	stop := filepath.Join(root, "src", "main", "assembly", "bin", "stop.sh")
 	fs.GenerateExecutableFileFromTmpl("templates/stop.sh", stop, data)
-	color.Cyan("Generated %s, %s", start, stop)
+	color.Cyan("Generated %s, %s", start, filepath.Base(stop))
 }
 
 func copyTaint(m *manifest.Manifest) {
