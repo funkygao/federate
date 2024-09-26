@@ -1,7 +1,7 @@
 package tablerender
 
 import (
-	"os"
+	"log"
 	"sort"
 
 	"github.com/olekukonko/tablewriter"
@@ -22,7 +22,7 @@ func DisplayTable(header []string, data [][]string, autoMergeCells bool, sortByC
 		})
 	}
 
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(log.Default().Writer())
 	table.SetAlignment(tablewriter.ALIGN_LEFT)
 	table.SetAutoMergeCells(autoMergeCells)
 	table.SetAutoWrapText(false)
