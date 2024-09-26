@@ -3,6 +3,7 @@ package merge
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -23,6 +24,7 @@ var (
 	dryRunMerge              bool
 	autoYes                  bool
 	showReport               bool
+	silentMode               bool
 )
 
 var MergeCmd = &cobra.Command{
@@ -45,6 +47,10 @@ Example usage:
 }
 
 func mergeResources(m *manifest.Manifest) {
+	if silentMode {
+		log.SetOutput(io.Discard)
+	}
+
 	propertySourcesManager := merge.NewPropertySourcesManager()
 	rpcConsumerManager := merge.NewRpcConsumerManager()
 	xmlBeanManager := merge.NewXmlBeanManager(m)
@@ -117,6 +123,7 @@ func init() {
 	MergeCmd.MarkFlagRequired("input")
 	MergeCmd.Flags().BoolVarP(&showReport, "report", "r", false, "Show the merge report")
 	MergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
+	MergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
 	MergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
 	MergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
 }
