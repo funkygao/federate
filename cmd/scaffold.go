@@ -3,6 +3,7 @@ package cmd
 import (
 	"log"
 	"path/filepath"
+	"strings"
 
 	"federate/internal/fs"
 	"federate/pkg/manifest"
@@ -32,7 +33,8 @@ Example usage:
 func scaffoldProject(m *manifest.Manifest) {
 	generatePomFile(m)
 	generateMakefile(m)
-	color.Green("🍺 Starter scaffold generated for federated system: %s", m.Main.Name)
+	generateFederateRuntimeJavaClasses(m)
+	color.Green("🍺 Starter scaffold generated for target: %s", m.Main.Name)
 }
 
 func generatePomFile(m *manifest.Manifest) {
@@ -57,6 +59,35 @@ func generateMakefile(m *manifest.Manifest) {
 	fn := filepath.Join(m.Dir, "Makefile")
 	fs.GenerateFileFromTmpl("templates/starter.Makefile", fn, data)
 	color.Cyan("Generated %s", fn)
+}
+
+func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
+	runtimeClasses := []string{
+		"FederatedAnnotationBeanNameGenerator",
+		"FederatedApplicationContextInitializer",
+		"FederatedBeanDefinitionConflictProcessor",
+		"FederatedDefaultBeanNameGenerator",
+		"FederatedEnvironmentPostProcessor",
+		"FederatedExcludedTypeFilter",
+		"FederatedResourceLoader",
+	}
+
+	for _, cls := range runtimeClasses {
+		generateJava(m, cls)
+	}
+}
+
+func generateJava(m *manifest.Manifest, simpleClassName string) {
+	packageName := m.Main.FederatedRuntimePackage()
+	data := struct {
+		Package string
+	}{
+		Package: packageName,
+	}
+	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
+	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")
+	fs.GenerateFileFromTmpl("templates/"+simpleClassName+".java", javaFile, data)
+	color.Cyan("Generated %s", javaFile)
 }
 
 func init() {

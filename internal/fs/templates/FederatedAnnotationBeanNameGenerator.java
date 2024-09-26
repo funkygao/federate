@@ -1,0 +1,72 @@
+package {{.Package}};
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.context.annotation.AnnotationBeanNameGenerator;
+import org.springframework.context.annotation.ScannedGenericBeanDefinition;
+import org.springframework.util.StringUtils;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+/**
+ * 用于基于注解的配置，例如使用 @Component, @Service, @Repository, @Controller 等注解的类.
+ * DAO的bean生成.
+ *
+ * TODO 与 {@link FederatedDefaultBeanNameGenerator} 合并.
+ *
+ * <p>Spring boot默认使用{@link AnnotationBeanNameGenerator}</p>
+ */
+@Slf4j
+public class FederatedAnnotationBeanNameGenerator extends AnnotationBeanNameGenerator {
+    private static final Map<String, AtomicInteger> beanNameCount = new ConcurrentHashMap<>();
+
+    /**
+     * @param definition {@link ScannedGenericBeanDefinition}
+     * @param registry   {@link DefaultListableBeanFactory}
+     */
+    @Override
+    public String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry) {
+        if (!(definition instanceof AnnotatedBeanDefinition)) {
+            throw new RuntimeException("Unexpected " + definition.getClass().getSimpleName());
+        }
+
+        final String fqcnBeanName = definition.getBeanClassName();
+        // 检查 @Bean/@Service/@Component/Dao/... 注解中的 value 属性，并返回这个值作为 bean 名称
+        String beanName = super.determineBeanNameFromAnnotation((AnnotatedBeanDefinition) definition);
+        if (StringUtils.hasText(beanName)) {
+            log.trace("ignores {} explicit bean name: {}", fqcnBeanName, beanName);
+            beanName = generateUniqueBeanName(beanName); // 生成唯一的 bean 名称
+        }
+
+        beanName = super.generateBeanName(definition, registry);
+        if (registry.containsBeanDefinition(beanName)) {
+            beanName = generateUniqueBeanName(fqcnBeanName); // 生成唯一的 bean 名称
+        }
+
+        log.trace("{} {}", fqcnBeanName, beanName);
+        return beanName;
+    }
+
+    private String generateUniqueBeanName(String beanName) {
+        AtomicInteger count = beanNameCount.computeIfAbsent(beanName, k -> new AtomicInteger(0));
+        if (count.get() == 0) {
+            count.incrementAndGet();
+            return beanName;
+        } else {
+            String uniqueBeanName;
+            synchronized (beanNameCount) {
+                do {
+                    uniqueBeanName = beanName + "#" + count.getAndIncrement();
+                } while (beanNameCount.containsKey(uniqueBeanName));
+                beanNameCount.put(uniqueBeanName, new AtomicInteger(1)); // 确保新生成的名称被记录
+            }
+            return uniqueBeanName;
+        }
+    }
+}
+

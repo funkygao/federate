@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"federate/pkg/federated"
+	"federate/pkg/java"
 	"federate/pkg/util"
 )
 
@@ -169,6 +170,10 @@ type MainClass struct {
 func (m *MainSystem) GroupId() string {
 	parts := strings.Split(m.MainClass.Name, ".")
 	return strings.Join(parts[:3], ".")
+}
+
+func (m *MainSystem) FederatedRuntimePackage() string {
+	return java.ClassPackageName(m.MainClass.Name) + ".runtime.core"
 }
 
 func (m *MainSystem) HasFeature(feature string) bool {

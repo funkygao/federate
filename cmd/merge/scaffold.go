@@ -54,26 +54,33 @@ func generateMetaInf(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 
+	data := struct {
+		FederatedRuntimePackage string
+	}{
+		FederatedRuntimePackage: m.Main.FederatedRuntimePackage(),
+	}
 	fn := filepath.Join(root, "src", "main", "resources", "META-INF", "spring.factories")
-	fs.GenerateFileFromTmpl("templates/spring.factories", fn, nil)
+	fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
 	color.Cyan("Generated %s", fn)
 }
 
 func generateMainClassFile(packageName, className string, m *manifest.Manifest) {
 	mainClassData := struct {
-		Package       string
-		ClassName     string
-		Profile       string
-		BasePackages  []string
-		ExcludedTypes []string
-		Imports       []string
+		Package                 string
+		ClassName               string
+		FederatedRuntimePackage string
+		Profile                 string
+		BasePackages            []string
+		ExcludedTypes           []string
+		Imports                 []string
 	}{
-		Package:       packageName,
-		ClassName:     className,
-		Profile:       m.Main.SpringProfile,
-		BasePackages:  m.Main.MainClass.ComponentScan.BasePackages,
-		ExcludedTypes: m.Main.MainClass.ComponentScan.ExcludedTypes,
-		Imports:       m.Main.MainClass.Imports,
+		Package:                 packageName,
+		ClassName:               className,
+		Profile:                 m.Main.SpringProfile,
+		FederatedRuntimePackage: m.Main.FederatedRuntimePackage(),
+		BasePackages:            m.Main.MainClass.ComponentScan.BasePackages,
+		ExcludedTypes:           m.Main.MainClass.ComponentScan.ExcludedTypes,
+		Imports:                 m.Main.MainClass.Imports,
 	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {

@@ -12,6 +12,10 @@ func TestClassSimpleName(t *testing.T) {
 	assert.Equal(t, "Foo", ClassSimpleName("com.jdl.wms.Foo"))
 }
 
+func TestClassPackageName(t *testing.T) {
+	assert.Equal(t, "com.jdl.wms", ClassPackageName("com.jdl.wms.Foo"))
+}
+
 func TestIsResourceFile(t *testing.T) {
 	tests := []struct {
 		path     string

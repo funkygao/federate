@@ -1,0 +1,36 @@
+package {{.Package}};
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.DefaultBeanNameGenerator;
+import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+
+/**
+ * 用于 XML 配置(未指定bean id)或其他非注解的配置方式.
+ *
+ * <ul>这包括：
+ * <li>Java配置类中的@Bean方法</li>
+ * <li>使用Spring的 BeanDefinition API 手动注册bean</li>
+ * <li>使用Spring的 ApplicationContext API 手动注册bean</li>
+ * </ul>
+ *
+ * <p>Spring boot默认使用{@link DefaultBeanNameGenerator}</p>
+ */
+@Slf4j
+public class FederatedDefaultBeanNameGenerator extends DefaultBeanNameGenerator {
+
+    /**
+     * 使用注解配置（例如 @Configuration、@Bean 等）来定义 Bean 时，Spring 会使用 {@link AnnotatedGenericBeanDefinition} 来表示这些 Bean
+     *
+     * @param definition {@link AnnotatedGenericBeanDefinition}
+     * @param registry {@link DefaultListableBeanFactory}
+     */
+    @Override
+    public String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry) {
+        final String beanName = super.generateBeanName(definition, registry);
+        log.debug("{} {}", beanName, definition.getClass().getSimpleName());
+        return beanName;
+    }
+}

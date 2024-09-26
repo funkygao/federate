@@ -25,6 +25,11 @@ func ClassSimpleName(classFullName string) string {
 	return parts[len(parts)-1]
 }
 
+func ClassPackageName(classFullName string) string {
+	parts := strings.Split(classFullName, ".")
+	return strings.Join(parts[:len(parts)-1], ".")
+}
+
 func IsJavaMainSource(info os.FileInfo, path string) bool {
 	return !info.IsDir() &&
 		!strings.HasSuffix(info.Name(), "package-info") &&

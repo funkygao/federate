@@ -1,6 +1,6 @@
 package {{.Package}};
 
-import com.jdwl.wms.common.federation.*;
+import {{.FederatedRuntimePackage}}.*;
 import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;

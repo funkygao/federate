@@ -10,3 +10,6 @@ help: ## Display this help.
 
 install: ## Compile and install {{.AppName}}-federate-starter.jar on your host.
 	@mvn clean install -U -Dmaven.test.skip=true -T8
+
+clean: ## Clean
+	@mvn clean
