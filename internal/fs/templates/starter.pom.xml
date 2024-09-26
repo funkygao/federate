@@ -9,6 +9,8 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>{{.Name}}-federate-starter</artifactId>
+    <name>{{.Name}} :: FederateStarter</name>
+    <description>{{.Name}} 的手工编排包：数据源配置，WebInterceptor等，需要在该包里提供</description>
 
     <dependencies>
         <dependency>

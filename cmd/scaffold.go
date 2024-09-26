@@ -2,7 +2,11 @@ package cmd
 
 import (
 	"log"
+	"path/filepath"
 
+	"federate/internal/fs"
+	"federate/pkg/manifest"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -14,18 +18,34 @@ var scaffoldCmd = &cobra.Command{
 	Long: `The create command scaffolds a new federated target system.
 
 Example usage:
-  federate microservice create --name foo`,
+  federate microservice create -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		scaffoldProject()
+		m, err := manifest.LoadManifest(manifestFile)
+		if err != nil {
+			log.Fatalf("Error loading manifest: %v", err)
+		}
+
+		scaffoldProject(m)
 	},
 }
 
-func scaffoldProject() {
-	if projectName == "" {
-		log.Fatalf("--name is required")
+func scaffoldProject(m *manifest.Manifest) {
+	generatePomFile(m)
+}
+
+func generatePomFile(m *manifest.Manifest) {
+	pomData := struct {
+		Name                  string
+		ComponentDependencies []manifest.DependencyInfo
+	}{
+		Name:                  m.Main.Name,
+		ComponentDependencies: m.ComponentDependencies(),
 	}
+	fn := filepath.Join(m.Dir, "pom.xml")
+	fs.GenerateFileFromTmpl("templates/starter.pom.xml", fn, pomData)
+	color.Cyan("Generated %s", fn)
 }
 
 func init() {
-	scaffoldCmd.Flags().StringVarP(&projectName, "name", "n", "", "Target system name")
+	addRequiredInputFlag(scaffoldCmd)
 }
