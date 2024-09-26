@@ -32,11 +32,6 @@ var MergeCmd = &cobra.Command{
 
   See: https://mwhittaker.github.io/publications/service_weaver_HotOS2023.pdf
 
-References:
-  git Three-way merge
-  GoogleDoc OT(Operational Transform) merge
-  Joyspace CRDT(Conflict-Free Replicated Data Type) merege
-
 Example usage:
   federate microservice merge -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {

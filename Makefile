@@ -13,6 +13,10 @@ fmt:
 test: fmt
 	@go test ./...
 
+clean:
+	@rm -f federate-darwin-*
+	@find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
+
 install: test
 	@go install -ldflags "\
 		-X 'federate/cmd.GitCommit=$(GIT_COMMIT)' \
@@ -22,12 +26,6 @@ install: test
 
 completion-bash: install
 	@federate completion bash > /usr/local/etc/bash_completion.d/federate
-
-docker-build:
-	@echo "Install federate without installing golang..."
-	@docker build --build-arg TARGETARCH=$(uname -m) -t federate-builder:latest .
-	@docker run --rm -v $(shell pwd):/mac federate-builder:latest
-	@echo "🍺 把当前目录下的 federate 拷贝到 /usr/local/bin 就可以用了"
 
 release:
 	@GOOS=darwin GOARCH=amd64 go build -o federate-darwin-amd64 -ldflags "\
@@ -40,8 +38,3 @@ release:
 		-X 'federate/cmd.GitBranch=$(GIT_BRANCH)' \
 		-X 'federate/cmd.GitState=$(GIT_STATE)' \
 		-X 'federate/cmd.BuildDate=$(BUILD_DATE)'"
-
-clean:
-	@rm -f federate-darwin-*
-	@find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
-
