@@ -54,6 +54,10 @@ func (p *ReconcilePlan) HasConflict() bool {
 	return len(p.beanIdConflicts) > 0
 }
 
+func (p *ReconcilePlan) ConflictCount() int {
+	return len(p.beanIdConflicts)
+}
+
 func (p *ReconcilePlan) IsRedundantClass(classFullName, filePath string) bool {
 	_, present := p.redundantClasses[classFullName][filePath]
 	return present

@@ -59,3 +59,7 @@ func (m *XmlBeanManager) ComponentBeans(componentName string, predicate func(c s
 	}
 	return beans
 }
+
+func (m *XmlBeanManager) ReconcilePlan() *ReconcilePlan {
+	return &m.plan
+}
