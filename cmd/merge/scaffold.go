@@ -19,6 +19,7 @@ func createFederatedSystem(m *manifest.Manifest) {
 	generateMetaInf(m)
 	generateMakefile(m)
 	generatePackageXml(m)
+	generateStartStopScripts(m)
 	copyTaint(m)
 
 	color.Green("🍺 Scaffold generated for federated system: %s", m.Main.Name)
@@ -115,6 +116,26 @@ func generatePackageXml(m *manifest.Manifest) {
 	fn := filepath.Join(root, "src", "main", "assembly", "package.xml")
 	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil)
 	color.Cyan("Generated %s", fn)
+}
+
+func generateStartStopScripts(m *manifest.Manifest) {
+	root, err := m.CreateTargetSystemDir()
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
+	data := struct {
+		AppName   string
+		MainClass string
+	}{
+		AppName:   m.Main.Name,
+		MainClass: m.Main.MainClass.Name,
+	}
+	start := filepath.Join(root, "src", "main", "assembly", "bin", "start.sh")
+	fs.GenerateExecutableFileFromTmpl("templates/start.sh", start, data)
+	stop := filepath.Join(root, "src", "main", "assembly", "bin", "stop.sh")
+	fs.GenerateExecutableFileFromTmpl("templates/stop.sh", stop, data)
+	color.Cyan("Generated %s, %s", start, stop)
 }
 
 func copyTaint(m *manifest.Manifest) {

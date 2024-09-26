@@ -13,6 +13,14 @@ import (
 //go:embed templates/*
 var FS embed.FS
 
+func GenerateExecutableFileFromTmpl(templatePath, outputPath string, data interface{}) {
+	GenerateFileFromTmpl(templatePath, outputPath, data)
+	err := os.Chmod(outputPath, 0755)
+	if err != nil {
+		log.Fatalf("Error setting file permissions: %v", err)
+	}
+}
+
 func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) {
 	// 创建一个 FuncMap 来注册自定义函数
 	funcMap := template.FuncMap{
