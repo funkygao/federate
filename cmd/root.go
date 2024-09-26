@@ -81,8 +81,8 @@ func init() {
 	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgpt.CmdGroup, imageCmdGroup, ygrepCmd)
 
 	// groups
-	microserviceCmdGroup.AddCommand(scaffoldCmd, merge.MergeCmd, conventionCmd, optimizeCmd, validateCmd, explainCmdGroup)
-	explainCmdGroup.AddCommand(manifestCmd, taintCmd, assumptionCmd)
+	microserviceCmdGroup.AddCommand(scaffoldCmd, merge.MergeCmd, optimizeCmd, validateCmd, explainCmdGroup)
+	explainCmdGroup.AddCommand(conventionCmd, manifestCmd, taintCmd, assumptionCmd)
 	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
 	imageCmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)
 }
