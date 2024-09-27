@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -8,6 +9,8 @@ import (
 	"federate/cmd/image"
 	"federate/cmd/microservice"
 	"federate/cmd/onpremise"
+	"federate/cmd/version"
+
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -22,14 +25,19 @@ var (
 `,
 	}
 
-	versionCmdGroup = &cobra.Command{
-		Use:   "version",
-		Short: "Commands for managing version of the federate tool",
-		Long:  `The version command group provides a set of commands to manage version of the federate tool`,
+	allCmd = &cobra.Command{
+		Use:   "all",
+		Short: "List all subcommands recursively",
+		Long: `The 'all' command lists all subcommands recursively.
+
+It displays the entire command tree, showing the hierarchy of all
+available commands and subcommands.`,
+
 		Run: func(cmd *cobra.Command, args []string) {
-			if len(args) == 0 {
-				versionCmd.Run(cmd, args)
-			}
+			// Get the root command
+			root := cmd.Root()
+			// List all subcommands recursively
+			listSubcommands(root, "")
 		},
 	}
 )
@@ -42,12 +50,20 @@ func Execute() {
 	}
 }
 
+func listSubcommands(cmd *cobra.Command, indent string) {
+	fmt.Printf("%s%s - %s\n", indent, cmd.Use, cmd.Short)
+
+	for _, subCmd := range cmd.Commands() {
+		if !subCmd.IsAvailableCommand() || subCmd.IsAdditionalHelpTopicCommand() {
+			continue
+		}
+		listSubcommands(subCmd, indent+"  ")
+	}
+}
+
 func init() {
 	log.SetFlags(0) // log.Lshortfile
 
-	// root
-	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microservice.CmdGroup, versionCmdGroup, chatgpt.CmdGroup, image.CmdGroup, ygrepCmd)
-
-	// groups
-	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
+	rootCmd.AddCommand(allCmd, ygrepCmd)
+	rootCmd.AddCommand(onpremise.CmdGroup, microservice.CmdGroup, version.CmdGroup, chatgpt.CmdGroup, image.CmdGroup)
 }
