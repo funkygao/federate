@@ -16,7 +16,6 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <dependencies>
-        <!-- main -->
         {{- range .MainDependencies }}
         <dependency>
             <groupId>{{.GroupId}}</groupId>
@@ -24,8 +23,6 @@
             <version>{{.Version}}</version>
         </dependency>
         {{- end }}
-
-        <!-- project federate starter -->
         <dependency>
             <groupId>{{.GroupId}}</groupId>
             <artifactId>{{.ArtifactId}}-federate-starter</artifactId>
