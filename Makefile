@@ -30,8 +30,6 @@ install: test ## Build and install on local $GOPATH/bin.
 completion-bash: install ## Install bash completion for federate.
 	@federate completion bash > /usr/local/etc/bash_completion.d/federate
 
-##@ Release
-
 PLATFORMS := darwin-amd64 darwin-arm64
 
 release: ## Build binaries for darwin-amd64 darwin-arm64.
