@@ -24,5 +24,5 @@ wms-microfusion acts as logical monoliths, offload the decisions of how to distr
 }
 
 func init() {
-	CmdGroup.AddCommand(scaffoldCmd, merge.MergeCmd, optimizeCmd, validateCmd, explain.CmdGroup)
+	CmdGroup.AddCommand(scaffoldCmd, merge.MergeCmd, optimizeCmd, validateCmd, dependencyCmd, explain.CmdGroup)
 }
