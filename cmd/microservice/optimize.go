@@ -32,6 +32,10 @@ Example usage:
 
 func optimize(m *manifest.Manifest) {
 	showDuplicates(m)
+	checkdependency(m)
+}
+
+func checkdependency(m *manifest.Manifest) {
 }
 
 func showDuplicates(m *manifest.Manifest) {
