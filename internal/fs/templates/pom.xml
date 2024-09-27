@@ -25,7 +25,7 @@
         {{- end }}
         <dependency>
             <groupId>{{.GroupId}}</groupId>
-            <artifactId>{{.ArtifactId}}-federate-starter</artifactId>
+            <artifactId>{{.ArtifactId}}-fusion-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

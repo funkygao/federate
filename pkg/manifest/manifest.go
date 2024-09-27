@@ -173,7 +173,7 @@ func (m *MainSystem) GroupId() string {
 }
 
 func (m *MainSystem) FederatedRuntimePackage() string {
-	return java.ClassPackageName(m.MainClass.Name) + ".runtime.core"
+	return java.ClassPackageName(m.MainClass.Name) + ".runtime"
 }
 
 func (m *MainSystem) HasFeature(feature string) bool {

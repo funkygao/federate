@@ -13,7 +13,7 @@ func TestLoadManifest(t *testing.T) {
 		t.Fatalf("LoadManifest returned an error: %v", err)
 	}
 
-	assert.Equal(t, "com.jdwl.wms.runtime.core", manifest.Main.FederatedRuntimePackage())
+	assert.Equal(t, "com.jdwl.wms.runtime", manifest.Main.FederatedRuntimePackage())
 
 	if manifest.Main.Name != "demo-starter" {
 		t.Errorf("Expected main name to be 'demo-starter', got '%s'", manifest.Main.Name)

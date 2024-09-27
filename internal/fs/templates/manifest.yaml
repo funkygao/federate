@@ -3,9 +3,9 @@ target: # 目标系统
   parent: com.x.wms:wms-parent:2.3.0-SNAPSHOT
   springProfile: on-premise
   dependencies: # 通过插件扩展，结合 componentScan.excludedTypes 实现运行时仲裁
-    - org.apache.dubbo:dubbo-spring-boot-starter:2.7.23
+    - com.jdwl.wms:wms-common-on-premise:2.3.0-SNAPSHOT
   mainClass: # 启动类
-    name: com.jdwl.wms.federation.DemoApp
+    name: com.jdwl.wms.fusion.DemoApp
     import:
       - com.jdwl.wms.demo.FederatedDataSource
       - com.jdwl.wms.demo.FederatedWebInterceptor

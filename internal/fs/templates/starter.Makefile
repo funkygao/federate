@@ -8,7 +8,7 @@ help: ## Display this help.
 
 ##@ Build
 
-install: ## Compile and install {{.AppName}}-federate-starter.jar on your host.
+install: ## Compile and install {{.AppName}}-fusion-starter.jar on your host.
 	@mvn clean install -U -Dmaven.test.skip=true -T8
 
 clean: ## Clean

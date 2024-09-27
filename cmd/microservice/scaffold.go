@@ -32,7 +32,7 @@ func scaffoldProject(m *manifest.Manifest) {
 	generatePomFile(m)
 	generateMakefile(m)
 	generateFederateRuntimeJavaClasses(m)
-	color.Green("🍺 %s-federate-starter project scaffold generated for target: %s", m.Main.Name, m.Main.Name)
+	color.Green("🍺 %s-fusion-starter project scaffold generated for target: %s", m.Main.Name, m.Main.Name)
 }
 
 func generatePomFile(m *manifest.Manifest) {
