@@ -14,9 +14,8 @@ var similarityThreshold float64
 
 var optimizeCmd = &cobra.Command{
 	Use:   "optimize",
-	Short: "Identify potential areas for optimization from components",
-	Long: `The optimize command identify potential areas for optimization from components.
-It detects duplicated java classes with similarity score.
+	Short: "Identify potential areas for optimization",
+	Long: `The optimize command identify potential areas for optimization.
 
 Example usage:
   federate microservice optimize -i manifest.yaml --similarity-threshold 0.5`,
