@@ -7,8 +7,8 @@ import (
 )
 
 func TestLoadManifest(t *testing.T) {
-	manifestFilePath := "unit-test.yaml"
-	manifest, err := LoadManifest(manifestFilePath)
+	filePath = "unit-test.yaml"
+	manifest, err := LoadManifest()
 	if err != nil {
 		t.Fatalf("LoadManifest returned an error: %v", err)
 	}

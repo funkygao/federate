@@ -1,4 +1,4 @@
-package cmd
+package microservice
 
 import (
 	"fmt"
@@ -21,7 +21,7 @@ It detects duplicated java classes with similarity score.
 Example usage:
   federate microservice optimize -i manifest.yaml --similarity-threshold 0.5`,
 	Run: func(cmd *cobra.Command, args []string) {
-		manifest, err := manifest.LoadManifest(manifestFile)
+		manifest, err := manifest.LoadManifest()
 		if err != nil {
 			log.Fatalf("Error loading manifest: %v", err)
 		}
@@ -64,5 +64,5 @@ func showDuplicates(m *manifest.Manifest) {
 
 func init() {
 	optimizeCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.6, "Threshold for similarity to count high similarity dup")
-	addRequiredInputFlag(optimizeCmd)
+	manifest.RequiredManifestFileFlag(optimizeCmd)
 }

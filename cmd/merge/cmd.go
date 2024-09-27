@@ -19,7 +19,6 @@ const (
 )
 
 var (
-	manifestFile             string
 	yamlConflictCellMaxWidth int
 	dryRunMerge              bool
 	autoYes                  bool
@@ -37,7 +36,7 @@ var MergeCmd = &cobra.Command{
 Example usage:
   federate microservice merge -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m, err := manifest.LoadManifest(manifestFile)
+		m, err := manifest.LoadManifest()
 		if err != nil {
 			log.Fatalf("Error loading manifest: %v", err)
 		}
@@ -119,8 +118,7 @@ func promptToProceed(seq, total int, step string) {
 }
 
 func init() {
-	MergeCmd.Flags().StringVarP(&manifestFile, "input", "i", "", "Path to the manifest file")
-	MergeCmd.MarkFlagRequired("input")
+	manifest.RequiredManifestFileFlag(MergeCmd)
 	MergeCmd.Flags().BoolVarP(&showReport, "report", "r", false, "Show the merge report")
 	MergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
 	MergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")

@@ -5,14 +5,11 @@ import (
 	"os"
 
 	"federate/cmd/chatgpt"
-	"federate/cmd/merge"
+	"federate/cmd/image"
+	"federate/cmd/microservice"
 	"federate/cmd/onpremise"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-)
-
-var (
-	manifestFile string
 )
 
 var (
@@ -25,29 +22,6 @@ var (
 `,
 	}
 
-	microserviceCmdGroup = &cobra.Command{
-		Use:   "microservice",
-		Short: "Commands for managing the lifecycle of microservices",
-		Long: `The microservice command group manages the lifecycle of microservices, addressing issues of granularity and facilitating consolidation.
-
-Key benefits:
-- Improved performance through reduced class loading and conversion of RPC to JVM calls
-- Enhanced resource efficiency and reduced duplicate resource consumption across services
-- Higher deployment density and lower operational costs
-- Simplified service interactions and reduced complexity in service chains
-
-This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed), offering 
-greater flexibility in system design and operation.
-
-wms-microfusion acts as logical monoliths, offload the decisions of how to distribute and run applications to federate runtime.`,
-	}
-
-	explainCmdGroup = &cobra.Command{
-		Use:   "explain",
-		Short: "Describes microservice fusion key mechanisms",
-		Long:  `The explain command describes microservice fusion key mechanisms`,
-	}
-
 	versionCmdGroup = &cobra.Command{
 		Use:   "version",
 		Short: "Commands for managing version of the federate tool",
@@ -57,12 +31,6 @@ wms-microfusion acts as logical monoliths, offload the decisions of how to distr
 				versionCmd.Run(cmd, args)
 			}
 		},
-	}
-
-	imageCmdGroup = &cobra.Command{
-		Use:   "image",
-		Short: "Commands for managing images like Docker and RPM",
-		Long:  `The image command group provides a set of commands to manage images like Docker and RPM.`,
 	}
 )
 
@@ -78,11 +46,8 @@ func init() {
 	log.SetFlags(0) // log.Lshortfile
 
 	// root
-	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microserviceCmdGroup, versionCmdGroup, chatgpt.CmdGroup, imageCmdGroup, ygrepCmd)
+	rootCmd.AddCommand(allCmd, onpremise.CmdGroup, microservice.CmdGroup, versionCmdGroup, chatgpt.CmdGroup, image.CmdGroup, ygrepCmd)
 
 	// groups
-	microserviceCmdGroup.AddCommand(scaffoldCmd, merge.MergeCmd, optimizeCmd, validateCmd, explainCmdGroup)
-	explainCmdGroup.AddCommand(conventionCmd, manifestCmd, taintCmd, assumptionCmd)
 	versionCmdGroup.AddCommand(upgradeCmd, versionCmd)
-	imageCmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)
 }

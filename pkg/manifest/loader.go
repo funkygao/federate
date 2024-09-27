@@ -6,10 +6,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
-func LoadManifest(filePath string) (*Manifest, error) {
+var filePath string
+
+// RequiredManifestFileFlag adds the --input flag to the given command and marks it as required
+func RequiredManifestFileFlag(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&filePath, "input", "i", "", "Path to the manifest file")
+	cmd.MarkFlagRequired("input")
+}
+
+func LoadManifest() (*Manifest, error) {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return nil, err

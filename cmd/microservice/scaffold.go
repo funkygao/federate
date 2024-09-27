@@ -1,4 +1,4 @@
-package cmd
+package microservice
 
 import (
 	"log"
@@ -11,8 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var projectName string
-
 var scaffoldCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Scaffold a new federated target system",
@@ -21,7 +19,7 @@ var scaffoldCmd = &cobra.Command{
 Example usage:
   federate microservice create -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m, err := manifest.LoadManifest(manifestFile)
+		m, err := manifest.LoadManifest()
 		if err != nil {
 			log.Fatalf("Error loading manifest: %v", err)
 		}
@@ -91,5 +89,5 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 }
 
 func init() {
-	addRequiredInputFlag(scaffoldCmd)
+	manifest.RequiredManifestFileFlag(scaffoldCmd)
 }

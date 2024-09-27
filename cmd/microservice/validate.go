@@ -1,4 +1,4 @@
-package cmd
+package microservice
 
 import (
 	"log"
@@ -17,11 +17,15 @@ comply with the development conventions.
 Example usage:
   federate microservice validate -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m, err := manifest.LoadManifest(manifestFile)
+		m, err := manifest.LoadManifest()
 		if err != nil {
 			log.Fatalf("Error loading manifest: %v", err)
 		}
 
 		compliance.CheckComponentsCompliance(m)
 	},
+}
+
+func init() {
+	manifest.RequiredManifestFileFlag(validateCmd)
 }
