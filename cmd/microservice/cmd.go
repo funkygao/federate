@@ -12,7 +12,7 @@ var CmdGroup = &cobra.Command{
 	Long: `The microservice command group streamlines the consolidation and optimization of multiple microservices 
 into a cohesive, efficient system while preserving the flexibility of the microservice architecture.
 
-The consolidation process, involves the following key components:
+The consolidation process involves the following key components:
 
 1. Define Manifest       ┐
 2. Generate Starter      │
@@ -20,24 +20,19 @@ The consolidation process, involves the following key components:
 3. Microservices         │
    (Multiple Systems)    ┘
 
-1. Manifest: Acts as a specification, describing how to generate the target system. Similar to Kubernetes manifests, 
-   it uses declarative programming to define the structure and spec of the target system.
-2. Starter Project: Generates necessary underlying Java code for runtime and provides a base for user customization. 
-   This forms the foundation upon which the optimized target system is built, serving two key purposes:
-   - Enhancing efficiency through pre-generated, optimized code
-   - Providing runtime support for conflict resolution and resource loading
-3. Microservices: Existing microservice systems to be consolidated into the target system.
+1. Manifest: Specifies the structure and configuration of the target system using declarative programming.
+2. Starter Project: Provides optimized runtime code, conflict resolution support, and a customizable foundation.
+3. Microservices: Existing independent systems to be consolidated and optimized as a cohesive unit.
 
-The 'federate' process, analogous to nvcc's compilation phase, performs the following key steps:
-- Parsing and analyzing the manifest, code, and Spring-related resources
-- Reconciling conflicts between microservices, including but not limited to:
-  * Naming conflicts in Spring contexts and configuration files (e.g., bean names, property keys, classpath)
-  * Injection conflicts, such as @Resource annotations assuming single bean instances
-- Merging duplicate resources and optimizing dependencies 
+The 'federate' process performs key steps including:
+- Analyzing manifests, code, and resources
+- Reconciling conflicts (e.g., naming, injection, dependencies)
+- Merging resources and optimizing dependencies
 - Generating an optimized target system
 
-This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed), offering
-greater flexibility in system design and operation while maintaining the benefits of microservice architecture.`,
+This approach decouples logical boundaries from physical deployment, offering flexibility while maintaining
+microservice architecture benefits. The result is a system combining microservice agility with consolidated
+architecture efficiency.`,
 }
 
 func init() {
