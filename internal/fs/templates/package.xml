@@ -15,9 +15,8 @@
             <outputDirectory>conf</outputDirectory>
             <filtered>true</filtered>
             <includes>
-                <include>*.xml</include>
-                <include>*.yml</include>
-                <include>*.properties</include>
+                <include>**/*.json</include>
+                <include>**/*.html</include>
                 <include>**/*.xml</include>
                 <include>**/*.yml</include>
                 <include>**/*.properties</include>

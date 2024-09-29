@@ -123,7 +123,7 @@ func generatePackageXml(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "src", "main", "assembly", "package.xml")
-	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil)
+	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
 	color.Cyan("Generated %s", fn)
 }
 
