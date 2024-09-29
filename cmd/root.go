@@ -18,8 +18,11 @@ import (
 var (
 	rootCmd = &cobra.Command{
 		Use:   "federate",
-		Short: "federate - A tool for merging and deploying microservices",
-		Long: color.New(color.Bold).Sprintf("federate") + ` is a swiss army knife for microservices consolidation based on manifest DSL.
+		Short: "federate - A compiler and toolkit for microservices management",
+		Long: color.New(color.Bold).Sprintf("federate") + ` is a compiler-based toolkit for microservices consolidation and management.
+
+  This Swiss Army knife for microservices offers a wide range of functionalities to streamline 
+  development, deployment, and management processes.
 
   Find more information at: https://joyspace.jd.com/pages/Ksl7N7wr1XxFanCRIR1y
 `,
