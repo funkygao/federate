@@ -54,6 +54,7 @@ func mergeResources(m *manifest.Manifest) {
 	rpcConsumerManager := merge.NewRpcConsumerManager()
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
+	injectionManager := merge.NewSpringBeanInjectionManager()
 	if showReport {
 		reporters := []merge.Reporter{propertySourcesManager, rpcConsumerManager, xmlBeanManager, resourceManager}
 		for _, reporter := range reporters {
@@ -92,6 +93,9 @@ func mergeResources(m *manifest.Manifest) {
 		}},
 		{"Reconciling Target XML beans conflicts", func() {
 			reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
+		}},
+		{"Reconciling Spring Bean injection conflicts", func() {
+			reconcileBeanInjectionConflicts(m, injectionManager)
 		}},
 		{"Generating Spring Bootstrap XML", func() {
 			generateSpringBootstrapXML(m)
