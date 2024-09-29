@@ -30,5 +30,5 @@ func generatePrompt(codebaseDir string) {
 }
 
 func init() {
-	promptCmd.Flags().BoolVarP(&echo, "echo", "e", false, "Echo mentioned file contents")
+	promptCmd.Flags().BoolVarP(&echo, "echo", "e", true, "Echo mentioned file contents")
 }
