@@ -15,23 +15,15 @@ import (
 
 type SpringBeanInjectionManager struct {
 	resourcePattern         *regexp.Regexp
-	autowiredImportPattern  *regexp.Regexp
-	qualifierImportPattern  *regexp.Regexp
-	importPattern           *regexp.Regexp
-	resourceImportPattern   *regexp.Regexp
-	wildcardImportPattern   *regexp.Regexp
 	resourceWithNamePattern *regexp.Regexp
+	genericTypePattern      *regexp.Regexp
 }
 
 func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 	return &SpringBeanInjectionManager{
 		resourcePattern:         regexp.MustCompile(`@Resource(\s*\([^)]*\))?`),
-		autowiredImportPattern:  regexp.MustCompile(`import\s+org\.springframework\.beans\.factory\.annotation\.Autowired;`),
-		qualifierImportPattern:  regexp.MustCompile(`import\s+org\.springframework\.beans\.factory\.annotation\.Qualifier;`),
-		importPattern:           regexp.MustCompile(`(package\s+[\w.]+;\s*(?:import\s+[\w.]+;\s*)*)`),
-		resourceImportPattern:   regexp.MustCompile(`import\s+javax\.annotation\.Resource;\s*`),
-		wildcardImportPattern:   regexp.MustCompile(`import\s+javax\.annotation\.\*;\s*`),
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
+		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
 	}
 }
 
@@ -75,64 +67,125 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 	})
 }
 
-// 在某些场景下，特别是涉及到 Spring XML 配置和集合注入时，@Resource 不能替换为 @Autowired
-// 这是因为 @Resource 可以通过名称进行注入，而 @Autowired 主要是通过类型进行注入
-// 例如：
-// <util:map id="mappingConstraintValidatorMap" value-type="java.lang.String">
-//     <entry key="locationSkuRangeValidator" value="locationSkuRangeValidator"/>
+// replaceResourceWithAutowired 处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
+// 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
 //
-// @Component
-// public class LocationValidationRuleInitializer implements LocationValidationInitializer {
-//     @Resource // 改为 Autowired 会造成：mappingConstraintValidatorMap 无法注入，NoSuchBeanDefinitionException
-//     private Map<String, String> mappingConstraintValidatorMap;
-// }
+// 此方法执行以下操作：
+// 1. 保持包声明在文件的最开始。
+// 2. 将所有导入语句放在包声明之后，其他内容之前。
+// 3. 将 @Resource 替换为 @Autowired，除非它用于 Map<> 或 List<> 类型的字段。
+// 4. 如果 @Resource 有 name 参数，添加相应的 @Qualifier 注解。
+// 5. 管理导入语句：
+//   - 添加必要的 org.springframework.beans.factory.annotation.Autowired 导入。
+//   - 如果需要，添加 org.springframework.beans.factory.annotation.Qualifier 导入。
+//   - 如果仍然使用 @Resource，保留 javax.annotation.Resource 或 javax.annotation.* 导入。
+//   - 移除不再需要的 javax.annotation.Resource 导入。
+//
+// 6. 保持其他注解（如 @PostConstruct, @PreDestroy）不变，并确保它们的导入被保留。
+//
+// 参数：
+//
+//	content: 输入的 Java 源代码字符串。
+//
+// 返回：
+//
+//	处理后的 Java 源代码字符串。
+//
+// 注意：
+//   - 此方法假设输入的 Java 源代码格式良好。
+//   - 它不会更改代码的整体结构或缩进。
+//   - 对于复杂的泛型类型（如嵌套的 Map 或 List），可能需要人工审查结果。
 func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(content string) string {
-	// Quick check if @Resource is present
 	if !m.resourcePattern.MatchString(content) {
-		return content // No changes needed
+		// No changes needed
+		return content
 	}
 
-	// Replace @Resource with @Autowired and @Qualifier if necessary
-	content = m.resourceWithNamePattern.ReplaceAllStringFunc(content, func(match string) string {
-		name := m.resourceWithNamePattern.FindStringSubmatch(match)[1]
-		return fmt.Sprintf("@Autowired\n    @Qualifier(\"%s\")", name)
-	})
-	content = m.resourcePattern.ReplaceAllString(content, "@Autowired")
+	lines := strings.Split(content, "\n")
+	var (
+		packageLine string
+		imports     []string
+		codeLines   []string
+	)
 
-	// Check if @Autowired is already imported
-	if !m.autowiredImportPattern.MatchString(content) {
-		content = m.importPattern.ReplaceAllString(content, "${1}import org.springframework.beans.factory.annotation.Autowired;\n")
-	}
-
-	// Check if @Qualifier is needed and not already imported
-	if strings.Contains(content, "@Qualifier") && !m.qualifierImportPattern.MatchString(content) {
-		content = m.importPattern.ReplaceAllString(content, "${1}import org.springframework.beans.factory.annotation.Qualifier;\n")
-	}
-
-	// Handle import statements
-	if m.wildcardImportPattern.MatchString(content) {
-		// Check if there are any other javax.annotation.* annotations still in use
-		otherAnnotationsPattern := regexp.MustCompile(`@(?:PostConstruct|PreDestroy|Resource)\b`)
-		if otherAnnotationsPattern.MatchString(content) {
-			// Keep the wildcard import
+	// 分离包声明、导入语句和代码
+	for _, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "package ") {
+			packageLine = line
+		} else if strings.HasPrefix(strings.TrimSpace(line), "import ") {
+			imports = append(imports, line)
 		} else {
-			// Remove the wildcard import if no other javax.annotation.* annotations are used
-			content = m.wildcardImportPattern.ReplaceAllString(content, "")
+			codeLines = append(codeLines, line)
 		}
-	} else {
-		// Remove only the Resource import, preserving the line break
-		lines := strings.Split(content, "\n")
-		var newLines []string
-		for i, line := range lines {
-			if !m.resourceImportPattern.MatchString(line) {
-				newLines = append(newLines, line)
-			} else if i+1 < len(lines) && lines[i+1] == "" {
-				// If the next line is empty, keep it
-				newLines = append(newLines, "")
-			}
-		}
-		content = strings.Join(newLines, "\n")
 	}
 
-	return content
+	codeLines, needAutowired, needQualifier := m.processCodeLines(codeLines)
+	imports = m.processImports(imports, needAutowired, needQualifier)
+
+	result := []string{packageLine}
+	result = append(result, imports...)
+	result = append(result, codeLines...)
+	return strings.Join(result, "\n")
+}
+
+func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowired, needQualifier bool) []string {
+	var processedImports []string
+	autowiredImported := false
+	qualifierImported := false
+
+	for _, imp := range imports {
+		switch {
+		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Autowired"):
+			autowiredImported = true
+			if needAutowired {
+				processedImports = append(processedImports, imp)
+			}
+		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Qualifier"):
+			qualifierImported = true
+			if needQualifier {
+				processedImports = append(processedImports, imp)
+			}
+		case strings.Contains(imp, "javax.annotation.Resource"):
+			processedImports = append(processedImports, imp)
+		default:
+			processedImports = append(processedImports, imp)
+		}
+	}
+
+	if needAutowired && !autowiredImported {
+		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Autowired;")
+	}
+	if needQualifier && !qualifierImported {
+		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Qualifier;")
+	}
+
+	return processedImports
+}
+
+func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) ([]string, bool, bool) {
+	var processedLines []string
+	needAutowired := false
+	needQualifier := false
+
+	for i, line := range codeLines {
+		if m.resourcePattern.MatchString(line) {
+			if i+1 < len(codeLines) && m.genericTypePattern.MatchString(codeLines[i+1]) {
+				// 保持 Map 和 List 的 @Resource 不变
+				processedLines = append(processedLines, line)
+			} else if matches := m.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
+				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
+				processedLines = append(processedLines,
+					indent+"@Autowired",
+					indent+fmt.Sprintf("@Qualifier(\"%s\")", matches[1]))
+				needAutowired = true
+				needQualifier = true
+			} else {
+				processedLines = append(processedLines, strings.Replace(line, "@Resource", "@Autowired", 1))
+				needAutowired = true
+			}
+		} else {
+			processedLines = append(processedLines, line)
+		}
+	}
+	return processedLines, needAutowired, needQualifier
 }
