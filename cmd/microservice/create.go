@@ -78,9 +78,11 @@ func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
 func generateJava(m *manifest.Manifest, simpleClassName string) {
 	packageName := m.Main.FederatedRuntimePackage()
 	data := struct {
-		Package string
+		Package          string
+		SingletonClasses []string
 	}{
-		Package: packageName,
+		Package:          packageName,
+		SingletonClasses: m.Main.Runtime.SingletonComponents,
 	}
 	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")

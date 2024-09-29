@@ -163,7 +163,8 @@ type MainSystem struct {
 }
 
 type RuntimeSpec struct {
-	Env string `yaml:"env"`
+	Env                 string   `yaml:"env"`
+	SingletonComponents []string `yaml:"singletonClasses"`
 }
 
 type MainClass struct {
