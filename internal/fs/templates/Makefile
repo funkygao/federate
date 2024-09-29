@@ -14,7 +14,12 @@ clean:
 package:clean ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8
 
-run: ## Bootstrap {{.AppName}} from your host.
+run: ## Bootstrap {{.AppName}} foreground from your host.
+	@if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
+		echo "Package not found. Running 'make package'..."; \
+		$(MAKE) package; \
+	fi
+	@java -DappName={{.AppName}} -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
 ##@ Deployment
 
