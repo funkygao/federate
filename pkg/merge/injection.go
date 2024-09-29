@@ -75,6 +75,17 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 	})
 }
 
+// 在某些场景下，特别是涉及到 Spring XML 配置和集合注入时，@Resource 不能替换为 @Autowired
+// 这是因为 @Resource 可以通过名称进行注入，而 @Autowired 主要是通过类型进行注入
+// 例如：
+// <util:map id="mappingConstraintValidatorMap" value-type="java.lang.String">
+//     <entry key="locationSkuRangeValidator" value="locationSkuRangeValidator"/>
+//
+// @Component
+// public class LocationValidationRuleInitializer implements LocationValidationInitializer {
+//     @Resource // 改为 Autowired 会造成：mappingConstraintValidatorMap 无法注入，NoSuchBeanDefinitionException
+//     private Map<String, String> mappingConstraintValidatorMap;
+// }
 func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(content string) string {
 	// Quick check if @Resource is present
 	if !m.resourcePattern.MatchString(content) {
