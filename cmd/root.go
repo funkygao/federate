@@ -19,7 +19,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "federate",
 		Short: "federate - A compiler and toolkit for microservices management",
-		Long: color.New(color.Bold).Sprintf("federate") + ` is a compiler-based toolkit for microservices consolidation and management.
+		Long: color.New(color.Bold).Sprintf("federate") + ` is a compiler-like toolkit for microservices consolidation and management.
 
   This Swiss Army knife for microservices offers a wide range of functionalities to streamline 
   development, deployment, and management processes.
