@@ -6,7 +6,7 @@ import (
 	"sort"
 
 	"federate/pkg/manifest"
-	"federate/pkg/scanner"
+	"federate/pkg/optimizer"
 	"github.com/spf13/cobra"
 )
 
@@ -38,31 +38,31 @@ func checkdependency(m *manifest.Manifest) {
 }
 
 func showDuplicates(m *manifest.Manifest) {
-	classMap, err := scanner.ScanComponents(m)
+	dups, err := optimizer.DetectDuplicateJava(m)
 	if err != nil {
-		log.Fatalf("Error scanning components: %v", err)
+		log.Fatalf("Error detecting duplicate java: %v", err)
 	}
-	dups, err := scanner.CheckDup(classMap)
-	if err != nil {
-		sort.Slice(dups, func(i, j int) bool {
-			return dups[i].Similarity < dups[j].Similarity
-		})
 
-		highSimilarityCount := 0
-		for _, dup := range dups {
-			if dup.Similarity > similarityThreshold {
-				highSimilarityCount++
-			}
-			fmt.Printf("Duplicate detected for class %s in files (similarity: %.2f):\n", dup.ClassName, dup.Similarity)
-			for _, path := range dup.Paths {
-				fmt.Printf("  - %s\n", path)
-			}
-		}
-		log.Printf("duplicate classes detected          : %v", len(dups))
-		log.Printf("duplicate with similarity over %.2f : %v", similarityThreshold, highSimilarityCount)
-	} else {
-		log.Println("No dups detected.")
+	if len(dups) == 0 {
+		log.Println("Congrat, no dups detected.")
 	}
+
+	sort.Slice(dups, func(i, j int) bool {
+		return dups[i].Similarity < dups[j].Similarity
+	})
+
+	highSimilarityCount := 0
+	for _, dup := range dups {
+		if dup.Similarity > similarityThreshold {
+			highSimilarityCount++
+		}
+		fmt.Printf("Duplicate detected for class %s in files (similarity: %.2f):\n", dup.ClassName, dup.Similarity)
+		for _, path := range dup.Paths {
+			fmt.Printf("  - %s\n", path)
+		}
+	}
+	log.Printf("duplicate classes detected          : %v", len(dups))
+	log.Printf("duplicate with similarity over %.2f : %v", similarityThreshold, highSimilarityCount)
 }
 
 func init() {

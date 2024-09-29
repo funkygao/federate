@@ -1,7 +1,6 @@
-package scanner
+package optimizer
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,7 +9,7 @@ import (
 	"federate/pkg/similarity"
 )
 
-type DupInfo struct {
+type DupJavaInfo struct {
 	ClassName  string
 	Paths      []string
 	Similarity float64
@@ -21,7 +20,8 @@ var ignoredPaths = []string{
 	"src/test",
 }
 
-func ScanComponents(manifest *manifest.Manifest) (map[string][]string, error) {
+// DetectDuplicateJava detects highly similar java files across components.
+func DetectDuplicateJava(manifest *manifest.Manifest) ([]DupJavaInfo, error) {
 	classMap := make(map[string][]string)
 
 	for _, component := range manifest.Components {
@@ -40,11 +40,11 @@ func ScanComponents(manifest *manifest.Manifest) (map[string][]string, error) {
 		}
 	}
 
-	return classMap, nil
+	return checkDup(classMap)
 }
 
-func CheckDup(classMap map[string][]string) ([]DupInfo, error) {
-	var dups []DupInfo
+func checkDup(classMap map[string][]string) ([]DupJavaInfo, error) {
+	var dups []DupJavaInfo
 
 	for className, paths := range classMap {
 		if len(paths) > 1 {
@@ -54,7 +54,7 @@ func CheckDup(classMap map[string][]string) ([]DupInfo, error) {
 				if err != nil {
 					return nil, err
 				}
-				dups = append(dups, DupInfo{
+				dups = append(dups, DupJavaInfo{
 					ClassName:  className,
 					Paths:      filteredPaths,
 					Similarity: similarityScore,
@@ -67,7 +67,7 @@ func CheckDup(classMap map[string][]string) ([]DupInfo, error) {
 		return nil, nil
 	}
 
-	return dups, fmt.Errorf("duplicates detected")
+	return dups, nil
 }
 
 func filterIgnoredPaths(paths []string) []string {
