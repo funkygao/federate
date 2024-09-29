@@ -10,6 +10,7 @@ import (
 
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/util"
 )
 
 var (
@@ -102,7 +103,7 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 			}
 			rm.resourceFileNames[relPath][component.Name] = struct{}{}
 			log.Printf("[%s:%s] Copying %s", component.Name, component.SpringProfile, info.Name())
-			return CopyFile(path, targetPath)
+			return util.CopyFile(path, targetPath)
 		}
 		return nil
 	})
@@ -142,7 +143,7 @@ func (rm *ResourceManager) RecursiveMergeResources(m *manifest.Manifest) error {
 							return err
 						}
 
-						if err := CopyFile(path, targetPath); err != nil {
+						if err := util.CopyFile(path, targetPath); err != nil {
 							return err
 						}
 

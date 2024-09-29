@@ -8,7 +8,7 @@ import (
 
 	"federate/internal/fs"
 	"federate/pkg/manifest"
-	"federate/pkg/merge"
+	"federate/pkg/util"
 	"github.com/fatih/color"
 )
 
@@ -154,7 +154,7 @@ func copyTaint(m *manifest.Manifest) {
 	for _, f := range m.Main.Reconcile.Taint.ResourceFiles() {
 		src := filepath.Join(m.Dir, f)
 		target := filepath.Join(root, "src", "main", "resources", f)
-		if err := merge.CopyFile(src, target); err != nil {
+		if err := util.CopyFile(src, target); err != nil {
 			log.Fatalf("%v", err)
 		}
 		color.Cyan("Copied %s -> %s", src, target)

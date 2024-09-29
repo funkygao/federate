@@ -1,31 +1,12 @@
 package merge
 
 import (
-	"io"
 	"io/fs"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
-
-func CopyFile(sourceFile, targetFile string) error {
-	source, err := os.Open(sourceFile)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
-
-	target, err := os.Create(targetFile)
-	if err != nil {
-		return err
-	}
-	defer target.Close()
-
-	_, err = io.Copy(target, source)
-	return err
-}
 
 func handleFileErr(componentName, filePath string, err error) error {
 	if _, ok := err.(*fs.PathError); ok {
