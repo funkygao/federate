@@ -20,12 +20,22 @@ clean: ## Clean up.
 	@rm -f federate-darwin-*
 	@find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 
-install: test ## Build and install on local $GOPATH/bin.
-	@go install -ldflags "\
-		-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
-		-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
-		-X 'federate/cmd/version.GitState=$(GIT_STATE)' \
-		-X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'"
+install: test ## Build and install. If HOMEBREW_PREFIX is set, install there, otherwise use GOPATH/bin.
+	@if [ -n "$(HOMEBREW_PREFIX)" ]; then \
+		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "\
+			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
+			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
+			-X 'federate/cmd/version.GitState=$(GIT_STATE)' \
+			-X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'"; \
+		echo "Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
+	else \
+		go install -ldflags "\
+			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
+			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
+			-X 'federate/cmd/version.GitState=$(GIT_STATE)' \
+			-X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'"; \
+		echo "Installed to $$(go env GOPATH)/bin/federate"; \
+	fi
 
 completion-bash: install ## Install bash completion for federate.
 	@federate completion bash > /usr/local/etc/bash_completion.d/federate
