@@ -36,5 +36,5 @@ architecture efficiency.`,
 }
 
 func init() {
-	CmdGroup.AddCommand(scaffoldCmd, merge.MergeCmd, optimizeCmd, explain.CmdGroup)
+	CmdGroup.AddCommand(createCmd, merge.MergeCmd, optimizeCmd, explain.CmdGroup)
 }

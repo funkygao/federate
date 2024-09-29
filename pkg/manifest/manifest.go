@@ -145,9 +145,10 @@ type MainSystem struct {
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
-	TomcatPort int16     `yaml:"tomcatPort"`
-	JvmSize    string    `yaml:"jvmSize"`
-	MainClass  MainClass `yaml:"mainClass"`
+	TomcatPort int16       `yaml:"tomcatPort"`
+	JvmSize    string      `yaml:"jvmSize"`
+	Runtime    RuntimeSpec `yaml:"runtime"`
+	MainClass  MainClass   `yaml:"mainClass"`
 
 	RawParent string         `yaml:"parent"`
 	Parent    DependencyInfo `yaml:"-"`
@@ -159,6 +160,10 @@ type MainSystem struct {
 
 	// Deprecated
 	Features []string `yaml:"features"`
+}
+
+type RuntimeSpec struct {
+	Env string `yaml:"env"`
 }
 
 type MainClass struct {

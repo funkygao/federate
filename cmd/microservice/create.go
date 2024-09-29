@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var scaffoldCmd = &cobra.Command{
+var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Scaffold a new federated target system",
 	Long: `The create command scaffolds a new federated target system.
@@ -89,5 +89,5 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 }
 
 func init() {
-	manifest.RequiredManifestFileFlag(scaffoldCmd)
+	manifest.RequiredManifestFileFlag(createCmd)
 }

@@ -99,12 +99,14 @@ func generateMakefile(m *manifest.Manifest) {
 		JvmSize    string
 		ClassName  string
 		TomcatPort int16
+		Env        string
 	}{
 		AppName:    m.Main.Name,
 		AppSrc:     fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
 		JvmSize:    m.Main.JvmSize,
 		ClassName:  m.Main.MainClass.Name,
 		TomcatPort: m.Main.TomcatPort,
+		Env:        m.Main.Runtime.Env,
 	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {
