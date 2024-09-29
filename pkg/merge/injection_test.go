@@ -379,3 +379,63 @@ func TestProcessCodeLines(t *testing.T) {
 		})
 	}
 }
+
+func TestProcessImports(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name            string
+		imports         []string
+		needAutowired   bool
+		needQualifier   bool
+		expectedImports []string
+	}{
+		{
+			name: "Keep existing Qualifier import",
+			imports: []string{
+				"import org.springframework.beans.factory.annotation.Qualifier;",
+				"import some.other.package;",
+			},
+			needAutowired: true,
+			needQualifier: true,
+			expectedImports: []string{
+				"import org.springframework.beans.factory.annotation.Qualifier;",
+				"import some.other.package;",
+				"import org.springframework.beans.factory.annotation.Autowired;",
+			},
+		},
+		{
+			name: "Add both Autowired and Qualifier imports",
+			imports: []string{
+				"import some.other.package;",
+			},
+			needAutowired: true,
+			needQualifier: true,
+			expectedImports: []string{
+				"import some.other.package;",
+				"import org.springframework.beans.factory.annotation.Autowired;",
+				"import org.springframework.beans.factory.annotation.Qualifier;",
+			},
+		},
+		{
+			name: "Don't add unnecessary imports",
+			imports: []string{
+				"import org.springframework.beans.factory.annotation.Autowired;",
+				"import org.springframework.beans.factory.annotation.Qualifier;",
+			},
+			needAutowired: false,
+			needQualifier: false,
+			expectedImports: []string{
+				"import org.springframework.beans.factory.annotation.Autowired;",
+				"import org.springframework.beans.factory.annotation.Qualifier;",
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := manager.processImports(tc.imports, tc.needAutowired, tc.needQualifier)
+			assert.Equal(t, tc.expectedImports, result)
+		})
+	}
+}

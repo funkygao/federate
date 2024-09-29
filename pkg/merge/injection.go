@@ -137,19 +137,10 @@ func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowi
 		switch {
 		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Autowired"):
 			autowiredImported = true
-			if needAutowired {
-				processedImports = append(processedImports, imp)
-			}
 		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Qualifier"):
 			qualifierImported = true
-			if needQualifier {
-				processedImports = append(processedImports, imp)
-			}
-		case strings.Contains(imp, "javax.annotation.Resource"):
-			processedImports = append(processedImports, imp)
-		default:
-			processedImports = append(processedImports, imp)
 		}
+		processedImports = append(processedImports, imp)
 	}
 
 	if needAutowired && !autowiredImported {
