@@ -14,7 +14,7 @@ clean:
 package:clean ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8
 
-run: ## Bootstrap {{.AppName}} foreground from your host.
+run: ## Bootstrap {{.AppName}} foreground on your host.
 	@if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
 		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
 		$(MAKE) package; \
