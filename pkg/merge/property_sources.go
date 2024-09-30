@@ -112,7 +112,7 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRu
 				value = ""
 			}
 			cm.mergedYaml[prefixedKey] = value
-			//delete(cm.mergedYaml, key)
+			delete(cm.mergedYaml, key)
 
 			cellData = append(cellData, []string{prefixedKey, util.Truncate(fmt.Sprintf("%v", value), 60)})
 		}

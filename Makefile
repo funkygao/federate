@@ -42,7 +42,7 @@ completion-bash: install ## Install bash completion for federate.
 
 PLATFORMS := darwin-amd64 darwin-arm64
 
-release: ## Build binaries for darwin-amd64 darwin-arm64.
+release: ## Build binaries for darwin-amd64 & darwin-arm64.
 	@for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
 		-o federate-$$platform \

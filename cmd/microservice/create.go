@@ -38,9 +38,11 @@ func scaffoldProject(m *manifest.Manifest) {
 func generatePomFile(m *manifest.Manifest) {
 	data := struct {
 		Name                  string
+		BasePackage           string
 		ComponentDependencies []manifest.DependencyInfo
 	}{
 		Name:                  m.Main.Name,
+		BasePackage:           "com.jdwl.wms", // TODO
 		ComponentDependencies: m.ComponentDependencies(),
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
@@ -65,6 +67,7 @@ func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
 		"FederatedApplicationContextInitializer",
 		"FederatedBeanDefinitionConflictProcessor",
 		"FederatedDefaultBeanNameGenerator",
+		"FederatedMybatisConfig",
 		"FederatedEnvironmentPostProcessor",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",
