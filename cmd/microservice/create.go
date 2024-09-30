@@ -1,7 +1,6 @@
 package microservice
 
 import (
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -19,11 +18,7 @@ var createCmd = &cobra.Command{
 Example usage:
   federate microservice create -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m, err := manifest.LoadManifest()
-		if err != nil {
-			log.Fatalf("Error loading manifest: %v", err)
-		}
-
+		m := manifest.LoadManifest()
 		scaffoldProject(m)
 	},
 }
@@ -38,11 +33,9 @@ func scaffoldProject(m *manifest.Manifest) {
 func generatePomFile(m *manifest.Manifest) {
 	data := struct {
 		Name                  string
-		BasePackage           string
 		ComponentDependencies []manifest.DependencyInfo
 	}{
 		Name:                  m.Main.Name,
-		BasePackage:           "com.jdwl.wms", // TODO
 		ComponentDependencies: m.ComponentDependencies(),
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
@@ -81,11 +74,13 @@ func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
 func generateJava(m *manifest.Manifest, simpleClassName string) {
 	packageName := m.Main.FederatedRuntimePackage()
 	data := struct {
-		Package          string
-		SingletonClasses []string
+		Package               string
+		MapperScanBasePackage string
+		SingletonClasses      []string
 	}{
-		Package:          packageName,
-		SingletonClasses: m.Main.Runtime.SingletonComponents,
+		Package:               packageName,
+		MapperScanBasePackage: "com.jdwl.wms", // TODO
+		SingletonClasses:      m.Main.Runtime.SingletonComponents,
 	}
 	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")

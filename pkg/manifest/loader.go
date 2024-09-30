@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,16 +19,16 @@ func RequiredManifestFileFlag(cmd *cobra.Command) {
 	cmd.MarkFlagRequired("input")
 }
 
-func LoadManifest() (*Manifest, error) {
+func LoadManifest() *Manifest {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Error loading manifest: %v", err)
 	}
 	defer file.Close()
 
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Error loading manifest: %v", err)
 	}
 
 	// set default value
@@ -46,7 +47,7 @@ func LoadManifest() (*Manifest, error) {
 	}
 	err = yaml.Unmarshal(data, &manifest)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Error loading manifest: %v", err)
 	}
 
 	manifest.Main.Dependencies = parseDependencies(manifest.Main.RawDependencies)
@@ -60,7 +61,7 @@ func LoadManifest() (*Manifest, error) {
 		manifest.Components[i].Dependencies = parseDependencies(manifest.Components[i].RawDependencies)
 	}
 
-	return &manifest, nil
+	return &manifest
 }
 
 func parseDependencies(rawDeps []string) []DependencyInfo {

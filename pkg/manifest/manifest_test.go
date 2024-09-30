@@ -8,10 +8,7 @@ import (
 
 func TestLoadManifest(t *testing.T) {
 	filePath = "unit-test.yaml"
-	manifest, err := LoadManifest()
-	if err != nil {
-		t.Fatalf("LoadManifest returned an error: %v", err)
-	}
+	manifest := LoadManifest()
 
 	assert.Equal(t, "com.jdwl.wms.runtime", manifest.Main.FederatedRuntimePackage())
 

@@ -20,11 +20,7 @@ var optimizeCmd = &cobra.Command{
 Example usage:
   federate microservice optimize -i manifest.yaml --similarity-threshold 0.5`,
 	Run: func(cmd *cobra.Command, args []string) {
-		manifest, err := manifest.LoadManifest()
-		if err != nil {
-			log.Fatalf("Error loading manifest: %v", err)
-		}
-
+		manifest := manifest.LoadManifest()
 		optimize(manifest)
 	},
 }

@@ -19,6 +19,10 @@ type SpringBeanInjectionManager struct {
 	genericTypePattern      *regexp.Regexp
 }
 
+type ReconcileResourceToAutowiredResult struct {
+	Updated int
+}
+
 func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 	return &SpringBeanInjectionManager{
 		resourcePattern:         regexp.MustCompile(`@Resource(\s*\([^)]*\))?`),
@@ -27,17 +31,21 @@ func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 	}
 }
 
-func (m *SpringBeanInjectionManager) ReconcileResourceToAutowired(manifest *manifest.Manifest, dryRun bool) error {
+func (m *SpringBeanInjectionManager) ReconcileResourceToAutowired(manifest *manifest.Manifest, dryRun bool) (ReconcileResourceToAutowiredResult, error) {
+	result := ReconcileResourceToAutowiredResult{}
 	for _, component := range manifest.Components {
-		if err := m.reconcileComponentInjections(component, dryRun); err != nil {
-			return err
+		updated, err := m.reconcileComponentInjections(component, dryRun)
+		if err != nil {
+			return result, err
 		}
+		result.Updated += updated
 	}
-	return nil
+	return result, nil
 }
 
-func (m *SpringBeanInjectionManager) reconcileComponentInjections(component manifest.ComponentInfo, dryRun bool) error {
-	return filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
+func (m *SpringBeanInjectionManager) reconcileComponentInjections(component manifest.ComponentInfo, dryRun bool) (int, error) {
+	updated := 0
+	err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -61,10 +69,12 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 					return err
 				}
 				log.Printf("Updated %s", path)
+				updated++
 			}
 		}
 		return nil
 	})
+	return updated, err
 }
 
 // replaceResourceWithAutowired 处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
