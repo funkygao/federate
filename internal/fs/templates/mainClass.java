@@ -21,7 +21,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 })
 @ImportResource(locations = {"/federated/spring.xml"})
 @Import({
-        FederatedMybatisConfig.class,
+        //FederatedMybatisConfig.class,
     {{- range .Imports}}
         {{.}}.class,
     {{- end}}
