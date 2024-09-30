@@ -22,7 +22,6 @@ var (
 	yamlConflictCellMaxWidth int
 	dryRunMerge              bool
 	autoYes                  bool
-	showReport               bool
 	silentMode               bool
 )
 
@@ -51,13 +50,6 @@ func mergeResources(m *manifest.Manifest) {
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
-	if showReport {
-		reporters := []merge.Reporter{propertySourcesManager, rpcConsumerManager, xmlBeanManager, resourceManager}
-		for _, reporter := range reporters {
-			reporter.ShowReport()
-		}
-		return
-	}
 
 	steps := []struct {
 		name string
@@ -119,7 +111,6 @@ func promptToProceed(seq, total int, step string) {
 
 func init() {
 	manifest.RequiredManifestFileFlag(MergeCmd)
-	MergeCmd.Flags().BoolVarP(&showReport, "report", "r", false, "Show the merge report")
 	MergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
 	MergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
 	MergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
