@@ -11,6 +11,14 @@ help: ## Display this help.
 clean:
 	@mvn clean
 
+config: ## Setup MySQL DSN, TODO will be delete after demo project tested
+	@echo "========================================================"
+	@echo "To bootstrap your demo project, you need manually config"
+	@echo "========================================================"
+	@echo "federated/application.yml: datasource.common.mysql.username: testwl"
+	@echo "federated/application.yml: datasource.common.mysql.password:" 
+	@echo "               /etc/hosts: ip master.mysql.local"
+
 package:clean ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8
 
