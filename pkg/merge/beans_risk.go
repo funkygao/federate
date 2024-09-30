@@ -6,9 +6,13 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
+	"sync"
 	"time"
 
+	"federate/pkg/boost"
 	"federate/pkg/java"
+	"federate/pkg/manifest"
 )
 
 type getBeanRisk struct {
@@ -27,35 +31,65 @@ func (b *XmlBeanManager) showRisk() {
 
 func (b *XmlBeanManager) showGetBeanRisk() error {
 	getBeanExp := regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`)
-	risks := []getBeanRisk{}
+	var risks []getBeanRisk
+	var mu sync.Mutex
+	counter := boost.NewCounter()
+
 	t0 := time.Now()
-	n := 0
+
+	executor := boost.NewParallelExecutor(runtime.NumCPU())
+
 	for _, component := range b.m.Components {
-		err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if java.IsJavaMainSource(info, path) {
-				n++
-				names, err := findGetBeanNames(path, getBeanExp)
-				if err != nil {
-					return err
-				}
-				for _, name := range names {
-					risks = append(risks, getBeanRisk{filePath: path, beanName: name})
-				}
-			}
-			return nil
+		executor.AddTask(&getBeanRiskTask{
+			component:  component,
+			getBeanExp: getBeanExp,
+			risks:      &risks,
+			mu:         &mu,
+			counter:    counter,
 		})
-		if err != nil {
-			return err
-		}
 	}
-	log.Printf("⚠️  getBean(name) %d risks, %d java files analyzed, cost %s", len(risks), n, time.Since(t0))
+
+	errors := executor.Execute()
+	if len(errors) > 0 {
+		return errors[0] // 返回第一个遇到的错误
+	}
+
+	log.Printf("⚠️  getBean(name) %d risks, %d java files analyzed, cost %s", len(risks), counter.Value(), time.Since(t0))
 	for _, risk := range risks {
 		log.Printf("getBean(%s): %s", risk.beanName, risk.filePath)
 	}
 	return nil
+}
+
+type getBeanRiskTask struct {
+	component  manifest.ComponentInfo
+	getBeanExp *regexp.Regexp
+	risks      *[]getBeanRisk
+	mu         *sync.Mutex
+	counter    *boost.Counter
+}
+
+func (t *getBeanRiskTask) Execute() error {
+	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if java.IsJavaMainSource(info, path) {
+			t.counter.Increment()
+			names, err := findGetBeanNames(path, t.getBeanExp)
+			if err != nil {
+				return err
+			}
+			if len(names) > 0 {
+				t.mu.Lock()
+				for _, name := range names {
+					*t.risks = append(*t.risks, getBeanRisk{filePath: path, beanName: name})
+				}
+				t.mu.Unlock()
+			}
+		}
+		return nil
+	})
 }
 
 func findGetBeanNames(filePath string, re *regexp.Regexp) ([]string, error) {

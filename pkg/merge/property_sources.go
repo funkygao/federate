@@ -8,9 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
-	"sync"
 
+	"federate/pkg/boost"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
@@ -123,38 +124,45 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRu
 	tablerender.DisplayTable(header, cellData, false, -1)
 	log.Printf("Reconciled %d conflicting keys into %d keys", len(conflictKeys), len(cellData))
 
-	var wg sync.WaitGroup
-	errChan := make(chan error, len(componentKeys))
-
+	executor := boost.NewParallelExecutor(runtime.NumCPU())
 	for componentName, keys := range componentKeys {
-		wg.Add(1)
-		go func(componentName string, keys []string) {
-			defer wg.Done()
-			log.Printf("[%s] Fixing ref keys: %v", componentName, keys)
-			component := m.ComponentByName(componentName)
-			prefix := cm.componentKeyPrefix(componentName)
+		component := m.ComponentByName(componentName)
+		prefix := cm.componentKeyPrefix(componentName)
 
-			if err := cm.prefixKeyReferences(component.RootDir(), keys, prefix, dryRun, java.IsJavaMainSource, cm.createJavaRegex); err != nil {
-				errChan <- err
-				return
-			}
-
-			if err := cm.prefixKeyReferences(component.TargetResourceDir(), keys, prefix, dryRun, java.IsXml, cm.createXmlRegex); err != nil {
-				errChan <- err
-				return
-			}
-		}(componentName, keys)
+		executor.AddTask(&reconcileTask{
+			cm:        cm,
+			component: component,
+			keys:      keys,
+			prefix:    prefix,
+			dryRun:    dryRun,
+		})
 	}
 
-	go func() {
-		wg.Wait()
-		close(errChan)
-	}()
+	errors := executor.Execute()
+	if len(errors) > 0 {
+		return errors[0] // 返回第一个遇到的错误
+	}
 
-	for err := range errChan {
-		if err != nil {
-			return err
-		}
+	return nil
+}
+
+type reconcileTask struct {
+	cm        *PropertySourcesManager
+	component *manifest.ComponentInfo
+	keys      []string
+	prefix    string
+	dryRun    bool
+}
+
+func (t *reconcileTask) Execute() error {
+	log.Printf("[%s] Fixing ref keys: %v", t.component.Name, t.keys)
+
+	if err := t.cm.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
+		return err
+	}
+
+	if err := t.cm.prefixKeyReferences(t.component.TargetResourceDir(), t.keys, t.prefix, t.dryRun, java.IsXml, t.cm.createXmlRegex); err != nil {
+		return err
 	}
 
 	return nil
