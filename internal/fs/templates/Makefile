@@ -18,6 +18,8 @@ config: ## Setup MySQL DSN, TODO will be delete after demo project tested
 	@echo "federated/application.yml: datasource.common.mysql.username: testwl"
 	@echo "federated/application.yml: datasource.common.mysql.password:" 
 	@echo "               /etc/hosts: ip master.mysql.local"
+	@echo
+	@echo "federated-dubbo-consumer.xml kill all consumers with id ended with -1"
 
 package:clean ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8
