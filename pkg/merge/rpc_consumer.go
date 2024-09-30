@@ -124,6 +124,13 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, compo
 
 func (dm *RpcConsumerManager) registerReference(component manifest.ComponentInfo, reference *etree.Element) {
 	interfaceName := reference.SelectAttrValue("interface", "")
+
+	// 删除属性 scope="remote"，Apache Dubbo 才能自动切换到本地调用/injvm；JSF 没有该属性
+	if scopeAttr := reference.SelectAttr("scope"); scopeAttr != nil && scopeAttr.Value == "remote" {
+		reference.RemoveAttr("scope")
+		log.Printf("[%s] Removed scope=\"remote\" attr for: %s", component.Name, interfaceName)
+	}
+
 	dm.globalReferenceMap[interfaceName] = reference
 	dm.interfaceToComponent[interfaceName] = component.Name
 }
