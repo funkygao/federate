@@ -11,6 +11,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+var wordRegexp bool
+
 var ygrepCmd = &cobra.Command{
 	Use:   "ygrep",
 	Short: "Search for a specified key in YAML files within a directory",
@@ -88,7 +90,8 @@ func findPartialKey(data map[string]interface{}, key, prefix string) []searchRes
 		if prefix != "" {
 			fullKey = prefix + "." + k
 		}
-		if strings.Contains(fullKey, key) {
+
+		if shouldMatch(fullKey, key) {
 			results = append(results, searchResult{key: fullKey, value: v})
 		}
 		if nestedMap, ok := v.(map[interface{}]interface{}); ok {
@@ -100,10 +103,31 @@ func findPartialKey(data map[string]interface{}, key, prefix string) []searchRes
 	return results
 }
 
+func shouldMatch(fullKey, key string) bool {
+	if wordRegexp {
+		return matchWholeWord(fullKey, key)
+	}
+	return strings.Contains(fullKey, key)
+}
+
+func matchWholeWord(fullKey, key string) bool {
+	parts := strings.Split(fullKey, ".")
+	for _, part := range parts {
+		if part == key {
+			return true
+		}
+	}
+	return false
+}
+
 func convertMap(input map[interface{}]interface{}) map[string]interface{} {
 	output := make(map[string]interface{})
 	for k, v := range input {
 		output[fmt.Sprintf("%v", k)] = v
 	}
 	return output
+}
+
+func init() {
+	ygrepCmd.Flags().BoolVarP(&wordRegexp, "word-regexp", "w", false, "Only match whole words")
 }

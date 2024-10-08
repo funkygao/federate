@@ -332,6 +332,7 @@ func (cm *PropertySourcesManager) getConflicts(conflictKeys map[string]map[strin
 }
 
 func (cm *PropertySourcesManager) WriteMergedYaml(targetFile string) {
+	//data, err := yaml.Marshal(cm.unflattenYamlMap(cm.mergedYaml))
 	data, err := yaml.Marshal(cm.mergedYaml)
 	if err != nil {
 		log.Fatalf("Error marshalling merged config: %v", err)

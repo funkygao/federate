@@ -1,22 +1,25 @@
 package microservice
 
 import (
+	"fmt"
+
 	"federate/cmd/explain"
 	"federate/cmd/merge"
+	"federate/pkg/logo"
 	"github.com/spf13/cobra"
 )
 
 var CmdGroup = &cobra.Command{
 	Use:   "microservice",
 	Short: "Orchestrate microservice consolidation and optimization",
-	Long: `The microservice command group streamlines the consolidation and optimization of multiple microservices 
+	Long: fmt.Sprintf(`The microservice command group streamlines the consolidation and optimization of multiple microservices
 into a cohesive, efficient system while preserving the flexibility of the microservice architecture.
 
 The consolidation process involves the following key components:
 
 1. Define Manifest       ┐
 2. Generate Starter      │
-   & User Custom Code    ├─> federate ─> Optimized Target System ─> Deployed Application
+   & User Custom Code    ├─> %s ─> Optimized Target System ─> Deployed Application
 3. Microservices         │
    (Multiple Systems)    ┘
 
@@ -32,7 +35,7 @@ The 'federate' process performs key steps including:
 
 This approach decouples logical boundaries from physical deployment, offering flexibility while maintaining
 microservice architecture benefits. The result is a system combining microservice agility with consolidated
-architecture efficiency.`,
+architecture efficiency.`, logo.Federate()),
 }
 
 func init() {

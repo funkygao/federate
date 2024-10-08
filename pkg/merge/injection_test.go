@@ -285,6 +285,22 @@ public class LocationValidationRuleInitializer implements LocationValidationInit
 		},
 
 		{
+			name: "Keep @Resource for HashMap injection",
+			input: `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.stereotype.Component;
+
+@Component
+@Order(60)
+public class LocationValidationRuleInitializer implements LocationValidationInitializer {
+    @Resource
+    private HashMap<String, String> mappingConstraintValidatorMap;
+}`,
+		},
+
+		{
 			name: "Keep @Resource for List injection",
 			input: `
 package com.example;

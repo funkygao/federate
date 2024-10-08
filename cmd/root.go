@@ -10,8 +10,8 @@ import (
 	"federate/cmd/microservice"
 	"federate/cmd/onpremise"
 	"federate/cmd/version"
+	"federate/pkg/logo"
 
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "federate",
 		Short: "federate - A compiler and toolkit for microservices management",
-		Long: color.New(color.Bold).Add(color.Underline).Sprintf("federate") + ` is a compiler-like toolkit for microservices consolidation and deployment.
+		Long: logo.Federate() + ` is a compiler-like toolkit for microservices consolidation and deployment.
 
   This Swiss Army knife for microservices offers a wide range of functionalities to streamline 
   development, deployment, and management processes.
