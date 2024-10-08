@@ -9,7 +9,7 @@ help: ## Display this help.
 ##@ Build
 
 install: ## Compile and install {{.AppName}}-fusion-starter.jar on your host.
-	@mvn clean install -U -Dmaven.test.skip=true -T8
+	@mvn clean install -q -U -Dmaven.test.skip=true -T8
 
 clean: ## Clean
 	@mvn clean
