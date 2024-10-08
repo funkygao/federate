@@ -1,10 +1,12 @@
 package {{.Package}};
 
 import {{.FederatedRuntimePackage}}.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.Banner;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -42,6 +44,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @EnableAspectJAutoProxy(exposeProxy = true, proxyTargetClass = true)
 @EnableTransactionManagement
 @EnableAsync
+@Slf4j
 public class {{.ClassName}} {
 
     public static void main(String[] args) {
@@ -58,7 +61,8 @@ public class {{.ClassName}} {
                 .beanNameGenerator(new FederatedDefaultBeanNameGenerator())
                 .resourceLoader(new FederatedResourceLoader({{.ClassName}}.class.getClassLoader()))
                 .logStartupInfo(false);
-        builder.run(args);
+        ApplicationContext context = builder.run(args);
+        log.info("FederatedApplication: {}, started", context.getApplicationName());
     }
 
     private static void excludeBeans() {
