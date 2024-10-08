@@ -101,10 +101,15 @@ func (cm *PropertySourcesManager) GetYamlConflicts() map[string]map[string]inter
 	return cm.getConflicts(cm.yamlConflictKeys)
 }
 
-func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRun bool) error {
+type PropertySourcesReconciled struct {
+	KeyPrefixed    int
+	RequestMapping int
+}
+
+func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRun bool) (result PropertySourcesReconciled, err error) {
 	conflictKeys := cm.GetYamlConflicts()
 	if len(conflictKeys) == 0 {
-		return nil
+		return
 	}
 
 	// Group keys by component
@@ -141,36 +146,50 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRu
 			prefix:             prefix,
 			dryRun:             dryRun,
 			servletContextPath: cm.servletContextPath[componentName],
+			result:             reconcileTaskResult{},
 		})
 	}
 
 	errors := executor.Execute()
 	if len(errors) > 0 {
-		return errors[0] // 返回第一个遇到的错误
+		err = errors[0] // 返回第一个遇到的错误
 	}
 
-	return nil
+	for _, task := range executor.Tasks() {
+		reconcileTask := task.(*reconcileTask)
+		result.KeyPrefixed += reconcileTask.result.keyPrefixed
+		result.RequestMapping += reconcileTask.result.requestMapping
+	}
+
+	return
 }
 
 type reconcileTask struct {
-	cm                 *PropertySourcesManager
+	cm *PropertySourcesManager
+
 	component          *manifest.ComponentInfo
 	keys               []string
 	prefix             string
 	dryRun             bool
 	servletContextPath string
+	result             reconcileTaskResult
+}
+
+type reconcileTaskResult struct {
+	keyPrefixed    int
+	requestMapping int
 }
 
 func (t *reconcileTask) Execute() error {
 	log.Printf("[%s] Fixing ref keys: %v", t.component.Name, t.keys)
 
 	// 为Java源代码里这些key的引用增加组件名称前缀
-	if err := t.cm.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
+	if err := t.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
 		return err
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀
-	if err := t.cm.prefixKeyReferences(t.component.TargetResourceDir(), t.keys, t.prefix, t.dryRun, java.IsXml, t.cm.createXmlRegex); err != nil {
+	if err := t.prefixKeyReferences(t.component.TargetResourceDir(), t.keys, t.prefix, t.dryRun, java.IsXml, t.cm.createXmlRegex); err != nil {
 		return err
 	}
 
@@ -214,6 +233,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 						return err
 					}
 					log.Printf("Updated request mappings in %s", path)
+					t.result.requestMapping++
 				}
 			}
 		}
@@ -234,7 +254,7 @@ func (cm *PropertySourcesManager) updateRequestMappingInFile(content, contextPat
 	})
 }
 
-func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []string, prefix string, dryRun bool, fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
+func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefix string, dryRun bool, fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
 	keyRegexes := make([]*regexp.Regexp, len(keys))
 	for i, key := range keys {
 		keyRegexes[i] = createRegex(key)
@@ -262,12 +282,13 @@ func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []str
 					}
 					changed = true
 					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-						replaced := cm.replaceKeyInMatch(match, keys[i], prefix)
+						replaced := t.cm.replaceKeyInMatch(match, keys[i], prefix)
 						dmp := diffmatchpatch.New()
 						diffs := dmp.DiffMain(match, replaced, false)
 						log.Printf("%s", dmp.DiffPrettyText(diffs))
 						return replaced
 					})
+					t.result.keyPrefixed++
 				}
 			}
 

@@ -30,7 +30,8 @@ func prepareMergeApplicationYaml(m *manifest.Manifest, manager *merge.PropertySo
 }
 
 func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertySourcesManager) {
-	if err := manager.ReconcileConflicts(m, dryRunMerge); err != nil {
+	result, err := manager.ReconcileConflicts(m, dryRunMerge)
+	if err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 
@@ -38,6 +39,7 @@ func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyS
 	manager.WriteMergedProperties(pn)
 	an := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "application.yml")
 	manager.WriteMergedYaml(an)
+	color.Yellow("Source code updated, @RequestMapping: %d, KeyReferencePrefixed: %d", result.RequestMapping, result.KeyPrefixed)
 	color.Green("🍺 Reconciled placeholder conflicts: %s, %s", an, pn)
 }
 

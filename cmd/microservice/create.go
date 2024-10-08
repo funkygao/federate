@@ -12,8 +12,9 @@ import (
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Scaffold a new federated target system",
-	Long: `The create command scaffolds a new federated target system.
+	Short: "Scaffold a new fusion-starter project for the target system",
+	Long: `The create command scaffolds a new fusion-starter project for the target system.
+It provides runtime support for the target system.
 
 Example usage:
   federate microservice create -i manifest.yaml`,

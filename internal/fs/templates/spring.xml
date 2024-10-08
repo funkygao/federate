@@ -9,7 +9,7 @@
     {{- if .JSFEnabled }}
     <!-- JSF shared config -->
     <jsf:server id="jsf" protocol="jsf" threads="${jsf.threads:400}"/>
-    <import resource="{{.FirstComponent.Name}}/federated-jsf-consumer.xml"/>
+    <import resource="federated-jsf-consumer.xml"/>
     {{- end }}
 
     {{- if .DubboEnabled }}
@@ -17,7 +17,7 @@
     <dubbo:application name="${spring.application.name}"/>
     <dubbo:registry protocol="zookeeper" address="${dubbo.zk.url}" check="false" client="curator"/>
     <dubbo:protocol name="dubbo" port="-1" threads="200" serialization="hessian2"/>
-    <import resource="{{.FirstComponent.Name}}/federated-dubbo-consumer.xml"/>
+    <import resource="federated-dubbo-consumer.xml"/>
     {{- end }}
 
     <!-- include components xml -->

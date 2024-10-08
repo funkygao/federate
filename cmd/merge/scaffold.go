@@ -73,6 +73,7 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 		BasePackages            []string
 		ExcludedTypes           []string
 		Imports                 []string
+		Excludes                []string
 	}{
 		Package:                 packageName,
 		ClassName:               className,
@@ -81,6 +82,7 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 		BasePackages:            m.Main.MainClass.ComponentScan.BasePackages,
 		ExcludedTypes:           m.Main.MainClass.ComponentScan.ExcludedTypes,
 		Imports:                 m.Main.MainClass.Imports,
+		Excludes:                m.Main.MainClass.Excludes,
 	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {

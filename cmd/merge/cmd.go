@@ -94,7 +94,6 @@ func mergeResources(m *manifest.Manifest) {
 	for i, step := range steps {
 		promptToProceed(i+1, totalSteps, step.name)
 		step.fn()
-		fmt.Println()
 	}
 }
 

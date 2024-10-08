@@ -23,6 +23,10 @@ func (pe *ParallelExecutor) AddTask(task Task) {
 	pe.tasks = append(pe.tasks, task)
 }
 
+func (pe *ParallelExecutor) Tasks() []Task {
+	return pe.tasks
+}
+
 // Execute runs all tasks in parallel and returns any errors
 func (pe *ParallelExecutor) Execute() []error {
 	var wg sync.WaitGroup

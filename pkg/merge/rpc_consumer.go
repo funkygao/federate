@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"github.com/beevik/etree"
 )
@@ -75,7 +76,7 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 		return nil
 	}
 
-	return dm.writeMergedXmlToFile(m.FirstComponent().TargetResourceDir(), rpc)
+	return dm.writeMergedXmlToFile(federated.GeneratedResourceBaseDir(m.Main.Name), rpc)
 }
 
 func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool) error {
@@ -97,15 +98,19 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 	}
 
 	// Merge references from the current xml file
-	dm.mergeReferences(doc.FindElements("//reference"), component, componentConflicts)
+	dm.mergeReferences(doc.FindElements("//reference"), m, component, componentConflicts)
 
 	return nil
 }
 
-func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, component manifest.ComponentInfo, componentConflicts map[string]bool) {
+func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *manifest.Manifest, component manifest.ComponentInfo, componentConflicts map[string]bool) {
 	for _, reference := range references {
 		dm.ScannedBeansCount++
 		interfaceName := reference.SelectAttrValue("interface", "")
+		if m.Main.Reconcile.RpcConsumer.IgnoreInterface(interfaceName) {
+			log.Printf("[%s] Ignore rpc consumer: %s", component.Name, interfaceName)
+			continue
+		}
 
 		if _, exists := dm.globalReferenceMap[interfaceName]; !exists {
 			dm.registerReference(component, reference)

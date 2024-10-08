@@ -7,8 +7,8 @@ target: # 目标系统
   runtime:
     env: ADDRESS_KAFKA=localhost:9092 ADDRESS_MYSQL_MASTER=master.mysql.local:3358 ADDRESS_MYSQL_SLAVE=slave.mysql.local:3358 ADDRESS_REDIS=master.redis.local:6379 ADDRESS_S3_ENDPOINT_READ=endpoint.s3.local:9000 ADDRESS_S3_ENDPOINT_WRITE=endpoint.s3.local:9000 ADDRESS_ZOOKEEPER=localhost:2181 LOG_HOME=$PROJECT_DIR$/logs
     singletonClasses:
-  mainClass: # 启动类
-    name: com.jdwl.wms.fusion.DemoApp
+  springBootApplication:
+    class: com.jdwl.wms.fusion.DemoApp
     import:
       - com.jdwl.wms.demo.FederatedDataSource
       - com.jdwl.wms.demo.FederatedWebInterceptor

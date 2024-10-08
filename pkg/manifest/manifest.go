@@ -36,10 +36,6 @@ func (m *Manifest) ComponentDependencies() []DependencyInfo {
 	return dependencies
 }
 
-func (m *Manifest) FirstComponent() *ComponentInfo {
-	return &m.Components[0]
-}
-
 func (m *Manifest) ComponentByName(componentName string) *ComponentInfo {
 	for _, c := range m.Components {
 		if c.Name == componentName {
@@ -148,7 +144,7 @@ type MainSystem struct {
 	TomcatPort int16       `yaml:"tomcatPort"`
 	JvmSize    string      `yaml:"jvmSize"`
 	Runtime    RuntimeSpec `yaml:"runtime"`
-	MainClass  MainClass   `yaml:"mainClass"`
+	MainClass  MainClass   `yaml:"springBootApplication"`
 
 	RawParent string         `yaml:"parent"`
 	Parent    DependencyInfo `yaml:"-"`
@@ -168,9 +164,10 @@ type RuntimeSpec struct {
 }
 
 type MainClass struct {
-	Name          string        `yaml:"name"`
+	Name          string        `yaml:"class"`
 	ComponentScan ComponentScan `yaml:"componentScan"`
 	Imports       []string      `yaml:"import"`
+	Excludes      []string      `yaml:"exclude"`
 }
 
 func (m *MainSystem) GroupId() string {
@@ -197,12 +194,13 @@ type ComponentScan struct {
 }
 
 type ReconcileSpec struct {
-	Logger               string   `yaml:"logger"`
-	Taint                Taint    `yaml:"taint"`
-	SingletonBeanClasses []string `yaml:"singletonClasses"`
-	ExcludedBeanClasses  []string `yaml:"excludeClasses"`
-	MergeResourceFiles   []string `yaml:"mergeResources"`
-	IgnoredFiles         []string `yaml:"ignoreResources"`
+	Logger               string          `yaml:"logger"`
+	Taint                Taint           `yaml:"taint"`
+	SingletonBeanClasses []string        `yaml:"singletonClasses"`
+	ExcludedBeanClasses  []string        `yaml:"excludeClasses"`
+	MergeResourceFiles   []string        `yaml:"mergeResources"`
+	IgnoredFiles         []string        `yaml:"ignoreResources"`
+	RpcConsumer          RpcConsumerSpec `yaml:"rpcConsumer"`
 
 	M *MainSystem
 }
@@ -223,6 +221,19 @@ type Taint struct {
 func (t *Taint) ResourceFiles() []string {
 	return []string{t.LogConfigXml, t.MybatisConfigXml}
 
+}
+
+type RpcConsumerSpec struct {
+	IgnorePackages []string `yaml:"ignorePackage"`
+}
+
+func (s *RpcConsumerSpec) IgnoreInterface(interfaceName string) bool {
+	for _, pkg := range s.IgnorePackages {
+		if strings.HasPrefix(interfaceName, pkg) {
+			return true
+		}
+	}
+	return false
 }
 
 type ComponentInfo struct {
