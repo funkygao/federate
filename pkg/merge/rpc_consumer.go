@@ -12,8 +12,10 @@ import (
 )
 
 type RpcConsumerManager struct {
-	ScannedBeansCount       int
-	GeneratedBeansCount     int
+	ScannedBeansCount   int
+	GeneratedBeansCount int
+	IgnoredInterfaceN   int
+
 	IntraComponentConflicts map[string][]string
 	InterComponentConflicts []string
 	TargetFile              string
@@ -109,6 +111,7 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *ma
 		interfaceName := reference.SelectAttrValue("interface", "")
 		if m.Main.Reconcile.RpcConsumer.IgnoreInterface(interfaceName) {
 			log.Printf("[%s] Ignore rpc consumer: %s", component.Name, interfaceName)
+			dm.IgnoredInterfaceN++
 			continue
 		}
 

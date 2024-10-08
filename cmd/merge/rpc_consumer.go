@@ -25,8 +25,8 @@ func mergeConsumerXml(m *manifest.Manifest, manager *merge.RpcConsumerManager, r
 		return
 	}
 
-	color.Cyan("[%s] ScannedBeans:%d, GeneratedBeans:%d, InterComponentConflicts:%d", rpc, manager.ScannedBeansCount,
-		manager.GeneratedBeansCount, len(manager.InterComponentConflicts))
+	color.Cyan("[%s] ScannedBeans:%d, IgnoredInterface:%d, GeneratedBeans:%d, InterComponentConflicts:%d", rpc, manager.ScannedBeansCount,
+		manager.IgnoredInterfaceN, manager.GeneratedBeansCount, len(manager.InterComponentConflicts))
 	if len(manager.InterComponentConflicts) > 0 {
 		log.Printf("[%s] InterComponentConflicts: %v", rpc, manager.InterComponentConflicts)
 	}

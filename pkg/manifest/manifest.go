@@ -224,12 +224,23 @@ func (t *Taint) ResourceFiles() []string {
 }
 
 type RpcConsumerSpec struct {
-	IgnorePackages []string `yaml:"ignorePackage"`
+	IgnoreRules []IgnoreRule `yaml:"ignoreRules"`
+}
+
+type IgnoreRule struct {
+	Package string   `yaml:"package"`
+	Except  []string `yaml:"except"`
 }
 
 func (s *RpcConsumerSpec) IgnoreInterface(interfaceName string) bool {
-	for _, pkg := range s.IgnorePackages {
-		if strings.HasPrefix(interfaceName, pkg) {
+	for _, rule := range s.IgnoreRules {
+		if strings.HasPrefix(interfaceName, rule.Package) {
+			// 检查是否在例外列表中
+			for _, except := range rule.Except {
+				if interfaceName == except {
+					return false
+				}
+			}
 			return true
 		}
 	}

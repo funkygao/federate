@@ -39,6 +39,13 @@ target: # 目标系统
       - com.x.wms.common.lock.JimdbLocker
       - com.x.wms.common.workload.RateLimiterRedis
       - org.springframework.kafka.core.DefaultKafkaProducerFactory
+    rpcConsumer:
+      ignoreRules:
+        - package: com.jdwl.wms.stock.api
+          except:
+            - com.jdwl.wms.stock.api.external.OutboundOrderQueryService
+            - com.jdwl.wms.stock.api.external.InteractQueryService
+        - package: com.jdwl.wms.inventory.api
     ignoreResources:
       - "jsf*xml"
       - "*jmq*"
