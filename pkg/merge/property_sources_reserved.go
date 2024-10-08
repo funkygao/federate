@@ -65,6 +65,9 @@ var reservedKeyHandlers = map[string]ValueOverride{
 		}
 		return "/"
 	},
+	"server.tomcat.accesslog.directory": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+		return "${LOG_HOME}"
+	},
 }
 
 func (m *PropertySourcesManager) recordServletContextPath(c manifest.ComponentInfo, contextPath string) {
