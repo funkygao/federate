@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"federate/pkg/boost"
+	"federate/pkg/concurrent"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 )
@@ -33,11 +33,11 @@ func (b *XmlBeanManager) showGetBeanRisk() error {
 	getBeanExp := regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`)
 	var risks []getBeanRisk
 	var mu sync.Mutex
-	counter := boost.NewCounter()
+	counter := concurrent.NewCounter()
 
 	t0 := time.Now()
 
-	executor := boost.NewParallelExecutor(runtime.NumCPU())
+	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
 
 	for _, component := range b.m.Components {
 		executor.AddTask(&getBeanRiskTask{
@@ -66,7 +66,7 @@ type getBeanRiskTask struct {
 	getBeanExp *regexp.Regexp
 	risks      *[]getBeanRisk
 	mu         *sync.Mutex
-	counter    *boost.Counter
+	counter    *concurrent.Counter
 }
 
 func (t *getBeanRiskTask) Execute() error {

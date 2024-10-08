@@ -13,23 +13,24 @@ type ComponentKeyValue struct {
 }
 
 // ValueOverride is a type alias for functions that calculate special key values.
-type ValueOverride func([]ComponentKeyValue) interface{}
+// If return value is nil, the key will be deleted.
+type ValueOverride func(*PropertySourcesManager, []ComponentKeyValue) interface{}
 
 func M(values []ComponentKeyValue) *manifest.MainSystem {
 	return values[0].Component.M
 }
 
 var reservedKeyHandlers = map[string]ValueOverride{
-	"spring.application.name": func(values []ComponentKeyValue) interface{} {
+	"spring.application.name": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
 		return M(values).Name
 	},
-	"spring.profiles.active": func(values []ComponentKeyValue) interface{} {
+	"spring.profiles.active": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
 		return M(values).SpringProfile
 	},
-	"spring.profiles.include": func(values []ComponentKeyValue) interface{} {
+	"spring.profiles.include": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
 		return nil
 	},
-	"spring.messages.basename": func(values []ComponentKeyValue) interface{} {
+	"spring.messages.basename": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
 		basenameSet := make(map[string]struct{})
 		for _, v := range values {
 			if basenameStr, ok := v.Value.(string); ok {
@@ -50,13 +51,22 @@ var reservedKeyHandlers = map[string]ValueOverride{
 
 		return strings.Join(uniqueBasenames, ",")
 	},
-	"logging.config": func(values []ComponentKeyValue) interface{} {
+	"logging.config": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
 		return nil
 	},
-	"mybatis.config-location": func(values []ComponentKeyValue) interface{} {
+	"mybatis.config-location": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
 		return nil
 	},
-	"server.servlet.context-path#": func(values []ComponentKeyValue) interface{} {
-		return nil
+	"server.servlet.context-path": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+		for _, v := range values {
+			if contextPath, ok := v.Value.(string); ok {
+				m.recordServletContextPath(v.Component, contextPath)
+			}
+		}
+		return "/"
 	},
+}
+
+func (m *PropertySourcesManager) recordServletContextPath(c manifest.ComponentInfo, contextPath string) {
+	m.servletContextPath[c.Name] = contextPath
 }

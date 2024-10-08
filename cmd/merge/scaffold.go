@@ -12,7 +12,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func createFederatedSystem(m *manifest.Manifest) {
+func scaffoldFederatedSystem(m *manifest.Manifest) {
 	packageName, className := m.ParseMainClass()
 	generatePomFile(m)
 	generateMainClassFile(packageName, className, m)

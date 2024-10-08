@@ -56,7 +56,7 @@ func mergeResources(m *manifest.Manifest) {
 		fn   func()
 	}{
 		{"Generating federate system scaffold", func() {
-			createFederatedSystem(m)
+			scaffoldFederatedSystem(m)
 		}},
 		{"Reconciling ENV variables conflicts", func() {
 			reconcileEnvConflicts(m)

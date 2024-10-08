@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"strings"
 
-	"federate/pkg/boost"
+	"federate/pkg/concurrent"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
@@ -31,6 +31,9 @@ type PropertySourcesManager struct {
 
 	reservedYamlKeys map[string]ValueOverride
 	reservedValues   map[string][]ComponentKeyValue
+
+	servletContextPath  map[string]string // {componentName: contextPath}
+	requestMappingRegex *regexp.Regexp
 }
 
 func NewPropertySourcesManager() *PropertySourcesManager {
@@ -42,8 +45,10 @@ func NewPropertySourcesManager() *PropertySourcesManager {
 		propertySourceExts: map[string]struct{}{
 			".properties": {},
 		},
-		reservedYamlKeys: reservedKeyHandlers,
-		reservedValues:   make(map[string][]ComponentKeyValue),
+		reservedYamlKeys:    reservedKeyHandlers,
+		reservedValues:      make(map[string][]ComponentKeyValue),
+		servletContextPath:  make(map[string]string),
+		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
 	}
 }
 
@@ -124,17 +129,18 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRu
 	tablerender.DisplayTable(header, cellData, false, -1)
 	log.Printf("Reconciled %d conflicting keys into %d keys", len(conflictKeys), len(cellData))
 
-	executor := boost.NewParallelExecutor(runtime.NumCPU())
+	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
 	for componentName, keys := range componentKeys {
 		component := m.ComponentByName(componentName)
 		prefix := cm.componentKeyPrefix(componentName)
 
 		executor.AddTask(&reconcileTask{
-			cm:        cm,
-			component: component,
-			keys:      keys,
-			prefix:    prefix,
-			dryRun:    dryRun,
+			cm:                 cm,
+			component:          component,
+			keys:               keys,
+			prefix:             prefix,
+			dryRun:             dryRun,
+			servletContextPath: cm.servletContextPath[componentName],
 		})
 	}
 
@@ -147,22 +153,32 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRu
 }
 
 type reconcileTask struct {
-	cm        *PropertySourcesManager
-	component *manifest.ComponentInfo
-	keys      []string
-	prefix    string
-	dryRun    bool
+	cm                 *PropertySourcesManager
+	component          *manifest.ComponentInfo
+	keys               []string
+	prefix             string
+	dryRun             bool
+	servletContextPath string
 }
 
 func (t *reconcileTask) Execute() error {
 	log.Printf("[%s] Fixing ref keys: %v", t.component.Name, t.keys)
 
+	// 为Java源代码里这些key的引用增加组件名称前缀
 	if err := t.cm.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
 		return err
 	}
 
+	// 为xml里这些key的引用增加组件名称前缀
 	if err := t.cm.prefixKeyReferences(t.component.TargetResourceDir(), t.keys, t.prefix, t.dryRun, java.IsXml, t.cm.createXmlRegex); err != nil {
 		return err
+	}
+
+	// 解决 server.servlet.context-path 冲突：修改Java源代码
+	if !t.dryRun && t.servletContextPath != "" {
+		if err := t.updateRequestMappings(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -170,6 +186,52 @@ func (t *reconcileTask) Execute() error {
 
 func (cm *PropertySourcesManager) componentKeyPrefix(componentName string) string {
 	return componentName + "."
+}
+
+func (t *reconcileTask) updateRequestMappings() error {
+	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		if java.IsJavaMainSource(info, path) {
+			content, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			oldContent := string(content)
+			newContent := t.cm.updateRequestMappingInFile(oldContent, t.servletContextPath)
+			if newContent != oldContent {
+				if !t.dryRun {
+					log.Printf("Plan to update request mappings in %s", path)
+					dmp := diffmatchpatch.New()
+					diffs := dmp.DiffMain(oldContent, newContent, false)
+					log.Printf("Changes:\n%s", dmp.DiffPrettyText(diffs))
+
+					err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
+					if err != nil {
+						return err
+					}
+					log.Printf("Updated request mappings in %s", path)
+				}
+			}
+		}
+
+		return nil
+	})
+}
+
+func (cm *PropertySourcesManager) updateRequestMappingInFile(content, contextPath string) string {
+	return cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
+		submatches := cm.requestMappingRegex.FindStringSubmatch(match)
+		if len(submatches) == 4 {
+			oldPath := submatches[2]
+			newPath := filepath.Join(contextPath, oldPath)
+			return submatches[1] + newPath + submatches[3]
+		}
+		return match
+	})
 }
 
 func (cm *PropertySourcesManager) prefixKeyReferences(baseDir string, keys []string, prefix string, dryRun bool, fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
@@ -423,7 +485,7 @@ func (cm *PropertySourcesManager) recordReservedValue(key string, component mani
 func (cm *PropertySourcesManager) finalizeReservedKeys() {
 	for key, values := range cm.reservedValues {
 		if handler, exists := cm.reservedYamlKeys[key]; exists {
-			if value := handler(values); value != nil {
+			if value := handler(cm, values); value != nil {
 				log.Printf("Reserved property[%s]=%v", key, value)
 				cm.mergedYaml[key] = value
 			} else {
