@@ -194,7 +194,6 @@ type ComponentScan struct {
 }
 
 type ReconcileSpec struct {
-	Logger               string          `yaml:"logger"`
 	Taint                Taint           `yaml:"taint"`
 	SingletonBeanClasses []string        `yaml:"singletonClasses"`
 	ExcludedBeanClasses  []string        `yaml:"excludeClasses"`
