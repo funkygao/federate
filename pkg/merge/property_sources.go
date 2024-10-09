@@ -3,6 +3,7 @@ package merge
 import (
 	"bufio"
 	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"os"
@@ -12,6 +13,7 @@ import (
 	"strings"
 
 	"federate/pkg/concurrent"
+	"federate/pkg/diff"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
@@ -224,9 +226,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 			if newContent != oldContent {
 				if !t.dryRun {
 					log.Printf("Plan to update request mappings in %s", path)
-					dmp := diffmatchpatch.New()
-					diffs := dmp.DiffMain(oldContent, newContent, false)
-					log.Printf("Changes:\n%s", dmp.DiffPrettyText(diffs))
+					diff.RenderUnifiedDiff(oldContent, newContent)
 
 					err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 					if err != nil {
@@ -316,10 +316,17 @@ func (cm *PropertySourcesManager) replaceKeyInMatch(match, key, prefix string) s
 	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
 }
 
+func (cm *PropertySourcesManager) handleFileErr(componentName, filePath string, err error) error {
+	if _, ok := err.(*fs.PathError); ok {
+		return nil
+	}
+	return err
+}
+
 func (cm *PropertySourcesManager) planMergePropertiesFile(filePath string, component manifest.ComponentInfo) error {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return handleFileErr(component.Name, filePath, err)
+		return cm.handleFileErr(component.Name, filePath, err)
 	}
 	defer file.Close()
 
@@ -351,7 +358,7 @@ func (cm *PropertySourcesManager) planMergePropertiesFile(filePath string, compo
 func (cm *PropertySourcesManager) planMergeYamlFile(filePath string, springProfile string, component manifest.ComponentInfo) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return handleFileErr(component.Name, filePath, err)
+		return cm.handleFileErr(component.Name, filePath, err)
 	}
 
 	log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)

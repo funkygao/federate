@@ -1,21 +1,14 @@
-package merge
+package diff
 
 import (
-	"io/fs"
 	"log"
 	"strings"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-func handleFileErr(componentName, filePath string, err error) error {
-	if _, ok := err.(*fs.PathError); ok {
-		return nil
-	}
-	return err
-}
-
-func showRelevantDiffs(oldText, newText string) {
+// Render diff in unified mode instead of side by side.
+func RenderUnifiedDiff(oldText, newText string) {
 	dmp := diffmatchpatch.New()
 	oldLines := strings.Split(oldText, "\n")
 	newLines := strings.Split(newText, "\n")

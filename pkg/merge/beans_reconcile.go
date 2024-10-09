@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"federate/pkg/diff"
 	"federate/pkg/federated"
 	"federate/pkg/java"
 	"github.com/beevik/etree"
@@ -128,7 +129,7 @@ func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modificationPlan m
 	}
 
 	log.Printf("Updated %d/%d bean id: %s", modifiedCount, len(modificationPlan), filePath)
-	showRelevantDiffs(oldXml, newXml)
+	diff.RenderUnifiedDiff(oldXml, newXml)
 	return doc.WriteToFile(filePath)
 }
 
@@ -194,7 +195,7 @@ func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modificationPlan 
 		}
 
 		log.Printf("Fixed %d bean ref: %s", modifiedCount, filePath)
-		showRelevantDiffs(oldXml, newXml)
+		diff.RenderUnifiedDiff(oldXml, newXml)
 		return doc.WriteToFile(filePath)
 	}
 	return nil
