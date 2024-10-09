@@ -22,10 +22,9 @@ public class FederatedIndirectRiskDetector {
     }
 
     public void detectRisks() throws IOException {
-        log.info("Starting risk detection...");
-
         String classpath = System.getProperty("java.class.path");
         String[] classpathEntries = classpath.split(File.pathSeparator);
+        log.info("Starting risk detection with classpath: {}, {}", classpath, classpathEntries);
         for (String entry : classpathEntries) {
             if (entry.endsWith(".jar")) {
                 processJar(entry);
@@ -40,6 +39,7 @@ public class FederatedIndirectRiskDetector {
     }
 
     private void processJar(String jarPath) throws IOException {
+        log.debug("processing {}", jarPath);
         try (JarFile jarFile = new JarFile(jarPath)) {
             Enumeration<JarEntry> entries = jarFile.entries();
             URL[] urls = { new URL("jar:file:" + jarPath + "!/") };

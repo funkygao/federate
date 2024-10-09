@@ -19,7 +19,7 @@ inspect: ## Inspect indirect conflict risk before runtime.
 		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
 		$(MAKE) package; \
 	fi
-	@java -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
+	@java -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
 run: ## Bootstrap {{.AppName}} foreground on your host.
 	@if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
