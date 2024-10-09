@@ -183,8 +183,6 @@ type reconcileTaskResult struct {
 }
 
 func (t *reconcileTask) Execute() error {
-	log.Printf("[%s] Fixing ref keys: %v", t.component.Name, t.keys)
-
 	// 为Java源代码里这些key的引用增加组件名称前缀
 	if err := t.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
 		return err
@@ -225,14 +223,13 @@ func (t *reconcileTask) updateRequestMappings() error {
 			newContent := t.cm.updateRequestMappingInFile(oldContent, t.servletContextPath)
 			if newContent != oldContent {
 				if !t.dryRun {
-					log.Printf("Plan to update request mappings in %s", path)
 					diff.RenderUnifiedDiff(oldContent, newContent)
 
 					err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 					if err != nil {
 						return err
 					}
-					log.Printf("Updated request mappings in %s", path)
+					log.Printf("%s", path)
 					t.result.requestMapping++
 				}
 			}
@@ -277,9 +274,6 @@ func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefi
 			for i, regex := range keyRegexes {
 				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
 				if len(matches) > 0 {
-					if !changed {
-						log.Printf("Plan to fix %s", path)
-					}
 					changed = true
 					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
 						replaced := t.cm.replaceKeyInMatch(match, keys[i], prefix)
@@ -297,7 +291,7 @@ func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefi
 				if err != nil {
 					return err
 				}
-				log.Printf("Updated %s", path)
+				log.Printf("%s", path)
 			}
 		}
 		return nil

@@ -3,7 +3,6 @@ package merge
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -62,13 +61,11 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 		newContent := m.replaceResourceWithAutowired(oldContent)
 
 		if newContent != oldContent {
-			log.Printf("[%s] Reconciling @Resource to @Autowired in %s", component.Name, path)
 			if !dryRun {
 				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 				if err != nil {
 					return err
 				}
-				log.Printf("Updated %s", path)
 				updated++
 			}
 		}
