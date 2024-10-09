@@ -9,7 +9,7 @@ target:
 components:
   - name: wms-stock
     springProfile: on-premise
-    dependencies:
+    modules:
       - com.jdwl.wms:wms-stock-api-provider:1.0.0
       - com.jdwl.wms:wms-stock-work:1.0.0
     resourceBasedirs:
@@ -17,7 +17,7 @@ components:
       - wms-stock-api/src/main/resources
   - name: wms-inventory
     springProfile: on-premise-test
-    dependencies:
+    modules:
       - com.jdwl.wms:wms-inventory-web:1.0.1-SNAPSHOT
     resourceBasedirs:
       - /wms-inventory-web/src/main/resources

@@ -250,7 +250,7 @@ func (s *RpcConsumerSpec) IgnoreInterface(interfaceName string) bool {
 type ComponentInfo struct {
 	Name              string           `yaml:"name"`
 	SpringProfile     string           `yaml:"springProfile"` // TODO auto detect from spring.profiles.active
-	RawDependencies   []string         `yaml:"dependencies"`
+	RawDependencies   []string         `yaml:"modules"`
 	Dependencies      []DependencyInfo `yaml:"-"`
 	ResourceBaseDirs  []string         `yaml:"resourceBasedirs"`
 	ImportSpringXML   []string         `yaml:"importSpringXmls"`

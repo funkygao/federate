@@ -57,7 +57,7 @@ components:
   # 微服务构成：库存服务
   - name: wms-stock
     springProfile: on-premise
-    dependencies:
+    modules:
       - com.x.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
     propertySources:
       - important.properties
@@ -76,7 +76,7 @@ components:
   # 微服务构成：在库作业服务
   - name: wms-inventory
     springProfile: on-premise-test
-    dependencies:
+    modules:
       - com.x.wms:wms-inventory-web:1.0.0-SNAPSHOT
     propertySources:
       - important.properties
@@ -96,7 +96,7 @@ components:
   # 微服务构成：规则中心
   - name: wms-rule
     springProfile: on-premise-test
-    dependencies:
+    modules:
       - com.x.wms:wms-rule-web:1.0.0-SNAPSHOT
     propertySources:
       - important.properties

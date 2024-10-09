@@ -127,7 +127,7 @@ public class FederatedIndirectRiskDetector {
 
         @Override
         public void reportRisks() {
-            System.out.println("Potential RequestMapping conflict detected:");
+            System.out.println("Potential @RequestMapping conflict detected:");
             for (Map.Entry<String, Set<String>> entry : mappings.entrySet()) {
                 if (entry.getValue().size() > 1) {
                     System.out.printf("  %s\n", entry.getKey());
