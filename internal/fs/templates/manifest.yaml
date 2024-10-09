@@ -27,7 +27,7 @@ target: # 目标系统
         - com.jdwl.wms.stock.common.WebMvcConfig
         - com.jdwl.wms.inventory.intercept.WebMvcConfig
         - com.jdwl.wms.stock.common.config.SwaggerConfig
-  reconcile: # 资源调谐
+  reconcile: # 资源调和
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
