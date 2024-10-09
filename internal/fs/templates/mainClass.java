@@ -11,6 +11,9 @@ import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import java.io.IOException;
+import java.util.Arrays;
+
 /**
  * Main entry point.
  *
@@ -47,7 +50,15 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 @Slf4j
 public class {{.ClassName}} {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
+        if (Arrays.asList(args).contains("--detect-indirect-risk")) {
+            new FederatedIndirectRiskDetector().detectRisks();
+        } else {
+            startSpringBoot(args);
+        }
+    }
+
+    private static void startSpringBoot(String[] args) {
         excludeBeans();
 
         SpringApplicationBuilder builder = new SpringApplicationBuilder({{.ClassName}}.class)
@@ -62,7 +73,7 @@ public class {{.ClassName}} {
                 .resourceLoader(new FederatedResourceLoader({{.ClassName}}.class.getClassLoader()))
                 .logStartupInfo(false);
         ApplicationContext context = builder.run(args);
-        log.info("FederatedApplication: {}, started", context.getApplicationName());
+        log.info("FederatedApplication: {{.App}}, started");
     }
 
     private static void excludeBeans() {

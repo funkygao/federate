@@ -1,5 +1,5 @@
 .SILENT:
-.PHONY: build-rpm build-docker package run clean help
+.PHONY: build-rpm build-docker package run clean help inspect
 
 ##@ General
 
@@ -11,18 +11,15 @@ help: ## Display this help.
 clean:
 	@mvn clean
 
-config: ## Setup MySQL DSN, TODO will be delete after demo project tested
-	@echo "========================================================"
-	@echo "To bootstrap your demo project, you need manually config"
-	@echo "========================================================"
-	@echo "federated/application.yml: datasource.common.mysql.username: testwl"
-	@echo "federated/application.yml: datasource.common.mysql.password:" 
-	@echo "               /etc/hosts: 11.91.185.70 master.mysql.local"
-	@echo
-	@echo "federated-dubbo-consumer.xml kill all consumers with id ended with -1"
-
 package:clean ## Compile and package {{.AppName}}.
 	@mvn package -U -Dmaven.test.skip=true -T8
+
+inspect: ## Inspect indirect conflict risk before runtime.
+	@if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
+		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
+		$(MAKE) package; \
+	fi
+	@java -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
 run: ## Bootstrap {{.AppName}} foreground on your host.
 	@if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \

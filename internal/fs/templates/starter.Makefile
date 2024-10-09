@@ -11,5 +11,5 @@ help: ## Display this help.
 install: ## Compile and install {{.AppName}}-fusion-starter.jar on your host.
 	@mvn clean install -q -U -Dmaven.test.skip=true -T8
 
-clean: ## Clean
+clean:
 	@mvn clean

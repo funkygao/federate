@@ -65,6 +65,7 @@ func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
 		"FederatedEnvironmentPostProcessor",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",
+		"FederatedIndirectRiskDetector",
 	}
 
 	for _, cls := range runtimeClasses {

@@ -66,6 +66,7 @@ func generateMetaInf(m *manifest.Manifest) {
 
 func generateMainClassFile(packageName, className string, m *manifest.Manifest) {
 	mainClassData := struct {
+		App                     string
 		Package                 string
 		ClassName               string
 		FederatedRuntimePackage string
@@ -75,6 +76,7 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 		Imports                 []string
 		Excludes                []string
 	}{
+		App:                     m.Main.Name,
 		Package:                 packageName,
 		ClassName:               className,
 		Profile:                 m.Main.SpringProfile,
