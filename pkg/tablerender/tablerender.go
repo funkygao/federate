@@ -9,6 +9,10 @@ import (
 
 // DisplayTable displays a table with the given header and data, sorted by the specified columns.
 func DisplayTable(header []string, data [][]string, autoMergeCells bool, sortByColumns ...int) {
+	if len(data) < 1 {
+		return
+	}
+
 	if len(sortByColumns) > 0 && sortByColumns[0] > -1 {
 		// Sort the data based on the specified columns
 

@@ -18,6 +18,7 @@ import (
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
 	"federate/pkg/util"
+	"github.com/fatih/color"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"gopkg.in/yaml.v2"
 )
@@ -505,17 +506,21 @@ func (cm *PropertySourcesManager) recordReservedValue(key string, component mani
 }
 
 func (cm *PropertySourcesManager) finalizeReservedKeys() {
+	var cellData [][]string
 	for key, values := range cm.reservedValues {
 		if handler, exists := cm.reservedYamlKeys[key]; exists {
 			if value := handler(cm, values); value != nil {
-				log.Printf("Reserved property[%s]=%v", key, value)
 				cm.mergedYaml[key] = value
+				cellData = append(cellData, []string{key, fmt.Sprintf("%v", value)})
 			} else {
 				delete(cm.mergedYaml, key)
-				log.Printf("Reserved property[%s] removed", key)
+				cellData = append(cellData, []string{key, color.New(color.FgRed).Add(color.CrossedOut).Sprintf("deleted")})
 			}
 		}
 	}
+
+	header := []string{"Reserved Key", "Value"}
+	tablerender.DisplayTable(header, cellData, false, -1)
 }
 
 func isEmptyValue(value interface{}) bool {

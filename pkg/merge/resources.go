@@ -73,7 +73,7 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 			return err
 		}
 		if ignored := m.IgnoreResourceSrcFile(info, component); ignored {
-			log.Printf("[%s:%s] reconcile.ignoreResources: %s", component.Name, component.SpringProfile, info.Name())
+			log.Printf("[%s:%s] Skipped reconcile.ignoreResources: %s", component.Name, component.SpringProfile, info.Name())
 			return nil
 		}
 		if info.Size() == 0 {
@@ -102,6 +102,9 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 				rm.resourceFileNames[relPath] = make(map[string]struct{})
 			}
 			rm.resourceFileNames[relPath][component.Name] = struct{}{}
+			if util.FileExists(targetPath) {
+				return fmt.Errorf("Conflicting %s", targetPath)
+			}
 			log.Printf("[%s:%s] Copying %s", component.Name, component.SpringProfile, info.Name())
 			return util.CopyFile(path, targetPath)
 		}

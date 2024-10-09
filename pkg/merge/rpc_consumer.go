@@ -68,7 +68,7 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 		writeFile = true
 		for _, xmlFn := range xmls {
 			filePath := filepath.Join(component.Name, xmlFn)
-			if err := dm.processXmlFile(m, filePath, component, componentConflicts); err != nil {
+			if err := dm.processXmlFile(m, filePath, component, componentConflicts, rpc); err != nil {
 				return err
 			}
 		}
@@ -81,7 +81,7 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 	return dm.writeMergedXmlToFile(federated.GeneratedResourceBaseDir(m.Main.Name), rpc)
 }
 
-func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool) error {
+func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool, rpc string) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(filePath); err != nil {
 		return err
@@ -94,29 +94,29 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 	// Process import resources recursively
 	for _, importElem := range doc.FindElements("//import") {
 		importPath := filepath.Join(filepath.Dir(filePath), importElem.SelectAttrValue("resource", ""))
-		if err := dm.processXmlFile(m, importPath, component, componentConflicts); err != nil {
+		if err := dm.processXmlFile(m, importPath, component, componentConflicts, rpc); err != nil {
 			return err
 		}
 	}
 
 	// Merge references from the current xml file
-	dm.mergeReferences(doc.FindElements("//reference"), m, component, componentConflicts)
+	dm.mergeReferences(doc.FindElements("//reference"), m, component, componentConflicts, rpc)
 
 	return nil
 }
 
-func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *manifest.Manifest, component manifest.ComponentInfo, componentConflicts map[string]bool) {
+func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *manifest.Manifest, component manifest.ComponentInfo, componentConflicts map[string]bool, rpc string) {
 	for _, reference := range references {
 		dm.ScannedBeansCount++
 		interfaceName := reference.SelectAttrValue("interface", "")
 		if m.Main.Reconcile.RpcConsumer.IgnoreInterface(interfaceName) {
-			log.Printf("[%s] Ignore rpc consumer: %s", component.Name, interfaceName)
+			log.Printf("[%s:%s] Ignore rpc consumer: %s", rpc, component.Name, interfaceName)
 			dm.IgnoredInterfaceN++
 			continue
 		}
 
 		if _, exists := dm.globalReferenceMap[interfaceName]; !exists {
-			dm.registerReference(component, reference)
+			dm.registerReference(component, reference, rpc)
 			continue
 		}
 
@@ -130,13 +130,13 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *ma
 	}
 }
 
-func (dm *RpcConsumerManager) registerReference(component manifest.ComponentInfo, reference *etree.Element) {
+func (dm *RpcConsumerManager) registerReference(component manifest.ComponentInfo, reference *etree.Element, rpc string) {
 	interfaceName := reference.SelectAttrValue("interface", "")
 
 	// 删除属性 scope="remote"，Apache Dubbo 才能自动切换到本地调用/injvm；JSF 没有该属性
 	if scopeAttr := reference.SelectAttr("scope"); scopeAttr != nil && scopeAttr.Value == "remote" {
 		reference.RemoveAttr("scope")
-		log.Printf("[%s] Removed scope=\"remote\" attr for: %s", component.Name, interfaceName)
+		log.Printf("[%s:%s] Removed scope=\"remote\" attr for: %s", rpc, component.Name, interfaceName)
 	}
 
 	dm.globalReferenceMap[interfaceName] = reference
