@@ -31,7 +31,7 @@ func mergeConsumerXml(m *manifest.Manifest, manager *merge.RpcConsumerManager) {
 	}
 	for component, conflicts := range manager.IntraComponentConflicts {
 		if len(conflicts) > 0 {
-			color.Yellow("[%s] IntraComponentConflicts[%s]: %v", manager.RPC(), component, conflicts)
+			color.Yellow("[%s:%s] IntraComponentConflicts: %v", manager.RPC(), component, conflicts)
 		}
 	}
 	color.Green("🍺 Merged into %s", manager.TargetFile)

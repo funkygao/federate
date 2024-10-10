@@ -36,6 +36,16 @@ func NewRpcConsumerManager(rpcType string) *RpcConsumerManager {
 	}
 }
 
+func (dm *RpcConsumerManager) referenceXmlTag() (tag string) {
+	switch dm.rpcType {
+	case RpcJsf: // <jsf:consumer>
+		tag = "//consumer"
+	case RpcDubbo: // <dubbo:reference>
+		tag = "//reference"
+	}
+	return
+}
+
 func (dm *RpcConsumerManager) RPC() string {
 	return dm.rpcType
 }
@@ -130,7 +140,7 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 	}
 
 	// Merge references from the current xml file
-	dm.mergeReferences(doc.FindElements("//reference"), m, component, componentConflicts)
+	dm.mergeReferences(doc.FindElements(dm.referenceXmlTag()), m, component, componentConflicts)
 
 	return nil
 }
@@ -139,6 +149,9 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *ma
 	for _, reference := range references {
 		dm.ScannedBeansCount++
 		interfaceName := reference.SelectAttrValue("interface", "")
+		if interfaceName == "" {
+			continue
+		}
 		if m.Main.Reconcile.RpcConsumer.IgnoreInterface(interfaceName) {
 			log.Printf("[%s:%s] Ignore rpc consumer: %s", dm.rpcType, component.Name, interfaceName)
 			dm.IgnoredInterfaceN++
