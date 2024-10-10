@@ -9,7 +9,7 @@ import (
 )
 
 func mergeRpcConsumerXml(m *manifest.Manifest, manager *merge.RpcConsumerManager) {
-	rpcs := []string{merge.RpcDubbo, merge.RpcJsf}
+	rpcs := []string{merge.RpcJsf, merge.RpcDubbo}
 	for _, rpc := range rpcs {
 		mergeConsumerXml(m, manager, rpc)
 		manager.Reset()

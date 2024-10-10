@@ -51,26 +51,41 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 	for _, component := range m.Components {
 		componentConflicts := make(map[string]bool)
 
-		var xmls []string
+		var xmlPatterns []string
 		switch rpc {
 		case RpcJsf:
-			xmls = component.JsfConsumerXmls
+			xmlPatterns = component.JsfConsumerXmls
 		case RpcDubbo:
-			xmls = component.DubboConsumerXmls
+			xmlPatterns = component.DubboConsumerXmls
 		default:
 			return fmt.Errorf("Unknown RPC type: %s", rpc)
 		}
 
-		if len(xmls) == 0 {
+		if len(xmlPatterns) == 0 {
 			log.Printf("[%s] Component[%s] skipped", rpc, component.Name)
 			continue
 		}
 
 		writeFile = true
-		for _, xmlFn := range xmls {
-			filePath := filepath.Join(component.Name, xmlFn)
-			if err := dm.processXmlFile(m, filePath, component, componentConflicts, rpc); err != nil {
-				return err
+		for _, xmlPattern := range xmlPatterns {
+			fullPattern := filepath.Join(component.Name, xmlPattern)
+
+			// 使用 filepath.Glob 来匹配文件
+			matches, err := filepath.Glob(fullPattern)
+			if err != nil {
+				return fmt.Errorf("error matching pattern %s: %v", fullPattern, err)
+			}
+
+			if len(matches) == 0 {
+				log.Printf("Warning: No files found matching pattern: %s", fullPattern)
+				continue
+			}
+
+			for _, filePath := range matches {
+				log.Printf("[%s:%s] Processing %s", rpc, component.Name, filepath.Base(filePath))
+				if err := dm.processXmlFile(m, filePath, component, componentConflicts, rpc); err != nil {
+					return fmt.Errorf("error processing file %s: %v", filePath, err)
+				}
 			}
 		}
 	}
