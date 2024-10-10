@@ -203,7 +203,7 @@ type ReconcileSpec struct {
 	Taint                Taint           `yaml:"taint"`
 	SingletonBeanClasses []string        `yaml:"singletonClasses"`
 	ExcludedBeanClasses  []string        `yaml:"excludeClasses"`
-	MergeResourceFiles   []string        `yaml:"flatCopyResources"`
+	FlatCopyResources    []string        `yaml:"flatCopyResources"`
 	IgnoredFiles         []string        `yaml:"ignoreResources"`
 	RpcConsumer          RpcConsumerSpec `yaml:"rpcConsumer"`
 

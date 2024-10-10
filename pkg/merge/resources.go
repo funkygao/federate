@@ -58,7 +58,7 @@ func (rm *ResourceManager) RecursiveCopyResources(m *manifest.Manifest) error {
 				log.Fatalf("Error creating directory for component %s: %v", component.Name, err)
 			}
 
-			log.Printf("[%s:%s] Copying %s -> %s", component.Name, component.SpringProfile, sourceDir, targetDir)
+			log.Printf("[%s:%s] Federate Copying %s -> %s", component.Name, component.SpringProfile, sourceDir, targetDir)
 			if err := rm.copyResources(sourceDir, targetDir, component, m); err != nil {
 				log.Fatalf("Error copying resources for component %s: %v", component.Name, err)
 			}
@@ -111,9 +111,9 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 
 // RecursiveFlatCopyResources copy specified resource files to target system src/main/resources
 func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) error {
-	copiedFiles := make(map[string][]string) // map[targetPath][]sourcePath
+	copiedFiles := make(map[string]struct{}) // key is target filename
 	targetDir := m.TargetResourceDir()
-	for _, pattern := range m.Main.Reconcile.MergeResourceFiles {
+	for _, pattern := range m.Main.Reconcile.FlatCopyResources {
 		for _, component := range m.Components {
 			for _, baseDir := range component.ResourceBaseDirs {
 				sourceDir := component.SrcDir(baseDir)
@@ -143,8 +143,13 @@ func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) erro
 							return err
 						}
 
-						copiedFiles[targetPath] = append(copiedFiles[targetPath], path)
-						log.Printf("[%s:%s] Copied %s", component.Name, component.SpringProfile, relPath)
+						if _, present := copiedFiles[relPath]; present {
+							return fmt.Errorf("Flat copy %s conflicts", relPath)
+						}
+
+						copiedFiles[relPath] = struct{}{}
+
+						log.Printf("[%s:%s] Flat Copied %s", component.Name, component.SpringProfile, relPath)
 					}
 
 					return nil
@@ -156,15 +161,6 @@ func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) erro
 		}
 	}
 
-	conflicts := make(map[string][]string)
-	for targetPath, sources := range copiedFiles {
-		if len(sources) > 1 {
-			conflicts[targetPath] = sources
-		}
-	}
-	if len(conflicts) > 0 {
-		return fmt.Errorf("Conflicts: %v", conflicts)
-	}
 	return nil
 }
 
