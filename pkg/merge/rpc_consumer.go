@@ -23,14 +23,21 @@ type RpcConsumerManager struct {
 
 	interfaceToComponent map[string]string
 	globalReferenceMap   map[string]*etree.Element
+
+	rpcType string
 }
 
-func NewRpcConsumerManager() *RpcConsumerManager {
+func NewRpcConsumerManager(rpcType string) *RpcConsumerManager {
 	return &RpcConsumerManager{
 		IntraComponentConflicts: make(map[string][]string),
 		interfaceToComponent:    make(map[string]string),
 		globalReferenceMap:      make(map[string]*etree.Element),
+		rpcType:                 rpcType,
 	}
+}
+
+func (dm *RpcConsumerManager) RPC() string {
+	return dm.rpcType
 }
 
 func (dm *RpcConsumerManager) Reset() {
@@ -42,8 +49,8 @@ func (dm *RpcConsumerManager) Reset() {
 	dm.globalReferenceMap = make(map[string]*etree.Element)
 }
 
-func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc string) error {
-	if rpc == RpcDubbo && !m.DubboEnabled() {
+func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest) error {
+	if dm.rpcType == RpcDubbo && !m.DubboEnabled() {
 		return nil
 	}
 
@@ -52,17 +59,17 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 		componentConflicts := make(map[string]bool)
 
 		var xmlPatterns []string
-		switch rpc {
+		switch dm.rpcType {
 		case RpcJsf:
 			xmlPatterns = component.JsfConsumerXmls
 		case RpcDubbo:
 			xmlPatterns = component.DubboConsumerXmls
 		default:
-			return fmt.Errorf("Unknown RPC type: %s", rpc)
+			return fmt.Errorf("Unknown RPC type: %s", dm.rpcType)
 		}
 
 		if len(xmlPatterns) == 0 {
-			log.Printf("[%s] Component[%s] skipped", rpc, component.Name)
+			log.Printf("[%s] Component[%s] skipped", dm.rpcType, component.Name)
 			continue
 		}
 
@@ -83,8 +90,8 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 				}
 
 				for _, filePath := range matches {
-					log.Printf("[%s:%s] Processing %s", rpc, component.Name, filepath.Base(filePath))
-					if err := dm.processXmlFile(m, filePath, component, componentConflicts, rpc); err != nil {
+					log.Printf("[%s:%s] Processing %s", dm.rpcType, component.Name, filepath.Base(filePath))
+					if err := dm.processXmlFile(m, filePath, component, componentConflicts); err != nil {
 						return fmt.Errorf("error processing file %s: %v", filePath, err)
 					}
 				}
@@ -96,10 +103,10 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 		return nil
 	}
 
-	return dm.writeMergedXmlToFile(federated.GeneratedResourceBaseDir(m.Main.Name), rpc)
+	return dm.writeMergedXmlToFile(federated.GeneratedResourceBaseDir(m.Main.Name))
 }
 
-func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool, rpc string) error {
+func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(filePath); err != nil {
 		return err
@@ -115,31 +122,31 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 		// 移除 resource 属性中的 classpath: 前缀
 		resourceAttr = strings.TrimPrefix(resourceAttr, "classpath:")
 		importPath := filepath.Join(filepath.Dir(filePath), resourceAttr)
-		log.Printf("[%s:%s] Processing %s import: %s", rpc, component.Name, filepath.Base(filePath), filepath.Base(importPath))
+		log.Printf("[%s:%s] Processing %s import: %s", dm.rpcType, component.Name, filepath.Base(filePath), filepath.Base(importPath))
 
-		if err := dm.processXmlFile(m, importPath, component, componentConflicts, rpc); err != nil {
+		if err := dm.processXmlFile(m, importPath, component, componentConflicts); err != nil {
 			return err
 		}
 	}
 
 	// Merge references from the current xml file
-	dm.mergeReferences(doc.FindElements("//reference"), m, component, componentConflicts, rpc)
+	dm.mergeReferences(doc.FindElements("//reference"), m, component, componentConflicts)
 
 	return nil
 }
 
-func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *manifest.Manifest, component manifest.ComponentInfo, componentConflicts map[string]bool, rpc string) {
+func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *manifest.Manifest, component manifest.ComponentInfo, componentConflicts map[string]bool) {
 	for _, reference := range references {
 		dm.ScannedBeansCount++
 		interfaceName := reference.SelectAttrValue("interface", "")
 		if m.Main.Reconcile.RpcConsumer.IgnoreInterface(interfaceName) {
-			log.Printf("[%s:%s] Ignore rpc consumer: %s", rpc, component.Name, interfaceName)
+			log.Printf("[%s:%s] Ignore rpc consumer: %s", dm.rpcType, component.Name, interfaceName)
 			dm.IgnoredInterfaceN++
 			continue
 		}
 
 		if _, exists := dm.globalReferenceMap[interfaceName]; !exists {
-			dm.registerReference(component, reference, rpc)
+			dm.registerReference(component, reference)
 			continue
 		}
 
@@ -153,20 +160,20 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *ma
 	}
 }
 
-func (dm *RpcConsumerManager) registerReference(component manifest.ComponentInfo, reference *etree.Element, rpc string) {
+func (dm *RpcConsumerManager) registerReference(component manifest.ComponentInfo, reference *etree.Element) {
 	interfaceName := reference.SelectAttrValue("interface", "")
 
 	// 删除属性 scope="remote"，Apache Dubbo 才能自动切换到本地调用/injvm；JSF 没有该属性
 	if scopeAttr := reference.SelectAttr("scope"); scopeAttr != nil && scopeAttr.Value == "remote" {
 		reference.RemoveAttr("scope")
-		log.Printf("[%s:%s] Removed scope=\"remote\" attr for: %s", rpc, component.Name, interfaceName)
+		log.Printf("[%s:%s] Removed scope=\"remote\" attr for: %s", dm.rpcType, component.Name, interfaceName)
 	}
 
 	dm.globalReferenceMap[interfaceName] = reference
 	dm.interfaceToComponent[interfaceName] = component.Name
 }
 
-func (dm *RpcConsumerManager) writeMergedXmlToFile(targetDir string, rpc string) error {
+func (dm *RpcConsumerManager) writeMergedXmlToFile(targetDir string) error {
 	dm.GeneratedBeansCount = len(dm.globalReferenceMap)
 
 	doc := etree.NewDocument()
@@ -174,7 +181,7 @@ func (dm *RpcConsumerManager) writeMergedXmlToFile(targetDir string, rpc string)
 	beans.CreateAttr("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
 	beans.CreateAttr("xmlns", "http://www.springframework.org/schema/beans")
 	var targetFile string
-	switch rpc {
+	switch dm.rpcType {
 	case RpcJsf:
 		targetFile = federatedJSFConsumerXmlFn
 		beans.CreateAttr("xmlns:jsf", "http://jsf.jd.com/schema/jsf")
@@ -184,7 +191,7 @@ func (dm *RpcConsumerManager) writeMergedXmlToFile(targetDir string, rpc string)
 		beans.CreateAttr("xmlns:dubbo", "http://dubbo.apache.org/schema/dubbo")
 		beans.CreateAttr("xsi:schemaLocation", "http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd\n       http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd")
 	default:
-		return fmt.Errorf("Unknown RPC type: %s", rpc)
+		return fmt.Errorf("Unknown RPC type: %s", dm.rpcType)
 	}
 
 	for _, reference := range dm.globalReferenceMap {

@@ -8,31 +8,30 @@ import (
 	"github.com/fatih/color"
 )
 
-func mergeRpcConsumerXml(m *manifest.Manifest, manager *merge.RpcConsumerManager) {
-	rpcs := []string{merge.RpcJsf, merge.RpcDubbo}
-	for _, rpc := range rpcs {
-		mergeConsumerXml(m, manager, rpc)
+func mergeRpcConsumerXml(m *manifest.Manifest, managers []*merge.RpcConsumerManager) {
+	for _, manager := range managers {
+		mergeConsumerXml(m, manager)
 		manager.Reset()
 	}
 }
 
-func mergeConsumerXml(m *manifest.Manifest, manager *merge.RpcConsumerManager, rpc string) {
-	if err := manager.MergeConsumerXmlFiles(m, rpc); err != nil {
-		log.Fatalf("Error merging %s consumer xml: %v", rpc, err)
+func mergeConsumerXml(m *manifest.Manifest, manager *merge.RpcConsumerManager) {
+	if err := manager.MergeConsumerXmlFiles(m); err != nil {
+		log.Fatalf("Error merging %s consumer xml: %v", manager.RPC(), err)
 	}
 
 	if manager.ScannedBeansCount == 0 {
 		return
 	}
 
-	color.Cyan("[%s] ScannedBeans:%d, IgnoredInterface:%d, GeneratedBeans:%d, InterComponentConflicts:%d", rpc, manager.ScannedBeansCount,
+	color.Cyan("[%s] ScannedBeans:%d, IgnoredInterface:%d, GeneratedBeans:%d, InterComponentConflicts:%d", manager.RPC(), manager.ScannedBeansCount,
 		manager.IgnoredInterfaceN, manager.GeneratedBeansCount, len(manager.InterComponentConflicts))
 	if len(manager.InterComponentConflicts) > 0 {
-		log.Printf("[%s] InterComponentConflicts: %v", rpc, manager.InterComponentConflicts)
+		log.Printf("[%s] InterComponentConflicts: %v", manager.RPC(), manager.InterComponentConflicts)
 	}
 	for component, conflicts := range manager.IntraComponentConflicts {
 		if len(conflicts) > 0 {
-			color.Yellow("[%s] IntraComponentConflicts[%s]: %v", rpc, component, conflicts)
+			color.Yellow("[%s] IntraComponentConflicts[%s]: %v", manager.RPC(), component, conflicts)
 		}
 	}
 	color.Green("🍺 Merged into %s", manager.TargetFile)

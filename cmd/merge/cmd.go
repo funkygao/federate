@@ -45,8 +45,13 @@ func mergeResources(m *manifest.Manifest) {
 		log.SetOutput(io.Discard)
 	}
 
+	rpcTypes := []string{merge.RpcJsf, merge.RpcDubbo}
+	var rpcConsumerManagers []*merge.RpcConsumerManager
+	for _, rpc := range rpcTypes {
+		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(rpc))
+	}
+
 	propertySourcesManager := merge.NewPropertySourcesManager()
-	rpcConsumerManager := merge.NewRpcConsumerManager()
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
@@ -62,7 +67,7 @@ func mergeResources(m *manifest.Manifest) {
 			reconcileEnvConflicts(m)
 		}},
 		{"Mergeing RPC Consumer XML", func() {
-			mergeRpcConsumerXml(m, rpcConsumerManager)
+			mergeRpcConsumerXml(m, rpcConsumerManagers)
 		}},
 		{"Recursively Copying Resources to federated resources dir", func() {
 			recursiveCopyResources(m, resourceManager)
