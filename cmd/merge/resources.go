@@ -16,9 +16,9 @@ func recursiveCopyResources(m *manifest.Manifest, resourceManager *merge.Resourc
 	color.Green("🍺 Resources recursively copied")
 }
 
-func recursiveMergeResources(m *manifest.Manifest, resourceManager *merge.ResourceManager) {
-	if err := resourceManager.RecursiveMergeResources(m); err != nil {
-		log.Fatalf("Error merging reconcile.mergeResources: %v", err)
+func recursiveFlatCopyResources(m *manifest.Manifest, resourceManager *merge.ResourceManager) {
+	if err := resourceManager.RecursiveFlatCopyResources(m); err != nil {
+		log.Fatalf("Error merging reconcile.flatCopyResources: %v", err)
 	}
-	color.Green("🍺 Resources recursively merged")
+	color.Green("🍺 Resources recursively flat copied")
 }

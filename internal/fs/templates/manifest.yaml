@@ -49,7 +49,7 @@ target: # 目标系统
     ignoreResources:
       - "jsf*xml"
       - "*jmq*"
-    mergeResources:
+    flatCopyResources: # 按照原来目录结构拷贝到目标系统，而不是拷贝到 federated dir
       - "*.html"
       - "*.json"
 

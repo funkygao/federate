@@ -36,11 +36,11 @@ Example usage:
   federate microservice merge -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.LoadManifest()
-		mergeResources(m)
+		doMerge(m)
 	},
 }
 
-func mergeResources(m *manifest.Manifest) {
+func doMerge(m *manifest.Manifest) {
 	if silentMode {
 		log.SetOutput(io.Discard)
 	}
@@ -72,8 +72,8 @@ func mergeResources(m *manifest.Manifest) {
 		{"Recursively Copying Resources to federated resources dir", func() {
 			recursiveCopyResources(m, resourceManager)
 		}},
-		{"Recursively Merging Resources: reconcile.mergeResources", func() {
-			recursiveMergeResources(m, resourceManager)
+		{"Recursively Flat-Copying Resources: reconcile.flatCopyResources", func() {
+			recursiveFlatCopyResources(m, resourceManager)
 		}},
 		{"Prepare Merging PropertySources of .properties files", func() {
 			prepareMergePropertiesFiles(m, propertySourcesManager)

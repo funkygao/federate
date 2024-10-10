@@ -76,10 +76,6 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 			log.Printf("[%s:%s] Skipped reconcile.ignoreResources: %s", component.Name, component.SpringProfile, info.Name())
 			return nil
 		}
-		if info.Size() == 0 {
-			log.Printf("[%s:%s] Skipped empty %s", component.Name, component.SpringProfile, info.Name())
-			return nil
-		}
 
 		relPath, err := filepath.Rel(sourceDir, path)
 		if err != nil {
@@ -102,10 +98,7 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 				rm.resourceFileNames[relPath] = make(map[string]struct{})
 			}
 			rm.resourceFileNames[relPath][component.Name] = struct{}{}
-			if util.FileExists(targetPath) {
-				return fmt.Errorf("Conflicting %s", targetPath)
-			}
-			log.Printf("[%s:%s] Copying %s", component.Name, component.SpringProfile, info.Name())
+			//log.Printf("[%s:%s] Copying %s", component.Name, component.SpringProfile, info.Name())
 			return util.CopyFile(path, targetPath)
 		}
 		return nil
@@ -116,8 +109,8 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 	return err
 }
 
-// RecursiveMergeResources merge specified resource files to target system src/main/resources
-func (rm *ResourceManager) RecursiveMergeResources(m *manifest.Manifest) error {
+// RecursiveFlatCopyResources copy specified resource files to target system src/main/resources
+func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) error {
 	copiedFiles := make(map[string][]string) // map[targetPath][]sourcePath
 	targetDir := m.TargetResourceDir()
 	for _, pattern := range m.Main.Reconcile.MergeResourceFiles {
@@ -151,7 +144,7 @@ func (rm *ResourceManager) RecursiveMergeResources(m *manifest.Manifest) error {
 						}
 
 						copiedFiles[targetPath] = append(copiedFiles[targetPath], path)
-						log.Printf("[%s:%s] Merged %s", component.Name, component.SpringProfile, relPath)
+						log.Printf("[%s:%s] Copied %s", component.Name, component.SpringProfile, relPath)
 					}
 
 					return nil
@@ -159,7 +152,6 @@ func (rm *ResourceManager) RecursiveMergeResources(m *manifest.Manifest) error {
 				if err != nil {
 					return err
 				}
-
 			}
 		}
 	}

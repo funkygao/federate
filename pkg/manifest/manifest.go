@@ -2,6 +2,7 @@ package manifest
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -58,6 +59,7 @@ func (m *Manifest) IgnoreResourceSrcFile(info os.FileInfo, component ComponentIn
 	for _, pattern := range m.Main.Reconcile.IgnoredFiles {
 		matched, err := filepath.Match(pattern, info.Name())
 		if err != nil {
+			log.Printf("Error on filepath.Match(pattern=%s, file=%s): %v", pattern, info.Name(), err)
 			return false
 		}
 		if matched {
@@ -201,7 +203,7 @@ type ReconcileSpec struct {
 	Taint                Taint           `yaml:"taint"`
 	SingletonBeanClasses []string        `yaml:"singletonClasses"`
 	ExcludedBeanClasses  []string        `yaml:"excludeClasses"`
-	MergeResourceFiles   []string        `yaml:"mergeResources"`
+	MergeResourceFiles   []string        `yaml:"flatCopyResources"`
 	IgnoredFiles         []string        `yaml:"ignoreResources"`
 	RpcConsumer          RpcConsumerSpec `yaml:"rpcConsumer"`
 
