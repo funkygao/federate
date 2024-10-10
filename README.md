@@ -1,0 +1,3 @@
+# federate
+
+>`federate` functions as a specialized 'immunosuppressive compiler', employing heuristic rule-based approach to seamlessly consolidate multiple microservices into a single JVM deployment. Users simply author declarative manifests, while the system autonomously manages the 'transplantation process' - resolving both direct and indirect 'tissue rejections' through advanced code rewriting, a two-phase generation process, and pre-runtime JAR compatibility analysis. This approach effectively optimizes inter-service communication and ensures harmonious integration of diverse service components.
