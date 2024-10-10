@@ -68,23 +68,25 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest, rpc st
 
 		writeFile = true
 		for _, xmlPattern := range xmlPatterns {
-			fullPattern := filepath.Join(component.Name, xmlPattern)
+			for _, baseDir := range component.ResourceBaseDirs {
+				sourceDir := filepath.Join(component.Name, baseDir)
+				fullPattern := filepath.Join(sourceDir, xmlPattern)
 
-			// 使用 filepath.Glob 来匹配文件
-			matches, err := filepath.Glob(fullPattern)
-			if err != nil {
-				return fmt.Errorf("error matching pattern %s: %v", fullPattern, err)
-			}
+				// 使用 filepath.Glob 来匹配文件
+				matches, err := filepath.Glob(fullPattern)
+				if err != nil {
+					return fmt.Errorf("error matching pattern %s: %v", fullPattern, err)
+				}
 
-			if len(matches) == 0 {
-				log.Printf("Warning: No files found matching pattern: %s", fullPattern)
-				continue
-			}
+				if len(matches) == 0 {
+					continue
+				}
 
-			for _, filePath := range matches {
-				log.Printf("[%s:%s] Processing %s", rpc, component.Name, filepath.Base(filePath))
-				if err := dm.processXmlFile(m, filePath, component, componentConflicts, rpc); err != nil {
-					return fmt.Errorf("error processing file %s: %v", filePath, err)
+				for _, filePath := range matches {
+					log.Printf("[%s:%s] Processing %s", rpc, component.Name, filepath.Base(filePath))
+					if err := dm.processXmlFile(m, filePath, component, componentConflicts, rpc); err != nil {
+						return fmt.Errorf("error processing file %s: %v", filePath, err)
+					}
 				}
 			}
 		}
