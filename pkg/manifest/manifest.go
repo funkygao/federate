@@ -141,10 +141,11 @@ type MainSystem struct {
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
-	TomcatPort int16       `yaml:"tomcatPort"`
-	JvmSize    string      `yaml:"jvmSize"`
-	Runtime    RuntimeSpec `yaml:"runtime"`
-	MainClass  MainClass   `yaml:"springBootApplication"`
+	TomcatPort int16             `yaml:"tomcatPort"`
+	JvmSize    string            `yaml:"jvmSize"`
+	Runtime    RuntimeSpec       `yaml:"runtime"`
+	Starter    FusionStarterSpec `yaml:"fusionStarter"`
+	MainClass  MainClassSpec     `yaml:"springBootApplication"`
 
 	RawParent string         `yaml:"parent"`
 	Parent    DependencyInfo `yaml:"-"`
@@ -163,7 +164,10 @@ type RuntimeSpec struct {
 	SingletonComponents []string `yaml:"singletonClasses"`
 }
 
-type MainClass struct {
+type FusionStarterSpec struct { // TODO
+}
+
+type MainClassSpec struct {
 	Name          string        `yaml:"class"`
 	ComponentScan ComponentScan `yaml:"componentScan"`
 	Imports       []string      `yaml:"import"`

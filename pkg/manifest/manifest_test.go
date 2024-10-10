@@ -87,7 +87,7 @@ func TestLoadManifest(t *testing.T) {
 func TestParseMainClass(t *testing.T) {
 	manifest := &Manifest{
 		Main: MainSystem{
-			MainClass: MainClass{
+			MainClass: MainClassSpec{
 				Name: "com.example.MainClass",
 			},
 		},
@@ -167,7 +167,7 @@ func TestHasFeature(t *testing.T) {
 
 func TestGroupId(t *testing.T) {
 	main := MainSystem{
-		MainClass: MainClass{
+		MainClass: MainClassSpec{
 			Name: "com.jdl.wms.ob.Foo",
 		},
 	}
