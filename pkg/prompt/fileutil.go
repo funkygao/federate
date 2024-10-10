@@ -141,6 +141,11 @@ func shouldIgnoreFile(filePath string) bool {
 }
 
 func shouldIgnoreDir(path string) bool {
+	if strings.HasPrefix(path, ".") && len(path) > 2 {
+		// hidden dir
+		return true
+	}
+
 	for _, targetDir := range ignoredDirs {
 		if strings.HasSuffix(path, targetDir) {
 			return true
