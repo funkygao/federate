@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
@@ -93,7 +94,12 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 
 	// Process import resources recursively
 	for _, importElem := range doc.FindElements("//import") {
-		importPath := filepath.Join(filepath.Dir(filePath), importElem.SelectAttrValue("resource", ""))
+		resourceAttr := importElem.SelectAttrValue("resource", "")
+		// 移除 resource 属性中的 classpath: 前缀
+		resourceAttr = strings.TrimPrefix(resourceAttr, "classpath:")
+		importPath := filepath.Join(filepath.Dir(filePath), resourceAttr)
+		log.Printf("[%s:%s] Processing %s import: %s", rpc, component.Name, filepath.Base(filePath), filepath.Base(importPath))
+
 		if err := dm.processXmlFile(m, importPath, component, componentConflicts, rpc); err != nil {
 			return err
 		}
