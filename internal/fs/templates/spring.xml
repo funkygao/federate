@@ -7,8 +7,6 @@
        http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
 
     {{- if .JSFEnabled }}
-    <!-- JSF shared config -->
-    <jsf:server id="jsf" protocol="jsf" threads="${jsf.threads:400}"/>
     <import resource="federated-jsf-consumer.xml"/>
     {{- end }}
 
