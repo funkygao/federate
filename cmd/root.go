@@ -64,6 +64,34 @@ func listSubcommands(cmd *cobra.Command, indent string) {
 func init() {
 	log.SetFlags(0) // log.Lshortfile
 
+	// 分组设置
+	microservice.CmdGroup.GroupID = "microservice"
+	onpremise.CmdGroup.GroupID = "microservice"
+	image.CmdGroup.GroupID = "microservice"
+
+	ygrepCmd.GroupID = "utility"
+	chatgpt.CmdGroup.GroupID = "utility"
+	allCmd.GroupID = "utility"
+
+	version.CmdGroup.GroupID = "system"
+	rootCmd.SetHelpCommandGroupID("system")
+	rootCmd.SetCompletionCommandGroupID("system")
+
+	rootCmd.AddGroup(
+		&cobra.Group{
+			ID:    "microservice",
+			Title: "Microservice Management Commands:",
+		},
+		&cobra.Group{
+			ID:    "utility",
+			Title: "Utility Commands:",
+		},
+		&cobra.Group{
+			ID:    "system",
+			Title: "System and Help Commands:",
+		},
+	)
+
 	rootCmd.AddCommand(allCmd, ygrepCmd)
 	rootCmd.AddCommand(onpremise.CmdGroup, microservice.CmdGroup, version.CmdGroup, chatgpt.CmdGroup, image.CmdGroup)
 }
