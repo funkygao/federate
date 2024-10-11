@@ -21,9 +21,6 @@ var (
 		Short: "federate - A compiler and toolkit for microservices management",
 		Long: logo.Federate() + ` is a compiler-like toolkit for microservices consolidation and deployment.
 
-  This Swiss Army knife for microservices offers a wide range of functionalities to streamline 
-  development, deployment, and management processes.
-
   Find more information at: https://joyspace.jd.com/pages/Ksl7N7wr1XxFanCRIR1y
 `,
 	}
