@@ -1,25 +1,28 @@
-target: # 目标系统
-  name: wms-inv-stock-rule
-  parent: com.x.wms:wms-parent:2.3.0-SNAPSHOT
-  springProfile: on-premise
-  dependencies: # 通过插件扩展，结合 componentScan.excludedTypes 实现运行时仲裁
-    - com.jdwl.wms:wms-common-on-premise:2.3.0-SNAPSHOT
-  runtime:
-    env: ADDRESS_KAFKA=localhost:9092 ADDRESS_MYSQL_MASTER=master.mysql.local:3358 ADDRESS_MYSQL_SLAVE=slave.mysql.local:3358 ADDRESS_REDIS=master.redis.local:6379 ADDRESS_S3_ENDPOINT_READ=endpoint.s3.local:9000 ADDRESS_S3_ENDPOINT_WRITE=endpoint.s3.local:9000 ADDRESS_ZOOKEEPER=localhost:2181 LOG_HOME=$PROJECT_DIR$/logs
-    singletonClasses:
+#===================
+# 目标系统：测试环境
+#===================
+target:
+  name: wms-stock-synergy
+  parent: com.jdwl.wms:fusion-projects:1.0.0-SNAPSHOT
+  dependencies: # 控制目标系统的 pom.xml
+  springProfile: test
   springBootApplication:
-    class: com.jdwl.wms.fusion.DemoApp
-    import:
-      - com.jdwl.wms.demo.FederatedDataSource
-      - com.jdwl.wms.demo.FederatedWebInterceptor
+    class: com.jdwl.wms.fusion.WmsStockSynergy
+    exclude: # @SpringBootApplication#exclude
+       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    import:  # @Import
+      - com.jdwl.wms.fusion.FederatedDataSource
+      - com.jdwl.wms.fusion.FederatedWebInterceptor
       - com.jdwl.wms.cache.WmsCacheConfiguration
       - com.jdwl.wms.common.web.XssAutoConfiguration
+      - com.jdwl.wms.common.workload.web.TomcatConfig
       - com.jd.security.configsec.spring.config.JDSecurityPropertyCleanService
-    componentScan:
-      basePackages:
+    componentScan: # @ComponentScan
+      basePackages: # @ComponentScan#basePackages
         - com.jdwl.wms
         - io.github.dddplus
-      excludedTypes:
+        - com.zhongyouex.wms
+      excludedTypes: # @ComponentScan#excludeFilters
         - com.jdwl.wms.stock.ApiProviderApplication
         - com.jdwl.wms.inventory.WebApplication
         - com.jdwl.wms.stock.datasource.DataSourceConfig
@@ -31,83 +34,78 @@ target: # 目标系统
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
-    logger: logback # log4j2
-    excludeClasses:
-    singletonClasses:
-      - com.x.jim.cli.ReloadableJimClientFactoryBean
-      - com.x.wms.common.redis.jimdb.JimdbClient
-      - com.x.wms.common.lock.JimdbLocker
-      - com.x.wms.common.workload.RateLimiterRedis
+    singletonClasses: # 这些 bean 只加载1次：资源复用
+      - com.jd.jim.cli.ReloadableJimClientFactoryBean
+      - com.jdwl.wms.common.redis.jimdb.JimdbClient
+      - com.jdwl.wms.common.lock.JimdbLocker
+      - com.jdwl.wms.common.workload.RateLimiterRedis
       - org.springframework.kafka.core.DefaultKafkaProducerFactory
-    rpcConsumer:
+      - com.jdwl.wms.common.kafka.consumer.DurationMessageExceptionStrategy
+      - com.jd.coo.sa.mybatis.plugins.id.SequenceGenAdaptor
+    rpcConsumer: # 远程RPC调用拉回到JVM内
       ignoreRules:
         - package: com.jdwl.wms.stock.api
           except:
             - com.jdwl.wms.stock.api.external.OutboundOrderQueryService
             - com.jdwl.wms.stock.api.external.InteractQueryService
         - package: com.jdwl.wms.inventory.api
-    ignoreResources:
-      - "jsf*xml"
-      - "*jmq*"
-    flatCopyResources: # 按照原来目录结构拷贝到目标系统，而不是拷贝到 federated dir
-      - "*.html"
-      - "*.json"
+    resources: # 资源文件处理
+      flatCopy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
+        - "*.html"
+        - "*.json"
 
+#===============================
+# fusion-starter runtime support
+#===============================
+fusion-starter:
+  dependencies:
+    - org.springframework.boot:spring-boot:2.2.7.RELEASE:provided
+    - org.springframework:spring-context:5.2.6.RELEASE:provided
+    - org.slf4j:slf4j-api:1.7.30
+
+#===========
+# 微服务构成
+#===========
 components:
-  # 微服务构成：库存服务
   - name: wms-stock
-    springProfile: on-premise
+    springProfile: test
     modules:
-      - com.x.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
-    propertySources:
-      - important.properties
+      - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
     resourceBasedirs:
       - wms-stock-api-provider/src/main/resources
       - wms-stock-api/src/main/resources
+    propertySources:
+      - important.properties
+    federatedIgnore:
+      - "dubbo*xml"
+      - "*kafka*"
     importSpringXmls: # 目标系统 spring.xml 会 import 这些资源
-      - kafka/kafka-producer.xml
-      - kafka/kafka-consumer.xml
       - sequence-bean.xml
-      - dubbo/dubbo-provider.xml
-    dubboConsumerXmls:
-      - wms-stock-api-provider/src/main/resources/dubbo/dubbo-consumer.xml
+      - jsf-provider.xml
+      - application-jmq-producer.xml
+      - application-jmq-consumer.xml
     jsfConsumerXmls:
+      - jsf-consumer.xml
 
-  # 微服务构成：在库作业服务
   - name: wms-inventory
-    springProfile: on-premise-test
+    springProfile: test
     modules:
-      - com.x.wms:wms-inventory-web:1.0.0-SNAPSHOT
+      - com.jdwl.wms:wms-inventory-web:1.0.0-SNAPSHOT
+    resourceBasedirs:
+      - wms-inventory-web/src/main/resources
     propertySources:
       - important.properties
-    resourceBasedirs:
-      - /wms-inventory-web/src/main/resources
+      - clover-server.properties
+    federatedIgnore:
+      - "dubbo*xml"
+      - "*kafka*"
     importSpringXmls: # 目标系统 spring.xml 会 import 这些资源
-      - kafka/kafka-producer.xml
-      - kafka/kafka-consumer.xml
-      - common/sequence-config.xml
-      - common/spring-bean.xml
+      - common/*.xml
       - config/*.xml
-      - dubbo/dubbo-provider.xml
-    dubboConsumerXmls:
-      - wms-inventory-web/src/main/resources/dubbo/dubbo-consumer.xml
+      - jmq/*.xml
+      - jsf/jsf-provider*.xml
+      - clover/*.xml
+      - ducc/*.xml
+      - jimkv/*.xml
     jsfConsumerXmls:
-
-  # 微服务构成：规则中心
-  - name: wms-rule
-    springProfile: on-premise-test
-    modules:
-      - com.x.wms:wms-rule-web:1.0.0-SNAPSHOT
-    propertySources:
-      - important.properties
-    resourceBasedirs:
-      - /wms-rule-web/src/main/resources
-    importSpringXmls: # 目标系统 spring.xml 会 import 这些资源
-      - kafka/kafka-producer.xml
-      - common/sequence-config.xml
-      - common/spring-bean.xml
-      - config/*.xml
-      - dubbo/dubbo-provider.xml
-    dubboConsumerXmls:
-      - wms-rule-web/src/main/resources/dubbo/dubbo-consumer-bootstrap.xml
-    jsfConsumerXmls:
+      - jsf/jsf-consumer*.xml

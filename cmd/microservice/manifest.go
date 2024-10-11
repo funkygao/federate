@@ -1,4 +1,4 @@
-package explain
+package microservice
 
 import (
 	"fmt"
@@ -13,11 +13,8 @@ import (
 
 var manifestCmd = &cobra.Command{
 	Use:   "manifest",
-	Short: "Show a complete manifest.yaml content",
-	Long: `The manifest command shows a complete manifest.yaml content.
-
-Example usage:
-  federate microservice explain manifest`,
+	Short: "Explain the manifest.yaml",
+	Long:  `The manifest command explains the manifest.yaml.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		showManifest()
 	},

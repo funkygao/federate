@@ -11,5 +11,5 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(conventionCmd, manifestCmd, taintCmd, assumptionCmd)
+	CmdGroup.AddCommand(conventionCmd, taintCmd, assumptionCmd)
 }

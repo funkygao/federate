@@ -22,7 +22,7 @@ architecture efficiency.`,
 }
 
 func init() {
-	CmdGroup.AddCommand(monolithCmd, fusionStartCmd, merge.MergeCmd, optimizeCmd, componentsCmd)
+	CmdGroup.AddCommand(monolithCmd, fusionStartCmd, merge.MergeCmd, optimizeCmd, manifestCmd, componentsCmd)
 	if false {
 		CmdGroup.AddCommand(explain.CmdGroup)
 	}
