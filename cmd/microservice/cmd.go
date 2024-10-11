@@ -15,11 +15,15 @@ author declarative manifests, while the system autonomously manages the 'transpl
 both direct and indirect 'tissue rejections' through advanced code rewriting, a two-phase generation process, 
 and pre-runtime JAR compatibility analysis. This approach effectively optimizes inter-service communication and 
 ensures harmonious integration of diverse service components.
+
 This approach decouples logical boundaries from physical deployment, offering flexibility while maintaining
 microservice architecture benefits. The result is a system combining microservice agility with consolidated
 architecture efficiency.`,
 }
 
 func init() {
-	CmdGroup.AddCommand(monolithCmd, createCmd, componentsCmd, merge.MergeCmd, optimizeCmd, explain.CmdGroup)
+	CmdGroup.AddCommand(monolithCmd, fusionStartCmd, componentsCmd, merge.MergeCmd, optimizeCmd)
+	if false {
+		CmdGroup.AddCommand(explain.CmdGroup)
+	}
 }

@@ -6,8 +6,8 @@ import (
 
 var monolithCmd = &cobra.Command{
 	Use:   "monolith",
-	Short: "Create a logical monolith from multiple repositories",
-	Long: `The monolith command creates a logical monolithic code repository by integrating 
+	Short: "Scaffold a logical monolith from multiple existing code repositories",
+	Long: `The monolith command scaffolds a logical monolithic code repository by integrating 
 multiple existing code repositories using git submodules.
 
 This approach allows you to:

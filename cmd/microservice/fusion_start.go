@@ -10,14 +10,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var createCmd = &cobra.Command{
-	Use:   "create",
+var fusionStartCmd = &cobra.Command{
+	Use:   "fusion-start",
 	Short: "Scaffold a new fusion-starter project for the target system",
 	Long: `The create command scaffolds a new fusion-starter project for the target system.
 It provides runtime support for the target system.
 
 Example usage:
-  federate microservice create -i manifest.yaml`,
+  federate microservice fusion-start -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.LoadManifest()
 		scaffoldProject(m)
@@ -35,9 +35,11 @@ func generatePomFile(m *manifest.Manifest) {
 	data := struct {
 		Name                  string
 		ComponentDependencies []manifest.DependencyInfo
+		Dependencies          []manifest.DependencyInfo
 	}{
 		Name:                  m.Main.Name,
 		ComponentDependencies: m.ComponentDependencies(),
+		Dependencies:          m.Main.Starter.Dependencies,
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
 	fs.GenerateFileFromTmpl("templates/starter.pom.xml", fn, data)
@@ -91,5 +93,5 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 }
 
 func init() {
-	manifest.RequiredManifestFileFlag(createCmd)
+	manifest.RequiredManifestFileFlag(fusionStartCmd)
 }

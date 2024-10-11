@@ -166,7 +166,9 @@ type RuntimeSpec struct {
 	SingletonComponents []string `yaml:"singletonClasses"`
 }
 
-type FusionStarterSpec struct { // TODO
+type FusionStarterSpec struct {
+	RawDependencies []string         `yaml:"dependencies"`
+	Dependencies    []DependencyInfo `yaml:"-"`
 }
 
 type MainClassSpec struct {
@@ -262,7 +264,6 @@ type ComponentInfo struct {
 	DubboConsumerXmls []string         `yaml:"dubboConsumerXmls"`
 	JsfConsumerXmls   []string         `yaml:"jsfConsumerXmls"`
 	PropertySources   []string         `yaml:"propertySources"`
-	DataSource        DataSource       `yaml:"dataSource"`
 
 	// BaseDir is used for unit test: change source dir
 	BaseDir string
@@ -306,7 +307,5 @@ type DependencyInfo struct {
 	GroupId    string
 	ArtifactId string
 	Version    string
-}
-
-type DataSource struct {
+	Scope      string
 }

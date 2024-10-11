@@ -51,6 +51,7 @@ func LoadManifest() *Manifest {
 	}
 
 	manifest.Main.Dependencies = parseDependencies(manifest.Main.RawDependencies)
+	manifest.Main.Starter.Dependencies = parseDependencies(manifest.Main.Starter.RawDependencies)
 	manifest.Main.Parent = parseDependency(manifest.Main.RawParent)
 
 	manifest.Main.Reconcile.M = &manifest.Main
@@ -79,6 +80,15 @@ func parseDependency(dep string) DependencyInfo {
 			GroupId:    parts[0],
 			ArtifactId: parts[1],
 			Version:    parts[2],
+			Scope:      "compile",
+		}
+	}
+	if len(parts) == 4 {
+		return DependencyInfo{
+			GroupId:    parts[0],
+			ArtifactId: parts[1],
+			Version:    parts[2],
+			Scope:      parts[3],
 		}
 	}
 	return DependencyInfo{}

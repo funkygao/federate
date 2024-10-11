@@ -37,6 +37,15 @@
             <version>1.7.30</version>
         </dependency>
 
+        {{- range .Dependencies }}
+        <dependency>
+            <groupId>{{.GroupId}}</groupId>
+            <artifactId>{{.ArtifactId}}</artifactId>
+            <version>{{.Version}}</version>
+            <scope>{{.Scope}}</version>
+        </dependency>
+        {{- end }}
+
         <!-- components -->
         {{- range .ComponentDependencies }}
         <dependency>
