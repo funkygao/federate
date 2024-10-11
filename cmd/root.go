@@ -64,6 +64,8 @@ func listSubcommands(cmd *cobra.Command, indent string) {
 func init() {
 	log.SetFlags(0) // log.Lshortfile
 
+	cobra.EnableCommandSorting = false
+
 	// 分组设置
 	microservice.CmdGroup.GroupID = "microservice"
 	onpremise.CmdGroup.GroupID = "microservice"
@@ -92,6 +94,7 @@ func init() {
 		},
 	)
 
-	rootCmd.AddCommand(allCmd, ygrepCmd)
-	rootCmd.AddCommand(onpremise.CmdGroup, microservice.CmdGroup, version.CmdGroup, chatgpt.CmdGroup, image.CmdGroup)
+	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, allCmd)
+	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup)
+	rootCmd.AddCommand(version.CmdGroup)
 }
