@@ -14,27 +14,10 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>5.2.6.RELEASE</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
-            <version>2.2.7.RELEASE</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>1.18.8</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.30</version>
         </dependency>
 
         {{- range .Dependencies }}
@@ -42,7 +25,7 @@
             <groupId>{{.GroupId}}</groupId>
             <artifactId>{{.ArtifactId}}</artifactId>
             <version>{{.Version}}</version>
-            <scope>{{.Scope}}</version>
+            <scope>{{.Scope}}</scope>
         </dependency>
         {{- end }}
 
