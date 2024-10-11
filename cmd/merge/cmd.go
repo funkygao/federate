@@ -69,8 +69,8 @@ func doMerge(m *manifest.Manifest) {
 		{"Mergeing RPC Consumer XML", func() {
 			mergeRpcConsumerXml(m, rpcConsumerManagers)
 		}},
-		{"Recursively Copying Resources to federated resources dir", func() {
-			recursiveCopyResources(m, resourceManager)
+		{"Recursively Federated-Copying Resources to federated resources dir", func() {
+			recursiveFederatedCopyResources(m, resourceManager)
 		}},
 		{"Recursively Flat-Copying Resources: reconcile.flatCopyResources", func() {
 			recursiveFlatCopyResources(m, resourceManager)

@@ -47,8 +47,8 @@ func NewResourceManager() *ResourceManager {
 	}
 }
 
-// RecursiveCopyResources copy component resource files to target system src/main/resources/federated/{component}
-func (rm *ResourceManager) RecursiveCopyResources(m *manifest.Manifest) error {
+// RecursiveFederatedCopyResources copy component resource files to target system src/main/resources/federated/{component}
+func (rm *ResourceManager) RecursiveFederatedCopyResources(m *manifest.Manifest) error {
 	for _, component := range m.Components {
 		for _, baseDir := range component.ResourceBaseDirs {
 			sourceDir := component.SrcDir(baseDir)
@@ -58,8 +58,8 @@ func (rm *ResourceManager) RecursiveCopyResources(m *manifest.Manifest) error {
 				log.Fatalf("Error creating directory for component %s: %v", component.Name, err)
 			}
 
-			log.Printf("[%s:%s] Federate Copying %s -> %s", component.Name, component.SpringProfile, sourceDir, targetDir)
-			if err := rm.copyResources(sourceDir, targetDir, component, m); err != nil {
+			log.Printf("[%s:%s] Federated Copying %s -> %s", component.Name, component.SpringProfile, sourceDir, targetDir)
+			if err := rm.federatedCopyResources(sourceDir, targetDir, component, m); err != nil {
 				log.Fatalf("Error copying resources for component %s: %v", component.Name, err)
 			}
 		}
@@ -67,7 +67,7 @@ func (rm *ResourceManager) RecursiveCopyResources(m *manifest.Manifest) error {
 	return nil
 }
 
-func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component manifest.ComponentInfo, m *manifest.Manifest) error {
+func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, component manifest.ComponentInfo, m *manifest.Manifest) error {
 	err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -113,7 +113,7 @@ func (rm *ResourceManager) copyResources(sourceDir, targetDir string, component 
 func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) error {
 	copiedFiles := make(map[string]struct{}) // key is target filename
 	targetDir := m.TargetResourceDir()
-	for _, pattern := range m.Main.Reconcile.FlatCopyResources {
+	for _, pattern := range m.Main.Reconcile.Resources.FlatCopy {
 		for _, component := range m.Components {
 			for _, baseDir := range component.ResourceBaseDirs {
 				sourceDir := component.SrcDir(baseDir)

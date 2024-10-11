@@ -57,7 +57,7 @@ func (m *Manifest) IgnoreResourceSrcFile(info os.FileInfo, component ComponentIn
 		return true
 	}
 
-	for _, pattern := range m.Main.Reconcile.IgnoredFiles {
+	for _, pattern := range component.FederatedIgnoredFiles {
 		matched, err := filepath.Match(pattern, info.Name())
 		if err != nil {
 			log.Printf("Error on filepath.Match(pattern=%s, file=%s): %v", pattern, info.Name(), err)
@@ -202,14 +202,17 @@ type ComponentScan struct {
 }
 
 type ReconcileSpec struct {
-	Taint                Taint           `yaml:"taint"`
-	SingletonBeanClasses []string        `yaml:"singletonClasses"`
-	ExcludedBeanClasses  []string        `yaml:"excludeClasses"`
-	FlatCopyResources    []string        `yaml:"flatCopyResources"`
-	IgnoredFiles         []string        `yaml:"ignoreResources"`
-	RpcConsumer          RpcConsumerSpec `yaml:"rpcConsumer"`
+	Taint                Taint                  `yaml:"taint"`
+	SingletonBeanClasses []string               `yaml:"singletonClasses"`
+	ExcludedBeanClasses  []string               `yaml:"excludeClasses"`
+	RpcConsumer          RpcConsumerSpec        `yaml:"rpcConsumer"`
+	Resources            ResourcesReconcileSpec `yaml:"resources"`
 
 	M *MainSystem
+}
+
+type ResourcesReconcileSpec struct {
+	FlatCopy []string `yaml:"flatCopy"`
 }
 
 func (s *ReconcileSpec) ExcludeBeanClass(class string) bool {
@@ -255,15 +258,16 @@ func (s *RpcConsumerSpec) IgnoreInterface(interfaceName string) bool {
 }
 
 type ComponentInfo struct {
-	Name              string           `yaml:"name"`
-	SpringProfile     string           `yaml:"springProfile"` // TODO auto detect from spring.profiles.active
-	RawDependencies   []string         `yaml:"modules"`
-	Dependencies      []DependencyInfo `yaml:"-"`
-	ResourceBaseDirs  []string         `yaml:"resourceBasedirs"`
-	ImportSpringXML   []string         `yaml:"importSpringXmls"`
-	DubboConsumerXmls []string         `yaml:"dubboConsumerXmls"`
-	JsfConsumerXmls   []string         `yaml:"jsfConsumerXmls"`
-	PropertySources   []string         `yaml:"propertySources"`
+	Name                  string           `yaml:"name"`
+	SpringProfile         string           `yaml:"springProfile"` // TODO auto detect from spring.profiles.active
+	RawDependencies       []string         `yaml:"modules"`
+	Dependencies          []DependencyInfo `yaml:"-"`
+	ResourceBaseDirs      []string         `yaml:"resourceBasedirs"`
+	ImportSpringXML       []string         `yaml:"importSpringXmls"`
+	DubboConsumerXmls     []string         `yaml:"dubboConsumerXmls"`
+	JsfConsumerXmls       []string         `yaml:"jsfConsumerXmls"`
+	PropertySources       []string         `yaml:"propertySources"`
+	FederatedIgnoredFiles []string         `yaml:"federatedIgnore"`
 
 	// BaseDir is used for unit test: change source dir
 	BaseDir string

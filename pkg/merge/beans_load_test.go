@@ -51,7 +51,9 @@ func TestXmlBeanManager_loadBeans(t *testing.T) {
 		Main: manifest.MainSystem{
 			Name: "foo",
 			Reconcile: manifest.ReconcileSpec{
-				IgnoredFiles: []string{},
+				Resources: manifest.ResourcesReconcileSpec{
+					FlatCopy: []string{},
+				},
 			},
 		},
 	}

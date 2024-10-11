@@ -8,8 +8,8 @@ import (
 	"github.com/fatih/color"
 )
 
-func recursiveCopyResources(m *manifest.Manifest, resourceManager *merge.ResourceManager) {
-	if err := resourceManager.RecursiveCopyResources(m); err != nil {
+func recursiveFederatedCopyResources(m *manifest.Manifest, resourceManager *merge.ResourceManager) {
+	if err := resourceManager.RecursiveFederatedCopyResources(m); err != nil {
 		log.Fatalf("Error copying resources: %v", err)
 	}
 
