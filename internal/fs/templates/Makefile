@@ -28,6 +28,7 @@ run: ## Bootstrap {{.AppName}} foreground on your host.
 		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
 		$(MAKE) package; \
 	fi
+	@echo "☕️ starting {{.AppName}} ..."
 	@env {{.Env}} java -DappName={{.AppName}} -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
 ##@ Deployment
