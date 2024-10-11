@@ -51,7 +51,7 @@ func LoadManifest() *Manifest {
 	}
 
 	manifest.Main.Dependencies = parseDependencies(manifest.Main.RawDependencies)
-	manifest.Main.Starter.Dependencies = parseDependencies(manifest.Main.Starter.RawDependencies)
+	manifest.Starter.Dependencies = parseDependencies(manifest.Starter.RawDependencies)
 	manifest.Main.Parent = parseDependency(manifest.Main.RawParent)
 
 	manifest.Main.Reconcile.M = &manifest.Main

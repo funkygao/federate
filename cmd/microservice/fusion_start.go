@@ -39,7 +39,7 @@ func generatePomFile(m *manifest.Manifest) {
 	}{
 		Name:                  m.Main.Name,
 		ComponentDependencies: m.ComponentDependencies(),
-		Dependencies:          m.Main.Starter.Dependencies,
+		Dependencies:          m.Starter.Dependencies,
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
 	fs.GenerateFileFromTmpl("templates/starter.pom.xml", fn, data)

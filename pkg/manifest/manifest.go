@@ -14,8 +14,9 @@ import (
 )
 
 type Manifest struct {
-	Main       MainSystem      `yaml:"target"`
-	Components []ComponentInfo `yaml:"components"`
+	Main       MainSystem        `yaml:"target"`
+	Starter    FusionStarterSpec `yaml:"fusion-starter"`
+	Components []ComponentInfo   `yaml:"components"`
 
 	// Dir of the manifest file
 	Dir   string            `yaml:"-"`
@@ -143,11 +144,10 @@ type MainSystem struct {
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
-	TomcatPort int16             `yaml:"tomcatPort"`
-	JvmSize    string            `yaml:"jvmSize"`
-	Runtime    RuntimeSpec       `yaml:"runtime"`
-	Starter    FusionStarterSpec `yaml:"fusionStarter"`
-	MainClass  MainClassSpec     `yaml:"springBootApplication"`
+	TomcatPort int16         `yaml:"tomcatPort"`
+	JvmSize    string        `yaml:"jvmSize"`
+	Runtime    RuntimeSpec   `yaml:"runtime"`
+	MainClass  MainClassSpec `yaml:"springBootApplication"`
 
 	RawParent string         `yaml:"parent"`
 	Parent    DependencyInfo `yaml:"-"`
