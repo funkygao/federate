@@ -12,7 +12,7 @@ clean:
 	@mvn clean
 
 package:clean ## Compile and package {{.AppName}}.
-	@mvn package -U -Dmaven.test.skip=true -T8
+	@mvn package -q -U -Dmaven.test.skip=true -T8
 
 inspect: ## Inspect indirect conflict risk before runtime.
 	@if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
