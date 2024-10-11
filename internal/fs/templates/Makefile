@@ -9,9 +9,11 @@ help: ## Display this help.
 ##@ Build
 
 clean:
-	@mvn clean
+	@echo "☕️ mvn clean ..."
+	@mvn clean -q
 
 package:clean ## Compile and package {{.AppName}}.
+	@echo "☕️ mvn package ..."
 	@mvn package -q -U -Dmaven.test.skip=true -T8
 
 inspect: ## Inspect indirect conflict risk before runtime.
