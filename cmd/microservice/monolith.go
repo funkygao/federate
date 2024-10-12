@@ -12,7 +12,7 @@ multiple existing code repositories using git submodules.
 
 This approach allows you to:
 1. Manage multiple microservices as a single codebase
-2. Maintain the independence of individual code repositories
+2. Offload the decisions of how to deploy to consolidation phase
 3. Preserve the existing development workflow without disruption`,
 	Run: func(cmd *cobra.Command, args []string) {
 		createMonolith()

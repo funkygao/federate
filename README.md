@@ -33,3 +33,8 @@
 - 它允许用户提供 `taint files`
 - 方便目标系统排除一下冲突包
    - 例如，slf4j-log4j12 与 logback-classic冲突，如果直接生成目标，则必须找到谁引入的才能排除冲突
+
+### fusion projects
+
+It acts as logical monoliths, offload the decisions of how to distribute and run applications to consolidation phase.
+This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed).
