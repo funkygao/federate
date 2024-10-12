@@ -77,6 +77,8 @@ func parseInventory() {
 		printRepoList(inventory)
 	case "repo-info":
 		printRepoInfoTable(inventory, env)
+	case "sync-submodules":
+		syncSubmodules(inventory, env)
 	default:
 		fmt.Printf("Unknown format: %s\n", format)
 		os.Exit(1)
@@ -163,9 +165,22 @@ func printRepoInfoTable(inventory Inventory, env string) {
 	}
 }
 
+func syncSubmodules(inventory Inventory, env string) {
+	if envConfig, ok := inventory.Environments[env]; ok {
+		for repo, repoConfig := range inventory.Repos {
+			envRepoConfig := envConfig[repo]
+			fmt.Printf("git submodule add %s %s 2>/dev/null || true\n", repoConfig.Address, repo)
+			fmt.Printf("git config -f .gitmodules submodule.%s.branch %s\n", repo, envRepoConfig.Branch)
+		}
+	} else {
+		fmt.Printf("Environment %s not found\n", env)
+		os.Exit(1)
+	}
+}
+
 func init() {
 	inventoryCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "", "Path to the inventory.yaml file")
 	inventoryCmd.MarkFlagRequired("inventory")
-	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, or repo-info")
+	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, repo-info, or sync-submodules")
 	inventoryCmd.Flags().StringVarP(&env, "env", "e", "", "Environment for repo-info format")
 }
