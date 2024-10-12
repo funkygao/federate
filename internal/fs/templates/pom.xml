@@ -16,7 +16,7 @@
     <version>1.0.0-SNAPSHOT</version>
 
     <dependencies>
-        {{- range .MainDependencies }}
+        {{- range .IncludeDependencies}}
         <dependency>
             <groupId>{{.GroupId}}</groupId>
             <artifactId>{{.ArtifactId}}</artifactId>
@@ -27,6 +27,14 @@
             <groupId>{{.GroupId}}</groupId>
             <artifactId>{{.ArtifactId}}-fusion-starter</artifactId>
             <version>${project.version}</version>
+            <exclusions>
+                {{- range .ExcludeDependencies}}
+                <exclusion>
+                    <groupId>{{.GroupId}}</groupId>
+                    <artifactId>{{.ArtifactId}}</artifactId>
+                </exclusion>
+                {{- end }}
+            </exclusions>
         </dependency>
     </dependencies>
 

@@ -27,17 +27,17 @@ func scaffoldTargetSystem(m *manifest.Manifest) {
 
 func generatePomFile(m *manifest.Manifest) {
 	pomData := struct {
-		ArtifactId            string
-		GroupId               string
-		Parent                manifest.DependencyInfo
-		ComponentDependencies []manifest.DependencyInfo
-		MainDependencies      []manifest.DependencyInfo
+		ArtifactId          string
+		GroupId             string
+		Parent              manifest.DependencyInfo
+		IncludeDependencies []manifest.DependencyInfo
+		ExcludeDependencies []manifest.DependencyInfo
 	}{
-		ArtifactId:            m.Main.Name,
-		GroupId:               m.Main.GroupId(),
-		Parent:                m.Main.Parent,
-		ComponentDependencies: m.ComponentDependencies(),
-		MainDependencies:      m.Main.Dependencies,
+		ArtifactId:          m.Main.Name,
+		GroupId:             m.Main.GroupId(),
+		Parent:              m.Main.Parent,
+		IncludeDependencies: m.Main.Dependency.Includes,
+		ExcludeDependencies: m.Main.Dependency.Excludes,
 	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {

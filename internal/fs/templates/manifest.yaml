@@ -4,7 +4,10 @@
 target:
   name: wms-stock-synergy
   parent: com.jdwl.wms:fusion-projects:1.0.0-SNAPSHOT
-  dependencies: # 控制目标系统的 pom.xml
+  dependency:
+    include:
+    exclude:
+      - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
   springProfile: test
   springBootApplication:
     class: com.jdwl.wms.fusion.WmsStockSynergy

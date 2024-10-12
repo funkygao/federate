@@ -49,7 +49,8 @@ func LoadManifest() *Manifest {
 		log.Fatalf("Error loading manifest: %v", err)
 	}
 
-	manifest.Main.Dependencies = parseDependencies(manifest.Main.RawDependencies)
+	manifest.Main.Dependency.Includes = parseDependencies(manifest.Main.Dependency.RawInclude)
+	manifest.Main.Dependency.Excludes = parseDependencies(manifest.Main.Dependency.RawExclude)
 	manifest.Starter.Dependencies = parseDependencies(manifest.Starter.RawDependencies)
 	manifest.Main.Parent = parseDependency(manifest.Main.RawParent)
 

@@ -12,21 +12,29 @@ type MainSystem struct {
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
-	TomcatPort int16         `yaml:"tomcatPort"`
-	JvmSize    string        `yaml:"jvmSize"`
-	Runtime    RuntimeSpec   `yaml:"runtime"`
-	MainClass  MainClassSpec `yaml:"springBootApplication"`
+	TomcatPort int16  `yaml:"tomcatPort"`
+	JvmSize    string `yaml:"jvmSize"`
+
+	Runtime   RuntimeSpec   `yaml:"runtime"`
+	MainClass MainClassSpec `yaml:"springBootApplication"`
 
 	RawParent string         `yaml:"parent"`
 	Parent    DependencyInfo `yaml:"-"`
 
-	RawDependencies []string         `yaml:"dependencies"`
-	Dependencies    []DependencyInfo `yaml:"-"`
+	Dependency MainDependencySpec `yaml:"dependency"`
 
 	Reconcile ReconcileSpec `yaml:"reconcile"`
 
 	// Deprecated
 	Features []string `yaml:"features"`
+}
+
+type MainDependencySpec struct {
+	RawInclude []string `yaml:"include"`
+	RawExclude []string `yaml:"exclude"`
+
+	Includes []DependencyInfo `yaml:"-"`
+	Excludes []DependencyInfo `yaml:"-"`
 }
 
 type RuntimeSpec struct {

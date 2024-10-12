@@ -2,6 +2,11 @@ target:
   name: demo-starter
   springBootApplication:
     class: com.jdwl.wms.DemoDeepFusionApplication
+  dependency:
+    include:
+      - com.jdwl.wms:wms-stock-api-provider:1.0.0
+    exclude:
+      - com.jdwl.wms:wms-inventory-web
   features:
     - spring-configsec-sdk
     - redis

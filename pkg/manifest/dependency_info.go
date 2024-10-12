@@ -19,23 +19,17 @@ func parseDependencies(rawDeps []string) []DependencyInfo {
 	return parsedDependencies
 }
 
-func parseDependency(dep string) DependencyInfo {
+func parseDependency(dep string) (info DependencyInfo) {
 	parts := strings.Split(dep, ":")
-	if len(parts) == 3 {
-		return DependencyInfo{
-			GroupId:    parts[0],
-			ArtifactId: parts[1],
-			Version:    parts[2],
-			Scope:      "compile",
-		}
+	switch len(parts) {
+	case 2:
+		info.GroupId, info.ArtifactId = parts[0], parts[1]
+	case 3:
+		info.GroupId, info.ArtifactId, info.Version = parts[0], parts[1], parts[2]
+		info.Scope = "compile"
+	case 4:
+		info.GroupId, info.ArtifactId, info.Version, info.Scope = parts[0], parts[1], parts[2], parts[3]
 	}
-	if len(parts) == 4 {
-		return DependencyInfo{
-			GroupId:    parts[0],
-			ArtifactId: parts[1],
-			Version:    parts[2],
-			Scope:      parts[3],
-		}
-	}
-	return DependencyInfo{}
+
+	return
 }
