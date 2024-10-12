@@ -75,6 +75,7 @@ func init() {
 	chatgpt.CmdGroup.GroupID = "utility"
 	allCmd.GroupID = "utility"
 	componentsCmd.GroupID = "utility"
+	inventoryCmd.GroupID = "utility"
 
 	version.CmdGroup.GroupID = "system"
 	rootCmd.SetHelpCommandGroupID("system")
@@ -95,7 +96,7 @@ func init() {
 		},
 	)
 
-	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, componentsCmd, allCmd)
+	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, inventoryCmd, componentsCmd, allCmd)
 	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup)
 	rootCmd.AddCommand(version.CmdGroup)
 }
