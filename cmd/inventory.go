@@ -40,9 +40,7 @@ type Inventory struct {
 	Repos        map[string]RepoConfig  `yaml:"repos"`
 }
 
-type Environment struct {
-	Repos map[string]EnvRepoConfig `yaml:"repos"`
-}
+type Environment map[string]EnvRepoConfig
 
 type EnvRepoConfig struct {
 	Branch       string `yaml:"branch"`
@@ -86,17 +84,17 @@ func parseInventory() {
 }
 
 func printHumanReadable(inventory Inventory) {
-	fmt.Printf("Environments:\n")
+	fmt.Println("Environments:")
 	for env, config := range inventory.Environments {
 		fmt.Printf("  %s:\n", env)
-		for repo, repoConfig := range config.Repos {
+		for repo, repoConfig := range config {
 			fmt.Printf("    %s:\n", repo)
 			fmt.Printf("      Branch: %s\n", repoConfig.Branch)
 			fmt.Printf("      Maven Profile: %s\n", repoConfig.MavenProfile)
 		}
 	}
 
-	fmt.Printf("\nRepositories:\n")
+	fmt.Println("\nRepositories:")
 	for repo, config := range inventory.Repos {
 		fmt.Printf("  %s:\n", repo)
 		fmt.Printf("    Address: %s\n", config.Address)
@@ -110,7 +108,7 @@ func printMakeFormat(inventory Inventory) {
 		fmt.Printf("%s_MAVEN_BUILD_MODULES=%s\n", strings.ToUpper(repo), config.MavenBuildModules)
 	}
 	for env, config := range inventory.Environments {
-		for repo, repoConfig := range config.Repos {
+		for repo, repoConfig := range config {
 			fmt.Printf("%s_%s_BRANCH=%s\n", strings.ToUpper(repo), strings.ToUpper(env), repoConfig.Branch)
 			fmt.Printf("%s_%s_MAVEN_PROFILE=%s\n", strings.ToUpper(repo), strings.ToUpper(env), repoConfig.MavenProfile)
 		}
@@ -122,13 +120,17 @@ func printEnvList(inventory Inventory) {
 	for env := range inventory.Environments {
 		envs = append(envs, env)
 	}
+	sort.Strings(envs)
 	fmt.Println(strings.Join(envs, " "))
 }
 
 func printRepoList(inventory Inventory) {
+	repos := make([]string, 0, len(inventory.Repos))
 	for repo := range inventory.Repos {
-		fmt.Println(repo)
+		repos = append(repos, repo)
 	}
+	sort.Strings(repos)
+	fmt.Println(strings.Join(repos, " "))
 }
 
 func printRepoInfoTable(inventory Inventory, env string) {
@@ -136,13 +138,14 @@ func printRepoInfoTable(inventory Inventory, env string) {
 		header := []string{"Repository", "Git Address", "Branch", "Maven Profile", "Maven Build Modules"}
 		var rows [][]string
 
-		for repo, repoConfig := range envConfig.Repos {
+		for repo, repoConfig := range inventory.Repos {
+			envRepoConfig := envConfig[repo]
 			row := []string{
 				repo,
-				inventory.Repos[repo].Address,
-				repoConfig.Branch,
-				repoConfig.MavenProfile,
-				inventory.Repos[repo].MavenBuildModules,
+				repoConfig.Address,
+				envRepoConfig.Branch,
+				envRepoConfig.MavenProfile,
+				repoConfig.MavenBuildModules,
 			}
 			rows = append(rows, row)
 		}
@@ -152,8 +155,8 @@ func printRepoInfoTable(inventory Inventory, env string) {
 			return rows[i][0] < rows[j][0]
 		})
 
-		fmt.Printf("Environment: %s\n\n", env)
-		tablerender.DisplayTable(header, rows, true, 0)
+		fmt.Printf("Environment: %s\n", env)
+		tablerender.DisplayTable(header, rows, false, 0)
 	} else {
 		fmt.Printf("Environment %s not found\n", env)
 		os.Exit(1)
@@ -161,7 +164,7 @@ func printRepoInfoTable(inventory Inventory, env string) {
 }
 
 func init() {
-	inventoryCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "", "Path to the inventory.yaml")
+	inventoryCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "", "Path to the inventory.yaml file")
 	inventoryCmd.MarkFlagRequired("inventory")
 	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, or repo-info")
 	inventoryCmd.Flags().StringVarP(&env, "env", "e", "", "Environment for repo-info format")
