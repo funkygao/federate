@@ -13,13 +13,6 @@
     <description>{{.Name}} 的手工编排包：数据源配置，WebInterceptor等，需要在该包里提供</description>
 
     <dependencies>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <version>1.18.8</version>
-            <scope>provided</scope>
-        </dependency>
-
         {{- range .Dependencies }}
         <dependency>
             <groupId>{{.GroupId}}</groupId>
