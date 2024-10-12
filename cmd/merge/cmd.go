@@ -26,14 +26,14 @@ var (
 )
 
 var MergeCmd = &cobra.Command{
-	Use:   "merge",
+	Use:   "consolidate",
 	Short: "Merge components into target system following directives of the manifest",
 	Long: `The merge command merges components into target system following directives of the manifest.
 
   See: https://mwhittaker.github.io/publications/service_weaver_HotOS2023.pdf
 
 Example usage:
-  federate microservice merge -i manifest.yaml`,
+  federate microservice consolidate -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.LoadManifest()
 		doMerge(m)

@@ -1,4 +1,4 @@
-package microservice
+package cmd
 
 import (
 	"fmt"
@@ -11,10 +11,6 @@ import (
 var componentsCmd = &cobra.Command{
 	Use:   "components",
 	Short: "List components of the manifest",
-	Long: `The components command lists all components of the manifest.
-
-Example usage:
-  federate microservice components -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		manifest := manifest.LoadManifest()
 
