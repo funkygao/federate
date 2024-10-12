@@ -84,13 +84,13 @@ func doMerge(m *manifest.Manifest) {
 		{"Reconciling Placeholder conflicts references by rewriting .java/.xml files", func() {
 			reconcilePropertiesConflicts(m, propertySourcesManager)
 		}},
-		{"Reconciling Target XML Beans conflicts", func() {
+		{"Reconciling XML Beans conflicts", func() {
 			reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
 		}},
 		{"Reconciling Spring Bean Injection conflicts", func() {
 			reconcileBeanInjectionConflicts(m, injectionManager)
 		}},
-		{"Generating Spring Bootstrap XML", func() {
+		{"Generating Federated Spring Bootstrap XML", func() {
 			generateSpringBootstrapXML(m)
 		}},
 	}
