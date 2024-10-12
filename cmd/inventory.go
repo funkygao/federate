@@ -49,7 +49,7 @@ type EnvRepoConfig struct {
 
 type RepoConfig struct {
 	Address           string `yaml:"address"`
-	MavenBuildModules string `yaml:"maven_build_modules"`
+	MavenBuildModules string `yaml:"maven_install_module"`
 }
 
 func parseInventory() {
