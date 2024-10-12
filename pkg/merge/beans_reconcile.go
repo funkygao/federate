@@ -128,7 +128,7 @@ func (b *XmlBeanManager) updateBeanIdsInFile(filePath string, modificationPlan m
 		return err
 	}
 
-	log.Printf("Updated %d/%d bean id: %s", modifiedCount, len(modificationPlan), filePath)
+	log.Printf("Rewritten %d/%d bean id: %s", modifiedCount, len(modificationPlan), filePath)
 	diff.RenderUnifiedDiff(oldXml, newXml)
 	return doc.WriteToFile(filePath)
 }
@@ -194,7 +194,7 @@ func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modificationPlan 
 			return err
 		}
 
-		log.Printf("Fixed %d bean ref: %s", modifiedCount, filePath)
+		log.Printf("Rewritten %d bean ref: %s", modifiedCount, filePath)
 		diff.RenderUnifiedDiff(oldXml, newXml)
 		return doc.WriteToFile(filePath)
 	}

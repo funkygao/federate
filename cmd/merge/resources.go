@@ -13,7 +13,7 @@ func recursiveFederatedCopyResources(m *manifest.Manifest, resourceManager *merg
 		log.Fatalf("Error copying resources: %v", err)
 	}
 
-	color.Green("🍺 Resources recursively copied")
+	color.Green("🍺 Resources recursively federated copied")
 }
 
 func recursiveFlatCopyResources(m *manifest.Manifest, resourceManager *merge.ResourceManager) {

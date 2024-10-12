@@ -50,7 +50,7 @@ func showPropertiesConflicts(m *manifest.Manifest, manager *merge.PropertySource
 		return
 	}
 
-	color.Red(".properties files conflicts: %d", len(conflictKeys))
+	color.Red("Found .properties conflicts: %d", len(conflictKeys))
 	keys := make([]string, 0, len(conflictKeys))
 	for key := range conflictKeys {
 		keys = append(keys, key)
@@ -61,10 +61,10 @@ func showPropertiesConflicts(m *manifest.Manifest, manager *merge.PropertySource
 	for _, component := range m.Components {
 		header = append(header, component.Name)
 	}
-	var rows [][]string
 
+	var rows [][]string
 	for _, key := range keys {
-		var row []string
+		row := []string{key}
 		for _, componentName := range header[1:] {
 			if val, exists := conflictKeys[key][componentName]; exists {
 				row = append(row, util.Truncate(fmt.Sprintf("%v", val), yamlConflictCellMaxWidth))

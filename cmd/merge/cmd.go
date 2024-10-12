@@ -27,8 +27,8 @@ var (
 
 var MergeCmd = &cobra.Command{
 	Use:   "merge",
-	Short: "Merge resources of components from the manifest file",
-	Long: `The merge command generates merged resource files based on the provided manifest file. 
+	Short: "Merge components into target system following directives of the manifest",
+	Long: `The merge command merges components into target system following directives of the manifest.
 
   See: https://mwhittaker.github.io/publications/service_weaver_HotOS2023.pdf
 
@@ -69,10 +69,10 @@ func doMerge(m *manifest.Manifest) {
 		{"Mergeing RPC Consumer XML", func() {
 			mergeRpcConsumerXml(m, rpcConsumerManagers)
 		}},
-		{"Recursively Federated-Copying Resources to federated resources dir", func() {
+		{"Federated-Copying Resources", func() {
 			recursiveFederatedCopyResources(m, resourceManager)
 		}},
-		{"Recursively Flat-Copying Resources: reconcile.flatCopyResources", func() {
+		{"Flat-Copying Resources: reconcile.resources.flatCopy", func() {
 			recursiveFlatCopyResources(m, resourceManager)
 		}},
 		{"Prepare Merging PropertySources of .properties files", func() {
@@ -81,13 +81,13 @@ func doMerge(m *manifest.Manifest) {
 		{"Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'", func() {
 			prepareMergeApplicationYaml(m, propertySourcesManager)
 		}},
-		{"Reconciling placeholder conflicts references by updating .java/.xml files", func() {
+		{"Reconciling Placeholder conflicts references by rewriting .java/.xml files", func() {
 			reconcilePropertiesConflicts(m, propertySourcesManager)
 		}},
-		{"Reconciling Target XML beans conflicts", func() {
+		{"Reconciling Target XML Beans conflicts", func() {
 			reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
 		}},
-		{"Reconciling Spring Bean injection conflicts", func() {
+		{"Reconciling Spring Bean Injection conflicts", func() {
 			reconcileBeanInjectionConflicts(m, injectionManager)
 		}},
 		{"Generating Spring Bootstrap XML", func() {
