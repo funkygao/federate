@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 	"strings"
 
+	"federate/pkg/tablerender"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -26,6 +28,7 @@ Available formats:
 - human: Human-readable output
 - make: Makefile-friendly variable definitions
 - env-list: List of available environments
+- repo-list: List of all repositories
 - repo-info: Detailed repository information for a specific environment`,
 	Run: func(cmd *cobra.Command, args []string) {
 		parseInventory()
@@ -54,7 +57,7 @@ type RepoConfig struct {
 func parseInventory() {
 	data, err := ioutil.ReadFile(inventoryFile)
 	if err != nil {
-		fmt.Printf("Error reading file: %v\n", err)
+		fmt.Printf("Error reading inventory file: %v\n", err)
 		os.Exit(1)
 	}
 
@@ -72,8 +75,10 @@ func parseInventory() {
 		printMakeFormat(inventory)
 	case "env-list":
 		printEnvList(inventory)
+	case "repo-list":
+		printRepoList(inventory)
 	case "repo-info":
-		printRepoInfo(inventory, env)
+		printRepoInfoTable(inventory, env)
 	default:
 		fmt.Printf("Unknown format: %s\n", format)
 		os.Exit(1)
@@ -120,16 +125,35 @@ func printEnvList(inventory Inventory) {
 	fmt.Println(strings.Join(envs, " "))
 }
 
-func printRepoInfo(inventory Inventory, env string) {
+func printRepoList(inventory Inventory) {
+	for repo := range inventory.Repos {
+		fmt.Println(repo)
+	}
+}
+
+func printRepoInfoTable(inventory Inventory, env string) {
 	if envConfig, ok := inventory.Environments[env]; ok {
+		header := []string{"Repository", "Git Address", "Branch", "Maven Profile", "Maven Build Modules"}
+		var rows [][]string
+
 		for repo, repoConfig := range envConfig.Repos {
-			fmt.Printf("%s %s %s %s %s\n",
+			row := []string{
 				repo,
 				inventory.Repos[repo].Address,
 				repoConfig.Branch,
 				repoConfig.MavenProfile,
-				inventory.Repos[repo].MavenBuildModules)
+				inventory.Repos[repo].MavenBuildModules,
+			}
+			rows = append(rows, row)
 		}
+
+		// 按仓库名称排序
+		sort.Slice(rows, func(i, j int) bool {
+			return rows[i][0] < rows[j][0]
+		})
+
+		fmt.Printf("Environment: %s\n\n", env)
+		tablerender.DisplayTable(header, rows, true, 0)
 	} else {
 		fmt.Printf("Environment %s not found\n", env)
 		os.Exit(1)
@@ -139,6 +163,6 @@ func printRepoInfo(inventory Inventory, env string) {
 func init() {
 	inventoryCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "", "Path to the inventory.yaml")
 	inventoryCmd.MarkFlagRequired("inventory")
-	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, or repo-info")
+	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, or repo-info")
 	inventoryCmd.Flags().StringVarP(&env, "env", "e", "", "Environment for repo-info format")
 }
