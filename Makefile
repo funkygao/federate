@@ -40,9 +40,9 @@ install: test ## Build and install. If HOMEBREW_PREFIX is set, install there, ot
 completion-bash: install ## Install bash completion for federate.
 	@federate completion bash > /usr/local/etc/bash_completion.d/federate
 
-PLATFORMS := darwin-amd64 darwin-arm64
+PLATFORMS := darwin-amd64 darwin-arm64 linux-amd64 linux-arm64
 
-release: ## Build binaries for darwin-amd64 & darwin-arm64.
+release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
 	@for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
 		-o ../bin/federate-$$platform \
