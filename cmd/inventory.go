@@ -16,6 +16,7 @@ var (
 	inventoryFile string
 	format        string
 	env           string
+	repo          string
 )
 
 var inventoryCmd = &cobra.Command{
@@ -79,6 +80,10 @@ func parseInventory() {
 		printRepoInfoTable(inventory, env)
 	case "sync-submodules":
 		syncSubmodules(inventory, env)
+	case "maven-profile":
+		printMavenProfile(inventory, env, repo)
+	case "maven-modules":
+		printMavenModules(inventory, repo)
 	default:
 		fmt.Printf("Unknown format: %s\n", format)
 		os.Exit(1)
@@ -178,9 +183,33 @@ func syncSubmodules(inventory Inventory, env string) {
 	}
 }
 
+func printMavenProfile(inventory Inventory, env, repo string) {
+	if envConfig, ok := inventory.Environments[env]; ok {
+		if repoConfig, ok := envConfig[repo]; ok {
+			fmt.Print(repoConfig.MavenProfile)
+		} else {
+			fmt.Printf("Repository %s not found in environment %s\n", repo, env)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Printf("Environment %s not found\n", env)
+		os.Exit(1)
+	}
+}
+
+func printMavenModules(inventory Inventory, repo string) {
+	if repoConfig, ok := inventory.Repos[repo]; ok {
+		fmt.Print(repoConfig.MavenBuildModules)
+	} else {
+		fmt.Printf("Repository %s not found\n", repo)
+		os.Exit(1)
+	}
+}
+
 func init() {
 	inventoryCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "", "Path to the inventory.yaml file")
 	inventoryCmd.MarkFlagRequired("inventory")
-	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, repo-info, or sync-submodules")
+	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, repo-info, sync-submodules, maven-profile, or maven-modules")
+	inventoryCmd.Flags().StringVarP(&repo, "repo", "r", "", "Repository name for maven-profile and maven-modules formats")
 	inventoryCmd.Flags().StringVarP(&env, "env", "e", "", "Environment for repo-info format")
 }
