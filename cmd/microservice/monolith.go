@@ -20,4 +20,6 @@ This approach allows you to:
 }
 
 func createMonolith() {
+    // Makefile .common.mk README.md inventory.yaml
+    // fusion-projects/.foo.mk
 }
