@@ -7,7 +7,7 @@ import (
 var (
 	CmdGroup = &cobra.Command{
 		Use:   "on-premise",
-		Short: "On-premise deployment and management tools",
+		Short: "On-premise deployment and management toolkit",
 		Long:  "A set of tools for managing and maintaining on-premise deployments of microservices.",
 	}
 
