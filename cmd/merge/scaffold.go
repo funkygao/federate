@@ -12,7 +12,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func scaffoldFederatedSystem(m *manifest.Manifest) {
+func scaffoldTargetSystem(m *manifest.Manifest) {
 	packageName, className := m.ParseMainClass()
 	generatePomFile(m)
 	generateMainClassFile(packageName, className, m)
@@ -22,7 +22,7 @@ func scaffoldFederatedSystem(m *manifest.Manifest) {
 	generateStartStopScripts(m)
 	copyTaint(m)
 
-	color.Green("🍺 Scaffold generated for federated system: %s", m.Main.Name)
+	color.Green("🍺 Scaffold generated for target system: %s", m.Main.Name)
 }
 
 func generatePomFile(m *manifest.Manifest) {
@@ -163,7 +163,7 @@ func copyTaint(m *manifest.Manifest) {
 		if err := util.CopyFile(src, target); err != nil {
 			log.Fatalf("%v", err)
 		}
-		color.Cyan("Copied %s -> %s", src, target)
+		color.Cyan("Taint Copied %s -> %s", src, target)
 	}
 
 }

@@ -60,13 +60,13 @@ func doMerge(m *manifest.Manifest) {
 		name string
 		fn   func()
 	}{
-		{"Generating federate system scaffold", func() {
-			scaffoldFederatedSystem(m)
+		{"Generating target system scaffold", func() {
+			scaffoldTargetSystem(m)
 		}},
 		{"Reconciling ENV variables conflicts", func() {
 			reconcileEnvConflicts(m)
 		}},
-		{"Mergeing RPC Consumer XML", func() {
+		{"Mergeing RPC Consumer XML to reduce redundant resource consumption", func() {
 			mergeRpcConsumerXml(m, rpcConsumerManagers)
 		}},
 		{"Federated-Copying Resources", func() {
@@ -84,7 +84,7 @@ func doMerge(m *manifest.Manifest) {
 		{"Reconciling Placeholder conflicts references by rewriting .java/.xml files", func() {
 			reconcilePropertiesConflicts(m, propertySourcesManager)
 		}},
-		{"Reconciling XML Beans conflicts", func() {
+		{"Reconciling Spring XML BeanDefinition conflicts", func() {
 			reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
 		}},
 		{"Reconciling Spring Bean Injection conflicts", func() {
