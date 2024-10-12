@@ -36,5 +36,5 @@
 
 ### fusion projects
 
-It acts as logical monoliths, offload the decisions of how to distribute and run applications to consolidation phase.
+It acts as logical monoliths, offload the decisions of how to distribute and run applications to `federate` phase.
 This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed).
