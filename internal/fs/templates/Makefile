@@ -33,6 +33,9 @@ run: ## Bootstrap {{.AppName}} foreground on your host.
 
 ##@ Deployment
 
+build-jdos:package ## Build {{.AppName}} for deployment on JDOS 3.0.
+	@federate image build-jdos
+
 build-rpm:package ## Build {{.AppName}} into RPM to upload to yum repo.
 	@federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}
 
