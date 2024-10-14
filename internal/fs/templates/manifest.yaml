@@ -1,7 +1,7 @@
 #===================
-# 目标系统：测试环境
+# 联邦应用：测试环境
 #===================
-target:
+federated:
   name: wms-stock-synergy
   parent: com.jdwl.wms:fusion-projects:1.0.0-SNAPSHOT
   dependency:

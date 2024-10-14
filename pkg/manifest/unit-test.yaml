@@ -1,4 +1,4 @@
-target:
+federated:
   name: demo-starter
   springBootApplication:
     class: com.jdwl.wms.DemoDeepFusionApplication

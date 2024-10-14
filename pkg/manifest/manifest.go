@@ -12,7 +12,7 @@ import (
 )
 
 type Manifest struct {
-	Main       MainSystem        `yaml:"target"`
+	Main       MainSystem        `yaml:"federated"`
 	Starter    FusionStarterSpec `yaml:"fusion-starter"`
 	Components []ComponentInfo   `yaml:"components"`
 
