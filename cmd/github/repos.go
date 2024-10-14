@@ -118,7 +118,7 @@ func addThousandsSeparator(n int) string {
 }
 
 func init() {
-	topReposCmd.Flags().IntVarP(&topN, "top", "t", 20, "Number of top repositories to display")
+	topReposCmd.Flags().IntVarP(&topN, "top", "t", 50, "Number of top repositories to display")
 	topReposCmd.Flags().StringVarP(&language, "language", "l", "", "Programming language to filter by")
 	topReposCmd.Flags().StringVarP(&tokenFlag, "token", "k", "", "GitHub Personal Access Token (overrides GITHUB_TOKEN env variable)")
 }
