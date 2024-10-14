@@ -27,7 +27,6 @@ This approach decouples logical boundaries from physical deployment, offering fl
     │     │      Development      │            │        Files          │      │
     │     └───────────────────────┘            └───────────────────────┘      │
     └─────────────────────────────────────────────────────────────────────────┘
-                                          │
                         ┌─────────────────┴──────────────────┐
                         │              manifest              │
                         │ (Declarative Development Paradigm) │
