@@ -42,7 +42,7 @@ func generatePomFile(m *manifest.Manifest) {
 		Dependencies:          m.Starter.Dependencies,
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
-	fs.GenerateFileFromTmpl("templates/fustion-starter/pom.xml", fn, data)
+	fs.GenerateFileFromTmpl("templates/fuston-starter/pom.xml", fn, data)
 	color.Cyan("Generated %s", fn)
 }
 
@@ -53,7 +53,7 @@ func generateMakefile(m *manifest.Manifest) {
 		AppName: m.Main.Name,
 	}
 	fn := filepath.Join(m.Dir, "Makefile")
-	fs.GenerateFileFromTmpl("templates/fustion-starter/Makefile", fn, data)
+	fs.GenerateFileFromTmpl("templates/fusion-starter/Makefile", fn, data)
 	color.Cyan("Generated %s", fn)
 }
 
@@ -88,7 +88,7 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 	}
 	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")
-	fs.GenerateFileFromTmpl("templates/fustion-starter/"+simpleClassName+".java", javaFile, data)
+	fs.GenerateFileFromTmpl("templates/fusion-starter/"+simpleClassName+".java", javaFile, data)
 	color.Cyan("Generated %s", javaFile)
 }
 

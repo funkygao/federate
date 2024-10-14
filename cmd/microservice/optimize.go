@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var similarityThreshold float64
+var (
+	similarityThreshold float64
+	optimizeVerbosity   int
+)
 
 var optimizeCmd = &cobra.Command{
 	Use:   "optimize",
@@ -52,9 +55,11 @@ func showDuplicates(m *manifest.Manifest) {
 		if dup.Similarity > similarityThreshold {
 			highSimilarityCount++
 		}
-		fmt.Printf("Duplicate detected for class %s in files (similarity: %.2f):\n", dup.ClassName, dup.Similarity)
-		for _, path := range dup.Paths {
-			fmt.Printf("  - %s\n", path)
+		if optimizeVerbosity > 2 {
+			fmt.Printf("Duplicate detected for class %s in files (similarity: %.2f):\n", dup.ClassName, dup.Similarity)
+			for _, path := range dup.Paths {
+				fmt.Printf("  - %s\n", path)
+			}
 		}
 	}
 	log.Printf("duplicate classes detected          : %v", len(dups))
@@ -63,5 +68,6 @@ func showDuplicates(m *manifest.Manifest) {
 
 func init() {
 	optimizeCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.6, "Threshold for similarity to count high similarity dup")
+	optimizeCmd.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 	manifest.RequiredManifestFileFlag(optimizeCmd)
 }

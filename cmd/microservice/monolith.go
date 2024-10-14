@@ -20,6 +20,6 @@ This approach allows you to:
 }
 
 func createMonolith() {
-	// Makefile .common.mk README.md inventory.yaml
+	// Makefile .common.mk README.md inventory.yaml .gitignore
 	// fusion-projects/.foo.mk
 }

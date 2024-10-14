@@ -4,29 +4,42 @@
 
 ## 关键设计
 
+### 概念模型
+
+```
+                        ┌──────────────────────────────────┐
+                        │        federated system          │
+                        └──────────────────────────────────┘
+    ┌────────────────────────────────────┼────────────────────────────────────┐
+    │            ┌───────────────────────┴───────────────────────┐            │
+    │            │               fusion-starter                  │            │
+    │            └───────────────────────┬───────────────────────┘            │
+    │                     ┌──────────────┴──────────────┐                     │
+    │     ┌───────────────────────┐            ┌───────────────────────┐      │
+    │     │    User Extension     │            │    Provide Taint      │      │
+    │     │      Development      │            │        Files          │      │
+    │     └───────────────────────┘            └───────────────────────┘      │
+    └─────────────────────────────────────────────────────────────────────────┘
+                                          │
+                        ┌─────────────────┴─────────────────┐
+                        │              manifest             │
+                        │ (Declarative Development Paradigm)│
+                        │                                   │
+                        │    - Define desired state         │
+                        │    - Debug and test               │
+                        │    - Version control              │
+                        └─────────────────┬─────────────────┘
+                        ┌─────────────────┼─────────────────┐
+              ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+              │   component1    │ │   component2    │ │   componentN    │
+              │ (git submodule) │ │ (git submodule) │ │ (git submodule) │
+              └─────────────────┘ └─────────────────┘ └─────────────────┘
+```
+
 ### fusion-starter
 
 >直接生成目标系统不好吗，为什么需要 `fusion-starter` 这个中间工程？
 
-```
-            ┌────────────────┐
-            │  target system │
-            └────────────────┘
-┌────────────────────┼────────────────────┐
-│   ┌────────────────┴────────────────┐   │
-│   │         fusion-starter          │   │
-│   └────────────────┬────────────────┘   │
-│            ┌───────┴────────┐           │
-│   ┌────────────────┐ ┌────────────────┐ │
-│   │ User Extension │ │ Provide Taint  │ │
-│   │  Development   │ │     Files      │ │
-│   └────────────────┘ └────────────────┘ │
-└─────────────────────────────────────────┘
-         │           │           │
-┌────────────┐ ┌────────────┐ ┌────────────┐
-│ component1 │ │ component2 │ │ componentN │
-└────────────┘ └────────────┘ └────────────┘
-```
 
 - 它允许用户进行扩展开发
    - `pom.xml` 只能通过 `manifest.yaml` 声明，不得手工修改
@@ -34,7 +47,16 @@
 - 方便目标系统排除一下冲突包
    - 例如，slf4j-log4j12 与 logback-classic冲突，如果直接生成目标，则必须找到谁引入的才能排除冲突
 
-### fusion projects
+### Fusion Projects
 
-It acts as logical monoliths, offload the decisions of how to distribute and run applications to `federate` phase.
+Fusion Projects acts as logical monoliths, offload the decisions of how to distribute and run applications to `federate` phase.
 This approach decouples logical boundaries (how code is written) from physical boundaries (how code is deployed).
+
+Additionally, Fusion Projects leverage the `federate` command to automatically generate scaffolding. 
+This powerful feature streamlines the development process by creating a standardized project structure and boilerplate code. 
+
+```bash
+federate microservice scaffold-monolith
+```
+
+### manifest
