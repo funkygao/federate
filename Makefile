@@ -1,4 +1,5 @@
-.PHONY: help clean release install completion-bash
+SHELL := /bin/bash
+.SILENT:
 
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
@@ -6,22 +7,22 @@ GIT_STATE := $(shell if git diff-index --ignore-submodules=all --quiet HEAD --; 
 BUILD_DATE := $(shell LC_TIME=zh_CN.UTF-8 date +"%A %Y/%m/%d %H:%M:%S")
 
 help:
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-21s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-21s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Build
 
 fmt:
-	@go fmt ./...
+	go fmt ./...
 
 test: fmt
-	@go test ./...
+	go test ./...
 
 clean: ## Clean up.
-	@rm -f federate-darwin-*
-	@find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
+	rm -f federate-darwin-*
+	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 
 install: test ## Build and install. If HOMEBREW_PREFIX is set, install there, otherwise use GOPATH/bin.
-	@if [ -n "$(HOMEBREW_PREFIX)" ]; then \
+	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
 		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "\
 			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
 			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
@@ -85,7 +86,7 @@ install-completion: ## Install shell completion for federate on MacOS.
 PLATFORMS := darwin-amd64 darwin-arm64 linux-amd64 linux-arm64
 
 release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
-	@for platform in $(PLATFORMS); do \
+	for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
 		-o ../bin/federate-$$platform \
 		-ldflags " \
