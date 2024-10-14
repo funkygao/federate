@@ -1,3 +1,4 @@
+version: 1.2
 federated:
   name: demo-starter
   springBootApplication:

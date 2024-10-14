@@ -12,6 +12,8 @@ import (
 )
 
 type Manifest struct {
+	Version string `yaml:"version"`
+
 	Main       MainSystem        `yaml:"federated"`
 	Starter    FusionStarterSpec `yaml:"fusion-starter"`
 	Components []ComponentInfo   `yaml:"components"`

@@ -32,7 +32,8 @@ func LoadManifest() *Manifest {
 
 	// set default value
 	manifest := Manifest{
-		Dir: filepath.Dir(filePath),
+		Version: "1.0",
+		Dir:     filepath.Dir(filePath),
 		Main: MainSystem{
 			Version: defaultMainVersion,
 			JvmSize: defaultJvmSize,
