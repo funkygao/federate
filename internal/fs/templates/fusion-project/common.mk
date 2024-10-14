@@ -5,7 +5,7 @@ define merge_project
 	federate microservice fusion-start -i $(1)
 	echo "☕️ Consolidating the target project ..."
 	federate microservice consolidate -i $(1) --yes --yaml-conflict-cell-width 32 --silent=$(4)
-	echo "☕️ Local installing the Rewritten Components ..."
+	echo "☕️ Local installing the Instrumented Components ..."
 	for repo in $$(federate components -i $(1)); do \
 		profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $(3)); \
 		modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
