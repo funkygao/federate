@@ -42,7 +42,7 @@ func generatePomFile(m *manifest.Manifest) {
 		Dependencies:          m.Starter.Dependencies,
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
-	fs.GenerateFileFromTmpl("templates/fuston-starter/pom.xml", fn, data)
+	fs.GenerateFileFromTmpl("templates/fusion-starter/pom.xml", fn, data)
 	color.Cyan("Generated %s", fn)
 }
 
