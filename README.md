@@ -63,7 +63,7 @@ Additionally, Fusion Projects leverage the `federate` command to automatically g
 This powerful feature streamlines the development process by creating a standardized project structure and boilerplate code. 
 
 ```bash
-federate microservice scaffold-monolith
+federate microservice scaffold-monolith -h
 ```
 
 ### manifest

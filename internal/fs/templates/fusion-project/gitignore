@@ -1,0 +1,37 @@
+.DS_store
+target/
+classes/
+lsp/
+.ipynb_checkpoints/
+*.ipynb
+
+# IDEA artifacts and output dirs
+*.iml
+*.ipr
+*.iws
+*.idea
+*.log
+
+# Eclipse artifacts, including WTP generated manifests
+.classpath
+.project
+/export
+/maven
+*.swp
+*.swo
+.vscode/
+
+prompt.txt
+out.txt
+
+.apache-zookeeper-3.7.1-bin/
+*.tar.gz
+.env
+
+# Ignore federate generated fusion-starter contents
+fusion-projects/**/src/main/java/com/jdwl/wms/fusion/runtime/
+fusion-projects/**/Makefile
+fusion-projects/**/pom.xml
+
+# Ignore federate generated target systems
+generated/
