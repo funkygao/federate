@@ -16,21 +16,21 @@ import (
 )
 
 func prepareMergePropertiesFiles(m *manifest.Manifest, manager *merge.PropertySourcesManager) {
-	if err := manager.PrepareMergePropertiesFiles(m); err != nil {
+	if err := manager.PrepareMergePropertiesFiles(); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 	showPropertiesConflicts(m, manager)
 }
 
 func prepareMergeApplicationYaml(m *manifest.Manifest, manager *merge.PropertySourcesManager) {
-	if err := manager.PrepareMergeApplicationYaml(m); err != nil {
+	if err := manager.PrepareMergeApplicationYaml(); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 	showYamlConflicts(m, manager)
 }
 
 func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertySourcesManager) {
-	result, err := manager.ReconcileConflicts(m, dryRunMerge)
+	result, err := manager.ReconcileConflicts(dryRunMerge)
 	if err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}

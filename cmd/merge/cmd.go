@@ -51,7 +51,7 @@ func doMerge(m *manifest.Manifest) {
 		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(rpc))
 	}
 
-	propertySourcesManager := merge.NewPropertySourcesManager()
+	propertySourcesManager := merge.NewPropertySourcesManager(m)
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()

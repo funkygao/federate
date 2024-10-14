@@ -24,6 +24,8 @@ import (
 )
 
 type PropertySourcesManager struct {
+	m *manifest.Manifest
+
 	yamlConflictKeys map[string]map[string]interface{} // [key][componentName]
 	mergedYaml       map[string]interface{}
 
@@ -39,7 +41,7 @@ type PropertySourcesManager struct {
 	requestMappingRegex *regexp.Regexp
 }
 
-func NewPropertySourcesManager() *PropertySourcesManager {
+func NewPropertySourcesManager(m *manifest.Manifest) *PropertySourcesManager {
 	return &PropertySourcesManager{
 		yamlConflictKeys:       make(map[string]map[string]interface{}),
 		propertiesConflictKeys: make(map[string]map[string]interface{}),
@@ -52,11 +54,12 @@ func NewPropertySourcesManager() *PropertySourcesManager {
 		reservedValues:      make(map[string][]ComponentKeyValue),
 		servletContextPath:  make(map[string]string),
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
+		m:                   m,
 	}
 }
 
-func (cm *PropertySourcesManager) PrepareMergeApplicationYaml(m *manifest.Manifest) error {
-	for _, component := range m.Components {
+func (cm *PropertySourcesManager) PrepareMergeApplicationYaml() error {
+	for _, component := range cm.m.Components {
 		for _, baseDir := range component.ResourceBaseDirs {
 			sourceDir := component.SrcDir(baseDir)
 			if err := cm.planMergeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
@@ -74,8 +77,8 @@ func (cm *PropertySourcesManager) PrepareMergeApplicationYaml(m *manifest.Manife
 	return nil
 }
 
-func (cm *PropertySourcesManager) PrepareMergePropertiesFiles(m *manifest.Manifest) error {
-	for _, component := range m.Components {
+func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
+	for _, component := range cm.m.Components {
 		for _, baseDir := range component.ResourceBaseDirs {
 			for _, propertySource := range component.PropertySources {
 				ext := filepath.Ext(propertySource)
@@ -109,7 +112,7 @@ type PropertySourcesReconciled struct {
 	RequestMapping int
 }
 
-func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRun bool) (result PropertySourcesReconciled, err error) {
+func (cm *PropertySourcesManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconciled, err error) {
 	conflictKeys := cm.GetYamlConflicts()
 	if len(conflictKeys) == 0 {
 		return
@@ -139,7 +142,7 @@ func (cm *PropertySourcesManager) ReconcileConflicts(m *manifest.Manifest, dryRu
 
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
 	for componentName, keys := range componentKeys {
-		component := m.ComponentByName(componentName)
+		component := cm.m.ComponentByName(componentName)
 		prefix := cm.componentKeyPrefix(componentName)
 
 		executor.AddTask(&reconcileTask{
@@ -417,7 +420,13 @@ func (cm *PropertySourcesManager) getConflicts(conflictKeys map[string]map[strin
 }
 
 func (cm *PropertySourcesManager) WriteMergedYaml(targetFile string) {
-	//data, err := yaml.Marshal(cm.unflattenYamlMap(cm.mergedYaml))
+	// merge with propertySettlement
+	for key, val := range cm.m.Main.Reconcile.Resources.PropertySettlement {
+		log.Printf("propertySettlement %s:%v", key, val)
+		cm.mergedYaml[key] = val
+	}
+
+	// write file
 	data, err := yaml.Marshal(cm.mergedYaml)
 	if err != nil {
 		log.Fatalf("Error marshalling merged config: %v", err)
@@ -509,6 +518,10 @@ func (cm *PropertySourcesManager) finalizeReservedKeys() {
 	var cellData [][]string
 	for key, values := range cm.reservedValues {
 		if handler, exists := cm.reservedYamlKeys[key]; exists {
+			if cm.m.Main.Reconcile.PropertySettled(key) {
+				color.Yellow("key:%s reserved, but used directive: propertySettled, skipped", key)
+				continue
+			}
 			if value := handler(cm, values); value != nil {
 				cm.mergedYaml[key] = value
 				cellData = append(cellData, []string{key, fmt.Sprintf("%v", value)})

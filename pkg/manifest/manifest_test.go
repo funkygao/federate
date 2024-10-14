@@ -14,6 +14,7 @@ func TestLoadManifest(t *testing.T) {
 	assert.Equal(t, "com.jdwl.wms.runtime", manifest.Main.FederatedRuntimePackage())
 	assert.Equal(t, "wms-stock-api-provider", manifest.Main.Dependency.Includes[0].ArtifactId)
 	assert.Equal(t, "wms-inventory-web", manifest.Main.Dependency.Excludes[0].ArtifactId)
+	assert.Equal(t, 1, len(manifest.Main.Reconcile.Resources.PropertySettlement))
 
 	if manifest.Main.Name != "demo-starter" {
 		t.Errorf("Expected main name to be 'demo-starter', got '%s'", manifest.Main.Name)

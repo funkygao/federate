@@ -51,7 +51,7 @@ federated:
         - "*.html"
         - "*.json"
       propertySettlement: # 对冲突的Spring属性进行仲裁
-        - app.demo.feature.newFeature.enabled: true
+        app.demo.feature.newFeature.enabled: true
       singletonClasses: # 这些 bean 只加载1次：资源复用
         - com.jd.jim.cli.ReloadableJimClientFactoryBean
         - com.jdwl.wms.common.redis.jimdb.JimdbClient

@@ -7,7 +7,7 @@ import (
 )
 
 func TestUpdateRequestMappingInFile(t *testing.T) {
-	cm := NewPropertySourcesManager()
+	cm := NewPropertySourcesManager(nil)
 
 	testCases := []struct {
 		name        string
@@ -58,7 +58,7 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 }
 
 func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
-	cm := NewPropertySourcesManager()
+	cm := NewPropertySourcesManager(nil)
 
 	testCases := []struct {
 		name        string
