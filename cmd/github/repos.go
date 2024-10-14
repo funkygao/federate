@@ -15,7 +15,7 @@ import (
 )
 
 var topReposCmd = &cobra.Command{
-	Use:   "explore",
+	Use:   "repos",
 	Short: "Discover top-starred GitHub repositories",
 	Long: `Explore and discover the most popular repositories on GitHub based on star count.
 
