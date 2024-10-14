@@ -76,54 +76,126 @@ func doGenerateGuide(data []byte) (string, error) {
 	}
 
 	markdown := "# Manifest Reference Guide\n\n"
-	markdown += parseYAML("", reflect.ValueOf(manifest), data)
+	markdown += "This document provides a detailed description of the manifest.yaml file used in our project.\n\n"
+	markdown += "## Structure\n\n"
+	markdown += "The manifest.yaml file has the following top-level fields:\n\n"
+
+	for key := range manifest {
+		markdown += fmt.Sprintf("- [%s](#%s)\n", key, strings.ToLower(key))
+	}
+	markdown += "\n"
+
+	markdown += generateMarkdownForField("", reflect.ValueOf(manifest), data, 0)
 
 	return markdown, nil
 }
 
-func parseYAML(prefix string, v reflect.Value, originalData []byte) string {
+func generateMarkdownForField(fieldPath string, v reflect.Value, originalData []byte, depth int) string {
 	var markdown string
+	indent := strings.Repeat("  ", depth)
+	fieldName := getLastPathComponent(fieldPath)
+
+	if fieldName == "" {
+		// Skip empty field names (root level)
+		for _, key := range v.MapKeys() {
+			newPath := key.String()
+			markdown += generateMarkdownForField(newPath, v.MapIndex(key), originalData, depth)
+		}
+		return markdown
+	}
+
+	markdown += fmt.Sprintf("%s## %s\n\n", indent, fieldName)
+	description := getFieldDescription(originalData, fieldPath)
+	if description != "" {
+		markdown += fmt.Sprintf("%s%s\n\n", indent, description)
+	}
 
 	switch v.Kind() {
 	case reflect.Map:
+		markdown += fmt.Sprintf("%s**Type**: Object\n\n", indent)
+		markdown += fmt.Sprintf("%s**Properties**:\n\n", indent)
 		for _, key := range v.MapKeys() {
-			newPrefix := fmt.Sprintf("%s%s.", prefix, key.String())
-			markdown += parseYAML(newPrefix, v.MapIndex(key), originalData)
+			newPath := fmt.Sprintf("%s.%s", fieldPath, key.String())
+			markdown += generateMarkdownForField(newPath, v.MapIndex(key), originalData, depth+1)
 		}
 	case reflect.Slice:
+		markdown += fmt.Sprintf("%s**Type**: Array\n\n", indent)
+		markdown += fmt.Sprintf("%s**Items**:\n\n", indent)
 		for i := 0; i < v.Len(); i++ {
-			newPrefix := fmt.Sprintf("%s[%d].", prefix, i)
-			markdown += parseYAML(newPrefix, v.Index(i), originalData)
+			markdown += fmt.Sprintf("%s- %s\n", indent, formatValue(v.Index(i)))
 		}
+		markdown += "\n"
 	default:
-		keyName := strings.TrimSuffix(prefix, ".")
-		markdown += fmt.Sprintf("## %s\n\n", keyName)
-		markdown += fmt.Sprintf("Type: %v\n\n", v.Type())
-
-		comment := getComment(originalData, keyName)
-		if comment != "" {
-			markdown += fmt.Sprintf("Description: %s\n\n", comment)
-		} else {
-			markdown += "Description: [Add description here]\n\n"
-		}
-
-		markdown += "Example:\n```yaml\n"
-		markdown += fmt.Sprintf("%s: %v\n", keyName, v.Interface())
-		markdown += "```\n\n"
+		markdown += fmt.Sprintf("%s**Type**: %v\n\n", indent, v.Type())
+		markdown += fmt.Sprintf("%s**Value**: `%s`\n\n", indent, formatValue(v))
 	}
 
 	return markdown
 }
 
-func getComment(data []byte, key string) string {
+func formatValue(v reflect.Value) string {
+	switch v.Kind() {
+	case reflect.Map, reflect.Struct:
+		b, _ := yaml.Marshal(v.Interface())
+		return "\n```yaml\n" + string(b) + "```"
+	case reflect.Slice:
+		if v.Len() == 0 {
+			return "[]"
+		}
+		if v.Index(0).Kind() == reflect.Map || v.Index(0).Kind() == reflect.Struct {
+			b, _ := yaml.Marshal(v.Interface())
+			return "\n```yaml\n" + string(b) + "```"
+		}
+	}
+	return fmt.Sprintf("%v", v.Interface())
+}
+
+func getFieldDescription(data []byte, fieldPath string) string {
 	lines := strings.Split(string(data), "\n")
+	fieldName := getLastPathComponent(fieldPath)
+	description := ""
+	foundField := false
+
 	for i, line := range lines {
-		if strings.Contains(line, key) {
-			if i > 0 && strings.HasPrefix(strings.TrimSpace(lines[i-1]), "#") {
-				return strings.TrimSpace(lines[i-1][1:])
+		if strings.Contains(line, fieldName+":") {
+			foundField = true
+			// Check for inline comments
+			if idx := strings.Index(line, "#"); idx != -1 {
+				description += strings.TrimSpace(line[idx+1:]) + "\n"
+			}
+			// Look for preceding comments
+			for j := i - 1; j >= 0; j-- {
+				prevLine := strings.TrimSpace(lines[j])
+				if strings.HasPrefix(prevLine, "#") {
+					description = prevLine[1:] + "\n" + description
+				} else {
+					break
+				}
 			}
 			break
 		}
+	}
+
+	if !foundField {
+		// If field not found, look for comments above the parent field
+		parentPath := getParentPath(fieldPath)
+		if parentPath != "" {
+			return getFieldDescription(data, parentPath)
+		}
+	}
+
+	return strings.TrimSpace(description)
+}
+
+func getLastPathComponent(path string) string {
+	components := strings.Split(path, ".")
+	return components[len(components)-1]
+}
+
+func getParentPath(path string) string {
+	components := strings.Split(path, ".")
+	if len(components) > 1 {
+		return strings.Join(components[:len(components)-1], ".")
 	}
 	return ""
 }
