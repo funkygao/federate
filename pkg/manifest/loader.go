@@ -36,7 +36,6 @@ func LoadManifest() *Manifest {
 		Dir:     filepath.Dir(filePath),
 		Main: MainSystem{
 			Version: defaultMainVersion,
-			JvmSize: defaultJvmSize,
 			Reconcile: ReconcileSpec{
 				Taint: Taint{
 					LogConfigXml:     defaultLogConfigXml,

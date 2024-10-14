@@ -12,9 +12,6 @@ type MainSystem struct {
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
-	TomcatPort int16  `yaml:"tomcatPort"`
-	JvmSize    string `yaml:"jvmSize"`
-
 	Runtime   RuntimeSpec   `yaml:"runtime"`
 	MainClass MainClassSpec `yaml:"springBootApplication"`
 

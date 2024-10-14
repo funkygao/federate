@@ -100,16 +100,16 @@ func generateMakefile(m *manifest.Manifest) {
 	data := struct {
 		AppName    string
 		AppSrc     string
-		JvmSize    string
 		ClassName  string
+		JvmSize    string
 		TomcatPort int16
 		Env        string
 	}{
 		AppName:    m.Main.Name,
 		AppSrc:     fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
-		JvmSize:    m.Main.JvmSize,
 		ClassName:  m.Main.MainClass.Name,
-		TomcatPort: m.Main.TomcatPort,
+		JvmSize:    m.DeploymentByEnv("on-premmise").JvmSize,
+		TomcatPort: m.DeploymentByEnv("on-premmise").TomcatPort,
 		Env:        m.Main.Runtime.Env,
 	}
 	root, err := m.CreateTargetSystemDir()

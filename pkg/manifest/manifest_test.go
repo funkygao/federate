@@ -21,9 +21,6 @@ func TestLoadManifest(t *testing.T) {
 	if manifest.Main.Version != "1.0.0-SNAPSHOT" {
 		t.Errorf("Expected default version to be '1.0.0-SNAPSHOT', got '%s'", manifest.Main.Version)
 	}
-	if manifest.Main.JvmSize != "large" {
-		t.Errorf("Expected default jvm size to be 'large', got '%s'", manifest.Main.JvmSize)
-	}
 
 	expectedComponents := []ComponentInfo{
 		{

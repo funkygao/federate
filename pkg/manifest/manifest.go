@@ -14,9 +14,10 @@ import (
 type Manifest struct {
 	Version string `yaml:"version"`
 
-	Main       MainSystem        `yaml:"federated"`
-	Starter    FusionStarterSpec `yaml:"fusion-starter"`
-	Components []ComponentInfo   `yaml:"components"`
+	Main        MainSystem        `yaml:"federated"`
+	Starter     FusionStarterSpec `yaml:"fusion-starter"`
+	Components  []ComponentInfo   `yaml:"components"`
+	Deployments []DeploymentSpec  `yaml:"deployment"`
 
 	// Dir of the manifest file
 	Dir   string            `yaml:"-"`
@@ -36,6 +37,15 @@ func (m *Manifest) ComponentDependencies() []DependencyInfo {
 		dependencies = append(dependencies, component.Dependencies...)
 	}
 	return dependencies
+}
+
+func (m *Manifest) DeploymentByEnv(env string) *DeploymentSpec {
+	for _, d := range m.Deployments {
+		if d.Env == env {
+			return &d
+		}
+	}
+	return nil
 }
 
 func (m *Manifest) ComponentByName(componentName string) *ComponentInfo {
