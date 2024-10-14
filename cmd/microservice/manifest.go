@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"reflect"
-	"strings"
 
 	"federate/internal/fs"
 	"github.com/alecthomas/chroma/formatters"
@@ -69,7 +67,7 @@ func generateManifestGuide() {
 }
 
 func doGenerateGuide(data []byte) (string, error) {
-	var manifest map[string]interface{}
+	var manifest interface{}
 	err := yaml.Unmarshal(data, &manifest)
 	if err != nil {
 		return "", fmt.Errorf("error parsing YAML: %v", err)
@@ -77,127 +75,92 @@ func doGenerateGuide(data []byte) (string, error) {
 
 	markdown := "# Manifest Reference Guide\n\n"
 	markdown += "This document provides a detailed description of the manifest.yaml file used in our project.\n\n"
-	markdown += "## Structure\n\n"
-	markdown += "The manifest.yaml file has the following top-level fields:\n\n"
+	markdown += "## Fields\n\n"
 
-	for key := range manifest {
-		markdown += fmt.Sprintf("- [%s](#%s)\n", key, strings.ToLower(key))
-	}
-	markdown += "\n"
-
-	markdown += generateMarkdownForField("", reflect.ValueOf(manifest), data, 0)
+	markdown += generateMarkdownForValue("", manifest)
 
 	return markdown, nil
 }
 
-func generateMarkdownForField(fieldPath string, v reflect.Value, originalData []byte, depth int) string {
+func generateMarkdownForValue(prefix string, v interface{}) string {
 	var markdown string
-	indent := strings.Repeat("  ", depth)
-	fieldName := getLastPathComponent(fieldPath)
 
-	if fieldName == "" {
-		// Skip empty field names (root level)
-		for _, key := range v.MapKeys() {
-			newPath := key.String()
-			markdown += generateMarkdownForField(newPath, v.MapIndex(key), originalData, depth)
+	switch val := v.(type) {
+	case map[interface{}]interface{}:
+		for k, v := range val {
+			newPrefix := prefix
+			if newPrefix != "" {
+				newPrefix += "."
+			}
+			newPrefix += fmt.Sprintf("%v", k)
+			markdown += generateMarkdownForValue(newPrefix, v)
 		}
-		return markdown
-	}
-
-	markdown += fmt.Sprintf("%s## %s\n\n", indent, fieldName)
-	description := getFieldDescription(originalData, fieldPath)
-	if description != "" {
-		markdown += fmt.Sprintf("%s%s\n\n", indent, description)
-	}
-
-	switch v.Kind() {
-	case reflect.Map:
-		markdown += fmt.Sprintf("%s**Type**: Object\n\n", indent)
-		markdown += fmt.Sprintf("%s**Properties**:\n\n", indent)
-		for _, key := range v.MapKeys() {
-			newPath := fmt.Sprintf("%s.%s", fieldPath, key.String())
-			markdown += generateMarkdownForField(newPath, v.MapIndex(key), originalData, depth+1)
+	case map[string]interface{}:
+		for k, v := range val {
+			newPrefix := prefix
+			if newPrefix != "" {
+				newPrefix += "."
+			}
+			newPrefix += k
+			markdown += generateMarkdownForValue(newPrefix, v)
 		}
-	case reflect.Slice:
-		markdown += fmt.Sprintf("%s**Type**: Array\n\n", indent)
-		markdown += fmt.Sprintf("%s**Items**:\n\n", indent)
-		for i := 0; i < v.Len(); i++ {
-			markdown += fmt.Sprintf("%s- %s\n", indent, formatValue(v.Index(i)))
+	case []interface{}:
+		for i, item := range val {
+			newPrefix := fmt.Sprintf("%s[%d]", prefix, i)
+			markdown += generateMarkdownForValue(newPrefix, item)
 		}
-		markdown += "\n"
 	default:
-		markdown += fmt.Sprintf("%s**Type**: %v\n\n", indent, v.Type())
-		markdown += fmt.Sprintf("%s**Value**: `%s`\n\n", indent, formatValue(v))
+		markdown += fmt.Sprintf("### %s\n\n**Type**: %s\n\n**Value**: `%v`\n\n", prefix, getType(v), v)
 	}
 
 	return markdown
 }
 
-func formatValue(v reflect.Value) string {
-	switch v.Kind() {
-	case reflect.Map, reflect.Struct:
-		b, _ := yaml.Marshal(v.Interface())
-		return "\n```yaml\n" + string(b) + "```"
-	case reflect.Slice:
-		if v.Len() == 0 {
-			return "[]"
-		}
-		if v.Index(0).Kind() == reflect.Map || v.Index(0).Kind() == reflect.Struct {
-			b, _ := yaml.Marshal(v.Interface())
-			return "\n```yaml\n" + string(b) + "```"
-		}
+func getType(v interface{}) string {
+	switch v.(type) {
+	case bool:
+		return "Boolean"
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64:
+		return "Integer"
+	case float32, float64:
+		return "Number"
+	case string:
+		return "String"
+	case []interface{}:
+		return "Array"
+	case map[string]interface{}, map[interface{}]interface{}:
+		return "Object"
+	default:
+		return fmt.Sprintf("Unknown (%T)", v)
 	}
-	return fmt.Sprintf("%v", v.Interface())
 }
 
-func getFieldDescription(data []byte, fieldPath string) string {
-	lines := strings.Split(string(data), "\n")
-	fieldName := getLastPathComponent(fieldPath)
-	description := ""
-	foundField := false
-
-	for i, line := range lines {
-		if strings.Contains(line, fieldName+":") {
-			foundField = true
-			// Check for inline comments
-			if idx := strings.Index(line, "#"); idx != -1 {
-				description += strings.TrimSpace(line[idx+1:]) + "\n"
-			}
-			// Look for preceding comments
-			for j := i - 1; j >= 0; j-- {
-				prevLine := strings.TrimSpace(lines[j])
-				if strings.HasPrefix(prevLine, "#") {
-					description = prevLine[1:] + "\n" + description
-				} else {
-					break
-				}
-			}
-			break
+func generateMarkdownForMap(prefix string, m map[string]interface{}) string {
+	var markdown string
+	for k, v := range m {
+		path := prefix
+		if path != "" {
+			path += "."
 		}
+		path += k
+		markdown += generateMarkdownForField(path, v)
 	}
-
-	if !foundField {
-		// If field not found, look for comments above the parent field
-		parentPath := getParentPath(fieldPath)
-		if parentPath != "" {
-			return getFieldDescription(data, parentPath)
-		}
-	}
-
-	return strings.TrimSpace(description)
+	return markdown
 }
 
-func getLastPathComponent(path string) string {
-	components := strings.Split(path, ".")
-	return components[len(components)-1]
-}
-
-func getParentPath(path string) string {
-	components := strings.Split(path, ".")
-	if len(components) > 1 {
-		return strings.Join(components[:len(components)-1], ".")
+func generateMarkdownForField(path string, v interface{}) string {
+	switch val := v.(type) {
+	case map[string]interface{}:
+		return generateMarkdownForMap(path, val)
+	case []interface{}:
+		var markdown string
+		for i, item := range val {
+			markdown += generateMarkdownForField(fmt.Sprintf("%s[%d]", path, i), item)
+		}
+		return markdown
+	default:
+		return fmt.Sprintf("### %s\n\n**Type**: %s\n\n**Value**: `%v`\n\n", path, getType(v), v)
 	}
-	return ""
 }
 
 func init() {
