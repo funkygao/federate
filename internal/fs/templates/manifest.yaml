@@ -61,8 +61,10 @@ target:
 # fusion-starter runtime support
 #===============================
 fusion-starter:
-  dependencies:
-    - org.springframework.boot:spring-boot:2.2.7.RELEASE:provided
+  dependencies: # fusion-starter 使用了 @Slf4j 和 spring-boot，如果现有工程没有使用则需要依赖
+    #- org.springframework.boot:spring-boot:2.2.7.RELEASE:provided
+    #- org.springframework:spring-context:5.2.6.RELEASE:provided
+    #- org.slf4j:slf4j-api:1.7.30
 
 #===========
 # 微服务构成
