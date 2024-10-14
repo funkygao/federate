@@ -9,21 +9,21 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/util"
-	"github.com/fatih/color"
 )
 
 //go:embed templates/*
 var FS embed.FS
 
-func GenerateExecutableFileFromTmpl(templatePath, outputPath string, data interface{}) {
-	GenerateFileFromTmpl(templatePath, outputPath, data)
+func GenerateExecutableFileFromTmpl(templatePath, outputPath string, data interface{}) (overwrite bool) {
+	overwrite = GenerateFileFromTmpl(templatePath, outputPath, data)
 	err := os.Chmod(outputPath, 0755)
 	if err != nil {
 		log.Fatalf("Error setting file permissions: %v", err)
 	}
+	return
 }
 
-func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) {
+func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (overwrite bool) {
 	// 创建一个 FuncMap 来注册自定义函数
 	funcMap := template.FuncMap{
 		"HasFeature": func(feature string) bool {
@@ -53,7 +53,7 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) {
 
 	// 检测目标文件是否存在
 	if util.FileExists(outputPath) {
-		color.Yellow("Overwrite %s", outputPath)
+		overwrite = true
 	}
 	file, err := os.Create(outputPath)
 	if err != nil {
@@ -65,4 +65,5 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) {
 	if err != nil {
 		log.Fatalf("Error executing template: %v", err)
 	}
+	return
 }

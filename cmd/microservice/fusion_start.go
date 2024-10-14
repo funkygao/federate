@@ -42,8 +42,12 @@ func generatePomFile(m *manifest.Manifest) {
 		Dependencies:          m.Starter.Dependencies,
 	}
 	fn := filepath.Join(m.Dir, "pom.xml")
-	fs.GenerateFileFromTmpl("templates/fusion-starter/pom.xml", fn, data)
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/pom.xml", fn, data)
+	if !overwrite {
+		color.Cyan("Generated %s", fn)
+	} else {
+		color.Yellow("Overwrite %s", fn)
+	}
 }
 
 func generateMakefile(m *manifest.Manifest) {
@@ -53,8 +57,12 @@ func generateMakefile(m *manifest.Manifest) {
 		AppName: m.Main.Name,
 	}
 	fn := filepath.Join(m.Dir, "Makefile")
-	fs.GenerateFileFromTmpl("templates/fusion-starter/Makefile", fn, data)
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/Makefile", fn, data)
+	if !overwrite {
+		color.Cyan("Generated %s", fn)
+	} else {
+		color.Yellow("Overwrite %s", fn)
+	}
 }
 
 func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
@@ -93,8 +101,12 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 	}
 	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")
-	fs.GenerateFileFromTmpl("templates/fusion-starter/"+simpleClassName+".java", javaFile, data)
-	color.Cyan("Generated %s", javaFile)
+	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/"+simpleClassName+".java", javaFile, data)
+	if !overwrite {
+		color.Cyan("Generated %s", javaFile)
+	} else {
+		color.Yellow("Overwrite %s", javaFile)
+	}
 }
 
 func init() {
