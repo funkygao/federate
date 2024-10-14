@@ -15,34 +15,34 @@ This approach decouples logical boundaries from physical deployment, offering fl
 
 ```
                         ┌──────────────────────────────────┐
-                        │        federated system          │
+                        ┃        federated system          ┃
                         └──────────────────────────────────┘
     ┌────────────────────────────────────┼────────────────────────────────────┐
-    │            ┌───────────────────────┴───────────────────────┐            │
-    │            │               fusion-starter                  │            │
-    │            └───────────────────────┬───────────────────────┘            │
-    │                     ┌──────────────┴──────────────┐                     │
-    │     ┌───────────────────────┐            ┌───────────────────────┐      │
-    │     │    User Extension     │            │    Provide Taint      │      │
-    │     │      Development      │            │        Files          │      │
-    │     └───────────────────────┘            └───────────────────────┘      │
+    ┃            ┌───────────────────────┴───────────────────────┐            ┃
+    ┃            ┃               fusion-starter                  ┃            ┃
+    ┃            └───────────────────────┬───────────────────────┘            ┃
+    ┃                     ┌──────────────┴──────────────┐                     ┃
+    ┃     ┌───────────────────────┐            ┌───────────────────────┐      ┃
+    ┃     ┃    User Extension     ┃            ┃    Provide Taint      ┃      ┃
+    ┃     ┃      Development      ┃            ┃        Files          ┃      ┃
+    ┃     └───────────────────────┘            └───────────────────────┘      ┃
     └─────────────────────────────────────────────────────────────────────────┘
                         ┌─────────────────┴──────────────────┐
-                        │              manifest              │
-                        │ (Declarative Development Paradigm) │
-                        │                                    │
-                        │    - Define desired state          │
-                        │    - Debug and test                │
-                        │    - Version control               │
+                        ┃              manifest              ┃
+                        ┃ (Declarative Development Paradigm) ┃
+                        ┃                                    ┃
+                        ┃    - Define desired state          ┃
+                        ┃    - Debug and test                ┃
+                        ┃    - Version control               ┃
                         └─────────────────┬──────────────────┘
                         ┌─────────────────┼─────────────────┐
     ┌───────────────────────┐┌───────────────────────┐┌───────────────────────┐
-    │     Component 1       ││     Component 2       ││     Component N       │
-    │   (Git Submodule)     ││   (Git Submodule)     ││   (Git Submodule)     │
-    │                       ││                       ││                       │
-    │ Code Instrumentation  ││ Code Instrumentation  ││ Code Instrumentation  │
-    │   and Transformation  ││   and Transformation  ││   and Transformation  │
-    │ (Uncommitted Changes) ││ (Uncommitted Changes) ││ (Uncommitted Changes) │
+    ┃     Component 1       ┃┃     Component 2       ┃┃     Component N       ┃
+    ┃   (Git Submodule)     ┃┃   (Git Submodule)     ┃┃   (Git Submodule)     ┃
+    ┃                       ┃┃                       ┃┃                       ┃
+    ┃ Code Instrumentation  ┃┃ Code Instrumentation  ┃┃ Code Instrumentation  ┃
+    ┃   and Transformation  ┃┃   and Transformation  ┃┃   and Transformation  ┃
+    ┃ (Uncommitted Changes) ┃┃ (Uncommitted Changes) ┃┃ (Uncommitted Changes) ┃
     └───────────────────────┘└───────────────────────┘└───────────────────────┘
 ```
 
