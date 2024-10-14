@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"sort"
 
 	"github.com/google/go-github/v38/github"
@@ -12,7 +13,7 @@ import (
 
 var languagesCmd = &cobra.Command{
 	Use:   "languages",
-	Short: "Discover popular programming languages on GitHub",
+	Short: "Analyze popular programming languages on GitHub",
 	Run: func(cmd *cobra.Command, args []string) {
 		token := getToken()
 		if err := displayPopularLanguages(topN, token); err != nil {
@@ -57,7 +58,7 @@ func displayPopularLanguages(topN int, token string) error {
 	return nil
 }
 
-func printLanguages(languages map[string]int, topN int) {
+func printLanguages(languages map[string]int, n int) {
 	type langCount struct {
 		Name  string
 		Count int
@@ -72,12 +73,15 @@ func printLanguages(languages map[string]int, topN int) {
 		return langCounts[i].Count > langCounts[j].Count
 	})
 
-	fmt.Println("Popular programming languages on GitHub:")
+	fmt.Printf("Top %d popular programming languages on GitHub:\n", n)
+	fmt.Println("(Language names can be used directly with 'github explore -l' command)")
 	for i, lc := range langCounts {
-		fmt.Printf("%d. %s (%d repositories)\n", i+1, lc.Name, lc.Count)
-		if i >= topN {
+		if i >= n {
 			break
 		}
+		// Use url.QueryEscape to ensure the language name is properly formatted for URL use
+		escapedName := url.QueryEscape(lc.Name)
+		fmt.Printf("%d. %s\n   Use with: github explore -l %s\n", i+1, lc.Name, escapedName)
 	}
 }
 

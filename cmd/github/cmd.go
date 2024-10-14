@@ -6,7 +6,7 @@ import (
 
 var CmdGroup = &cobra.Command{
 	Use:   "github",
-	Short: "GitHub commands for exploration and discovery",
+	Short: "Commands for exploring GitHub trends and popular repositories",
 }
 
 func init() {

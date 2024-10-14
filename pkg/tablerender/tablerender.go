@@ -15,7 +15,6 @@ func DisplayTable(header []string, data [][]string, autoMergeCells bool, sortByC
 
 	if len(sortByColumns) > 0 && sortByColumns[0] > -1 {
 		// Sort the data based on the specified columns
-
 		sort.Slice(data, func(i, j int) bool {
 			for _, col := range sortByColumns {
 				if data[i][col] != data[j][col] {

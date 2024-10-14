@@ -98,8 +98,7 @@ func init() {
 		},
 	)
 
-	rootCmd.AddCommand(github.CmdGroup)
-	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, inventoryCmd, componentsCmd, allCmd)
+	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, github.CmdGroup, inventoryCmd, componentsCmd, allCmd)
 	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup)
 	rootCmd.AddCommand(version.CmdGroup)
 }

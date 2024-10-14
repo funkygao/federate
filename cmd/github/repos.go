@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strconv"
+	"strings"
 
+	"federate/pkg/tablerender"
 	"github.com/google/go-github/v38/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -13,19 +16,25 @@ import (
 
 var topReposCmd = &cobra.Command{
 	Use:   "explore",
-	Short: "Explore top GitHub repositories by stars",
+	Short: "Discover top-starred GitHub repositories",
+	Long: `Explore and discover the most popular repositories on GitHub based on star count.
+
+This command allows you to view the top repositories overall or filtered by a specific programming language.
+
+To use this command, you need to set up a GitHub Personal Access Token:
+
+1. Create a token at https://github.com/settings/tokens
+   - You only need 'public_repo' scope for this command
+2. Set the token as an environment variable:
+   export GITHUB_TOKEN=your_token_here
+
+Alternatively, you can pass the token directly using the --token flag.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		token := getToken()
 		if err := displayTopRepos(language, topN, token); err != nil {
 			fmt.Printf("Error: %v\n", err)
 		}
 	},
-}
-
-func init() {
-	topReposCmd.Flags().IntVarP(&topN, "top", "t", 20, "Number of top repositories to display")
-	topReposCmd.Flags().StringVarP(&language, "language", "l", "", "Programming language to filter by")
-	topReposCmd.Flags().StringVarP(&tokenFlag, "token", "k", "", "GitHub Personal Access Token (overrides GITHUB_TOKEN env variable)")
 }
 
 func getToken() string {
@@ -75,7 +84,41 @@ func printRepos(repos []*github.Repository) {
 		return *repos[i].StargazersCount > *repos[j].StargazersCount
 	})
 
+	header := []string{"Rank", "Repository", "Stars", "URL"}
+	var rows [][]string
+
 	for i, repo := range repos {
-		fmt.Printf("%d. %s (%d stars)\n   %s\n\n", i+1, *repo.FullName, *repo.StargazersCount, *repo.HTMLURL)
+		row := []string{
+			strconv.Itoa(i + 1),
+			*repo.FullName,
+			addThousandsSeparator(*repo.StargazersCount),
+			*repo.HTMLURL,
+		}
+		rows = append(rows, row)
 	}
+
+	fmt.Println("Top GitHub Repositories:")
+	tablerender.DisplayTable(header, rows, false)
+}
+
+func addThousandsSeparator(n int) string {
+	str := strconv.FormatInt(int64(n), 10)
+	if len(str) < 4 {
+		return str
+	}
+	var result []string
+	for i := len(str); i > 0; i -= 3 {
+		start := i - 3
+		if start < 0 {
+			start = 0
+		}
+		result = append([]string{str[start:i]}, result...)
+	}
+	return strings.Join(result, ",")
+}
+
+func init() {
+	topReposCmd.Flags().IntVarP(&topN, "top", "t", 20, "Number of top repositories to display")
+	topReposCmd.Flags().StringVarP(&language, "language", "l", "", "Programming language to filter by")
+	topReposCmd.Flags().StringVarP(&tokenFlag, "token", "k", "", "GitHub Personal Access Token (overrides GITHUB_TOKEN env variable)")
 }
