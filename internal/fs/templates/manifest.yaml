@@ -38,14 +38,7 @@ federated:
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
-    singletonClasses: # 这些 bean 只加载1次：资源复用
-      - com.jd.jim.cli.ReloadableJimClientFactoryBean
-      - com.jdwl.wms.common.redis.jimdb.JimdbClient
-      - com.jdwl.wms.common.lock.JimdbLocker
-      - com.jdwl.wms.common.workload.RateLimiterRedis
-      - org.springframework.kafka.core.DefaultKafkaProducerFactory
-      - com.jdwl.wms.common.kafka.consumer.DurationMessageExceptionStrategy
-      - com.jd.coo.sa.mybatis.plugins.id.SequenceGenAdaptor
+    excludeClasses: # 不加载这些类： @Bean/@Service/@Component/@RestController/MapperFactoryBean/etc
     rpcConsumer: # 远程RPC调用拉回到JVM内
       ignoreRules:
         - package: com.jdwl.wms.stock.api
@@ -57,6 +50,16 @@ federated:
       flatCopy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
         - "*.html"
         - "*.json"
+      propertySettlement: # 对冲突的Spring属性进行仲裁
+        - app.demo.feature.newFeature.enabled: true
+      singletonClasses: # 这些 bean 只加载1次：资源复用
+        - com.jd.jim.cli.ReloadableJimClientFactoryBean
+        - com.jdwl.wms.common.redis.jimdb.JimdbClient
+        - com.jdwl.wms.common.lock.JimdbLocker
+        - com.jdwl.wms.common.workload.RateLimiterRedis
+        - org.springframework.kafka.core.DefaultKafkaProducerFactory
+        - com.jdwl.wms.common.kafka.consumer.DurationMessageExceptionStrategy
+        - com.jd.coo.sa.mybatis.plugins.id.SequenceGenAdaptor
 
 #===========
 # 部署信息
