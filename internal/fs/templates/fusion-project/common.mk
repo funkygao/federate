@@ -10,7 +10,7 @@ define merge_project
 		profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $(3)); \
 		modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
 		echo "Installing $$repo with profile:$$profile on modules:$$modules"; \
-		(cd $$repo && mvn clean install -q -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederated.packaging=true) || exit 1; \
+		(cd $$repo && mvn clean install -q -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 	done
 	echo "☕️ Local installing fusion-starter.jar ..."
 	$(MAKE) -C $(2) install
