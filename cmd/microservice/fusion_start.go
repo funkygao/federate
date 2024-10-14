@@ -67,7 +67,10 @@ func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
 		"FederatedEnvironmentPostProcessor",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",
+
 		"FederatedIndirectRiskDetector",
+		"RiskDetector",
+		"RequestMappingConflictDetector",
 	}
 
 	for _, cls := range runtimeClasses {
@@ -81,10 +84,12 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 		Package               string
 		MapperScanBasePackage string
 		SingletonClasses      []string
+		AddOns                []string
 	}{
 		Package:               packageName,
 		MapperScanBasePackage: "com.jdwl.wms", // TODO
 		SingletonClasses:      m.Main.Runtime.SingletonComponents,
+		AddOns:                m.Starter.Inspect.AddOn,
 	}
 	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")
