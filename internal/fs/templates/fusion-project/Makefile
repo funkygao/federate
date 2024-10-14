@@ -31,7 +31,7 @@ select-env:
 	fi; \
 	echo "目标环境：$${ENV}"
 
-current-env: ## Display current environment and its configuration
+current-env: ## Display current environment and its configuration.
 	$(INVENTORY_CMD) -f repo-info -e $(TARGET_ENV)
 
 confirm-env:
