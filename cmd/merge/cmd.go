@@ -63,6 +63,9 @@ func doMerge(m *manifest.Manifest) {
 		{"Generating target system scaffold", func() {
 			scaffoldTargetSystem(m)
 		}},
+		{"Instrumentation of spring-boot-maven-plugin", func() {
+			instrumentPomForFederatePackaging(m) // 代码插桩
+		}},
 		{"Reconciling ENV variables conflicts", func() {
 			reconcileEnvConflicts(m)
 		}},

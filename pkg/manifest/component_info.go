@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"os"
 	"path/filepath"
 
 	"federate/pkg/federated"
@@ -38,6 +39,18 @@ func (c *ComponentInfo) SrcDir(baseDir string) string {
 		return filepath.Join(c.BaseDir, c.Name, baseDir)
 	}
 	return filepath.Join(c.Name, baseDir)
+}
+
+// 返回的目录名都是相对路径，不包含 RootDir 信息
+func (c *ComponentInfo) ChildDirs() (childDirs []string) {
+	entries, _ := os.ReadDir(c.RootDir())
+	for _, entry := range entries {
+		if entry.IsDir() {
+			childDirs = append(childDirs, entry.Name())
+		}
+	}
+
+	return childDirs
 }
 
 // 合并生成的资源文件目录，e.g, generated/{project}/src/main/resources/federated/{component}

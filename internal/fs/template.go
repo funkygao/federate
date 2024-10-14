@@ -53,7 +53,7 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) {
 
 	// 检测目标文件是否存在
 	if util.FileExists(outputPath) {
-		color.Yellow("Overwriting %s", outputPath)
+		color.Yellow("Overwrite %s", outputPath)
 	}
 	file, err := os.Create(outputPath)
 	if err != nil {
