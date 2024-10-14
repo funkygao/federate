@@ -1,4 +1,5 @@
 version: 1.0
+
 #===================
 # 联邦应用：测试环境
 #===================
@@ -6,7 +7,6 @@ federated:
   name: wms-stock-synergy
   parent: com.jdwl.wms:fusion-projects:1.0.0-SNAPSHOT
   dependency:
-    include:
     exclude:
       - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
   springProfile: test
@@ -58,14 +58,25 @@ federated:
         - "*.html"
         - "*.json"
 
+#===========
+# 部署信息
+#===========
+deployment:
+  - env: on-premise
+    tomcatPort: 8082
+    jvmSize: large # medium, small
+    JAVA_OPTS:
+
 #===============================
 # fusion-starter runtime support
 #===============================
 fusion-starter:
   dependencies: # fusion-starter 使用了 @Slf4j 和 spring-boot，如果现有工程没有使用则需要依赖
     #- org.springframework.boot:spring-boot:2.2.7.RELEASE:provided
-    #- org.springframework:spring-context:5.2.6.RELEASE:provided
     #- org.slf4j:slf4j-api:1.7.30
+  inspect: # 运行前自检
+    addon: # 客户扩展开发的插件 FQCN，实现接口：RiskDetector
+      #- com.foo.Bar
 
 #===========
 # 微服务构成

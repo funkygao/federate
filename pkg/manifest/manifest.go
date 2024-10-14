@@ -45,7 +45,7 @@ func (m *Manifest) DeploymentByEnv(env string) *DeploymentSpec {
 			return &d
 		}
 	}
-	return nil
+	return &DeploymentSpec{}
 }
 
 func (m *Manifest) ComponentByName(componentName string) *ComponentInfo {
