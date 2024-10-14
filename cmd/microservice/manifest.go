@@ -67,7 +67,7 @@ func generateManifestGuide() {
 }
 
 func doGenerateGuide(data []byte) (string, error) {
-	var manifest interface{}
+	var manifest map[string]interface{}
 	err := yaml.Unmarshal(data, &manifest)
 	if err != nil {
 		return "", fmt.Errorf("error parsing YAML: %v", err)
@@ -75,6 +75,15 @@ func doGenerateGuide(data []byte) (string, error) {
 
 	markdown := "# Manifest Reference Guide\n\n"
 	markdown += "This document provides a detailed description of the manifest.yaml file used in our project.\n\n"
+	markdown += "## Structure\n\n"
+	markdown += "The manifest.yaml file has the following top-level fields:\n\n"
+
+	// Add top-level fields
+	for key := range manifest {
+		markdown += fmt.Sprintf("- %s\n", key)
+	}
+	markdown += "\n"
+
 	markdown += "## Fields\n\n"
 
 	markdown += generateMarkdownForValue("", manifest)
@@ -132,34 +141,6 @@ func getType(v interface{}) string {
 		return "Object"
 	default:
 		return fmt.Sprintf("Unknown (%T)", v)
-	}
-}
-
-func generateMarkdownForMap(prefix string, m map[string]interface{}) string {
-	var markdown string
-	for k, v := range m {
-		path := prefix
-		if path != "" {
-			path += "."
-		}
-		path += k
-		markdown += generateMarkdownForField(path, v)
-	}
-	return markdown
-}
-
-func generateMarkdownForField(path string, v interface{}) string {
-	switch val := v.(type) {
-	case map[string]interface{}:
-		return generateMarkdownForMap(path, val)
-	case []interface{}:
-		var markdown string
-		for i, item := range val {
-			markdown += generateMarkdownForField(fmt.Sprintf("%s[%d]", path, i), item)
-		}
-		return markdown
-	default:
-		return fmt.Sprintf("### %s\n\n**Type**: %s\n\n**Value**: `%v`\n\n", path, getType(v), v)
 	}
 }
 
