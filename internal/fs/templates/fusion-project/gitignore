@@ -29,9 +29,9 @@ out.txt
 .env
 
 # Ignore federate generated fusion-starter contents
-fusion-projects/**/src/main/java/com/jdwl/wms/fusion/runtime/
-fusion-projects/**/Makefile
-fusion-projects/**/pom.xml
+{{.FusionProjectsName}}/**/src/main/java/com/jdwl/wms/fusion/runtime/
+{{.FusionProjectsName}}/**/Makefile
+{{.FusionProjectsName}}/**/pom.xml
 
 # Ignore federate generated target systems
 generated/

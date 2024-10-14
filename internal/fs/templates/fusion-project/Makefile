@@ -5,7 +5,7 @@ FEDERATE := federate
 INVENTORY_FILE := inventory.yaml
 ENV_FILE := .env
 INVENTORY_CMD := $(FEDERATE) inventory -i $(INVENTORY_FILE)
-FUSION_PROJECTS := fusion-projects
+FUSION_PROJECTS := {{.FusionProjectsName}}
 TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 
 help:

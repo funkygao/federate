@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	monolithName string
+	monolithName       string
+	fusionProjectsName string
 )
 
 var monolithCmd = &cobra.Command{
@@ -30,24 +31,29 @@ This approach allows you to:
 }
 
 func createMonolith() {
-	// Makefile .common.mk README.md inventory.yaml .gitignore
-	// fusion-projects/.foo.mk
-
 	rootDir := monolithName
 	if err := os.MkdirAll(rootDir, 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
 	}
 
-	generateFile(rootDir, "Makefile", "Makefile", nil)
-	generateFile(rootDir, "common.mk", ".common.mk", nil)
-	generateFile(rootDir, "inventory.yaml", "inventory.yaml", nil)
-	generateFile(rootDir, "gitignore", ".gitignore", nil)
+	data := struct {
+		FusionProjectsName string
+	}{
+		FusionProjectsName: fusionProjectsName,
+	}
+	generateFile(rootDir, "Makefile", "Makefile", data)
+	generateFile(rootDir, "common.mk", ".common.mk", data)
+	generateFile(rootDir, "inventory.yaml", "inventory.yaml", data)
+	generateFile(rootDir, "gitignore", ".gitignore", data)
 
 	projectsDir := filepath.Join(rootDir, "fusion-projects")
 	if err := os.MkdirAll(projectsDir, 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
 	}
-	generateFile(projectsDir, "pom.xml", "pom.xml", nil)
+	generateFile(projectsDir, "pom.xml", "pom.xml", data)
+	generateFile(projectsDir, "demo.mk", ".demo.mk", data)
+
+	color.Green("🍺 Monolith project[%s] scaffolded with all fusion-starter projects reside in %s/", monolithName, fusionProjectsName)
 }
 
 func generateFile(rootDir, fromTemplateFile, targetFile string, data interface{}) {
@@ -59,4 +65,5 @@ func generateFile(rootDir, fromTemplateFile, targetFile string, data interface{}
 func init() {
 	monolithCmd.Flags().StringVarP(&monolithName, "name", "n", "", "Name of the monolith project")
 	monolithCmd.MarkFlagRequired("name")
+	monolithCmd.Flags().StringVarP(&fusionProjectsName, "fusion-projects", "p", "fusion-projects", "In which directory will all fusion-starter projects reside")
 }
