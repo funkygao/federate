@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"federate/cmd/chatgpt"
+	"federate/cmd/github"
 	"federate/cmd/image"
 	"federate/cmd/microservice"
 	"federate/cmd/onpremise"
@@ -73,6 +74,7 @@ func init() {
 
 	ygrepCmd.GroupID = "utility"
 	chatgpt.CmdGroup.GroupID = "utility"
+	github.CmdGroup.GroupID = "utility"
 	allCmd.GroupID = "utility"
 	componentsCmd.GroupID = "utility"
 	inventoryCmd.GroupID = "utility"
@@ -96,6 +98,7 @@ func init() {
 		},
 	)
 
+	rootCmd.AddCommand(github.CmdGroup)
 	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, inventoryCmd, componentsCmd, allCmd)
 	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup)
 	rootCmd.AddCommand(version.CmdGroup)
