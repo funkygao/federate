@@ -171,7 +171,8 @@ func buildRPM() {
 	}(tempFiles)
 
 	log.Printf("正在构建 Docker 镜像: %s ...", dockerImage)
-	dockerBuildCmd := exec.Command("docker", "buildx", "build",
+	// docker build --help 显示: docker buildx build，它已经集成了 buildx 功能
+	dockerBuildCmd := exec.Command("docker", "build",
 		"--platform", "linux/amd64",
 		"-f", "Dockerfile.rpmbuilder",
 		"--build-arg", "APP_NAME="+appName,
