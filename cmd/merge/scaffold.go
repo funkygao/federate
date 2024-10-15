@@ -44,8 +44,12 @@ func generatePomFile(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "pom.xml")
-	fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
+	if overwrite {
+		color.Yellow("Overwrite %s", fn)
+	} else {
+		color.Cyan("Generated %s", fn)
+	}
 }
 
 func generateMetaInf(m *manifest.Manifest) {
@@ -60,8 +64,12 @@ func generateMetaInf(m *manifest.Manifest) {
 		FederatedRuntimePackage: m.Main.FederatedRuntimePackage(),
 	}
 	fn := filepath.Join(root, "src", "main", "resources", "META-INF", "spring.factories")
-	fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
+	if overwrite {
+		color.Yellow("Overwrite %s", fn)
+	} else {
+		color.Cyan("Generated %s", fn)
+	}
 }
 
 func generateMainClassFile(packageName, className string, m *manifest.Manifest) {
@@ -92,8 +100,12 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	}
 	mainClassDir := filepath.Join(root, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	fn := filepath.Join(mainClassDir, className+".java")
-	fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
+	if overwrite {
+		color.Yellow("Overwrite %s", fn)
+	} else {
+		color.Cyan("Generated %s", fn)
+	}
 }
 
 func generateMakefile(m *manifest.Manifest) {
@@ -117,8 +129,12 @@ func generateMakefile(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "Makefile")
-	fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
+	if overwrite {
+		color.Yellow("Overwrite %s", fn)
+	} else {
+		color.Cyan("Generated %s", fn)
+	}
 }
 
 func generatePackageXml(m *manifest.Manifest) {
@@ -127,8 +143,12 @@ func generatePackageXml(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "src", "main", "assembly", "package.xml")
-	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
-	color.Cyan("Generated %s", fn)
+	overwrite := fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
+	if overwrite {
+		color.Yellow("Overwrite %s", fn)
+	} else {
+		color.Cyan("Generated %s", fn)
+	}
 }
 
 func generateStartStopScripts(m *manifest.Manifest) {
@@ -147,8 +167,12 @@ func generateStartStopScripts(m *manifest.Manifest) {
 	start := filepath.Join(root, "src", "main", "assembly", "bin", "start.sh")
 	fs.GenerateExecutableFileFromTmpl("templates/start.sh", start, data)
 	stop := filepath.Join(root, "src", "main", "assembly", "bin", "stop.sh")
-	fs.GenerateExecutableFileFromTmpl("templates/stop.sh", stop, data)
-	color.Cyan("Generated %s, %s", start, filepath.Base(stop))
+	overwrite := fs.GenerateExecutableFileFromTmpl("templates/stop.sh", stop, data)
+	if overwrite {
+		color.Yellow("Overwrite %s, %s", start, filepath.Base(stop))
+	} else {
+		color.Cyan("Generated %s, %s", start, filepath.Base(stop))
+	}
 }
 
 func copyTaint(m *manifest.Manifest) {

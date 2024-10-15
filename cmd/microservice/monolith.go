@@ -64,8 +64,12 @@ func createMonolith() {
 
 func generateFile(rootDir, fromTemplateFile, targetFile string, data interface{}) {
 	f := filepath.Join(rootDir, targetFile)
-	fs.GenerateFileFromTmpl("templates/fusion-project/"+fromTemplateFile, f, data)
-	color.Cyan("Generated %s", f)
+	overwrite := fs.GenerateFileFromTmpl("templates/fusion-project/"+fromTemplateFile, f, data)
+	if overwrite {
+		color.Yellow("Overwrite %s", f)
+	} else {
+		color.Cyan("Generated %s", f)
+	}
 }
 
 func init() {
