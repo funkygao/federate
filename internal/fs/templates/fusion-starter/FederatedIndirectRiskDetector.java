@@ -38,6 +38,7 @@ public class FederatedIndirectRiskDetector {
             }
         }
 
+        System.out.println();
         for (RiskDetector detector : detectors) {
             System.out.printf("Potential conflict[%s] detected:\n", detector.conflictDesc());
             detector.reportRisks();

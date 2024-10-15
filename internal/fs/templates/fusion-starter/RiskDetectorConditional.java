@@ -34,7 +34,7 @@ class RiskDetectorConditional implements RiskDetector {
         for (Map.Entry<String, Set<String>> entry : keys.entrySet()) {
             System.out.printf("  %s\n", entry.getKey());
             for (String clazz : entry.getValue()) {
-                System.out.printf("    %s\n", clazz);
+                System.out.printf("    - %s\n", clazz);
             }
         }
     }
