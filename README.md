@@ -41,7 +41,6 @@ This approach decouples logical boundaries from physical deployment, offering fl
     │   (Git Submodule)     ││   (Git Submodule)     ││   (Git Submodule)     │
     │                       ││                       ││                       │
     │ Code Instrumentation  ││ Code Instrumentation  ││ Code Instrumentation  │
-    │   and Transformation  ││   and Transformation  ││   and Transformation  │
     │ (Uncommitted Changes) ││ (Uncommitted Changes) ││ (Uncommitted Changes) │
     └───────────────────────┘└───────────────────────┘└───────────────────────┘
 ```
