@@ -8,8 +8,13 @@ INVENTORY_CMD := $(FEDERATE) inventory -i $(INVENTORY_FILE)
 FUSION_PROJECTS := {{.FusionProjectsName}}
 TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 
-help:
-	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+##@ General Options
+
+## Use sic=1 with merge targets to skip installation of Instrumented Components.
+
+help: 
+	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+
 
 include .common.mk
 include $(FUSION_PROJECTS)/.*.mk
