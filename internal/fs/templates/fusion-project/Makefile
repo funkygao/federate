@@ -10,11 +10,10 @@ TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 
 ##@ General Options
 
-##   Use sic=1 with merge targets to skip installation of Instrumented Components.
+##   Use sci=1 with merge targets to Skip Components Installation.
 
 help: 
 	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
-
 
 include .common.mk
 include $(FUSION_PROJECTS)/.*.mk
@@ -72,8 +71,3 @@ clean:
 	rm -rf logs generated test.log dependency-tree.txt
 	find . \( -name "prompt.txt" -o -name "out.txt" -o -name .DS_Store -o -name "*.log" \) -exec rm {} \;
 	$(MAKE) restore-submodules
-
-push-github:
-	git subtree split --prefix=cmd/federate -b split-branch
-	git push github split-branch:main
-	git branch -D split-branch
