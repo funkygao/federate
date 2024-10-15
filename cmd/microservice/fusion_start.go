@@ -1,6 +1,8 @@
 package microservice
 
 import (
+	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -8,6 +10,25 @@ import (
 	"federate/pkg/manifest"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
+)
+
+var (
+	cleanFlag bool
+
+	runtimeClasses = []string{
+		"FederatedAnnotationBeanNameGenerator",
+		"FederatedApplicationContextInitializer",
+		"FederatedBeanDefinitionConflictProcessor",
+		"FederatedDefaultBeanNameGenerator",
+		"FederatedMybatisConfig",
+		"FederatedEnvironmentPostProcessor",
+		"FederatedExcludedTypeFilter",
+		"FederatedResourceLoader",
+		"FederatedIndirectRiskDetector",
+		"RiskDetector",
+		"RiskDetectorConditional",
+		"RiskDetectorRequestMapping",
+	}
 )
 
 var fusionStartCmd = &cobra.Command{
@@ -20,11 +41,15 @@ Example usage:
   federate microservice fusion-start -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.LoadManifest()
-		scaffoldProject(m)
+		if cleanFlag {
+			cleanFusionStarterProject(m)
+		} else {
+			fusionStartProject(m)
+		}
 	},
 }
 
-func scaffoldProject(m *manifest.Manifest) {
+func fusionStartProject(m *manifest.Manifest) {
 	generatePomFile(m)
 	generateMakefile(m)
 	generateFederateRuntimeJavaClasses(m)
@@ -66,22 +91,6 @@ func generateMakefile(m *manifest.Manifest) {
 }
 
 func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
-	runtimeClasses := []string{
-		"FederatedAnnotationBeanNameGenerator",
-		"FederatedApplicationContextInitializer",
-		"FederatedBeanDefinitionConflictProcessor",
-		"FederatedDefaultBeanNameGenerator",
-		"FederatedMybatisConfig",
-		"FederatedEnvironmentPostProcessor",
-		"FederatedExcludedTypeFilter",
-		"FederatedResourceLoader",
-
-		"FederatedIndirectRiskDetector",
-		"RiskDetector",
-		"RiskDetectorConditional",
-		"RiskDetectorRequestMapping",
-	}
-
 	for _, cls := range runtimeClasses {
 		generateJava(m, cls)
 	}
@@ -110,6 +119,26 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 	}
 }
 
+func cleanFusionStarterProject(m *manifest.Manifest) {
+	filesToRemove := []string{
+		filepath.Join(m.Dir, "pom.xml"),
+		filepath.Join(m.Dir, "Makefile"),
+	}
+
+	packagePath := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.FederatedRuntimePackage(), ".", "/")))
+	for _, cls := range runtimeClasses {
+		filesToRemove = append(filesToRemove, filepath.Join(packagePath, cls+".java"))
+	}
+
+	for _, file := range filesToRemove {
+		os.Remove(file)
+		log.Printf("Removed %s", file)
+	}
+
+	color.Green("🧹 Cleaned up %s-fusion-starter project files", m.Main.Name)
+}
+
 func init() {
 	manifest.RequiredManifestFileFlag(fusionStartCmd)
+	fusionStartCmd.Flags().BoolVarP(&cleanFlag, "clean", "c", false, "Remove all generated files")
 }
