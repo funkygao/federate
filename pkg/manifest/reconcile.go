@@ -5,13 +5,14 @@ import (
 )
 
 type ReconcileSpec struct {
-	Taint Taint `yaml:"taint"`
-
-	// @Bean/@Service/@Component/@RestController/MapperFactoryBean/etc
+	// @Bean/@Service/@Repository/@Configuration/@Component/@RestController/MapperFactoryBean/etc
 	ExcludedBeanClasses []string `yaml:"excludeClasses"`
 
-	RpcConsumer RpcConsumerSpec        `yaml:"rpcConsumer"`
-	Resources   ResourcesReconcileSpec `yaml:"resources"`
+	Taint     Taint                  `yaml:"taint"`
+	Resources ResourcesReconcileSpec `yaml:"resources"`
+
+	RpcProvider RpcProviderSpec `yaml:"rpcProvider"`
+	RpcConsumer RpcConsumerSpec `yaml:"rpcConsumer"`
 
 	M *MainSystem
 }

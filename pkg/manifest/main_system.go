@@ -67,27 +67,3 @@ type ComponentScan struct {
 	BasePackages  []string `yaml:"basePackages"`
 	ExcludedTypes []string `yaml:"excludedTypes"`
 }
-
-type RpcConsumerSpec struct {
-	IgnoreRules []IgnoreRule `yaml:"ignoreRules"`
-}
-
-type IgnoreRule struct {
-	Package string   `yaml:"package"`
-	Except  []string `yaml:"except"`
-}
-
-func (s *RpcConsumerSpec) IgnoreInterface(interfaceName string) bool {
-	for _, rule := range s.IgnoreRules {
-		if strings.HasPrefix(interfaceName, rule.Package) {
-			// 检查是否在例外列表中
-			for _, except := range rule.Except {
-				if interfaceName == except {
-					return false
-				}
-			}
-			return true
-		}
-	}
-	return false
-}
