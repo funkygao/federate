@@ -6,24 +6,12 @@ environments:
     wms-inventory:
       branch: test
       maven_profile: test
-    wms-rule:
-      branch: test
-      maven_profile: test
-    wms-masterdata:
-      branch: test2024
-      maven_profile: test
 
   uat:
     wms-stock:
       branch: uat
       maven_profile: uat
     wms-inventory:
-      branch: uat
-      maven_profile: uat
-    wms-rule:
-      branch: uat
-      maven_profile: uat
-    wms-masterdata:
       branch: uat
       maven_profile: uat
 
@@ -34,26 +22,6 @@ environments:
     wms-inventory:
       branch: master
       maven_profile: prod
-    wms-rule:
-      branch: master
-      maven_profile: prod
-    wms-masterdata:
-      branch: master
-      maven_profile: prod
-
-  on-premise:
-    wms-stock:
-      branch: 20240714_localizedDeployment_LQ
-      maven_profile: on-premise-test
-    wms-inventory:
-      branch: 20240524_localizedDeployment_LQ
-      maven_profile: on-premise-test
-    wms-rule:
-      branch: feature-premise
-      maven_profile: on-premise
-    wms-masterdata:
-      branch: feature-premise
-      maven_profile: on-premise
 
 repos:
   wms-stock:
@@ -62,10 +30,3 @@ repos:
   wms-inventory:
     address: git@coding.jd.com:wms-ng/wms-inventory.git
     maven_install_module: wms-inventory-web
-  wms-rule:
-    address: git@coding.jd.com:wms-ng/wms-rule.git
-    maven_install_module: wms-rule-web
-  wms-masterdata:
-    address: git@coding.jd.com:wms-ng/wms-masterdata.git
-    maven_install_module: wms-masterdata-web
-
