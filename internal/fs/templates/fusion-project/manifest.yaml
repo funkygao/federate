@@ -1,0 +1,74 @@
+version: 1.0
+
+federated: # 联邦应用：测试环境
+  name: demo
+  dependency:
+    exclude:
+      - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
+  springProfile: test
+  springBootApplication:
+    class: com.foo.Bar
+    exclude: # @SpringBootApplication#exclude
+       - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+    import:  # @Import
+      - com.aws.security.configsec.spring.config.JDSecurityPropertyCleanService
+    componentScan: # @ComponentScan
+      basePackages: # @ComponentScan#basePackages
+        - com.aws.wms
+      excludedTypes: # @ComponentScan#excludeFilters
+        - com.aws.wms.stock.ApiProviderApplication
+  reconcile: # 资源调和
+    taint: # 污点：无法自动合并，用户提供
+      logConfigXml: logback-test.xml
+      mybatisConfigXml: mybatis-config.xml
+    excludeClasses: # 不加载这些类： @Bean/@Service/@Repository/@Component/@RestController/MapperFactoryBean/etc
+    rpcConsumer: # 远程RPC调用拉回到JVM内
+      ignoreRules:
+        - package: com.aws.wms.stock.api
+          except:
+            - com.aws.wms.stock.api.external.OutboundOrderQueryService
+            - com.aws.wms.stock.api.external.InteractQueryService
+        - package: com.aws.wms.inventory.api
+    resources: # 资源文件处理
+      flatCopy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
+        - "*.html"
+        - "*.json"
+      propertySettlement: # 对冲突的Spring属性进行仲裁
+        app.demo.feature.newFeature.enabled: true
+      singletonClasses: # 这些 bean 只加载1次：资源复用
+        - com.aws.jim.cli.ReloadableJimClientFactoryBean
+        - com.aws.wms.common.redis.jimdb.JimdbClient
+        - com.aws.wms.common.lock.JimdbLocker
+        - com.aws.wms.common.workload.RateLimiterRedis
+        - org.springframework.kafka.core.DefaultKafkaProducerFactory
+        - com.aws.wms.common.kafka.consumer.DurationMessageExceptionStrategy
+
+fusion-starter: # fusion-starter runtime support
+  dependencies: # fusion-starter 使用了 @Slf4j 和 spring-boot，如果现有工程没有使用则需要依赖
+    #- org.springframework.boot:spring-boot:2.2.7.RELEASE:provided
+    #- org.slf4j:slf4j-api:1.7.30
+  inspect: # 运行前自检
+    addon: # 客户扩展开发的插件 FQCN，实现接口：RiskDetector
+      #- com.foo.Bar
+
+components: 微服务构成
+  - name: wms-stock
+    springProfile: test
+    modules:
+      - com.aws.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
+    resourceBasedirs:
+      - wms-stock-api-provider/src/main/resources
+      - wms-stock-api/src/main/resources
+    propertySources:
+      - important.properties
+    federatedIgnore:
+      - "dubbo*xml"
+      - "*kafka*"
+    importSpringXmls: # 目标系统 spring.xml 会 import 这些资源
+      - sequence-bean.xml
+      - jsf-provider.xml
+      - application-jmq-producer.xml
+      - application-jmq-consumer.xml
+    jsfConsumerXmls:
+      - jsf-consumer.xml
+

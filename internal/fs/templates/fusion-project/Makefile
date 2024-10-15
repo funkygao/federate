@@ -68,6 +68,5 @@ restore-submodules:
 	done
 
 clean:
-	rm -rf logs generated test.log dependency-tree.txt
-	find . \( -name "prompt.txt" -o -name "out.txt" -o -name .DS_Store -o -name "*.log" \) -exec rm {} \;
+	rm -rf generated test.log
 	$(MAKE) restore-submodules

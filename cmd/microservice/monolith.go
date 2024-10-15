@@ -53,6 +53,12 @@ func createMonolith() {
 	generateFile(projectsDir, "pom.xml", "pom.xml", data)
 	generateFile(projectsDir, "demo.mk", ".demo.mk", data)
 
+	demoFusionStarter := filepath.Join(projectsDir, "demo")
+	if err := os.MkdirAll(demoFusionStarter, 0755); err != nil {
+		log.Fatalf("Error creating directory: %v", err)
+	}
+	generateFile(demoFusionStarter, "manifest.yaml", "manifest.yaml", data)
+
 	color.Green("🍺 Monolith project[%s] scaffolded with all fusion-starter projects reside in %s/", monolithName, fusionProjectsName)
 }
 
