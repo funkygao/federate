@@ -19,7 +19,9 @@ public class FederatedIndirectRiskDetector {
     public FederatedIndirectRiskDetector() {
         detectors = new LinkedList<>();
         // builtin
-        detectors.add(new RequestMappingConflictDetector());
+        detectors.add(new RiskDetectorRequestMapping());
+        detectors.add(new RiskDetectorConditional());
+
         // addon
         {{- range .AddOns }}
         detectors.add(new {{.}}());
@@ -37,6 +39,7 @@ public class FederatedIndirectRiskDetector {
         }
 
         for (RiskDetector detector : detectors) {
+            System.out.printf("Potential conflict[%s] detected:\n", detector.conflictDesc());
             detector.reportRisks();
         }
 
@@ -44,7 +47,8 @@ public class FederatedIndirectRiskDetector {
     }
 
     private void processJar(String jarPath) throws IOException {
-        log.debug("Processing {}", jarPath);
+        System.out.printf("Processing %s\n", jarPath);
+
         try (JarFile jarFile = new JarFile(jarPath)) {
             Enumeration<JarEntry> entries = jarFile.entries();
             URL[] urls = { new URL("jar:file:" + jarPath + "!/") };
@@ -60,7 +64,7 @@ public class FederatedIndirectRiskDetector {
                         Class<?> clazz = cl.loadClass(className);
                         for (RiskDetector detector : detectors) {
                             try {
-                                detector.analyzeClass(clazz);
+                                detector.visit(jarFile, clazz);
                             } catch (Throwable t) {
                                 log.trace("Error analyzing class {} with detector {}: {}", className, detector.getClass().getSimpleName(), t.getMessage());
                             }

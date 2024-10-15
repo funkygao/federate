@@ -1,7 +1,12 @@
 package {{.Package}};
 
+import java.util.jar.JarFile;
+
 public interface RiskDetector {
-    void analyzeClass(Class<?> clazz);
+    void visit(JarFile jarFile, Class<?> clazz) throws Exception;
+
     void reportRisks();
+
+    String conflictDesc();
 }
 

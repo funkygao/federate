@@ -78,7 +78,8 @@ func generateFederateRuntimeJavaClasses(m *manifest.Manifest) {
 
 		"FederatedIndirectRiskDetector",
 		"RiskDetector",
-		"RequestMappingConflictDetector",
+		"RiskDetectorConditional",
+		"RiskDetectorRequestMapping",
 	}
 
 	for _, cls := range runtimeClasses {
