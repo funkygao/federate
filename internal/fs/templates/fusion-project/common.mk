@@ -36,6 +36,6 @@ define merge_project
 	echo "☕️ Local installing fusion-starter.jar on $$FUSION_STARTER_DIR ..."; \
 	$(MAKE) -C $$FUSION_STARTER_DIR install; \
 	echo "☕️ Optimizing target project"; \
-	federate microservice optimize -i $(1); \
+	federate microservice optimize -i $(1) --yes; \
 	echo "🍺 Congrat, consolidated!"
 endef

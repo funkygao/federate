@@ -9,7 +9,7 @@ Microservices architecture, despite its advantages in scalability, flexibility, 
 
 This approach decouples logical boundaries from physical deployment, offering flexibility while maintaining microservice architecture benefits. The result is a system combining microservice agility with consolidated architecture efficiency.
 
-## 关键设计
+## 核心设计
 
 ### 概念模型
 
