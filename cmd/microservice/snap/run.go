@@ -9,13 +9,11 @@ import (
 
 var (
 	hinted        = false
-	localRepoPath = "generated/artifactory"
+	localRepoPath string
 )
 
 func runSnap(m *manifest.Manifest) {
-	createLocalMavenRepo()
-	updatePomFilesForLocalRepo(m)
-	copyDependenciesToLocalRepo(m)
+	prepareMavenRepo(m)
 
 	if true {
 		return
