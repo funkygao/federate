@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"federate/pkg/federated"
+	"federate/pkg/util"
 )
 
 type ComponentInfo struct {
@@ -57,6 +58,16 @@ func (c *ComponentInfo) ChildDirs() (childDirs []string) {
 	}
 
 	return childDirs
+}
+
+// 返回的路径是已经包含了 RootDir 信息
+func (c *ComponentInfo) MavenModules() (dirs []string) {
+	for _, d := range c.ChildDirs() {
+		if util.FileExists(filepath.Join(c.RootDir(), d, "pom.xml")) {
+			dirs = append(dirs, filepath.Join(c.RootDir(), d))
+		}
+	}
+	return
 }
 
 // 合并生成的资源文件目录，e.g, generated/{project}/src/main/resources/federated/{component}
