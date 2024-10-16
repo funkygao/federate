@@ -14,9 +14,8 @@ var (
 
 func runSnap(m *manifest.Manifest) {
 	createLocalMavenRepo()
-
 	updatePomFilesForLocalRepo(m)
-	copyDependenciesToLocalRepo()
+	copyDependenciesToLocalRepo(m)
 
 	if true {
 		return

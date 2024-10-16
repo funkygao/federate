@@ -96,6 +96,8 @@ func instrumentPom(pomPath string) error {
 		}
 	}
 
+	doc.Indent(4)
+
 	// Save the updated pom.xml
 	f, err := os.Create(pomPath)
 	if err != nil {
