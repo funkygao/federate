@@ -1,4 +1,4 @@
-package microservice
+package optimize
 
 import (
 	"fmt"
@@ -15,25 +15,13 @@ var (
 	optimizeVerbosity   int
 )
 
-var optimizeCmd = &cobra.Command{
-	Use:   "optimize",
-	Short: "Identify potential areas for optimization",
-	Long: `The optimize command identify potential areas for optimization.
-
-Example usage:
-  federate microservice optimize -i manifest.yaml --similarity-threshold 0.5`,
+var duplicateCmd = &cobra.Command{
+	Use:   "duplicate",
+	Short: "Identify potential duplicate classes",
 	Run: func(cmd *cobra.Command, args []string) {
 		manifest := manifest.LoadManifest()
-		optimize(manifest)
+		showDuplicates(manifest)
 	},
-}
-
-func optimize(m *manifest.Manifest) {
-	showDuplicates(m)
-	checkdependency(m)
-}
-
-func checkdependency(m *manifest.Manifest) {
 }
 
 func showDuplicates(m *manifest.Manifest) {
@@ -67,7 +55,7 @@ func showDuplicates(m *manifest.Manifest) {
 }
 
 func init() {
-	optimizeCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.6, "Threshold for similarity to count high similarity dup")
-	optimizeCmd.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
-	manifest.RequiredManifestFileFlag(optimizeCmd)
+	duplicateCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.6, "Threshold for similarity to count high similarity dup")
+	duplicateCmd.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
+	manifest.RequiredManifestFileFlag(duplicateCmd)
 }

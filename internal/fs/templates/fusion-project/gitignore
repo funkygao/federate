@@ -21,10 +21,6 @@ lsp/
 *.swo
 .vscode/
 
-prompt.txt
-out.txt
-
-.apache-zookeeper-3.7.1-bin/
 *.tar.gz
 .env
 
