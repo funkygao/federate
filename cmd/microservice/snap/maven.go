@@ -65,10 +65,19 @@ func copyDependenciesToLocalRepo(m *manifest.Manifest) {
 			log.Fatalf("Failed to change directory to %s: %v", component.RootDir(), err)
 		}
 
+		// 构建 Maven 命令
+		mvnArgs := []string{
+			"dependency:copy-dependencies",
+			"-DoutputDirectory=" + localRepoPath,
+			"-DincludeScope=runtime",
+			"-q", // quiet 模式
+		}
+
 		// Run Maven command
-		cmd := exec.Command("mvn", "dependency:copy-dependencies", "-DoutputDirectory="+localRepoPath, "-DincludeScope=runtime")
+		cmd := exec.Command("mvn", mvnArgs...)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+		color.Blue(strings.Join(cmd.Args, " "))
 		err = cmd.Run()
 		if err != nil {
 			log.Fatalf("Failed to copy dependencies for %s: %v", component.Name, err)
