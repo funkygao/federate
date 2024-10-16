@@ -7,10 +7,20 @@ import (
 	"federate/pkg/manifest"
 )
 
-var hinted = false
+var (
+	hinted        = false
+	localRepoPath = "generated/artifactory"
+)
 
 func runSnap(m *manifest.Manifest) {
 	createLocalMavenRepo()
+
+	updatePomFilesForLocalRepo(m)
+	copyDependenciesToLocalRepo()
+
+	if true {
+		return
+	}
 
 	for _, component := range m.Components {
 		log.Printf("Component: %s", component.RootDir())
@@ -29,9 +39,6 @@ func runSnap(m *manifest.Manifest) {
 
 		hinted = true
 	}
-
-	updatePomFilesForLocalRepo(m)
-	copyDependenciesToLocalRepo()
 
 	log.Println("Snapshot creation complete. Please review changes with 'git diff'.")
 	log.Println("IMPORTANT: Perform a final code review to ensure all sensitive information has been removed and the code is appropriate for customer delivery.")

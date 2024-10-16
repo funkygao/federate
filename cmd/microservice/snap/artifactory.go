@@ -10,8 +10,6 @@ import (
 	"github.com/beevik/etree"
 )
 
-var localRepoPath = "generated/artifactory"
-
 func updatePomFilesForLocalRepo(m *manifest.Manifest) {
 	for _, component := range m.Components {
 		rootPom := filepath.Join(component.RootDir(), "pom.xml")
