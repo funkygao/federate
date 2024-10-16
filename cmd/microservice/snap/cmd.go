@@ -8,17 +8,31 @@ import (
 var Cmd = &cobra.Command{
 	Use:   "snap",
 	Short: "Create a secure, tailored source code snapshot for customer delivery",
-	Long: `Snap creates a secure, tailored source code snapshot for customer delivery.
+	Long: `Snap creates a tailored, secure source code snapshot ready for customer delivery.
 
-This command:
-1. Processes each component as a git submodule
-2. Performs in-place updates to maintain git diff functionality
-3. Removes sensitive information and unnecessary code
-4. Prepares a local Maven repository for customer use
-5. Ensures the final package is compilable in the customer's environment
+Key features:
+1. Processes git submodules in-place, enabling easy review via diff
+2. Removes sensitive information and unnecessary code
+3. Eliminates configuration files unrelated to the target profile
+4. Ensures post-delivery compilability, allowing customers to build the code independently
 
-The resulting snapshot is a professional-grade, ready-to-deliver source code snapshot
-that balances transparency with the protection of proprietary information.`,
+The command balances transparency with proprietary protection by:
+- Sanitizing internal references and configurations
+- Preparing a local Maven repository with necessary dependencies
+- Adjusting build scripts for customer environment compatibility
+- Retaining only relevant configuration for the specified profile
+
+Outputs:
+1. Source Code Repository:
+   A git repository tailored for the target environment, with sensitive
+   information and irrelevant configurations removed.
+
+2. Local Maven Repository:
+   A collection of JAR files and dependencies required for compilation,
+   without exposing proprietary source code.
+
+These outputs form a professional-grade, ready-to-deliver package that
+enables customers to build and run the application independently.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.LoadManifest()
 		runSnap(m)
