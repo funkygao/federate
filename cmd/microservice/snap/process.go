@@ -13,7 +13,8 @@ func processPom(pomPath string, indent int) {
 	logIndent(indent, "Processing pom.xml:")
 	logIndent(indent+1, "- Remove unnecessary dependencies")
 	logIndent(indent+1, "- Update version numbers if needed")
-	logIndent(indent+1, "- Remove any internal repository references")
+	logIndent(indent+1, "- Remove references to internal repositories")
+	logIndent(indent+1, "- Add reference to local Maven repository")
 }
 
 func processModule(moduleRoot string, indent int) {

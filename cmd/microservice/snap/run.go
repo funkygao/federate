@@ -10,6 +10,8 @@ import (
 var hinted = false
 
 func runSnap(m *manifest.Manifest) {
+	createLocalMavenRepo()
+
 	for _, component := range m.Components {
 		log.Printf("Component: %s", component.RootDir())
 
@@ -28,9 +30,10 @@ func runSnap(m *manifest.Manifest) {
 		hinted = true
 	}
 
-	finalChecks(0)
+	updatePomFilesForLocalRepo()
+	copyDependenciesToLocalRepo()
 
-	log.Println()
 	log.Println("Snapshot creation complete. Please review changes with 'git diff'.")
 	log.Println("IMPORTANT: Perform a final code review to ensure all sensitive information has been removed and the code is appropriate for customer delivery.")
+	finalChecks(0)
 }
