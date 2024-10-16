@@ -1,15 +1,12 @@
 package merge
 
 import (
-	"bufio"
-	"fmt"
 	"io"
 	"log"
-	"os"
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
-	"github.com/fatih/color"
+	"federate/pkg/step"
 	"github.com/spf13/cobra"
 )
 
@@ -56,64 +53,71 @@ func doMerge(m *manifest.Manifest) {
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
 
-	steps := []struct {
-		name string
-		fn   func()
-	}{
-		{"Generating target system scaffold", func() {
-			scaffoldTargetSystem(m)
-		}},
-		{"Instrumentation of spring-boot-maven-plugin", func() {
-			instrumentPomForFederatePackaging(m) // 代码插桩
-		}},
-		{"Reconciling ENV variables conflicts", func() {
-			reconcileEnvConflicts(m)
-		}},
-		{"Mergeing RPC Consumer XML to reduce redundant resource consumption", func() {
-			mergeRpcConsumerXml(m, rpcConsumerManagers)
-		}},
-		{"Federated-Copying Resources", func() {
-			recursiveFederatedCopyResources(m, resourceManager)
-		}},
-		{"Flat-Copying Resources: reconcile.resources.flatCopy", func() {
-			recursiveFlatCopyResources(m, resourceManager)
-		}},
-		{"Prepare Merging PropertySources of .properties files", func() {
-			prepareMergePropertiesFiles(m, propertySourcesManager)
-		}},
-		{"Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'", func() {
-			prepareMergeApplicationYaml(m, propertySourcesManager)
-		}},
-		{"Reconciling Placeholder conflicts references by rewriting .java/.xml files", func() {
-			reconcilePropertiesConflicts(m, propertySourcesManager)
-		}},
-		{"Reconciling Spring XML BeanDefinition conflicts", func() {
-			reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
-		}},
-		{"Reconciling Spring Bean Injection conflicts", func() {
-			reconcileBeanInjectionConflicts(m, injectionManager)
-		}},
-		{"Generating Federated Spring Bootstrap XML", func() {
-			generateSpringBootstrapXML(m)
-		}},
+	steps := []step.Step{
+		{
+			Name: "Generating target system scaffold",
+			Fn: func() {
+				scaffoldTargetSystem(m)
+			}},
+		{
+			Name: "Instrumentation of spring-boot-maven-plugin",
+			Fn: func() {
+				instrumentPomForFederatePackaging(m) // 代码插桩
+			}},
+		{
+			Name: "Reconciling ENV variables conflicts",
+			Fn: func() {
+				reconcileEnvConflicts(m)
+			}},
+		{
+			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
+			Fn: func() {
+				mergeRpcConsumerXml(m, rpcConsumerManagers)
+			}},
+		{
+			Name: "Federated-Copying Resources",
+			Fn: func() {
+				recursiveFederatedCopyResources(m, resourceManager)
+			}},
+		{
+			Name: "Flat-Copying Resources: reconcile.resources.flatCopy",
+			Fn: func() {
+				recursiveFlatCopyResources(m, resourceManager)
+			}},
+		{
+			Name: "Prepare Merging PropertySources of .properties files",
+			Fn: func() {
+				prepareMergePropertiesFiles(m, propertySourcesManager)
+			}},
+		{
+			Name: "Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'",
+			Fn: func() {
+				prepareMergeApplicationYaml(m, propertySourcesManager)
+			}},
+		{
+			Name: "Reconciling Placeholder conflicts references by rewriting .java/.xml files",
+			Fn: func() {
+				reconcilePropertiesConflicts(m, propertySourcesManager)
+			}},
+		{
+			Name: "Reconciling Spring XML BeanDefinition conflicts",
+			Fn: func() {
+				reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
+			}},
+		{
+			Name: "Reconciling Spring Bean Injection conflicts",
+			Fn: func() {
+				reconcileBeanInjectionConflicts(m, injectionManager)
+			}},
+		{
+			Name: "Generating Federated Spring Bootstrap XML",
+			Fn: func() {
+				generateSpringBootstrapXML(m)
+			}},
 	}
 
-	totalSteps := len(steps)
-	for i, step := range steps {
-		promptToProceed(i+1, totalSteps, step.name)
-		step.fn()
-	}
-}
-
-func promptToProceed(seq, total int, step string) {
-	c := color.New(color.FgMagenta)
-	c.Printf("Step [%d/%d] %s ...", seq, total, step)
-	if autoYes {
-		fmt.Println()
-		return
-	}
-	reader := bufio.NewReader(os.Stdin)
-	reader.ReadString('\n')
+	step.AutoConfirm = autoYes
+	step.Run(steps)
 }
 
 func init() {
