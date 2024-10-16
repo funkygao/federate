@@ -3,11 +3,13 @@ package {{.Package}};
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.AnnotationUtils;
 
-import java.util.*;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 
 class RiskDetectorConditional implements RiskDetector {
-    private final Map<String, Set<String>> keys = new HashMap<>();
+    private final Map<String, Set<String>> keys = new ConcurrentHashMap<>();
 
     @Override
     public void visit(JarFile jarFile, Class<?> clazz) throws Exception {
@@ -17,10 +19,7 @@ class RiskDetectorConditional implements RiskDetector {
         }
 
         for (String key : conditionalOnProperty.value()) {
-            if (!keys.containsKey(key)) {
-                keys.put(key, new HashSet<>());
-            }
-            keys.get(key).add(clazz.getCanonicalName());
+            keys.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(clazz.getCanonicalName());
         }
     }
 

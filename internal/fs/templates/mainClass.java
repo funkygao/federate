@@ -50,7 +50,7 @@ import java.util.Arrays;
 @Slf4j
 public class {{.ClassName}} {
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
         if (Arrays.asList(args).contains("--detect-indirect-risk")) {
             new FederatedIndirectRiskDetector().detectRisks();
         } else {

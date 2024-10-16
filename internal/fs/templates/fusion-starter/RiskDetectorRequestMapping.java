@@ -5,21 +5,20 @@ import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 
 @Slf4j
 class RiskDetectorRequestMapping implements RiskDetector {
-    private final Map<String, Set<String>> mappings = new HashMap<>();
+    private final Map<String, Set<String>> mappings = new ConcurrentHashMap<>();
 
     @Override
     public void visit(JarFile jarFile, Class<?> clazz) throws Exception {
         RequestMapping classMapping = AnnotationUtils.findAnnotation(clazz, RequestMapping.class);
         String[] classPaths = classMapping != null ? classMapping.value() : new String[]{""};
-        
+
         for (Method method : clazz.getDeclaredMethods()) {
             try {
                 RequestMapping methodMapping = AnnotationUtils.findAnnotation(method, RequestMapping.class);
@@ -57,7 +56,7 @@ class RiskDetectorRequestMapping implements RiskDetector {
     }
 
     private void addMapping(String path, String className) {
-        mappings.computeIfAbsent(path, k -> new HashSet<>()).add(className);
+        mappings.computeIfAbsent(path, k -> ConcurrentHashMap.newKeySet()).add(className);
     }
 
     @Override
@@ -71,5 +70,6 @@ class RiskDetectorRequestMapping implements RiskDetector {
             }
         }
     }
+
 }
 

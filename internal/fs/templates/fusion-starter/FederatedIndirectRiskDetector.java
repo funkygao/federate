@@ -9,14 +9,25 @@ import java.net.URLClassLoader;
 import java.util.Enumeration;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
 @Slf4j
 public class FederatedIndirectRiskDetector {
     private final List<RiskDetector> detectors;
+    private final ExecutorService executorService;
 
     public FederatedIndirectRiskDetector() {
+        int processors = Runtime.getRuntime().availableProcessors();
+        if (processors > 32) {
+            processors = 8;
+        }
+        executorService = Executors.newFixedThreadPool(processors);
+
         detectors = new LinkedList<>();
         // builtin
         detectors.add(new RiskDetectorRequestMapping());
@@ -28,15 +39,34 @@ public class FederatedIndirectRiskDetector {
         {{- end }}
     }
 
-    public void detectRisks() throws IOException {
+    public void detectRisks() throws Exception {
         String classpath = System.getProperty("java.class.path");
         String[] classpathEntries = classpath.split(File.pathSeparator);
         log.info("Starting risk detection ...");
+
+        CountDownLatch latch = new CountDownLatch(classpathEntries.length);
+        AtomicInteger activeJars = new AtomicInteger(0);
+
         for (String entry : classpathEntries) {
             if (entry.endsWith(".jar")) {
-                processJar(entry);
+                executorService.submit(() -> {
+                    try {
+                        activeJars.incrementAndGet();
+                        processJar(entry);
+                    } catch (IOException e) {
+                        log.error("Error processing jar: " + entry, e);
+                    } finally {
+                        activeJars.decrementAndGet();
+                        latch.countDown();
+                    }
+                });
+            } else {
+                latch.countDown();
             }
         }
+
+        latch.await();
+        executorService.shutdown();
 
         System.out.println();
         for (RiskDetector detector : detectors) {
@@ -81,6 +111,5 @@ public class FederatedIndirectRiskDetector {
             }
         }
     }
-
 }
 
