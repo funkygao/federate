@@ -7,23 +7,25 @@ import (
 	"federate/pkg/manifest"
 )
 
+var hinted = false
+
 func runSnap(m *manifest.Manifest) {
 	for _, component := range m.Components {
-		log.Printf("Processing %s", component.RootDir())
+		log.Printf("Component: %s", component.RootDir())
 
 		rootPom := filepath.Join(component.RootDir(), "pom.xml")
 		processPom(rootPom, 1)
 
 		for _, module := range component.MavenModules() {
 			processModule(module, 1)
-			break
 		}
 
 		// Additional processing for the component
-		removeUnnecessaryFiles(component.RootDir(), 2)
-		removeSensitiveInformation(component.RootDir(), 2)
-		updateConfigurations(component.RootDir(), 2)
-		break
+		removeUnnecessaryFiles(component.RootDir(), 1)
+		removeSensitiveInformation(component.RootDir(), 1)
+		updateConfigurations(component.RootDir(), 1)
+
+		hinted = true
 	}
 
 	finalChecks(0)

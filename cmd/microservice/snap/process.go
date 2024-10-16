@@ -7,42 +7,49 @@ import (
 )
 
 func processPom(pomPath string, indent int) {
+	if hinted {
+		return
+	}
 	logIndent(indent, "Processing pom.xml:")
 	logIndent(indent+1, "- Remove unnecessary dependencies")
 	logIndent(indent+1, "- Update version numbers if needed")
 	logIndent(indent+1, "- Remove any internal repository references")
-	// TODO: Implement pom.xml processing
 }
 
 func processModule(moduleRoot string, indent int) {
-	logIndent(indent, "Processing module: %s", filepath.Base(moduleRoot))
-	logIndent(indent+1, "- Remove test code if not needed")
-	logIndent(indent+1, "- Remove unnecessary resources")
-	logIndent(indent+1, "- Update configurations for the specific profile")
-	// TODO: Implement module processing
+	logIndent(indent, "module: %s", filepath.Base(moduleRoot))
 }
 
 func removeUnnecessaryFiles(dir string, indent int) {
+	if hinted {
+		return
+	}
 	logIndent(indent, "Removing unnecessary files:")
+	logIndent(indent+1, "- Remove test code if not needed")
+	logIndent(indent+1, "- Remove unnecessary resources")
+	logIndent(indent+1, "- Update configurations for the specific profile")
 	logIndent(indent+1, "- Remove internal documentation")
 	logIndent(indent+1, "- Remove development scripts")
 	logIndent(indent+1, "- Remove any temporary or cache files")
-	// TODO: Implement removal of unnecessary files
 }
 
 func removeSensitiveInformation(dir string, indent int) {
+	if hinted {
+		return
+	}
 	logIndent(indent, "Removing sensitive information:")
 	logIndent(indent+1, "- Remove API keys, passwords, and other credentials")
 	logIndent(indent+1, "- Remove internal comments that might contain sensitive info")
 	logIndent(indent+1, "- Remove or obfuscate internal IP addresses or URLs")
-	// TODO: Implement removal of sensitive information
 }
 
 func updateConfigurations(dir string, indent int) {
+	if hinted {
+		return
+	}
 	logIndent(indent, "Updating configurations:")
 	logIndent(indent+1, "- Update configuration files for the specific profile")
 	logIndent(indent+1, "- Remove or mask any internal-only configuration options")
-	// TODO: Implement configuration updates
 }
 
 func finalChecks(indent int) {
@@ -53,7 +60,6 @@ func finalChecks(indent int) {
 	logIndent(indent+1, "- Confirm that all open-source dependencies are compatible with customer use")
 	logIndent(indent+1, "- Review git history to ensure no sensitive information remains")
 	logIndent(indent+1, "- Verify compliance with customer contract and legal requirements")
-	// TODO: Implement final checks
 }
 
 func logIndent(indent int, format string, v ...interface{}) {
