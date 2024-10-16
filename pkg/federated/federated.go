@@ -23,3 +23,7 @@ func ResourceBaseName(filePath string) string {
 	}
 	return filePath // 如果没有找到 "federated/"，则使用原始路径
 }
+
+func GeneratedTargetRoot(targetSystemName string) string {
+	return filepath.Join(GeneratedDir, targetSystemName)
+}

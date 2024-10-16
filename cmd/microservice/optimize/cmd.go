@@ -55,7 +55,7 @@ func promptToProceed(seq, total int, step string) {
 }
 
 func init() {
-	CmdGroup.AddCommand(duplicateCmd, jarCmd)
+	CmdGroup.AddCommand(duplicateCmd, dependencyCmd)
 
 	manifest.RequiredManifestFileFlag(CmdGroup)
 	CmdGroup.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")

@@ -1,0 +1,184 @@
+Dir: .
+File: cmd.go
+Content:
+```
+package optimize
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+
+	"federate/pkg/manifest"
+	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+)
+
+var (
+	autoYes bool
+)
+
+var CmdGroup = &cobra.Command{
+	Use:   "optimize",
+	Short: "Identify potential areas for optimization",
+	Long:  `The optimize command identify potential areas for optimization.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		manifest := manifest.LoadManifest()
+		optimize(manifest)
+	},
+}
+
+func optimize(m *manifest.Manifest) {
+	steps := []struct {
+		name string
+		fn   func()
+	}{
+		{"Detect similar classes for potential duplicate coding", func() {
+			showDuplicates(m)
+		}},
+		{"Optimize project JAR dependencies", func() {
+		}},
+	}
+
+	totalSteps := len(steps)
+	for i, step := range steps {
+		promptToProceed(i+1, totalSteps, step.name)
+		step.fn()
+	}
+}
+
+func promptToProceed(seq, total int, step string) {
+	c := color.New(color.FgMagenta)
+	c.Printf("Step [%d/%d] %s ...", seq, total, step)
+	if autoYes {
+		fmt.Println()
+		return
+	}
+	reader := bufio.NewReader(os.Stdin)
+	reader.ReadString('\n')
+}
+
+func init() {
+	CmdGroup.AddCommand(duplicateCmd, dependencyCmd)
+
+	manifest.RequiredManifestFileFlag(CmdGroup)
+	CmdGroup.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
+	CmdGroup.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
+}
+
+```
+
+File: cmd_test.go
+Content:
+```
+package optimize
+
+import "testing"
+
+func TestPlaceholder(t *testing.T) {
+	// This is a placeholder test to avoid "no test files" error.
+}
+
+```
+
+File: dependency.go
+Content:
+```
+package optimize
+
+import (
+	"federate/pkg/manifest"
+	"github.com/spf13/cobra"
+)
+
+var dependencyCmd = &cobra.Command{
+	Use:   "dependency",
+	Short: "Optimize project JAR dependencies",
+	Run: func(cmd *cobra.Command, args []string) {
+		manifest := manifest.LoadManifest()
+		optimizeJar(manifest)
+	},
+}
+
+func optimizeJar(m *manifest.Manifest) {
+	// 通过 mvn dependency:analyze 来分析一个maven项目有哪些没使用的jar
+    // 你需要定义 DependencyReport struct，并通过 log 输出
+
+}
+
+func init() {
+	manifest.RequiredManifestFileFlag(dependencyCmd)
+}
+
+```
+
+File: duplicate.go
+Content:
+```
+package optimize
+
+import (
+	"fmt"
+	"log"
+	"sort"
+
+	"federate/pkg/manifest"
+	"federate/pkg/optimizer"
+	"github.com/spf13/cobra"
+)
+
+var (
+	similarityThreshold float64
+	optimizeVerbosity   int
+)
+
+var duplicateCmd = &cobra.Command{
+	Use:   "duplicate",
+	Short: "Identify potential duplicate classes",
+	Run: func(cmd *cobra.Command, args []string) {
+		manifest := manifest.LoadManifest()
+		showDuplicates(manifest)
+	},
+}
+
+func showDuplicates(m *manifest.Manifest) {
+	dups, err := optimizer.DetectDuplicateJava(m)
+	if err != nil {
+		log.Fatalf("Error detecting duplicate java: %v", err)
+	}
+
+	if len(dups) == 0 {
+		log.Println("Congrat, no dups detected.")
+	}
+
+	sort.Slice(dups, func(i, j int) bool {
+		return dups[i].Similarity < dups[j].Similarity
+	})
+
+	highSimilarityCount := 0
+	for _, dup := range dups {
+		if dup.Similarity > similarityThreshold {
+			highSimilarityCount++
+		}
+		if optimizeVerbosity > 2 {
+			fmt.Printf("Duplicate detected for class %s in files (similarity: %.2f):\n", dup.ClassName, dup.Similarity)
+			for _, path := range dup.Paths {
+				fmt.Printf("  - %s\n", path)
+			}
+		}
+	}
+	log.Printf("duplicate classes detected          : %v", len(dups))
+	log.Printf("duplicate with similarity over %.2f : %v", similarityThreshold, highSimilarityCount)
+}
+
+func init() {
+	duplicateCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.6, "Threshold for similarity to count high similarity dup")
+	duplicateCmd.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
+	manifest.RequiredManifestFileFlag(duplicateCmd)
+}
+
+```
+
+@.
+你来实现 optimizeJar
+
