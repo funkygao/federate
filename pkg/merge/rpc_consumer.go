@@ -71,9 +71,9 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest) error 
 		var xmlPatterns []string
 		switch dm.rpcType {
 		case RpcJsf:
-			xmlPatterns = component.JsfConsumerXmls
+			xmlPatterns = component.Resources.JsfConsumerXmls
 		case RpcDubbo:
-			xmlPatterns = component.DubboConsumerXmls
+			xmlPatterns = component.Resources.DubboConsumerXmls
 		default:
 			return fmt.Errorf("Unknown RPC type: %s", dm.rpcType)
 		}
@@ -85,7 +85,7 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest) error 
 
 		writeFile = true
 		for _, xmlPattern := range xmlPatterns {
-			for _, baseDir := range component.ResourceBaseDirs {
+			for _, baseDir := range component.Resources.BaseDirs {
 				sourceDir := filepath.Join(component.Name, baseDir)
 				fullPattern := filepath.Join(sourceDir, xmlPattern)
 

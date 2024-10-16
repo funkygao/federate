@@ -31,9 +31,11 @@ func TestLoadManifest(t *testing.T) {
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-stock-api-provider", Version: "1.0.0"},
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-stock-work", Version: "1.0.0"},
 			},
-			ResourceBaseDirs: []string{
-				"wms-stock-api-provider/src/main/resources",
-				"wms-stock-api/src/main/resources",
+			Resources: ComponentResourceSpec{
+				BaseDirs: []string{
+					"wms-stock-api-provider/src/main/resources",
+					"wms-stock-api/src/main/resources",
+				},
 			},
 		},
 		{
@@ -42,8 +44,10 @@ func TestLoadManifest(t *testing.T) {
 			Dependencies: []DependencyInfo{
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-inventory-web", Version: "1.0.1-SNAPSHOT"},
 			},
-			ResourceBaseDirs: []string{
-				"/wms-inventory-web/src/main/resources",
+			Resources: ComponentResourceSpec{
+				BaseDirs: []string{
+					"/wms-inventory-web/src/main/resources",
+				},
 			},
 		},
 	}
@@ -73,13 +77,13 @@ func TestLoadManifest(t *testing.T) {
 					component.Dependencies[j].GroupId, component.Dependencies[j].ArtifactId, component.Dependencies[j].Version)
 			}
 		}
-		if len(component.ResourceBaseDirs) != len(expectedComponent.ResourceBaseDirs) {
-			t.Errorf("Expected component '%s' to have %d resource base dirs, got %d", expectedComponent.Name, len(expectedComponent.ResourceBaseDirs), len(component.ResourceBaseDirs))
+		if len(component.Resources.BaseDirs) != len(expectedComponent.Resources.BaseDirs) {
+			t.Errorf("Expected component '%s' to have %d resource base dirs, got %d", expectedComponent.Name, len(expectedComponent.Resources.BaseDirs), len(component.Resources.BaseDirs))
 			continue
 		}
-		for j, expectedDir := range expectedComponent.ResourceBaseDirs {
-			if component.ResourceBaseDirs[j] != expectedDir {
-				t.Errorf("Expected component '%s' resource base dir '%d' to be '%s', got '%s'", expectedComponent.Name, j, expectedDir, component.ResourceBaseDirs[j])
+		for j, expectedDir := range expectedComponent.Resources.BaseDirs {
+			if component.Resources.BaseDirs[j] != expectedDir {
+				t.Errorf("Expected component '%s' resource base dir '%d' to be '%s', got '%s'", expectedComponent.Name, j, expectedDir, component.Resources.BaseDirs[j])
 			}
 		}
 	}

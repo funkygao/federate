@@ -60,7 +60,7 @@ func NewPropertySourcesManager(m *manifest.Manifest) *PropertySourcesManager {
 
 func (cm *PropertySourcesManager) PrepareMergeApplicationYaml() error {
 	for _, component := range cm.m.Components {
-		for _, baseDir := range component.ResourceBaseDirs {
+		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
 			if err := cm.planMergeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
 				return err
@@ -79,8 +79,8 @@ func (cm *PropertySourcesManager) PrepareMergeApplicationYaml() error {
 
 func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
 	for _, component := range cm.m.Components {
-		for _, baseDir := range component.ResourceBaseDirs {
-			for _, propertySource := range component.PropertySources {
+		for _, baseDir := range component.Resources.BaseDirs {
+			for _, propertySource := range component.Resources.PropertySources {
 				ext := filepath.Ext(propertySource)
 				if _, present := cm.propertySourceExts[ext]; !present {
 					return fmt.Errorf("Invalid property source: %s", propertySource)

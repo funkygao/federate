@@ -11,7 +11,7 @@ import (
 
 func CheckComponentsCompliance(m *manifest.Manifest) {
 	for _, component := range m.Components {
-		for _, baseDir := range component.ResourceBaseDirs {
+		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := filepath.Join(component.Name, baseDir)
 			err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 				if err != nil {

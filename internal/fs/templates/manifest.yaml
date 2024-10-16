@@ -34,12 +34,14 @@ federated:
         - com.jdwl.wms.stock.common.WebMvcConfig
         - com.jdwl.wms.inventory.intercept.WebMvcConfig
         - com.jdwl.wms.stock.common.config.SwaggerConfig
+
   reconcile: # 资源调和
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
-    excludeClasses: # 不加载这些类： @Bean/@Service/@Component/@RestController/MapperFactoryBean/etc
+    excludeClasses: # 不加载这些类： @Bean/@Service/@Component/@Repository/@RestController/MapperFactoryBean/etc
     rpc:
+      provider: # 控制暴露哪些服务
       consumer: # 远程RPC调用拉回到JVM内
         ignoreRules:
           - package: com.jdwl.wms.stock.api
@@ -62,15 +64,6 @@ federated:
         - com.jdwl.wms.common.kafka.consumer.DurationMessageExceptionStrategy
         - com.jd.coo.sa.mybatis.plugins.id.SequenceGenAdaptor
 
-#===========
-# 部署信息
-#===========
-deployment:
-  - env: on-premise
-    tomcatPort: 8082
-    jvmSize: large # medium, small
-    JAVA_OPTS:
-
 #===============================
 # fusion-starter runtime support
 #===============================
@@ -88,43 +81,55 @@ fusion-starter:
 components:
   - name: wms-stock
     springProfile: test
-    modules:
+    modules: # 启动包
       - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
-    resourceBasedirs:
-      - wms-stock-api-provider/src/main/resources
-      - wms-stock-api/src/main/resources
-    propertySources:
-      - important.properties
-    federatedIgnore:
-      - "dubbo*xml"
-      - "*kafka*"
-    importSpringXmls: # 目标系统 spring.xml 会 import 这些资源
-      - sequence-bean.xml
-      - jsf-provider.xml
-      - application-jmq-producer.xml
-      - application-jmq-consumer.xml
-    jsfConsumerXmls:
-      - jsf-consumer.xml
+    resources: # 资源文件处理
+      baseDir:
+        - wms-stock-api-provider/src/main/resources
+        - wms-stock-api/src/main/resources
+      propertySource:
+        - important.properties
+      ignore: # 它们不会拷贝到目标系统的的 src/main/resources/federated/
+        - "dubbo*xml"
+        - "*kafka*"
+      import: # 目标系统 spring.xml 会 import 这些资源
+        - sequence-bean.xml
+        - jsf-provider.xml
+        - application-jmq-producer.xml
+        - application-jmq-consumer.xml
+      jsfConsumerXml:
+        - jsf-consumer.xml
 
   - name: wms-inventory
     springProfile: test
-    modules:
+    modules: # 启动包
       - com.jdwl.wms:wms-inventory-web:1.0.0-SNAPSHOT
-    resourceBasedirs:
-      - wms-inventory-web/src/main/resources
-    propertySources:
-      - important.properties
-      - clover-server.properties
-    federatedIgnore:
-      - "dubbo*xml"
-      - "*kafka*"
-    importSpringXmls: # 目标系统 spring.xml 会 import 这些资源
-      - common/*.xml
-      - config/*.xml
-      - jmq/*.xml
-      - jsf/jsf-provider*.xml
-      - clover/*.xml
-      - ducc/*.xml
-      - jimkv/*.xml
-    jsfConsumerXmls:
-      - jsf/jsf-consumer*.xml
+    resources: # 资源文件处理
+      baseDir:
+        - wms-inventory-web/src/main/resources
+      propertySource:
+        - important.properties
+        - clover-server.properties
+      ignore: # 它们不会拷贝到目标系统的的 src/main/resources/federated/
+        - "dubbo*xml"
+        - "*kafka*"
+      import: # 目标系统 spring.xml 会 import 这些资源
+        - common/*.xml
+        - config/*.xml
+        - jmq/*.xml
+        - jsf/jsf-provider*.xml
+        - clover/*.xml
+        - ducc/*.xml
+        - jimkv/*.xml
+      jsfConsumerXml:
+        - jsf/jsf-consumer*.xml
+
+#===========
+# 部署信息
+#===========
+deployment:
+  - env: on-premise
+    tomcatPort: 8082
+    jvmSize: large # medium, small
+    JAVA_OPTS:
+

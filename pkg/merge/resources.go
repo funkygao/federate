@@ -50,7 +50,7 @@ func NewResourceManager() *ResourceManager {
 // RecursiveFederatedCopyResources copy component resource files to target system src/main/resources/federated/{component}
 func (rm *ResourceManager) RecursiveFederatedCopyResources(m *manifest.Manifest) error {
 	for _, component := range m.Components {
-		for _, baseDir := range component.ResourceBaseDirs {
+		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
 			targetDir := component.TargetResourceDir()
 
@@ -115,7 +115,7 @@ func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) erro
 	targetDir := m.TargetResourceDir()
 	for _, pattern := range m.Main.Reconcile.Resources.FlatCopy {
 		for _, component := range m.Components {
-			for _, baseDir := range component.ResourceBaseDirs {
+			for _, baseDir := range component.Resources.BaseDirs {
 				sourceDir := component.SrcDir(baseDir)
 				err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 					if err != nil {

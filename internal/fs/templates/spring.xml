@@ -20,7 +20,7 @@
 
     <!-- include components xml -->
     {{- range $id, $component := .Components }}
-        {{- range $index, $xml := $component.ImportSpringXML }}
+        {{- range $index, $xml := $component.Resources.ImportSpringXML }}
     <import resource="{{ $component.Name }}/{{$xml}}"/>
         {{- end }}
     {{- end }}

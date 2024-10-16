@@ -67,7 +67,7 @@ func (m *Manifest) IgnoreResourceSrcFile(info os.FileInfo, component ComponentIn
 		return true
 	}
 
-	for _, pattern := range component.FederatedIgnoredFiles {
+	for _, pattern := range component.Resources.FederatedIgnoredFiles {
 		matched, err := filepath.Match(pattern, info.Name())
 		if err != nil {
 			log.Printf("Error on filepath.Match(pattern=%s, file=%s): %v", pattern, info.Name(), err)

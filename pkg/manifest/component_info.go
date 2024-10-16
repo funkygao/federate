@@ -8,21 +8,27 @@ import (
 )
 
 type ComponentInfo struct {
-	Name                  string           `yaml:"name"`
-	SpringProfile         string           `yaml:"springProfile"`
-	RawDependencies       []string         `yaml:"modules"`
-	Dependencies          []DependencyInfo `yaml:"-"`
-	ResourceBaseDirs      []string         `yaml:"resourceBasedirs"`
-	ImportSpringXML       []string         `yaml:"importSpringXmls"`
-	DubboConsumerXmls     []string         `yaml:"dubboConsumerXmls"`
-	JsfConsumerXmls       []string         `yaml:"jsfConsumerXmls"`
-	PropertySources       []string         `yaml:"propertySources"`
-	FederatedIgnoredFiles []string         `yaml:"federatedIgnore"`
+	Name          string `yaml:"name"`
+	SpringProfile string `yaml:"springProfile"`
+
+	RawDependencies []string         `yaml:"modules"`
+	Dependencies    []DependencyInfo `yaml:"-"`
+
+	Resources ComponentResourceSpec `yaml:"resources"`
 
 	// BaseDir is used for unit test: change source dir
-	BaseDir string
+	BaseDir string `yaml:"-"`
 
 	M *MainSystem
+}
+
+type ComponentResourceSpec struct {
+	BaseDirs              []string `yaml:"baseDir"`
+	ImportSpringXML       []string `yaml:"import"`
+	DubboConsumerXmls     []string `yaml:"dubboConsumerXml"`
+	JsfConsumerXmls       []string `yaml:"jsfConsumerXml"`
+	PropertySources       []string `yaml:"propertySource"`
+	FederatedIgnoredFiles []string `yaml:"ignore"`
 }
 
 // 该组件的源代码根目录
@@ -62,9 +68,9 @@ func (c *ComponentInfo) TargetResourceDir() string {
 }
 
 func (c *ComponentInfo) JSFEnabled() bool {
-	return len(c.JsfConsumerXmls) > 0
+	return len(c.Resources.JsfConsumerXmls) > 0
 }
 
 func (c *ComponentInfo) DubboEnabled() bool {
-	return len(c.DubboConsumerXmls) > 0
+	return len(c.Resources.DubboConsumerXmls) > 0
 }
