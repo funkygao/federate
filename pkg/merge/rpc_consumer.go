@@ -152,7 +152,7 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *ma
 		if interfaceName == "" {
 			continue
 		}
-		if m.Main.Reconcile.RpcConsumer.IgnoreInterface(interfaceName) {
+		if m.Main.Reconcile.Rpc.Consumer.IgnoreInterface(interfaceName) {
 			log.Printf("[%s:%s] Ignore rpc consumer: %s", dm.rpcType, component.Name, interfaceName)
 			dm.IgnoredInterfaceN++
 			continue

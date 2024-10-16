@@ -39,13 +39,14 @@ federated:
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
     excludeClasses: # 不加载这些类： @Bean/@Service/@Component/@RestController/MapperFactoryBean/etc
-    rpcConsumer: # 远程RPC调用拉回到JVM内
-      ignoreRules:
-        - package: com.jdwl.wms.stock.api
-          except:
-            - com.jdwl.wms.stock.api.external.OutboundOrderQueryService
-            - com.jdwl.wms.stock.api.external.InteractQueryService
-        - package: com.jdwl.wms.inventory.api
+    rpc:
+      consumer: # 远程RPC调用拉回到JVM内
+        ignoreRules:
+          - package: com.jdwl.wms.stock.api
+            except:
+              - com.jdwl.wms.stock.api.external.OutboundOrderQueryService
+              - com.jdwl.wms.stock.api.external.InteractQueryService
+          - package: com.jdwl.wms.inventory.api
     resources: # 资源文件处理
       flatCopy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
         - "*.html"

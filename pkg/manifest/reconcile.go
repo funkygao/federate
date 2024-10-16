@@ -11,8 +11,7 @@ type ReconcileSpec struct {
 	Taint     Taint                  `yaml:"taint"`
 	Resources ResourcesReconcileSpec `yaml:"resources"`
 
-	RpcProvider RpcProviderSpec `yaml:"rpcProvider"`
-	RpcConsumer RpcConsumerSpec `yaml:"rpcConsumer"`
+	Rpc RpcSpec `yaml:"rpc"`
 
 	M *MainSystem
 }

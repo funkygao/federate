@@ -58,4 +58,6 @@ func init() {
 	CmdGroup.AddCommand(duplicateCmd, jarCmd)
 
 	manifest.RequiredManifestFileFlag(CmdGroup)
+	CmdGroup.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
+	CmdGroup.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 }

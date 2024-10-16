@@ -4,6 +4,11 @@ import (
 	"strings"
 )
 
+type RpcSpec struct {
+	Provider RpcProviderSpec `yaml:"provider"`
+	Consumer RpcConsumerSpec `yaml:"consumer"`
+}
+
 type RpcConsumerSpec struct {
 	IgnoreRules []IgnoreRuleSpec `yaml:"ignoreRules"`
 }
