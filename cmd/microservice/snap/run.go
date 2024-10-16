@@ -30,7 +30,7 @@ func runSnap(m *manifest.Manifest) {
 		hinted = true
 	}
 
-	updatePomFilesForLocalRepo()
+	updatePomFilesForLocalRepo(m)
 	copyDependenciesToLocalRepo()
 
 	log.Println("Snapshot creation complete. Please review changes with 'git diff'.")
