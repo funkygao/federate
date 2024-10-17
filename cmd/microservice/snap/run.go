@@ -13,12 +13,10 @@ var (
 )
 
 func runSnap(m *manifest.Manifest) {
+	log.Println("☕️ Prepare the local Maven repository")
 	prepareMavenRepo(m)
 
-	if true {
-		return
-	}
-
+	log.Println("☕️ Sanitizing the code repo")
 	for _, component := range m.Components {
 		log.Printf("Component: %s", component.RootDir())
 
