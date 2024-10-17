@@ -1,10 +1,13 @@
 SHELL := /bin/bash
 .SILENT:
 
-FEDERATE := federate
 INVENTORY_FILE := inventory.yaml
-INVENTORY_CMD := $(FEDERATE) inventory -i $(INVENTORY_FILE)
+FEDERATE_CMD ?= federate
+INVENTORY_CMD := $(FEDERATE_CMD) inventory -i $(INVENTORY_FILE)
 FUSION_PROJECTS := {{.FusionProjectsName}}
+PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always 2> /dev/null || echo "")
+
 ENV_FILE := .env
 TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 
@@ -15,7 +18,10 @@ TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 help: 
 	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
+#### Common functions ####
 include .common.mk
+
+#### Project makefiles ####
 include $(FUSION_PROJECTS)/.*.mk
 
 ##@ Submodule
