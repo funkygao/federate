@@ -8,6 +8,7 @@ import (
 
 	"federate/internal/fs"
 	"federate/pkg/manifest"
+	"federate/pkg/util"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -130,12 +131,18 @@ func cleanFusionStarterProject(m *manifest.Manifest) {
 		filesToRemove = append(filesToRemove, filepath.Join(packagePath, cls+".java"))
 	}
 
+	n := 0
 	for _, file := range filesToRemove {
-		os.Remove(file)
-		log.Printf("Removed %s", file)
+		if util.FileExists(file) {
+			os.Remove(file)
+			log.Printf("Removed %s", file)
+			n++
+		}
 	}
 
-	color.Green("🧹 Cleaned up %s-fusion-starter project files", m.Main.Name)
+	if n > 0 {
+		color.Green("🧹 Cleaned up %s-fusion-starter project files", m.Main.Name)
+	}
 }
 
 func init() {
