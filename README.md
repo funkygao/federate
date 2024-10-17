@@ -49,7 +49,6 @@ This approach decouples logical boundaries from physical deployment, offering fl
 
 >直接生成目标系统不好吗，为什么需要 `fusion-starter` 这个中间工程？
 
-
 - 它允许用户进行扩展开发
    - `pom.xml` 只能通过 `manifest.yaml` 声明，不得手工修改
 - 它允许用户提供 `taint files`
@@ -69,3 +68,10 @@ federate microservice scaffold-monolith -h
 ```
 
 ### manifest
+
+Top level fields:
+- federated
+- components
+- fusion-starter
+- deployment
+-
