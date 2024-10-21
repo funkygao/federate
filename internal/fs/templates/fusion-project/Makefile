@@ -18,10 +18,10 @@ TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 help: 
 	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
-#### Common functions ####
+# Common functions #
 include .common.mk
 
-#### Project makefiles ####
+# Project makefiles #
 include $(FUSION_PROJECTS)/.*.mk
 
 ##@ Submodule
