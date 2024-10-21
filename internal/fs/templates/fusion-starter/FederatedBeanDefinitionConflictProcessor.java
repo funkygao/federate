@@ -12,7 +12,7 @@ import org.springframework.core.env.Environment;
 import static org.springframework.context.ConfigurableApplicationContext.ENVIRONMENT_BEAN_NAME;
 
 @Slf4j
-public class FederatedBeanDefinitionConflictProcessor implements BeanDefinitionRegistryPostProcessor, Ordered {
+class FederatedBeanDefinitionConflictProcessor implements BeanDefinitionRegistryPostProcessor, Ordered {
 
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {

@@ -18,17 +18,22 @@ var (
 
 	runtimeClasses = []string{
 		"FederatedAnnotationBeanNameGenerator",
-		"FederatedApplicationContextInitializer",
-		"FederatedBeanDefinitionConflictProcessor",
 		"FederatedDefaultBeanNameGenerator",
+
 		"FederatedMybatisConfig",
-		"FederatedEnvironmentPostProcessor",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",
+
+		// Inspect
 		"FederatedIndirectRiskDetector",
 		"RiskDetector",
 		"RiskDetectorConditional",
 		"RiskDetectorRequestMapping",
+
+		// TODO 目前没有实质性意义
+		"FederatedApplicationContextInitializer",
+		"FederatedBeanDefinitionConflictProcessor",
+		"FederatedEnvironmentPostProcessor",
 	}
 )
 

@@ -5,8 +5,17 @@ type FusionStarterSpec struct {
 	Dependencies    []DependencyInfo `yaml:"-"`
 
 	Inspect InspectSpec `yaml:"inspect"`
+
+	ResourceLoader    ResourceLoaderSpec    `yaml:"resourceLoader"`
+	BeanNameGenerator BeanNameGeneratorSpec `yaml:"beanNameGenerator"`
 }
 
 type InspectSpec struct {
 	AddOn []string `yaml:"addon"`
+}
+
+type ResourceLoaderSpec struct {
+}
+
+type BeanNameGeneratorSpec struct {
 }
