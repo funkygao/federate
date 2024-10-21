@@ -17,9 +17,7 @@ var (
 	cleanFlag bool
 
 	runtimeClasses = []string{
-		"FederatedAnnotationBeanNameGenerator", // 基于Java源代码
-		"FederatedDefaultBeanNameGenerator",    // 基于XML配置
-
+		"FederatedAnnotationBeanNameGenerator",
 		"FederatedMybatisConfig",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",

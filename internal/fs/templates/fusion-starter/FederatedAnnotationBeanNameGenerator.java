@@ -3,12 +3,15 @@ package {{.Package}};
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.AnnotatedBeanDefinition;
+import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.beans.factory.support.BeanDefinitionReaderUtils;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
+import org.springframework.beans.factory.support.BeanNameGenerator;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.annotation.AnnotationBeanNameGenerator;
-import org.springframework.context.annotation.ScannedGenericBeanDefinition;
 import org.springframework.context.annotation.ConfigurationClassPostProcessor;
+import org.springframework.context.annotation.ScannedGenericBeanDefinition;
 import org.springframework.util.StringUtils;
 
 import java.util.LinkedList;
@@ -64,6 +67,17 @@ public class FederatedAnnotationBeanNameGenerator extends AnnotationBeanNameGene
         if (shouldExcludeBean(fqcnBeanName)) {
             log.debug("Excluding bean: {}", fqcnBeanName);
             return null;
+        }
+
+        if (definition instanceof AnnotatedGenericBeanDefinition) {
+            // 这个分支通常在以下情况下触发:
+            // 1. 使用@Import注解导入的类
+            // 2. @Configuration类中的@Bean方法定义的bean
+            // 3. 通过AnnotationConfigApplicationContext的register()方法手动注册的类
+            // 4. 使用BeanDefinitionBuilder或直接创建AnnotatedGenericBeanDefinition进行编程式Bean定义
+            final String beanName = BeanDefinitionReaderUtils.generateBeanName(definition, registry);
+            log.debug("AnnotatedGenericBeanDefinition: {}", beanName);
+            return beanName;
         }
 
         // 检查 @Bean/@Service/@Component/Dao/... 注解中的 value 属性，并返回这个值作为 bean 名称

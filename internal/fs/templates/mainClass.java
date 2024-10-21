@@ -68,7 +68,7 @@ public class {{.ClassName}} {
                 .properties("spring.config.additional-location=/federated/application.yml")
                 .properties("spring.main.allow-bean-definition-overriding=true")
                 .lazyInitialization(true)
-                .beanNameGenerator(new FederatedDefaultBeanNameGenerator())
+                .beanNameGenerator(new FederatedAnnotationBeanNameGenerator())
                 .resourceLoader(new FederatedResourceLoader({{.ClassName}}.class.getClassLoader()))
                 .logStartupInfo(false);
         ApplicationContext context = builder.run(args);
