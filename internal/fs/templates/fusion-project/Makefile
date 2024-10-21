@@ -8,6 +8,10 @@ FUSION_PROJECTS := {{.FusionProjectsName}}
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always 2> /dev/null || echo "")
 
+FUSION_PROJECTS_CLEAN :=
+PROJECT ?=
+ENV ?=
+
 ENV_FILE := .env
 TARGET_ENV ?= $$(cat $(ENV_FILE) 2>/dev/null)
 
@@ -28,44 +32,60 @@ include $(FUSION_PROJECTS)/.*.mk
 
 select-env:
 	if [ -z "$(ENV)" ]; then \
-		PS3="切换到哪一个环境？输入对应的数字："; \
+		PS3="切换到哪一个部署环境？输入对应的数字："; \
 		select CHOSEN_ENV in $$($(INVENTORY_CMD) -f env-list); do \
 			if [ -n "$${CHOSEN_ENV}" ]; then \
 				echo "$${CHOSEN_ENV}" > $(ENV_FILE); \
 				break; \
+			else \
+				echo "您输入的是 '$$REPLY'，请输入一个有效的数字。"; \
 			fi; \
 		done; \
 		ENV=$$(cat $(ENV_FILE)); \
 	else \
 		echo "$${ENV}" > $(ENV_FILE); \
 	fi; \
-	echo "目标环境：$${ENV}"
+	echo "🍺 你选择的目标部署环境：$${ENV}"
 
-current-env: ## Display current environment and its configuration.
+current-env:
 	$(INVENTORY_CMD) -f repo-info -e $(TARGET_ENV)
 
-confirm-env:
-	@echo "Current environment is: $(TARGET_ENV)"
-	@read -p "Do you want to proceed with this environment? [y/N] " confirm; \
-	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
-		echo "Operation cancelled."; \
-		exit 1; \
+sync-submodules: ## Clean and synchronize submodules (all or PROJECT-specific) to latest remote commits.
+	if [ -z "$(ENV)" ]; then \
+		$(MAKE) select-env; \
+		ENV=$$(cat $(ENV_FILE)); \
+	fi; \
+	if [ -n "$(PROJECT)" ]; then \
+		echo "☕️ Syncing submodules for $(PROJECT) on $$ENV environment"; \
+		SUBMODULES=$$($(FEDERATE_CMD) components -i fusion-projects/$(PROJECT)/manifest-$$ENV.yaml); \
+		for component in $$SUBMODULES; do \
+			echo "☕️ Setup repository branch for $$component ..."; \
+			$(INVENTORY_CMD) -f sync-submodules -e $$ENV -r $$component | while read cmd; do \
+				echo "Executing: $$cmd"; \
+				eval $$cmd; \
+			done; \
+			echo "☕️ Cleaning and synchronizing repository $$component ..."; \
+			(cd $$component && git checkout -q . && git clean -fdq) && \
+			git submodule update --init --recursive --remote $$component || echo "Failed to sync $$component"; \
+		done; \
+		echo "🍺 Submodules synchronized for $(PROJECT) on $$ENV environment."; \
+	else \
+		echo "☕️ Restoring all submodules repository ..."; \
+		$(MAKE) restore-submodules; \
+		echo "☕️ Syncing all submodules repository for $$ENV environment"; \
+		$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
+			echo "Executing: $$cmd"; \
+			eval $$cmd; \
+		done; \
+		git submodule update --init --recursive --remote; \
+		echo "🍺 Submodules synchronized for $$ENV environment."; \
 	fi
-
-sync-submodules:select-env restore-submodules ## Initialize all git-submodules and pull latest remote commits.
-	ENV=$$(cat $(ENV_FILE)); \
-	$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
-		echo "Executing: $$cmd"; \
-		eval $$cmd; \
-	done; \
-	git submodule update --init --recursive --remote; \
-	echo "🍺 All submodules synchronized for $$ENV environment."
-	#git checkout -q .gitmodules
 
 diff-submodules: ## Display local changes compared with their original state.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
 restore-submodules:
+	echo "☕️ Restoring submodules ..."
 	for repo in $$($(INVENTORY_CMD) -f repo-list); do \
 		if [ -d "$$repo" ]; then \
 			echo "Checking out $$repo..."; \
@@ -73,6 +93,6 @@ restore-submodules:
 		fi; \
 	done
 
-clean:
+clean:restore-submodules $(FUSION_PROJECTS_CLEAN)
 	rm -rf generated test.log
-	$(MAKE) restore-submodules
+

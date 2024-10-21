@@ -39,7 +39,7 @@ federated:
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
-    excludeClasses: # 不加载这些类： @Bean/@Service/@Component/@Repository/@RestController/MapperFactoryBean/etc
+    excludeClasses: # 不加载这些类对应的bean
     rpc:
       provider: # 控制暴露哪些服务
       consumer: # 远程RPC调用拉回到JVM内
