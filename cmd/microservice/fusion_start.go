@@ -17,8 +17,8 @@ var (
 	cleanFlag bool
 
 	runtimeClasses = []string{
-		"FederatedAnnotationBeanNameGenerator",
-		"FederatedDefaultBeanNameGenerator",
+		"FederatedAnnotationBeanNameGenerator", // 基于Java源代码
+		"FederatedDefaultBeanNameGenerator",    // 基于XML配置
 
 		"FederatedMybatisConfig",
 		"FederatedExcludedTypeFilter",
@@ -34,6 +34,8 @@ var (
 		"FederatedApplicationContextInitializer",
 		"FederatedBeanDefinitionConflictProcessor",
 		"FederatedEnvironmentPostProcessor",
+
+		"package-info",
 	}
 )
 
@@ -109,11 +111,13 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 		MapperScanBasePackage string
 		SingletonClasses      []string
 		AddOns                []string
+		ExcludedBeanPatterns  []string
 	}{
 		Package:               packageName,
 		MapperScanBasePackage: "com.jdwl.wms", // TODO
 		SingletonClasses:      m.Main.Runtime.SingletonComponents,
 		AddOns:                m.Starter.Inspect.AddOn,
+		ExcludedBeanPatterns:  m.Starter.BeanNameGenerator.ExcludedBeanPatterns,
 	}
 	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")

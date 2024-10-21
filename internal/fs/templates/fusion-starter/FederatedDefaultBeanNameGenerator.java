@@ -4,9 +4,7 @@ package {{.Package}};
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.AnnotatedGenericBeanDefinition;
 import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.beans.factory.support.BeanDefinitionRegistry;
-import org.springframework.beans.factory.support.DefaultBeanNameGenerator;
-import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.support.*;
 
 /**
  * 用于 XML 配置(未指定bean id)或其他非注解的配置方式.
@@ -18,6 +16,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
  * </ul>
  *
  * <p>Spring boot默认使用{@link DefaultBeanNameGenerator}</p>
+ * <p>{@link AbstractBeanDefinitionReader#setBeanNameGenerator(BeanNameGenerator)}</p>
  */
 @Slf4j
 public class FederatedDefaultBeanNameGenerator extends DefaultBeanNameGenerator {
@@ -31,7 +30,7 @@ public class FederatedDefaultBeanNameGenerator extends DefaultBeanNameGenerator 
     @Override
     public String generateBeanName(BeanDefinition definition, BeanDefinitionRegistry registry) {
         final String beanName = super.generateBeanName(definition, registry);
-        log.debug("{} {}", beanName, definition.getClass().getSimpleName());
+        log.debug("XmlBean: {} {}", beanName, definition.getClass().getSimpleName());
         return beanName;
     }
 }

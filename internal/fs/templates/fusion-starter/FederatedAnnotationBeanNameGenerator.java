@@ -8,23 +8,47 @@ import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.annotation.AnnotationBeanNameGenerator;
 import org.springframework.context.annotation.ScannedGenericBeanDefinition;
+import org.springframework.context.annotation.ConfigurationClassPostProcessor;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * 用于基于注解的配置，例如使用 @Component, @Service, @Repository, @Controller 等注解的类.
- * DAO的bean生成.
+ * 自定义的 Bean 名称生成器，用于基于Java源代码注解的 Spring Bean 定义。
  *
- * TODO 与 {@link FederatedDefaultBeanNameGenerator} 合并.
+ * 这个生成器扩展了 Spring 的 AnnotationBeanNameGenerator，适用于以下注解定义的 Bean：
+ * 1. 构造型（stereotype）注解：
+ *    - @Component
+ *    - @Service
+ *    - @Repository
+ *    - @Controller
+ *    - @RestController
+ * 2. @Configuration 注解的配置类
+ * 3. @Bean 注解定义的方法
+ * 4. Mybatis Mapper/DAO 的注册通常由 MapperScannerConfigurer 或 @MapperScan 注解处理
+ *    - @MapperScan(basePackages = "com.your.package.mappers", nameGenerator = FederatedAnnotationBeanNameGenerator.class)
+ * 5. 其他使用 @Component 元注解的自定义注解
+ *
+ * 注意：
+ * - 这个生成器不适用于 XML 配置中定义的 bean。
+ * - 虽然它可以处理带有 @Aspect 注解的类，但前提是这些类同时使用了 @Component 或其他能够将其注册为 Spring bean 的注解。
  *
  * <p>Spring boot默认使用{@link AnnotationBeanNameGenerator}</p>
+ * <p>{@link ConfigurationClassPostProcessor#setBeanNameGenerator(BeanNameGenerator)}</p>
  */
 @Slf4j
 public class FederatedAnnotationBeanNameGenerator extends AnnotationBeanNameGenerator {
     private static final Map<String, AtomicInteger> beanNameCount = new ConcurrentHashMap<>();
+    private static final List<String> excludedBeanPatterns = new LinkedList<>();
+    static {
+        {{- range .ExcludedBeanPatterns }}
+        excludedBeanPatterns.add("{{.}}");
+        {{- end }}
+    }
 
     /**
      * @param definition {@link ScannedGenericBeanDefinition}
@@ -37,6 +61,11 @@ public class FederatedAnnotationBeanNameGenerator extends AnnotationBeanNameGene
         }
 
         final String fqcnBeanName = definition.getBeanClassName();
+        if (shouldExcludeBean(fqcnBeanName)) {
+            log.debug("Excluding bean: {}", fqcnBeanName);
+            return null;
+        }
+
         // 检查 @Bean/@Service/@Component/Dao/... 注解中的 value 属性，并返回这个值作为 bean 名称
         String beanName = super.determineBeanNameFromAnnotation((AnnotatedBeanDefinition) definition);
         if (StringUtils.hasText(beanName)) {
@@ -68,6 +97,18 @@ public class FederatedAnnotationBeanNameGenerator extends AnnotationBeanNameGene
             }
             return uniqueBeanName;
         }
+    }
+
+    private boolean shouldExcludeBean(String className) {
+        if (className == null) {
+            return false;
+        }
+        for (String pattern : excludedBeanPatterns) {
+            if (className.equals(pattern) || className.startsWith(pattern + ".")) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 

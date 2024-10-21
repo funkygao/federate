@@ -18,4 +18,5 @@ type ResourceLoaderSpec struct {
 }
 
 type BeanNameGeneratorSpec struct {
+	ExcludedBeanPatterns []string `yaml:"excludedBeanPatterns"`
 }
