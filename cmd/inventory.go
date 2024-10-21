@@ -79,7 +79,7 @@ func parseInventory() {
 	case "repo-info":
 		printRepoInfoTable(inventory, env)
 	case "sync-submodules":
-		syncSubmodules(inventory, env)
+		syncSubmodules(inventory, env, repo)
 	case "maven-profile":
 		printMavenProfile(inventory, env, repo)
 	case "maven-modules":
@@ -170,9 +170,12 @@ func printRepoInfoTable(inventory Inventory, env string) {
 	}
 }
 
-func syncSubmodules(inventory Inventory, env string) {
+func syncSubmodules(inventory Inventory, env, repoGiven string) {
 	if envConfig, ok := inventory.Environments[env]; ok {
 		for repo, repoConfig := range inventory.Repos {
+			if repoGiven != "" && repo != repoGiven {
+				continue
+			}
 			envRepoConfig := envConfig[repo]
 			fmt.Printf("git submodule add %s %s 2>/dev/null || true\n", repoConfig.Address, repo)
 			fmt.Printf("git config -f .gitmodules submodule.%s.branch %s\n", repo, envRepoConfig.Branch)
