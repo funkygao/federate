@@ -61,6 +61,8 @@ func finalChecks(indent int) {
 	logIndent(indent+1, "- Confirm that all open-source dependencies are compatible with customer use")
 	logIndent(indent+1, "- Review git history to ensure no sensitive information remains")
 	logIndent(indent+1, "- Verify compliance with customer contract and legal requirements")
+	logIndent(indent+1, "- 待交付代码是否包含京东服务器密码配置及应用账号、密码、秘钥等敏感信息")
+	logIndent(indent+1, "- 待交付代码是否已剔除集团内部研发的公共SDK及其他非必需交付的代码片段")
 }
 
 func logIndent(indent int, format string, v ...interface{}) {

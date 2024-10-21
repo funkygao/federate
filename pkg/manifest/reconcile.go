@@ -5,7 +5,6 @@ import (
 )
 
 type ReconcileSpec struct {
-	// @Bean/@Service/@Repository/@Configuration/@Component/@RestController/MapperFactoryBean/etc
 	ExcludedBeanClasses []string `yaml:"excludeClasses"`
 
 	Taint     Taint                  `yaml:"taint"`
