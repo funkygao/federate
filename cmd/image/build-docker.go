@@ -33,10 +33,10 @@ func buildDockerImage() {
 	startTime := time.Now()
 
 	// 生成中间文件
-	fs.GenerateFileFromTmpl("templates/Dockerfile.jdcloud", ".Dockerfile", map[string]string{
+	fs.GenerateFileFromTmpl("templates/image/Dockerfile.jdcloud", ".Dockerfile", map[string]string{
 		"APP_SOURCE_PATH": appSourcePath,
 	})
-	fs.GenerateFileFromTmpl("templates/docker-deploy.sh", ".docker-deploy.sh", map[string]string{
+	fs.GenerateFileFromTmpl("templates/image/docker-deploy.sh", ".docker-deploy.sh", map[string]string{
 		"PROFILE":    profile,
 		"IMAGE_REPO": appName,
 	})

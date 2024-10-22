@@ -124,6 +124,9 @@ func generateMakefile(m *manifest.Manifest) {
 		TomcatPort: m.DeploymentByEnv("on-premmise").TomcatPort,
 		Env:        m.Main.Runtime.Env,
 	}
+	if data.JvmSize == "" {
+		data.JvmSize = "large"
+	}
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {
 		log.Fatalf("%v", err)

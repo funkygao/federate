@@ -22,7 +22,7 @@ inspect: ## Inspect indirect conflict risk before runtime.
 	fi
 	java -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
-run: ## Bootstrap {{.AppName}} foreground on your host.
+run-local: ## Bootstrap {{.AppName}} foreground on your host.
 	if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
 		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
 		$(MAKE) package; \
@@ -38,14 +38,14 @@ dependency-tree: ## Execute mvn dependency:tree.
 
 ##@ Deployment
 
-build-jdos:package ## Build {{.AppName}} for deployment on JDOS 3.0.
-	federate image build-jdos
+deploy-jdos:package ## Deploy {{.AppName}} on JDOS 3.0.
+	bash target/wms-stock-synergy-1.0.0-SNAPSHOT-package/bin/start.sh
 
-build-rpm:package ## Build {{.AppName}} into RPM to upload to yum repo.
+build-rpm: ## Build {{.AppName}} into RPM to upload to yum repo.
 	federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}
 
 build-rpm-debug:
 	federate image build-rpm --debug --app-name {{.AppName}}
 
-build-docker:package ## Build {{.AppName}} into Docker image to push to jdcloud image registry.
+build-docker: ## Build {{.AppName}} into Docker image to push to jdcloud image registry.
 	federate image build-docker --image-repo {{.AppName}} --app-source-path {{.AppSrc}}
