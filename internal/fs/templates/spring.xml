@@ -1,0 +1,27 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:dubbo="http://dubbo.apache.org/schema/dubbo"
+       xmlns:jsf="http://jsf.jd.com/schema/jsf"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://jsf.jd.com/schema/jsf http://jsf.jd.com/schema/jsf/jsf.xsd
+       http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd">
+
+    {{- if .JSFEnabled }}
+    <import resource="federated-jsf-consumer.xml"/>
+    {{- end }}
+
+    {{- if .DubboEnabled }}
+    <!-- apache dubbo shared config -->
+    <dubbo:application name="${spring.application.name}"/>
+    <dubbo:registry protocol="zookeeper" address="${dubbo.zk.url}" check="false" client="curator"/>
+    <dubbo:protocol name="dubbo" port="-1" threads="200" serialization="hessian2"/>
+    <import resource="federated-dubbo-consumer.xml"/>
+    {{- end }}
+
+    <!-- include components xml -->
+    {{- range $id, $component := .Components }}
+        {{- range $index, $xml := $component.Resources.ImportSpringXML }}
+    <import resource="{{ $component.Name }}/{{$xml}}"/>
+        {{- end }}
+    {{- end }}
+</beans>

@@ -1,0 +1,36 @@
+version: 1.2
+
+federated:
+  name: demo-starter
+  springBootApplication:
+    class: com.jdwl.wms.DemoDeepFusionApplication
+  dependency:
+    include:
+      - com.jdwl.wms:wms-stock-api-provider:1.0.0
+    exclude:
+      - com.jdwl.wms:wms-inventory-web
+  features:
+    - spring-configsec-sdk
+    - redis
+  reconcile:
+    resources:
+      propertySettlement:
+        app.demo.feature.newFeature.enabled: true
+
+components:
+  - name: wms-stock
+    springProfile: on-premise
+    modules:
+      - com.jdwl.wms:wms-stock-api-provider:1.0.0
+      - com.jdwl.wms:wms-stock-work:1.0.0
+    resources:
+      baseDir:
+        - wms-stock-api-provider/src/main/resources
+        - wms-stock-api/src/main/resources
+  - name: wms-inventory
+    springProfile: on-premise-test
+    modules:
+      - com.jdwl.wms:wms-inventory-web:1.0.1-SNAPSHOT
+    resources:
+      baseDir:
+        - /wms-inventory-web/src/main/resources

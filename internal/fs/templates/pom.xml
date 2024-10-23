@@ -1,0 +1,70 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    {{- if ne .Parent.ArtifactId ""}}
+    <parent>
+        <groupId>{{.Parent.GroupId}}</groupId>
+        <artifactId>{{.Parent.ArtifactId}}</artifactId>
+        <version>{{.Parent.Version}}</version>
+    </parent>
+    {{- end}}
+    <modelVersion>4.0.0</modelVersion>
+    {{- if eq .Parent.ArtifactId ""}}
+    <groupId>{{.GroupId}}</groupId>
+    {{- end}}
+    <artifactId>{{.ArtifactId}}</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+
+    <dependencies>
+        {{- range .IncludeDependencies}}
+        <dependency>
+            <groupId>{{.GroupId}}</groupId>
+            <artifactId>{{.ArtifactId}}</artifactId>
+            <version>{{.Version}}</version>
+        </dependency>
+        {{- end }}
+        <dependency>
+            <groupId>{{.GroupId}}</groupId>
+            <artifactId>{{.ArtifactId}}-fusion-starter</artifactId>
+            <version>${project.version}</version>
+            <exclusions>
+                {{- range .ExcludeDependencies}}
+                <exclusion>
+                    <groupId>{{.GroupId}}</groupId>
+                    <artifactId>{{.ArtifactId}}</artifactId>
+                </exclusion>
+                {{- end }}
+            </exclusions>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>{{.ArtifactId}}-${project.version}</finalName>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+        </resources>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/package.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assemble</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -1,0 +1,41 @@
+FROM centos:7
+
+# 配置阿里云YUM源
+RUN mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.bak && \
+    curl -o /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-7.repo
+
+# 导入 GPG 密钥
+RUN rpm --import http://mirrors.aliyun.com/centos/7/os/x86_64/RPM-GPG-KEY-CentOS-7
+
+# 安装必要的软件包
+RUN yum clean all && \
+    yum makecache && \
+    yum install -y rpm-build createrepo openssh-clients sshpass gettext tar
+
+# 创建RPM打包目录结构
+RUN mkdir -p /root/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+
+# 设置工作目录
+WORKDIR /root
+
+# 定义构建时参数，必须用户指定
+ARG APP_SOURCE_PATH
+ARG APP_NAME
+
+# 设置环境变量
+ENV APP_SOURCE_PATH=${APP_SOURCE_PATH}
+ENV APP_NAME=${APP_NAME}
+
+# 复制配置文件、打包脚本和SPEC文件模板
+COPY config_rpm.sh /root/config_rpm.sh
+COPY build_rpm.sh /root/build_rpm.sh
+COPY myapp.spec.template /root/rpmbuild/SPECS/myapp.spec.template
+
+# 复制应用文件
+COPY ${APP_SOURCE_PATH} /root/rpmbuild/SOURCES/app
+
+# Override run.sh if present
+COPY run.sh /root/rpmbuild/SOURCES/app/bin/run.sh
+
+# 设置ENTRYPOINT
+ENTRYPOINT ["/bin/bash", "/root/build_rpm.sh"]

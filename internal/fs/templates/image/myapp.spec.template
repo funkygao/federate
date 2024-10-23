@@ -1,0 +1,81 @@
+Name:           ${APP_NAME}
+Version:        ${VERSION}
+Release:        ${RELEASE}%{?dist}
+Summary:        ${SUMMARY}
+
+Group:          ${GROUP}
+License:        ${LICENSE}
+URL:            ${URL}
+Source0:        ${APP_NAME}-${VERSION}.tar.gz
+
+BuildArch:      x86_64
+
+Provides:       JDL
+
+%description
+${SUMMARY}
+
+%prep
+%setup -q
+
+%build
+
+%install
+rm -rf %{buildroot}
+mkdir -p %{buildroot}${BASE_DIR_JDL_APP}/${APP_NAME}
+cp -r * %{buildroot}${BASE_DIR_JDL_APP}/${APP_NAME}
+
+# 创建 systemd service 文件
+mkdir -p %{buildroot}/etc/systemd/system
+cat <<EOF > %{buildroot}/etc/systemd/system/${APP_NAME}.service
+[Unit]
+Description=JDL OnPremise Application
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${BASE_DIR_JDL_APP}/${APP_NAME}
+Environment="APP_NAME=${APP_NAME}"
+Environment="MEMORY_LIMIT=${MEMORY_LIMIT}"
+Environment="LANG=zh_CN.UTF-8"
+Environment="LANGUAGE=zh_CN:zh"
+Environment="LC_ALL=zh_CN.UTF-8"
+Environment="JAVA_OPTS=-javaagent:${BASE_DIR_JDL_APP}/jmx_prometheus_javaagent-1.0.1.jar=${JMX_EXPORTER_PORT}:${BASE_DIR_JDL_APP}/jmx_exporter_config.yaml"
+Environment="LOG_HOME=${BASE_DIR_LOGS}/${APP_NAME}"
+Environment="SERVER_PORT=${TOMCAT_PORT}"
+Environment="ADDRESS_REDIS=${ADDRESS_REDIS}"
+Environment="ADDRESS_KAFKA=${ADDRESS_KAFKA}"
+Environment="ADDRESS_S3_ENDPOINT_WRITE=${ADDRESS_S3_ENDPOINT_WRITE}"
+Environment="ADDRESS_S3_ENDPOINT_READ=${ADDRESS_S3_ENDPOINT_READ}"
+Environment="ADDRESS_MYSQL_MASTER=${ADDRESS_MYSQL_MASTER}"
+Environment="ADDRESS_MYSQL_SLAVE=${ADDRESS_MYSQL_SLAVE}"
+Environment="ADDRESS_ZOOKEEPER=${ADDRESS_ZOOKEEPER}"
+ExecStart=${BASE_DIR_JDL_APP}/${APP_NAME}/bin/run.sh
+#ExecStop=${BASE_DIR_JDL_APP}/${APP_NAME}/bin/stop.sh
+
+MemoryLimit=${MEMORY_LIMIT}
+CPUQuota=${CPU_QUOTA}
+#CPUAffinity=${CPU_AFFINITY}
+Restart=always
+RestartSec=30
+LimitNOFILE=19624
+
+# disk/net IO quota
+#IOReadBandwidthMax=/dev/sda 10M
+#IOWriteBandwidthMax=/dev/sda 10M
+#ExecStartPre=/usr/sbin/tc qdisc add dev eth0 root tbf rate 1mbit burst 32kbit latency 400ms
+#ExecStopPost=/usr/sbin/tc qdisc del dev eth0 root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+%files
+${BASE_DIR_JDL_APP}/${APP_NAME}
+/etc/systemd/system/${APP_NAME}.service
+
+%define __jar_repack %{nil}
+
+%changelog
+* Wed Oct 11 2023 JDL - 1.0.0-1
+- Initial package

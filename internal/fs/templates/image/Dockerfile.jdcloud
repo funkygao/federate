@@ -1,0 +1,12 @@
+FROM wl-jcloud-cn-north-1.jcr.service.jdcloud.com/wms6:centos6-jdk1.8.0_191-v1
+ENV LANG=zh_CN.UTF-8
+ENV LANGUAGE=zh_CN:zh
+ENV LC_ALL=zh_CN.UTF-8
+WORKDIR /home/export/App/bin
+COPY {{.APP_SOURCE_PATH}}/conf /home/export/App/conf
+COPY {{.APP_SOURCE_PATH}}/bin  /home/export/App/bin
+COPY {{.APP_SOURCE_PATH}}/lib  /home/export/App/lib
+RUN chmod 777 /home/export/App/bin/run.sh
+VOLUME /export/Logs
+EXPOSE 8082
+ENTRYPOINT ["./run.sh"]

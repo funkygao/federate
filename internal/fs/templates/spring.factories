@@ -1,0 +1,9 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=
+
+org.springframework.context.ApplicationListener=
+
+org.springframework.boot.env.EnvironmentPostProcessor=\
+{{.FederatedRuntimePackage}}.FederatedEnvironmentPostProcessor
+
+org.springframework.context.ApplicationContextInitializer=\
+{{.FederatedRuntimePackage}}.FederatedApplicationContextInitializer

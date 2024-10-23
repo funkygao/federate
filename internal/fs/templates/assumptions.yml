@@ -1,0 +1,7 @@
+contents:
+  dependencies:
+    spring: it is a must
+    mybatis: xml
+    jar: 不能有 jar conflicts
+  dubbo:
+    consumer definition: in xml, instead of annotation driven
