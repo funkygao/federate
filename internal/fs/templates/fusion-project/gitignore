@@ -25,9 +25,9 @@ lsp/
 .env
 
 # Ignore federate generated fusion-starter contents
-{{.FusionProjectsName}}/**/src/main/java/com/jdwl/wms/fusion/runtime/
-{{.FusionProjectsName}}/**/Makefile
-{{.FusionProjectsName}}/**/pom.xml
+{{.FusionStarter}}/**/src/main/java/com/jdwl/wms/fusion/runtime/
+{{.FusionStarter}}/**/Makefile
+{{.FusionStarter}}/**/pom.xml
 
 # Ignore federate generated target systems
 generated/

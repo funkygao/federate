@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strings"
 
+	"federate/pkg/inventory"
 	"federate/pkg/tablerender"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -36,63 +35,39 @@ Available formats:
 	},
 }
 
-type Inventory struct {
-	Environments map[string]Environment `yaml:"environments"`
-	Repos        map[string]RepoConfig  `yaml:"repos"`
-}
-
-type Environment map[string]EnvRepoConfig
-
-type EnvRepoConfig struct {
-	Branch       string `yaml:"branch"`
-	MavenProfile string `yaml:"maven_profile"`
-}
-
-type RepoConfig struct {
-	Address           string `yaml:"address"`
-	MavenBuildModules string `yaml:"maven_install_module"`
-}
-
 func parseInventory() {
-	data, err := ioutil.ReadFile(inventoryFile)
+	inv, err := inventory.ReadInventory(inventoryFile)
 	if err != nil {
-		fmt.Printf("Error reading inventory file: %v\n", err)
-		os.Exit(1)
-	}
-
-	var inventory Inventory
-	err = yaml.Unmarshal(data, &inventory)
-	if err != nil {
-		fmt.Printf("Error parsing YAML: %v\n", err)
+		fmt.Printf("Error reading inv file: %v\n", err)
 		os.Exit(1)
 	}
 
 	switch format {
 	case "human":
-		printHumanReadable(inventory)
+		printHumanReadable(inv)
 	case "make":
-		printMakeFormat(inventory)
+		printMakeFormat(inv)
 	case "env-list":
-		printEnvList(inventory)
+		printEnvList(inv)
 	case "repo-list":
-		printRepoList(inventory)
+		printRepoList(inv)
 	case "repo-info":
-		printRepoInfoTable(inventory, env)
+		printRepoInfoTable(inv, env)
 	case "sync-submodules":
-		syncSubmodules(inventory, env, repo)
+		syncSubmodules(inv, env, repo)
 	case "maven-profile":
-		printMavenProfile(inventory, env, repo)
+		printMavenProfile(inv, env, repo)
 	case "maven-modules":
-		printMavenModules(inventory, repo)
+		printMavenModules(inv, repo)
 	default:
 		fmt.Printf("Unknown format: %s\n", format)
 		os.Exit(1)
 	}
 }
 
-func printHumanReadable(inventory Inventory) {
+func printHumanReadable(inv *inventory.Inventory) {
 	fmt.Println("Environments:")
-	for env, config := range inventory.Environments {
+	for env, config := range inv.Environments {
 		fmt.Printf("  %s:\n", env)
 		for repo, repoConfig := range config {
 			fmt.Printf("    %s:\n", repo)
@@ -102,19 +77,19 @@ func printHumanReadable(inventory Inventory) {
 	}
 
 	fmt.Println("\nRepositories:")
-	for repo, config := range inventory.Repos {
+	for repo, config := range inv.Repos {
 		fmt.Printf("  %s:\n", repo)
 		fmt.Printf("    Address: %s\n", config.Address)
 		fmt.Printf("    Maven Build Modules: %s\n", config.MavenBuildModules)
 	}
 }
 
-func printMakeFormat(inventory Inventory) {
-	for repo, config := range inventory.Repos {
+func printMakeFormat(inv *inventory.Inventory) {
+	for repo, config := range inv.Repos {
 		fmt.Printf("%s_ADDRESS=%s\n", strings.ToUpper(repo), config.Address)
 		fmt.Printf("%s_MAVEN_BUILD_MODULES=%s\n", strings.ToUpper(repo), config.MavenBuildModules)
 	}
-	for env, config := range inventory.Environments {
+	for env, config := range inv.Environments {
 		for repo, repoConfig := range config {
 			fmt.Printf("%s_%s_BRANCH=%s\n", strings.ToUpper(repo), strings.ToUpper(env), repoConfig.Branch)
 			fmt.Printf("%s_%s_MAVEN_PROFILE=%s\n", strings.ToUpper(repo), strings.ToUpper(env), repoConfig.MavenProfile)
@@ -122,30 +97,30 @@ func printMakeFormat(inventory Inventory) {
 	}
 }
 
-func printEnvList(inventory Inventory) {
-	envs := make([]string, 0, len(inventory.Environments))
-	for env := range inventory.Environments {
+func printEnvList(inv *inventory.Inventory) {
+	envs := make([]string, 0, len(inv.Environments))
+	for env := range inv.Environments {
 		envs = append(envs, env)
 	}
 	sort.Strings(envs)
 	fmt.Println(strings.Join(envs, " "))
 }
 
-func printRepoList(inventory Inventory) {
-	repos := make([]string, 0, len(inventory.Repos))
-	for repo := range inventory.Repos {
+func printRepoList(inv *inventory.Inventory) {
+	repos := make([]string, 0, len(inv.Repos))
+	for repo := range inv.Repos {
 		repos = append(repos, repo)
 	}
 	sort.Strings(repos)
 	fmt.Println(strings.Join(repos, " "))
 }
 
-func printRepoInfoTable(inventory Inventory, env string) {
-	if envConfig, ok := inventory.Environments[env]; ok {
+func printRepoInfoTable(inv *inventory.Inventory, env string) {
+	if envConfig, ok := inv.Environments[env]; ok {
 		header := []string{"Repository", "Git Address", "Branch", "Maven Profile", "Maven Build Modules"}
 		var rows [][]string
 
-		for repo, repoConfig := range inventory.Repos {
+		for repo, repoConfig := range inv.Repos {
 			envRepoConfig := envConfig[repo]
 			row := []string{
 				repo,
@@ -170,9 +145,9 @@ func printRepoInfoTable(inventory Inventory, env string) {
 	}
 }
 
-func syncSubmodules(inventory Inventory, env, repoGiven string) {
-	if envConfig, ok := inventory.Environments[env]; ok {
-		for repo, repoConfig := range inventory.Repos {
+func syncSubmodules(inv *inventory.Inventory, env, repoGiven string) {
+	if envConfig, ok := inv.Environments[env]; ok {
+		for repo, repoConfig := range inv.Repos {
 			if repoGiven != "" && repo != repoGiven {
 				continue
 			}
@@ -186,8 +161,8 @@ func syncSubmodules(inventory Inventory, env, repoGiven string) {
 	}
 }
 
-func printMavenProfile(inventory Inventory, env, repo string) {
-	if envConfig, ok := inventory.Environments[env]; ok {
+func printMavenProfile(inv *inventory.Inventory, env, repo string) {
+	if envConfig, ok := inv.Environments[env]; ok {
 		if repoConfig, ok := envConfig[repo]; ok {
 			fmt.Print(repoConfig.MavenProfile)
 		} else {
@@ -200,8 +175,8 @@ func printMavenProfile(inventory Inventory, env, repo string) {
 	}
 }
 
-func printMavenModules(inventory Inventory, repo string) {
-	if repoConfig, ok := inventory.Repos[repo]; ok {
+func printMavenModules(inv *inventory.Inventory, repo string) {
+	if repoConfig, ok := inv.Repos[repo]; ok {
 		fmt.Print(repoConfig.MavenBuildModules)
 	} else {
 		fmt.Printf("Repository %s not found\n", repo)

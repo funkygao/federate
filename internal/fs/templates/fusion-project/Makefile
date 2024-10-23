@@ -1,14 +1,12 @@
 SHELL := /bin/bash
 .SILENT:
 
-INVENTORY_FILE := inventory.yaml
+INVENTORY_FILE := {{.Inventory}}
 FEDERATE_CMD ?= federate
 INVENTORY_CMD := $(FEDERATE_CMD) inventory -i $(INVENTORY_FILE)
-FUSION_PROJECTS := {{.FusionProjectsName}}
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always 2> /dev/null || echo "")
 
-FUSION_PROJECTS_CLEAN :=
 PROJECT ?=
 ENV ?=
 
@@ -24,9 +22,6 @@ help:
 
 # Common functions #
 include .common.mk
-
-# Project makefiles #
-include $(FUSION_PROJECTS)/.*.mk
 
 ##@ Submodule
 
@@ -93,6 +88,6 @@ restore-submodules:
 		fi; \
 	done
 
-clean:restore-submodules $(FUSION_PROJECTS_CLEAN)
+clean:restore-submodules
 	rm -rf generated test.log
 

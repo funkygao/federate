@@ -90,7 +90,7 @@ PLATFORMS := darwin-amd64 darwin-arm64 linux-amd64 linux-arm64
 release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
 	for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
-		-o ../bin/federate-$$platform \
+		-o build/federate-$$platform \
 		-ldflags " \
 			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
 			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \

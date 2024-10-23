@@ -8,7 +8,7 @@
         <version>2.3.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
-    <artifactId>{{.FusionProjectsName}}</artifactId>
+    <artifactId>{{.FusionProjectName}}</artifactId>
     <packaging>pom</packaging>
     <version>1.0.0-SNAPSHOT</version>
 
