@@ -11,10 +11,13 @@ help:
 
 ##@ Build
 
+generate:
+	go generate ./...
+
 fmt:
 	go fmt ./...
 
-test: fmt
+test: generate fmt
 	go test ./...
 
 clean:
