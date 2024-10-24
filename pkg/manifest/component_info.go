@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"federate/pkg/federated"
+	"federate/pkg/java"
 	"federate/pkg/util"
 )
 
@@ -12,8 +13,8 @@ type ComponentInfo struct {
 	Name          string `yaml:"name"`
 	SpringProfile string `yaml:"springProfile"`
 
-	RawDependencies []string         `yaml:"modules"`
-	Dependencies    []DependencyInfo `yaml:"-"`
+	RawDependencies []string              `yaml:"modules"`
+	Dependencies    []java.DependencyInfo `yaml:"-"`
 
 	Resources ComponentResourceSpec `yaml:"resources"`
 

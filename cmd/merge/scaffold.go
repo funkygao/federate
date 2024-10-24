@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"federate/internal/fs"
+	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/util"
 	"github.com/fatih/color"
@@ -29,9 +30,9 @@ func generatePomFile(m *manifest.Manifest) {
 	pomData := struct {
 		ArtifactId          string
 		GroupId             string
-		Parent              manifest.DependencyInfo
-		IncludeDependencies []manifest.DependencyInfo
-		ExcludeDependencies []manifest.DependencyInfo
+		Parent              java.DependencyInfo
+		IncludeDependencies []java.DependencyInfo
+		ExcludeDependencies []java.DependencyInfo
 	}{
 		ArtifactId:          m.Main.Name,
 		GroupId:             m.Main.GroupId(),

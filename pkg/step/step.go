@@ -40,7 +40,7 @@ func ConfirmAction(prompt string) bool {
 	fmt.Printf("%s (y/N): ", prompt)
 	var response string
 	_, err := fmt.Scanln(&response)
-	if err != nil {
+	if err != nil && response != "" {
 		log.Fatalf("Error reading response: %v", err)
 	}
 

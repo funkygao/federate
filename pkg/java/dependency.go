@@ -1,4 +1,4 @@
-package manifest
+package java
 
 import (
 	"strings"
@@ -11,15 +11,15 @@ type DependencyInfo struct {
 	Scope      string
 }
 
-func parseDependencies(rawDeps []string) []DependencyInfo {
+func ParseDependencies(rawDeps []string) []DependencyInfo {
 	var parsedDependencies []DependencyInfo
 	for _, dep := range rawDeps {
-		parsedDependencies = append(parsedDependencies, parseDependency(dep))
+		parsedDependencies = append(parsedDependencies, ParseDependency(dep))
 	}
 	return parsedDependencies
 }
 
-func parseDependency(dep string) (info DependencyInfo) {
+func ParseDependency(dep string) (info DependencyInfo) {
 	parts := strings.Split(dep, ":")
 	switch len(parts) {
 	case 2:

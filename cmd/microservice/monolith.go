@@ -9,14 +9,18 @@ import (
 	"strings"
 
 	"federate/internal/fs"
+	"federate/pkg/federated"
 	"federate/pkg/inventory"
+	"federate/pkg/java"
 	"federate/pkg/step"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
 var (
-	inventoryFile string
+	inventoryFile       string
+	pomParentDependency string
+	pomGroupId          string
 )
 
 var monolithCmd = &cobra.Command{
@@ -25,6 +29,7 @@ var monolithCmd = &cobra.Command{
 	Long: `The monolith command scaffolds a logical monolithic code repository by integrating 
 multiple existing code repositories using git submodules.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		validateFlags()
 		scaffoldMonolith()
 	},
 }
@@ -62,22 +67,23 @@ func generateMonolithFiles(monolithName string) {
 		Inventory         string
 		FusionProjectName string
 		FusionStarter     string
+		Parent            java.DependencyInfo
+		GroupId           string
 	}{
 		Inventory:         inventoryFile,
 		FusionProjectName: monolithName,
 		FusionStarter:     "fusion-starter",
+		Parent:            java.ParseDependency(pomParentDependency),
+		GroupId:           pomGroupId,
 	}
 	generateFile("Makefile", "Makefile", data)
-	generateFile("common.mk", ".common.mk", data)
 	generateFile("inventory.yaml", "inventory.yaml", data)
 	generateFile("gitignore", ".gitignore", data)
 	generateFile("pom.xml", "pom.xml", data)
 
-	//demoFusionStarter := filepath.Join(projectsDir, "demo")
-	//if err := os.MkdirAll(demoFusionStarter, 0755); err != nil {
-	//	log.Fatalf("Error creating directory: %v", err)
-	//}
-	//generateFile(demoFusionStarter, "manifest.yaml", "manifest.yaml", data)
+	if err := os.MkdirAll(federated.StarterBaseDir(monolithName), 0755); err != nil {
+		log.Fatalf("Error creating directory: %v", err)
+	}
 
 	color.Green("🍺 Monolith project[%s] scaffolded. Next, craft your manifest.yaml", monolithName)
 }
@@ -131,9 +137,17 @@ func addGitSubmodules(inv *inventory.Inventory) error {
 	return nil
 }
 
-func init() {
-	monolithCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "inventory.yaml", "Path to the inventory file specifying which source code repositories to consolidate")
+func validateFlags() {
 	if inventoryFile == "" {
 		log.Fatal("required flag --inventory not set")
 	}
+	if pomParentDependency+pomGroupId == "" {
+		log.Fatal("flag: parent or groupId must be set for one, but now both empty")
+	}
+}
+
+func init() {
+	monolithCmd.Flags().StringVarP(&pomParentDependency, "parent", "p", "", "pom.xml parent(e,g. com.jdwl.wms:parent:2.3.0-SNAPSHOT)")
+	monolithCmd.Flags().StringVarP(&pomGroupId, "groupId", "g", "", "pom.xml groupId(e,g. com.jdwl.wms)")
+	monolithCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "inventory.yaml", "Path to the inventory file specifying which source code repositories to consolidate")
 }

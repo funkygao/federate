@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"federate/pkg/java"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -49,17 +50,17 @@ func LoadManifest() *Manifest {
 		log.Fatalf("Error loading manifest: %v", err)
 	}
 
-	manifest.Main.Dependency.Includes = parseDependencies(manifest.Main.Dependency.RawInclude)
-	manifest.Main.Dependency.Excludes = parseDependencies(manifest.Main.Dependency.RawExclude)
-	manifest.Starter.Dependencies = parseDependencies(manifest.Starter.RawDependencies)
-	manifest.Main.Parent = parseDependency(manifest.Main.RawParent)
+	manifest.Main.Dependency.Includes = java.ParseDependencies(manifest.Main.Dependency.RawInclude)
+	manifest.Main.Dependency.Excludes = java.ParseDependencies(manifest.Main.Dependency.RawExclude)
+	manifest.Starter.Dependencies = java.ParseDependencies(manifest.Starter.RawDependencies)
+	manifest.Main.Parent = java.ParseDependency(manifest.Main.RawParent)
 
 	manifest.Main.Reconcile.M = &manifest.Main
 
 	// 设置每个组件的引用 MainSystem 并解析 dependencies 字段
 	for i := range manifest.Components {
 		manifest.Components[i].M = &manifest.Main
-		manifest.Components[i].Dependencies = parseDependencies(manifest.Components[i].RawDependencies)
+		manifest.Components[i].Dependencies = java.ParseDependencies(manifest.Components[i].RawDependencies)
 	}
 
 	return &manifest

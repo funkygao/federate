@@ -3,6 +3,7 @@ package manifest
 import (
 	"testing"
 
+	"federate/pkg/java"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,7 +28,7 @@ func TestLoadManifest(t *testing.T) {
 		{
 			Name:          "wms-stock",
 			SpringProfile: "on-premise",
-			Dependencies: []DependencyInfo{
+			Dependencies: []java.DependencyInfo{
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-stock-api-provider", Version: "1.0.0"},
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-stock-work", Version: "1.0.0"},
 			},
@@ -41,7 +42,7 @@ func TestLoadManifest(t *testing.T) {
 		{
 			Name:          "wms-inventory",
 			SpringProfile: "on-premise-test",
-			Dependencies: []DependencyInfo{
+			Dependencies: []java.DependencyInfo{
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-inventory-web", Version: "1.0.1-SNAPSHOT"},
 			},
 			Resources: ComponentResourceSpec{
@@ -112,13 +113,13 @@ func TestComponentDependencies(t *testing.T) {
 		Components: []ComponentInfo{
 			{
 				Name: "component1",
-				Dependencies: []DependencyInfo{
+				Dependencies: []java.DependencyInfo{
 					{GroupId: "com.example", ArtifactId: "example1", Version: "1.0.0"},
 				},
 			},
 			{
 				Name: "component2",
-				Dependencies: []DependencyInfo{
+				Dependencies: []java.DependencyInfo{
 					{GroupId: "com.example", ArtifactId: "example2", Version: "2.0.0"},
 				},
 			},
@@ -126,7 +127,7 @@ func TestComponentDependencies(t *testing.T) {
 	}
 
 	dependencies := manifest.ComponentDependencies()
-	expectedDependencies := []DependencyInfo{
+	expectedDependencies := []java.DependencyInfo{
 		{GroupId: "com.example", ArtifactId: "example1", Version: "1.0.0"},
 		{GroupId: "com.example", ArtifactId: "example2", Version: "2.0.0"},
 	}
@@ -135,7 +136,7 @@ func TestComponentDependencies(t *testing.T) {
 		t.Fatalf("Expected %d dependencies, got %d", len(expectedDependencies), len(dependencies))
 	}
 
-	expectedDepMap := make(map[string]DependencyInfo)
+	expectedDepMap := make(map[string]java.DependencyInfo)
 	for _, dep := range expectedDependencies {
 		key := dep.GroupId + ":" + dep.ArtifactId + ":" + dep.Version
 		expectedDepMap[key] = dep

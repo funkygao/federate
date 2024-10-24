@@ -8,6 +8,7 @@ import (
 
 	"federate/cmd/image"
 	"federate/internal/fs"
+	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/util"
 	"github.com/fatih/color"
@@ -67,8 +68,8 @@ func fusionStartProject(m *manifest.Manifest) {
 func generatePomFile(m *manifest.Manifest) {
 	data := struct {
 		Name                  string
-		ComponentDependencies []manifest.DependencyInfo
-		Dependencies          []manifest.DependencyInfo
+		ComponentDependencies []java.DependencyInfo
+		Dependencies          []java.DependencyInfo
 	}{
 		Name:                  m.Main.Name,
 		ComponentDependencies: m.ComponentDependencies(),

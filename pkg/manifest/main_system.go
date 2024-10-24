@@ -14,8 +14,8 @@ type MainSystem struct {
 	Runtime   RuntimeSpec   `yaml:"runtime"`
 	MainClass MainClassSpec `yaml:"springBootApplication"`
 
-	RawParent string         `yaml:"parent"`
-	Parent    DependencyInfo `yaml:"-"`
+	RawParent string              `yaml:"parent"`
+	Parent    java.DependencyInfo `yaml:"-"`
 
 	Dependency MainDependencySpec `yaml:"dependency"`
 
@@ -29,8 +29,8 @@ type MainDependencySpec struct {
 	RawInclude []string `yaml:"include"`
 	RawExclude []string `yaml:"exclude"`
 
-	Includes []DependencyInfo `yaml:"-"`
-	Excludes []DependencyInfo `yaml:"-"`
+	Includes []java.DependencyInfo `yaml:"-"`
+	Excludes []java.DependencyInfo `yaml:"-"`
 }
 
 type RuntimeSpec struct {

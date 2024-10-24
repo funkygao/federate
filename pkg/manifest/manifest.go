@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"federate/pkg/federated"
+	"federate/pkg/java"
 )
 
 type Manifest struct {
@@ -31,8 +32,8 @@ func (m *Manifest) ParseMainClass() (string, string) {
 	return packageName, className
 }
 
-func (m *Manifest) ComponentDependencies() []DependencyInfo {
-	var dependencies []DependencyInfo
+func (m *Manifest) ComponentDependencies() []java.DependencyInfo {
+	var dependencies []java.DependencyInfo
 	for _, component := range m.Components {
 		dependencies = append(dependencies, component.Dependencies...)
 	}
