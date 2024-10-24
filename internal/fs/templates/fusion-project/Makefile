@@ -62,7 +62,7 @@ consolidate:sync-submodules fusion-start ## Synchronize submodules and generate 
 		for repo in $$(federate components); do \
 			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $$ENV); \
 			modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
-			echo "Installing $$repo with profile:$$profile on modules:$$modules"; \
+			echo "   Installing $$repo with profile:$$profile on modules:$$modules"; \
 			(cd $$repo && mvn clean install -q -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 		done; \
 	else \
