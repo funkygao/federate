@@ -48,9 +48,13 @@ clean:restore-submodules
 
 ##@ Consolidate
 
-consolidate:sync-submodules ## Synchronize submodules and generate the target system for the specified environment.
-	echo "☕️ Scaffolding target project fusion-starter ..."
-	federate microservice fusion-start
+fusion-start: ## Scaffold {{.FusionStarter}}.
+	if [ ! -f {{.FusionStarter}}/Makefile ]; then \
+		echo "☕️ Scaffolding {{.FusionStarter}} ..."; \
+		federate microservice fusion-start; \
+	fi
+
+consolidate:sync-submodules fusion-start ## Synchronize submodules and generate the target system for the specified environment.
 	echo "☕️ Consolidating the target project ..."
 	federate microservice consolidate --yes --yaml-conflict-cell-width 32 --silent=true
 	if [ "$(sci)" != "1" ]; then \
