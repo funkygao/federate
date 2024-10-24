@@ -85,7 +85,7 @@ func generateMonolithFiles(monolithName string) {
 		log.Fatalf("Error creating directory: %v", err)
 	}
 
-	color.Green("🍺 Monolith project[%s] scaffolded. Next, craft your manifest.yaml", monolithName)
+	color.Green("🍺 Monolith project[%s] scaffolded. Next, author your manifest.yaml", monolithName)
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {
