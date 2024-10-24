@@ -72,10 +72,10 @@ func generatePomFile(m *manifest.Manifest) {
 		Dependencies          []java.DependencyInfo
 	}{
 		Name:                  m.Main.Name,
-		ComponentDependencies: m.ComponentDependencies(),
+		ComponentDependencies: m.ComponentModules(),
 		Dependencies:          m.Starter.Dependencies,
 	}
-	fn := filepath.Join(m.Dir, "pom.xml")
+	fn := filepath.Join(m.StarterBaseDir(), "pom.xml")
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/pom.xml", fn, data)
 	if !overwrite {
 		color.Cyan("Generated %s", fn)
@@ -85,7 +85,7 @@ func generatePomFile(m *manifest.Manifest) {
 }
 
 func generateJdosDockerfile(m *manifest.Manifest) {
-	fn := filepath.Join(m.Dir, "Dockerfile")
+	fn := "Dockerfile"
 	overwrite := image.GenerateJdosDockerfile(m, fn)
 	if !overwrite {
 		color.Cyan("Generated %s", fn)
@@ -100,7 +100,7 @@ func generateMakefile(m *manifest.Manifest) {
 	}{
 		AppName: m.Main.Name,
 	}
-	fn := filepath.Join(m.Dir, "Makefile")
+	fn := filepath.Join(m.StarterBaseDir(), "Makefile")
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/Makefile", fn, data)
 	if !overwrite {
 		color.Cyan("Generated %s", fn)
@@ -130,7 +130,7 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 		AddOns:                m.Starter.Inspect.AddOn,
 		ExcludedBeanPatterns:  m.Starter.BeanNameGenerator.ExcludedBeanPatterns,
 	}
-	mainClassDir := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
+	mainClassDir := filepath.Join(m.StarterBaseDir(), "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/"+simpleClassName+".java", javaFile, data)
 	if !overwrite {
@@ -142,11 +142,11 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 
 func cleanFusionStarterProject(m *manifest.Manifest) {
 	filesToRemove := []string{
-		filepath.Join(m.Dir, "pom.xml"),
-		filepath.Join(m.Dir, "Makefile"),
+		filepath.Join(m.StarterBaseDir(), "pom.xml"),
+		filepath.Join(m.StarterBaseDir(), "Makefile"),
 	}
 
-	packagePath := filepath.Join(m.Dir, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.FederatedRuntimePackage(), ".", "/")))
+	packagePath := filepath.Join(m.StarterBaseDir(), "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.FederatedRuntimePackage(), ".", "/")))
 	for _, cls := range runtimeClasses {
 		filesToRemove = append(filesToRemove, filepath.Join(packagePath, cls+".java"))
 	}

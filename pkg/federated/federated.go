@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	GeneratedDir = "generated"
+	GeneratedDir = ""
 	FederatedDir = "federated"
 
 	starterSuffix = "-starter"

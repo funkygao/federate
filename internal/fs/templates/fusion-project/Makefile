@@ -3,10 +3,7 @@ SHELL := /bin/bash
 
 FEDERATE_CMD ?= federate
 INVENTORY_CMD := $(FEDERATE_CMD) inventory
-PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always 2> /dev/null || echo "")
 
-PROJECT ?=
 ENV ?=
 
 ENV_FILE := .env
@@ -41,36 +38,20 @@ select-env:
 current-env:
 	$(INVENTORY_CMD) -f repo-info -e $(TARGET_ENV)
 
-sync-submodules: ## Clean and synchronize submodules (all or PROJECT-specific) to latest remote commits.
+sync-submodules: ## Clean and synchronize submodules to latest remote commits.
 	if [ -z "$(ENV)" ]; then \
 		$(MAKE) select-env; \
 		ENV=$$(cat $(ENV_FILE)); \
 	fi; \
-	if [ -n "$(PROJECT)" ]; then \
-		echo "☕️ Syncing submodules for $(PROJECT) on $$ENV environment"; \
-		SUBMODULES=$$($(FEDERATE_CMD) components -i fusion-projects/$(PROJECT)/manifest-$$ENV.yaml); \
-		for component in $$SUBMODULES; do \
-			echo "☕️ Setup repository branch for $$component ..."; \
-			$(INVENTORY_CMD) -f sync-submodules -e $$ENV -r $$component | while read cmd; do \
-				echo "Executing: $$cmd"; \
-				eval $$cmd; \
-			done; \
-			echo "☕️ Cleaning and synchronizing repository $$component ..."; \
-			(cd $$component && git checkout -q . && git clean -fdq) && \
-			git submodule update --init --recursive --remote $$component || echo "Failed to sync $$component"; \
-		done; \
-		echo "🍺 Submodules synchronized for $(PROJECT) on $$ENV environment."; \
-	else \
-		echo "☕️ Restoring all submodules repository ..."; \
-		$(MAKE) restore-submodules; \
-		echo "☕️ Syncing all submodules repository for $$ENV environment"; \
-		$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
-			echo "Executing: $$cmd"; \
-			eval $$cmd; \
-		done; \
-		git submodule update --init --recursive --remote; \
-		echo "🍺 Submodules synchronized for $$ENV environment."; \
-	fi
+	echo "☕️ Restoring all submodules repository ..."; \
+	$(MAKE) restore-submodules; \
+	echo "☕️ Syncing all submodules repository for $$ENV environment"; \
+	$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
+		echo "Executing: $$cmd"; \
+		eval $$cmd; \
+	done; \
+	git submodule update --init --recursive --remote; \
+	echo "🍺 Submodules synchronized for $$ENV environment."; \
 
 diff-submodules: ## Display local changes compared with their original state.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
@@ -90,35 +71,16 @@ clean:restore-submodules
 ##@ Consolidate
 
 consolidate: ## Generate the test environment target system.
-	$(call merge_project,$(WMS_STOCK_SYNERGY_MANIFEST_TEST),$(WMS_STOCK_SYNERGY_ENV_TEST))
-
-# merge_project - Merge and consolidate a microservice project
-#
-# Usage:
-#   $(call merge_project,<manifest_file>,<environment>[,<silent>])
-#
-# Parameters:
-#   $(1) - Path to the manifest file (required)
-#   $(2) - Environment (e.g., test, prod) (required)
-#   $(3) - Silent mode for consolidation (optional, default: false)
-#
-# Options:
-#   sci=1 - Skip Components Installation
-#
-# Example:
-#   $(call merge_project,path/to/manifest.yaml,test,true)
-define merge_project
 	echo "☕️ Clearing up all generated target projects ..."
 	$(MAKE) clean
 	echo "☕️ Scaffolding target project fusion-starter ..."
-	federate microservice fusion-start -i $(1)
+	federate microservice fusion-start
 	echo "☕️ Consolidating the target project ..."
-	SILENT=$(if $(3),$(3),false); \
-	federate microservice consolidate -i $(1) --yes --yaml-conflict-cell-width 32 --silent=$$SILENT
+	federate microservice consolidate --yes --yaml-conflict-cell-width 32 --silent=false
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
-		for repo in $$(federate components -i $(1)); do \
-			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $(2)); \
+		for repo in $$(federate components); do \
+			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $$ENV); \
 			modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
 			echo "Installing $$repo with profile:$$profile on modules:$$modules"; \
 			(cd $$repo && mvn clean install -q -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
@@ -126,10 +88,9 @@ define merge_project
 	else \
 		echo "☕️ Skipped Components Installation"; \
 	fi
-	FUSION_STARTER_DIR=$$(dirname $(1)); \
-	echo "☕️ Local installing fusion-starter.jar on $$FUSION_STARTER_DIR ..."; \
+	FUSION_STARTER_DIR={{.FusionStarter}} \
+	echo "☕️ Local installing {{.FusionStarter}}.jar ..."; \
 	$(MAKE) -C $$FUSION_STARTER_DIR install; \
 	echo "☕️ Optimizing target project ..."; \
-	federate microservice optimize -i $(1) --yes; \
+	federate microservice optimize --yes; \
 	echo "🍺 Congrat, consolidated!"
-endef

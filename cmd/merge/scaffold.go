@@ -121,8 +121,8 @@ func generateMakefile(m *manifest.Manifest) {
 		AppName:    m.Main.Name,
 		AppSrc:     fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
 		ClassName:  m.Main.MainClass.Name,
-		JvmSize:    m.DeploymentByEnv("on-premmise").JvmSize,
-		TomcatPort: m.DeploymentByEnv("on-premmise").TomcatPort,
+		JvmSize:    m.RpmByEnv("on-premmise").JvmSize,
+		TomcatPort: m.RpmByEnv("on-premmise").TomcatPort,
 		Env:        m.Main.Runtime.Env,
 	}
 	if data.JvmSize == "" {
@@ -188,7 +188,7 @@ func copyTaint(m *manifest.Manifest) {
 	}
 
 	for _, f := range m.Main.Reconcile.Taint.ResourceFiles() {
-		src := filepath.Join(m.Dir, f)
+		src := filepath.Join(m.StarterBaseDir(), f)
 		target := filepath.Join(root, "src", "main", "resources", f)
 		if err := util.CopyFile(src, target); err != nil {
 			log.Fatalf("%v", err)

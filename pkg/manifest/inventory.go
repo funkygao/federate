@@ -3,7 +3,6 @@ package manifest
 import (
 	"fmt"
 	"sort"
-	"strings"
 )
 
 type Inventory struct {
@@ -11,7 +10,7 @@ type Inventory struct {
 	Repos        map[string]RepoConfig
 }
 
-type Environment map[string]EnvRepoConfig
+type Environment map[string]EnvRepoConfig // key is repo
 
 type EnvRepoConfig struct {
 	Branch       string
@@ -70,41 +69,23 @@ func (m *Manifest) ToInventory() *Inventory {
 	}
 
 	// 填充 Environments
-	for _, deployment := range m.Deployments {
-		env := make(Environment)
-		for _, component := range m.Components {
-			// 查找匹配的环境配置
-			var envSpec *EnvironmentSpec
-			for _, e := range component.Envs {
-				if e.Name == deployment.Env {
-					envSpec = &e
-					break
-				}
+	for _, component := range m.Components {
+		for _, env := range component.Envs {
+			if _, ok := inventory.Environments[env.Name]; !ok {
+				inventory.Environments[env.Name] = make(Environment)
 			}
-
-			if envSpec == nil {
-				// 如果没有找到匹配的环境配置，使用默认值
-				envRepoConfig := EnvRepoConfig{
-					Branch:       "main", // 或者其他默认分支
-					MavenProfile: component.SpringProfile,
-				}
-				env[component.Name] = envRepoConfig
-			} else {
-				envRepoConfig := EnvRepoConfig{
-					Branch:       envSpec.Branch,
-					MavenProfile: envSpec.MavenProfile,
-				}
-				env[component.Name] = envRepoConfig
+			inventory.Environments[env.Name][component.Name] = EnvRepoConfig{
+				Branch:       env.Branch,
+				MavenProfile: env.MavenProfile,
 			}
 		}
-		inventory.Environments[deployment.Env] = env
 	}
 
 	// 填充 Repos
 	for _, component := range m.Components {
 		repoConfig := RepoConfig{
 			Address:           component.Repo,
-			MavenBuildModules: strings.Join(component.RawDependencies, ","),
+			MavenBuildModules: component.MavenBuildModules(),
 		}
 		inventory.Repos[component.Name] = repoConfig
 	}

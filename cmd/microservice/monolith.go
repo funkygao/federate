@@ -52,18 +52,19 @@ func generateMonolithFiles(m *manifest.Manifest) {
 		GroupId           string
 	}{
 		FusionProjectName: m.Main.Name,
-		FusionStarter:     "fusion-starter",
+		FusionStarter:     federated.StarterBaseDir(m.Main.Name),
 		Parent:            java.ParseDependency(pomParentDependency),
 		GroupId:           pomGroupId,
 	}
 	generateFile("Makefile", "Makefile", data)
 	generateFile("pom.xml", "pom.xml", data)
 
+	// create starter dir
 	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
 	}
 
-	color.Green("🍺 Monolith project[%s] scaffolded.") 
+	color.Green("🍺 Monolith project[%s] scaffolded.", m.Main.Name)
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {

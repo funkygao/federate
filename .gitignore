@@ -20,3 +20,5 @@ lsp/
 *.swp
 *.swo
 .vscode/
+
+build/

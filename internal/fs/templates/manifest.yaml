@@ -9,6 +9,11 @@ federated:
     exclude:
       - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
   springProfile: test
+  rpm:
+    - env: on-premise
+      tomcatPort: 8082
+      jvmSize: large # medium, small
+      JAVA_OPTS:
   springBootApplication:
     class: com.jdwl.wms.fusion.WmsStockInventory
     exclude: # @SpringBootApplication#exclude
@@ -137,12 +142,3 @@ components:
         - jimkv/*.xml
       jsfConsumerXml:
         - jsf/jsf-consumer*.xml
-
-#===========
-# 部署信息
-#===========
-deployment:
-  - env: on-premise
-    tomcatPort: 8082
-    jvmSize: large # medium, small
-    JAVA_OPTS:

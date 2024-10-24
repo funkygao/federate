@@ -161,7 +161,7 @@ func printMavenProfile(inv *manifest.Inventory, env, repo string) {
 		if repoConfig, ok := envConfig[repo]; ok {
 			fmt.Print(repoConfig.MavenProfile)
 		} else {
-			fmt.Printf("Repository %s not found in environment %s\n", repo, env)
+			fmt.Printf("Repository %s not found in environment %s\n%v\n", repo, env, envConfig)
 			os.Exit(1)
 		}
 	} else {

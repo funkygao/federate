@@ -7,7 +7,7 @@ import (
 type ReconcileSpec struct {
 	ExcludedBeanClasses []string `yaml:"excludeClasses"`
 
-	Taint     Taint                  `yaml:"taint"`
+	Taint     TaintSpec              `yaml:"taint"`
 	Resources ResourcesReconcileSpec `yaml:"resources"`
 
 	Rpc RpcSpec `yaml:"rpc"`
@@ -35,11 +35,11 @@ func (s *ReconcileSpec) PropertySettled(key string) bool {
 	return exists
 }
 
-type Taint struct {
+type TaintSpec struct {
 	LogConfigXml     string `yaml:"logConfigXml"`
 	MybatisConfigXml string `yaml:"mybatisConfigXml"`
 }
 
-func (t *Taint) ResourceFiles() []string {
+func (t *TaintSpec) ResourceFiles() []string {
 	return []string{t.LogConfigXml, t.MybatisConfigXml}
 }

@@ -21,6 +21,8 @@ type MainSystem struct {
 
 	Reconcile ReconcileSpec `yaml:"reconcile"`
 
+	Rpms []RpmSpec `yaml:"rpm"`
+
 	// Deprecated
 	Features []string `yaml:"features"`
 }

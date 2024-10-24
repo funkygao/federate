@@ -28,7 +28,7 @@ func TestLoad(t *testing.T) {
 		{
 			Name:          "wms-stock",
 			SpringProfile: "on-premise",
-			Dependencies: []java.DependencyInfo{
+			Modules: []java.DependencyInfo{
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-stock-api-provider", Version: "1.0.0"},
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-stock-work", Version: "1.0.0"},
 			},
@@ -42,7 +42,7 @@ func TestLoad(t *testing.T) {
 		{
 			Name:          "wms-inventory",
 			SpringProfile: "on-premise-test",
-			Dependencies: []java.DependencyInfo{
+			Modules: []java.DependencyInfo{
 				{GroupId: "com.jdwl.wms", ArtifactId: "wms-inventory-web", Version: "1.0.1-SNAPSHOT"},
 			},
 			Resources: ComponentResourceSpec{
@@ -65,17 +65,17 @@ func TestLoad(t *testing.T) {
 		if component.SpringProfile != expectedComponent.SpringProfile {
 			t.Errorf("Expected component '%s' to have spring profile '%s', got '%s'", expectedComponent.Name, expectedComponent.SpringProfile, component.SpringProfile)
 		}
-		if len(component.Dependencies) != len(expectedComponent.Dependencies) {
-			t.Errorf("Expected component '%s' to have %d dependencies, got %d", expectedComponent.Name, len(expectedComponent.Dependencies), len(component.Dependencies))
+		if len(component.Modules) != len(expectedComponent.Modules) {
+			t.Errorf("Expected component '%s' to have %d dependencies, got %d", expectedComponent.Name, len(expectedComponent.Modules), len(component.Modules))
 			continue
 		}
-		for j, expectedDep := range expectedComponent.Dependencies {
-			if component.Dependencies[j].GroupId != expectedDep.GroupId ||
-				component.Dependencies[j].ArtifactId != expectedDep.ArtifactId ||
-				component.Dependencies[j].Version != expectedDep.Version {
+		for j, expectedDep := range expectedComponent.Modules {
+			if component.Modules[j].GroupId != expectedDep.GroupId ||
+				component.Modules[j].ArtifactId != expectedDep.ArtifactId ||
+				component.Modules[j].Version != expectedDep.Version {
 				t.Errorf("Expected component '%s' dependency '%d' to have groupId '%s', artifactId '%s', version '%s', got groupId '%s', artifactId '%s', version '%s'",
 					expectedComponent.Name, j, expectedDep.GroupId, expectedDep.ArtifactId, expectedDep.Version,
-					component.Dependencies[j].GroupId, component.Dependencies[j].ArtifactId, component.Dependencies[j].Version)
+					component.Modules[j].GroupId, component.Modules[j].ArtifactId, component.Modules[j].Version)
 			}
 		}
 		if len(component.Resources.BaseDirs) != len(expectedComponent.Resources.BaseDirs) {
@@ -108,25 +108,25 @@ func TestParseMainClass(t *testing.T) {
 	}
 }
 
-func TestComponentDependencies(t *testing.T) {
+func TestComponentModules(t *testing.T) {
 	manifest := &Manifest{
 		Components: []ComponentInfo{
 			{
 				Name: "component1",
-				Dependencies: []java.DependencyInfo{
+				Modules: []java.DependencyInfo{
 					{GroupId: "com.example", ArtifactId: "example1", Version: "1.0.0"},
 				},
 			},
 			{
 				Name: "component2",
-				Dependencies: []java.DependencyInfo{
+				Modules: []java.DependencyInfo{
 					{GroupId: "com.example", ArtifactId: "example2", Version: "2.0.0"},
 				},
 			},
 		},
 	}
 
-	dependencies := manifest.ComponentDependencies()
+	dependencies := manifest.ComponentModules()
 	expectedDependencies := []java.DependencyInfo{
 		{GroupId: "com.example", ArtifactId: "example1", Version: "1.0.0"},
 		{GroupId: "com.example", ArtifactId: "example2", Version: "2.0.0"},
@@ -186,5 +186,5 @@ func TestTargetResourceDir(t *testing.T) {
 			Name: "foo",
 		},
 	}
-	assert.Equal(t, "generated/foo/src/main/resources", manifest.TargetResourceDir())
+	assert.Equal(t, "foo-app/src/main/resources", manifest.TargetResourceDir())
 }

@@ -40,7 +40,7 @@ func Load() *Manifest {
 		Main: MainSystem{
 			Version: defaultMainVersion,
 			Reconcile: ReconcileSpec{
-				Taint: Taint{
+				Taint: TaintSpec{
 					LogConfigXml:     defaultLogConfigXml,
 					MybatisConfigXml: defaultMybatisConfigXml,
 				},
@@ -62,7 +62,7 @@ func Load() *Manifest {
 	// 设置每个组件的引用 MainSystem 并解析 dependencies 字段
 	for i := range manifest.Components {
 		manifest.Components[i].M = &manifest.Main
-		manifest.Components[i].Dependencies = java.ParseDependencies(manifest.Components[i].RawDependencies)
+		manifest.Components[i].Modules = java.ParseDependencies(manifest.Components[i].RawModules)
 	}
 
 	return &manifest
