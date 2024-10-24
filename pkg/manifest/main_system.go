@@ -1,13 +1,12 @@
 package manifest
 
 import (
-	"strings"
-
 	"federate/pkg/java"
 )
 
 type MainSystem struct {
 	Name          string `yaml:"name"`
+	GroupId       string `yaml:"groupId"`
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
@@ -45,11 +44,6 @@ type MainClassSpec struct {
 	ComponentScan ComponentScan `yaml:"componentScan"`
 	Imports       []string      `yaml:"import"`
 	Excludes      []string      `yaml:"exclude"`
-}
-
-func (m *MainSystem) GroupId() string {
-	parts := strings.Split(m.MainClass.Name, ".")
-	return strings.Join(parts[:3], ".")
 }
 
 func (m *MainSystem) FederatedRuntimePackage() string {

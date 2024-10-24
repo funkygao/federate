@@ -5,6 +5,7 @@ version: 1.0
 #=========
 federated:
   name: fusion-stock-inventory
+  groupId: com.jdwl.wms
   dependency:
     exclude:
       - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
@@ -38,7 +39,6 @@ federated:
         - com.jdwl.wms.stock.common.WebMvcConfig
         - com.jdwl.wms.inventory.intercept.WebMvcConfig
         - com.jdwl.wms.stock.common.config.SwaggerConfig
-
   reconcile: # 资源调和
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml

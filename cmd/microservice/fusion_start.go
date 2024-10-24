@@ -70,10 +70,12 @@ func generatePomFile(m *manifest.Manifest) {
 		Name                  string
 		ComponentDependencies []java.DependencyInfo
 		Dependencies          []java.DependencyInfo
+		GroupId               string
 	}{
 		Name:                  m.Main.Name,
 		ComponentDependencies: m.ComponentModules(),
 		Dependencies:          m.Starter.Dependencies,
+		GroupId:               m.Main.GroupId,
 	}
 	fn := filepath.Join(m.StarterBaseDir(), "pom.xml")
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/pom.xml", fn, data)

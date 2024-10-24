@@ -171,20 +171,11 @@ func TestHasFeature(t *testing.T) {
 	}
 }
 
-func TestGroupId(t *testing.T) {
-	main := MainSystem{
-		MainClass: MainClassSpec{
-			Name: "com.jdl.wms.ob.Foo",
-		},
-	}
-	assert.Equal(t, "com.jdl.wms", main.GroupId())
-}
-
 func TestTargetResourceDir(t *testing.T) {
 	manifest := &Manifest{
 		Main: MainSystem{
 			Name: "foo",
 		},
 	}
-	assert.Equal(t, "foo-app/src/main/resources", manifest.TargetResourceDir())
+	assert.Equal(t, "foo/src/main/resources", manifest.TargetResourceDir())
 }

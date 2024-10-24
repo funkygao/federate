@@ -29,7 +29,7 @@ func (m *Manifest) StarterBaseDir() string {
 }
 
 func (m *Manifest) TargetBaseDir() string {
-	return m.Main.Name + "-app"
+	return m.Main.Name
 }
 
 func (m *Manifest) ParseMainClass() (string, string) {
@@ -120,7 +120,7 @@ func (m *Manifest) CreateTargetSystemDir() (string, error) {
 }
 
 func (m *Manifest) TargetRootDir() string {
-	return filepath.Join(federated.GeneratedDir, m.Main.Name+"-app")
+	return m.Main.Name
 }
 
 func (m *Manifest) TargetResourceDir() string {

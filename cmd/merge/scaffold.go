@@ -30,13 +30,11 @@ func generatePomFile(m *manifest.Manifest) {
 	pomData := struct {
 		ArtifactId          string
 		GroupId             string
-		Parent              java.DependencyInfo
 		IncludeDependencies []java.DependencyInfo
 		ExcludeDependencies []java.DependencyInfo
 	}{
 		ArtifactId:          m.Main.Name,
-		GroupId:             m.Main.GroupId(),
-		Parent:              m.Main.Parent,
+		GroupId:             m.Main.GroupId,
 		IncludeDependencies: m.Main.Dependency.Includes,
 		ExcludeDependencies: m.Main.Dependency.Excludes,
 	}

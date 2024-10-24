@@ -15,18 +15,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	pomParentDependency string
-	pomGroupId          string
-)
-
 var monolithCmd = &cobra.Command{
-	Use:   "scaffold-monolith",
+	Use:   "scaffold",
 	Short: "Scaffold a logical monolith from multiple existing code repositories",
 	Long: `The monolith command scaffolds a logical monolithic code repository by integrating 
 multiple existing code repositories using git submodules.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		validateFlags()
 		scaffoldMonolith()
 	},
 }
@@ -53,18 +47,19 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	}{
 		FusionProjectName: m.Main.Name,
 		FusionStarter:     federated.StarterBaseDir(m.Main.Name),
-		Parent:            java.ParseDependency(pomParentDependency),
-		GroupId:           pomGroupId,
+		Parent:            m.Main.Parent,
+		GroupId:           m.Main.GroupId,
 	}
 	generateFile("Makefile", "Makefile", data)
 	generateFile("pom.xml", "pom.xml", data)
+	generateFile("gitignore", ".gitignore", data)
 
 	// create starter dir
 	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
 	}
 
-	color.Green("🍺 Monolith project[%s] scaffolded.", m.Main.Name)
+	color.Green("🍺 Fusion project[%s] scaffolded.", m.Main.Name)
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {
@@ -79,7 +74,7 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 func addGitSubmodules(m *manifest.Manifest) error {
 	gitmodulesUpdate := false
 	for _, c := range m.Components {
-		cmd := exec.Command("git", "submodule", "add", "--depth", "1", c.Repo, c.Name)
+		cmd := exec.Command("git", "submodule", "add", c.Repo, c.Name)
 		log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
@@ -89,14 +84,6 @@ func addGitSubmodules(m *manifest.Manifest) error {
 			color.Cyan("Added git submodule: %s", c.Name)
 
 			gitmodulesUpdate = true
-
-			// 更新 .gitmodules 文件以保持浅克隆
-			updateCmd := exec.Command("git", "config", "-f", ".gitmodules", fmt.Sprintf("submodule.%s.shallow", c.Name), "true")
-			log.Printf("Executing: %s", strings.Join(updateCmd.Args, " "))
-			err = updateCmd.Run()
-			if err != nil {
-				return fmt.Errorf("failed to update .gitmodules for %s: %v", c.Name, err)
-			}
 		}
 	}
 
@@ -115,14 +102,6 @@ func addGitSubmodules(m *manifest.Manifest) error {
 	return nil
 }
 
-func validateFlags() {
-	if pomParentDependency+pomGroupId == "" {
-		log.Fatal("flag: parent or groupId must be set for one, but now both empty")
-	}
-}
-
 func init() {
-	monolithCmd.Flags().StringVarP(&pomParentDependency, "parent", "p", "", "pom.xml parent(e,g. com.jdwl.wms:parent:2.3.0-SNAPSHOT)")
-	monolithCmd.Flags().StringVarP(&pomGroupId, "groupId", "g", "", "pom.xml groupId (e,g. com.jdwl.wms)")
 	manifest.RequiredManifestFileFlag(monolithCmd)
 }

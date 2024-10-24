@@ -149,6 +149,8 @@ func syncSubmodules(inv *manifest.Inventory, env, repoGiven string) {
 			envRepoConfig := envConfig[repo]
 			fmt.Printf("git submodule add %s %s 2>/dev/null || true\n", repoConfig.Address, repo)
 			fmt.Printf("git config -f .gitmodules submodule.%s.branch %s\n", repo, envRepoConfig.Branch)
+			// 告诉 Git 忽略子模块的未提交更改，它不会阻止 git submodule update 的执行
+			fmt.Printf("git config -f .gitmodules submodule.%s.ignore all\n", repo)
 		}
 	} else {
 		fmt.Printf("Environment %s not found\n", env)
