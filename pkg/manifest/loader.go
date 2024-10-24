@@ -13,13 +13,15 @@ import (
 
 var filePath string
 
-// RequiredManifestFileFlag adds the --input flag to the given command and marks it as required
 func RequiredManifestFileFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&filePath, "input", "i", "", "Path to the manifest file")
-	cmd.MarkFlagRequired("input")
+	cmd.Flags().StringVarP(&filePath, "input", "i", "manifest.yaml", "Path of the manifest file")
 }
 
-func LoadManifest() *Manifest {
+func File() string {
+	return filePath
+}
+
+func Load() *Manifest {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Error loading manifest: %v", err)

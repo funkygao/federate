@@ -5,20 +5,17 @@ import (
 	"log"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 
 	"federate/internal/fs"
 	"federate/pkg/federated"
-	"federate/pkg/inventory"
 	"federate/pkg/java"
-	"federate/pkg/step"
+	"federate/pkg/manifest"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
 var (
-	inventoryFile       string
 	pomParentDependency string
 	pomGroupId          string
 )
@@ -35,57 +32,38 @@ multiple existing code repositories using git submodules.`,
 }
 
 func scaffoldMonolith() {
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Error getting current working directory: %v", err)
-	}
-	monolithName := filepath.Base(cwd)
-	if !step.ConfirmAction(fmt.Sprintf("You are about to create a fusion project named '%s'. Is this correct?", monolithName)) {
-		fmt.Println("Operation cancelled.")
-		return
-	}
+	log.Printf("Parsing %s to configure git submodule", manifest.File())
 
-	log.Printf("Parsing %s to config git submodule", inventoryFile)
-
-	// 读取和解析 inventory.yaml
-	inv, err := inventory.ReadInventory(inventoryFile)
-	if err != nil {
-		log.Fatalf("Error reading inventory file: %v", err)
-	}
+	m := manifest.Load()
 
 	// 添加 git submodules
-	err = addGitSubmodules(inv)
-	if err != nil {
+	if err := addGitSubmodules(m); err != nil {
 		log.Fatalf("Error adding git submodules: %v", err)
 	}
 
-	generateMonolithFiles(monolithName)
+	generateMonolithFiles(m)
 }
 
-func generateMonolithFiles(monolithName string) {
+func generateMonolithFiles(m *manifest.Manifest) {
 	data := struct {
-		Inventory         string
 		FusionProjectName string
 		FusionStarter     string
 		Parent            java.DependencyInfo
 		GroupId           string
 	}{
-		Inventory:         inventoryFile,
-		FusionProjectName: monolithName,
+		FusionProjectName: m.Main.Name,
 		FusionStarter:     "fusion-starter",
 		Parent:            java.ParseDependency(pomParentDependency),
 		GroupId:           pomGroupId,
 	}
 	generateFile("Makefile", "Makefile", data)
-	generateFile("inventory.yaml", "inventory.yaml", data)
-	generateFile("gitignore", ".gitignore", data)
 	generateFile("pom.xml", "pom.xml", data)
 
-	if err := os.MkdirAll(federated.StarterBaseDir(monolithName), 0755); err != nil {
+	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
 	}
 
-	color.Green("🍺 Monolith project[%s] scaffolded. Next, author your manifest.yaml", monolithName)
+	color.Green("🍺 Monolith project[%s] scaffolded.") 
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {
@@ -97,29 +75,28 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 	}
 }
 
-func addGitSubmodules(inv *inventory.Inventory) error {
+func addGitSubmodules(m *manifest.Manifest) error {
 	gitmodulesUpdate := false
-	for name, repo := range inv.Repos {
-		cmd := exec.Command("git", "submodule", "add", "--depth", "1", repo.Address, name)
+	for _, c := range m.Components {
+		cmd := exec.Command("git", "submodule", "add", "--depth", "1", c.Repo, c.Name)
 		log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
 		err := cmd.Run()
 		if err == nil {
-			color.Cyan("Added git submodule: %s", name)
+			color.Cyan("Added git submodule: %s", c.Name)
 
 			gitmodulesUpdate = true
 
 			// 更新 .gitmodules 文件以保持浅克隆
-			updateCmd := exec.Command("git", "config", "-f", ".gitmodules", fmt.Sprintf("submodule.%s.shallow", name), "true")
+			updateCmd := exec.Command("git", "config", "-f", ".gitmodules", fmt.Sprintf("submodule.%s.shallow", c.Name), "true")
 			log.Printf("Executing: %s", strings.Join(updateCmd.Args, " "))
 			err = updateCmd.Run()
 			if err != nil {
-				return fmt.Errorf("failed to update .gitmodules for %s: %v", name, err)
+				return fmt.Errorf("failed to update .gitmodules for %s: %v", c.Name, err)
 			}
 		}
-
 	}
 
 	if !gitmodulesUpdate {
@@ -138,9 +115,6 @@ func addGitSubmodules(inv *inventory.Inventory) error {
 }
 
 func validateFlags() {
-	if inventoryFile == "" {
-		log.Fatal("required flag --inventory not set")
-	}
 	if pomParentDependency+pomGroupId == "" {
 		log.Fatal("flag: parent or groupId must be set for one, but now both empty")
 	}
@@ -148,6 +122,6 @@ func validateFlags() {
 
 func init() {
 	monolithCmd.Flags().StringVarP(&pomParentDependency, "parent", "p", "", "pom.xml parent(e,g. com.jdwl.wms:parent:2.3.0-SNAPSHOT)")
-	monolithCmd.Flags().StringVarP(&pomGroupId, "groupId", "g", "", "pom.xml groupId(e,g. com.jdwl.wms)")
-	monolithCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "inventory.yaml", "Path to the inventory file specifying which source code repositories to consolidate")
+	monolithCmd.Flags().StringVarP(&pomGroupId, "groupId", "g", "", "pom.xml groupId (e,g. com.jdwl.wms)")
+	manifest.RequiredManifestFileFlag(monolithCmd)
 }

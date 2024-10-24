@@ -32,7 +32,7 @@ var MergeCmd = &cobra.Command{
 Example usage:
   federate microservice consolidate -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m := manifest.LoadManifest()
+		m := manifest.Load()
 		doMerge(m)
 	},
 }

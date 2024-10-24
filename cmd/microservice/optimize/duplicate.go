@@ -19,7 +19,7 @@ var duplicateCmd = &cobra.Command{
 	Use:   "duplicate",
 	Short: "Identify potential duplicate classes",
 	Run: func(cmd *cobra.Command, args []string) {
-		manifest := manifest.LoadManifest()
+		manifest := manifest.Load()
 		showDuplicates(manifest)
 	},
 }

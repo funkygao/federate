@@ -11,12 +11,15 @@ import (
 
 type ComponentInfo struct {
 	Name          string `yaml:"name"`
+	Repo          string `yaml:"repo"`
 	SpringProfile string `yaml:"springProfile"`
 
 	RawDependencies []string              `yaml:"modules"`
 	Dependencies    []java.DependencyInfo `yaml:"-"`
 
 	Resources ComponentResourceSpec `yaml:"resources"`
+
+	Envs []EnvironmentSpec `yaml:"environments"`
 
 	// BaseDir is used for unit test: change source dir
 	BaseDir string `yaml:"-"`

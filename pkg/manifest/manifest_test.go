@@ -7,9 +7,9 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestLoadManifest(t *testing.T) {
+func TestLoad(t *testing.T) {
 	filePath = "unit-test.yaml"
-	manifest := LoadManifest()
+	manifest := Load()
 
 	assert.Equal(t, "1.2", manifest.Version)
 	assert.Equal(t, "com.jdwl.wms.runtime", manifest.Main.FederatedRuntimePackage())

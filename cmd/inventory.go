@@ -6,16 +6,15 @@ import (
 	"sort"
 	"strings"
 
-	"federate/pkg/inventory"
+	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
 	"github.com/spf13/cobra"
 )
 
 var (
-	inventoryFile string
-	format        string
-	env           string
-	repo          string
+	format string
+	env    string
+	repo   string
 )
 
 var inventoryCmd = &cobra.Command{
@@ -36,12 +35,8 @@ Available formats:
 }
 
 func parseInventory() {
-	inv, err := inventory.ReadInventory(inventoryFile)
-	if err != nil {
-		fmt.Printf("Error reading inv file: %v\n", err)
-		os.Exit(1)
-	}
-
+	m := manifest.Load()
+	inv := m.ToInventory()
 	switch format {
 	case "human":
 		printHumanReadable(inv)
@@ -65,7 +60,7 @@ func parseInventory() {
 	}
 }
 
-func printHumanReadable(inv *inventory.Inventory) {
+func printHumanReadable(inv *manifest.Inventory) {
 	fmt.Println("Environments:")
 	for env, config := range inv.Environments {
 		fmt.Printf("  %s:\n", env)
@@ -84,7 +79,7 @@ func printHumanReadable(inv *inventory.Inventory) {
 	}
 }
 
-func printMakeFormat(inv *inventory.Inventory) {
+func printMakeFormat(inv *manifest.Inventory) {
 	for repo, config := range inv.Repos {
 		fmt.Printf("%s_ADDRESS=%s\n", strings.ToUpper(repo), config.Address)
 		fmt.Printf("%s_MAVEN_BUILD_MODULES=%s\n", strings.ToUpper(repo), config.MavenBuildModules)
@@ -97,7 +92,7 @@ func printMakeFormat(inv *inventory.Inventory) {
 	}
 }
 
-func printEnvList(inv *inventory.Inventory) {
+func printEnvList(inv *manifest.Inventory) {
 	envs := make([]string, 0, len(inv.Environments))
 	for env := range inv.Environments {
 		envs = append(envs, env)
@@ -106,7 +101,7 @@ func printEnvList(inv *inventory.Inventory) {
 	fmt.Println(strings.Join(envs, " "))
 }
 
-func printRepoList(inv *inventory.Inventory) {
+func printRepoList(inv *manifest.Inventory) {
 	repos := make([]string, 0, len(inv.Repos))
 	for repo := range inv.Repos {
 		repos = append(repos, repo)
@@ -115,7 +110,7 @@ func printRepoList(inv *inventory.Inventory) {
 	fmt.Println(strings.Join(repos, " "))
 }
 
-func printRepoInfoTable(inv *inventory.Inventory, env string) {
+func printRepoInfoTable(inv *manifest.Inventory, env string) {
 	if envConfig, ok := inv.Environments[env]; ok {
 		header := []string{"Repository", "Git Address", "Branch", "Maven Profile", "Maven Build Modules"}
 		var rows [][]string
@@ -145,7 +140,7 @@ func printRepoInfoTable(inv *inventory.Inventory, env string) {
 	}
 }
 
-func syncSubmodules(inv *inventory.Inventory, env, repoGiven string) {
+func syncSubmodules(inv *manifest.Inventory, env, repoGiven string) {
 	if envConfig, ok := inv.Environments[env]; ok {
 		for repo, repoConfig := range inv.Repos {
 			if repoGiven != "" && repo != repoGiven {
@@ -161,7 +156,7 @@ func syncSubmodules(inv *inventory.Inventory, env, repoGiven string) {
 	}
 }
 
-func printMavenProfile(inv *inventory.Inventory, env, repo string) {
+func printMavenProfile(inv *manifest.Inventory, env, repo string) {
 	if envConfig, ok := inv.Environments[env]; ok {
 		if repoConfig, ok := envConfig[repo]; ok {
 			fmt.Print(repoConfig.MavenProfile)
@@ -175,7 +170,7 @@ func printMavenProfile(inv *inventory.Inventory, env, repo string) {
 	}
 }
 
-func printMavenModules(inv *inventory.Inventory, repo string) {
+func printMavenModules(inv *manifest.Inventory, repo string) {
 	if repoConfig, ok := inv.Repos[repo]; ok {
 		fmt.Print(repoConfig.MavenBuildModules)
 	} else {
@@ -185,8 +180,7 @@ func printMavenModules(inv *inventory.Inventory, repo string) {
 }
 
 func init() {
-	inventoryCmd.Flags().StringVarP(&inventoryFile, "inventory", "i", "", "Path to the inventory.yaml file")
-	inventoryCmd.MarkFlagRequired("inventory")
+	manifest.RequiredManifestFileFlag(inventoryCmd)
 	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, repo-info, sync-submodules, maven-profile, or maven-modules")
 	inventoryCmd.Flags().StringVarP(&repo, "repo", "r", "", "Repository name for maven-profile and maven-modules formats")
 	inventoryCmd.Flags().StringVarP(&env, "env", "e", "", "Environment for repo-info format")

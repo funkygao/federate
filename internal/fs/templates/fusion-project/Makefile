@@ -1,9 +1,8 @@
 SHELL := /bin/bash
 .SILENT:
 
-INVENTORY_FILE := {{.Inventory}}
 FEDERATE_CMD ?= federate
-INVENTORY_CMD := $(FEDERATE_CMD) inventory -i $(INVENTORY_FILE)
+INVENTORY_CMD := $(FEDERATE_CMD) inventory
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 GIT_COMMIT ?= $(shell git describe --match="" --dirty --long --always 2> /dev/null || echo "")
 

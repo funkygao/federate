@@ -10,7 +10,7 @@ var jdosCmd = &cobra.Command{
 	Use:   "build-jdos",
 	Short: "Generate target system Dockerfile for JDOS 3.0",
 	Run: func(cmd *cobra.Command, args []string) {
-		m := manifest.LoadManifest()
+		m := manifest.Load()
 		doGenerateJdosDockerfile(m)
 	},
 }

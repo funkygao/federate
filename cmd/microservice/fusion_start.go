@@ -48,7 +48,7 @@ It provides runtime support for the target system.
 Example usage:
   federate microservice fusion-start -i manifest.yaml`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m := manifest.LoadManifest()
+		m := manifest.Load()
 		if cleanFlag {
 			cleanFusionStarterProject(m)
 		} else {
