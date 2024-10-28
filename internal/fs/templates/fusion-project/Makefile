@@ -23,12 +23,13 @@ sync-submodules: ## Clean and synchronize submodules to latest remote commits.
 	echo "☕️ Ignore .gitmodules changes"
 	git update-index --assume-unchanged .gitmodules
 	$(MAKE) restore-submodules
-	echo "☕️ Syncing all submodules repository for $$ENV environment"
+	echo "☕️ Config all submodules repository for $$ENV environment"
 	$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
 		echo "   Executing: $$cmd"; \
 		eval $$cmd; \
 	done
-	git submodule update --init --recursive --remote
+	echo "☕️ Syncing all submodules repository for $$ENV environment"
+	GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no' git submodule update --init --recursive --remote
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
 diff-submodules: ## Display local changes compared with their original state.

@@ -20,10 +20,16 @@ ENV SITE=${SITE}
 
 RUN --mount=type=secret,id=security-signature,target=/opt/local/sign/signer.jks,required=true,mode=0400,uid=1000,gid=1000 \
     --mount=type=bind,from=git,src=/workspace/source,rw=true,target=/source \
-    cd /source/ && bash compile.sh && artifact_path=`find /source/target \
-    -type f -maxdepth 1 -name "*.zip"|head -1`; if [ "$artifact_path" != "" ]; then mkdir -p /workspace/result-zip; \
-    mv $${artifact_path} /workspace/result-zip/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip; \
-    else echo "zip file not found" && exit 1; fi && cp -r /root/.m2/repository/ /workspace/cache
+    cd /source/ && \
+    bash compile.sh && \
+    artifact_path=`find /source/target -type f -maxdepth 1 -name "*.zip" | head -1` && \
+    if [ "$artifact_path" != "" ]; then \
+        mkdir -p /workspace/result-zip && \
+        mv ${artifact_path} /workspace/result-zip/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip; \
+    else \
+        echo "zip file not found" && exit 1; \
+    fi && \
+    cp -r /root/.m2/repository/ /workspace/cache
 
 #upload package
 FROM test.is.goog.local/buildkit/buildkit-base:fix-git-timeout-20240322 AS uploader
