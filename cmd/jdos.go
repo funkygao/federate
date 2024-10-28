@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"log"
-
+	"federate/pkg/tablerender"
 	"github.com/spf13/cobra"
 )
 
@@ -15,13 +14,13 @@ var jdosCmd = &cobra.Command{
 }
 
 func setupJDOS() {
-	log.Println("成员管理：JDOSBOOT")
-	log.Println("打包类型：maven-3")
-	log.Println("编译语言：java-8")
-	log.Println("基础镜像：base_worker/java-jd-centos7-jdk8.0.192-tom8.5.42-ngx197:latest")
-	log.Println("编译命令：")
-	log.Println("    bin/federate microservice scaffold")
-	log.Println("    make fusion-start")
-	log.Println("    make make consolidate ENV=<env>")
-	log.Println("    mvn validate -q # JDOS会在最后一行上添加 '-f $(pwd) -T 1C -Dmaven.artifact.threads=16'")
+	var configs = [][]string{
+		{"成员管理", "JDOSBOOT", "融合代码库需要为该用户分配 Guest 权限"},
+		{"打包类型", "maven-3", ""},
+		{"编译语言", "java-8", ""},
+		{"基础镜像", "base_worker/java-jd-centos7-jdk8.0.192-tom8.5.42-ngx197:latest", "包含了 make/java/maven"},
+		{"编译命令", "bin/federate microservice scaffold\nmake fusion-start\nmake make consolidate ENV=<env>\nmvn validate -q", "JDOS会在最后一行上添加 '-f $(pwd) -T 1C -Dmaven.artifact.threads=16'"},
+	}
+	header := []string{"Item", "Config Value", "Remark"}
+	tablerender.DisplayTable(header, configs, false)
 }
