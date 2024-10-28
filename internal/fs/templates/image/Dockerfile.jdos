@@ -20,8 +20,10 @@ COPY . .
 
 # 安装 federate 工具 TODO
 
+# 生成 Makefile
 # 执行 sync-submodules, fusion-start, consolidate
-RUN make consolidate ENV=$DEPLOYMENT_ENV
+RUN federate microservice scaffold && \
+    make consolidate ENV=$DEPLOYMENT_ENV
 
 # 进入生成的项目目录
 WORKDIR {{.Name}}

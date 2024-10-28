@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"federate/cmd/image"
 	"federate/internal/fs"
 	"federate/pkg/federated"
 	"federate/pkg/java"
@@ -53,6 +54,7 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	generateFile("Makefile", "Makefile", data)
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("gitignore", ".gitignore", data)
+	generateJdosDockerfile(m)
 
 	// create starter dir
 	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {
@@ -68,6 +70,16 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 		color.Yellow("Overwrite %s", targetFile)
 	} else {
 		color.Cyan("Generated %s", targetFile)
+	}
+}
+
+func generateJdosDockerfile(m *manifest.Manifest) {
+	fn := "Dockerfile"
+	overwrite := image.GenerateJdosDockerfile(m, fn)
+	if !overwrite {
+		color.Cyan("Generated %s", fn)
+	} else {
+		color.Yellow("Overwrite %s", fn)
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"federate/cmd/image"
 	"federate/internal/fs"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
@@ -61,7 +60,6 @@ func fusionStartProject(m *manifest.Manifest) {
 	generatePomFile(m)
 	generateMakefile(m)
 	generateFederateRuntimeJavaClasses(m)
-	generateJdosDockerfile(m)
 	color.Green("🍺 %s-fusion-starter project scaffold generated for target: %s", m.Main.Name, m.Main.Name)
 }
 
@@ -79,16 +77,6 @@ func generatePomFile(m *manifest.Manifest) {
 	}
 	fn := filepath.Join(m.StarterBaseDir(), "pom.xml")
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/pom.xml", fn, data)
-	if !overwrite {
-		color.Cyan("Generated %s", fn)
-	} else {
-		color.Yellow("Overwrite %s", fn)
-	}
-}
-
-func generateJdosDockerfile(m *manifest.Manifest) {
-	fn := "Dockerfile"
-	overwrite := image.GenerateJdosDockerfile(m, fn)
 	if !overwrite {
 		color.Cyan("Generated %s", fn)
 	} else {
