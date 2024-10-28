@@ -11,7 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
     <version>1.0.0-SNAPSHOT</version>
     <artifactId>{{.Name}}-starter</artifactId>
-    <name>fusion-projects :: {{.Name}} :: fusion-starter</name>
+    <name>{{.Name}} :: fusion-starter</name>
 
     <dependencies>
         {{- range .Dependencies }}

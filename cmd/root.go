@@ -71,6 +71,7 @@ func init() {
 	microservice.CmdGroup.GroupID = "microservice"
 	onpremise.CmdGroup.GroupID = "microservice"
 	image.CmdGroup.GroupID = "microservice"
+	jdosCmd.GroupID = "microservice"
 
 	ygrepCmd.GroupID = "utility"
 	chatgpt.CmdGroup.GroupID = "utility"
@@ -99,6 +100,6 @@ func init() {
 	)
 
 	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, github.CmdGroup, inventoryCmd, componentsCmd, allCmd)
-	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup)
+	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup, jdosCmd)
 	rootCmd.AddCommand(version.CmdGroup)
 }

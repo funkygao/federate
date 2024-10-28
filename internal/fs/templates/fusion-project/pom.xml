@@ -11,16 +11,17 @@
     </parent>
     {{- end}}
     <modelVersion>4.0.0</modelVersion>
+    <version>1.0.0-SNAPSHOT</version>
     {{- if eq .Parent.ArtifactId ""}}
     <groupId>{{.GroupId}}</groupId>
     {{- end}}
     <artifactId>{{.FusionProjectName}}-parent</artifactId>
+    <name>{{.FusionProjectName}} :: parent</name>
     <packaging>pom</packaging>
-    <version>1.0.0-SNAPSHOT</version>
 
     <modules>
-        <module>{{.FusionProjectName}}</module>
         <module>{{.FusionProjectName}}-starter</module>
+        <module>{{.FusionProjectName}}</module>
     </modules>
 
     <build>
