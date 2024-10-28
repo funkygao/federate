@@ -20,7 +20,7 @@ var (
 	rootCmd = &cobra.Command{
 		Use:   "federate",
 		Short: "federate - A compiler and toolchain for microservices management",
-		Long: logo.Federate() + `: A cutting-edge, compiler-centric toolchain engineered for efficient microservices consolidation and seamless deployment.
+		Long: logo.Federate() + `: A compiler-centric toolchain engineered for efficient microservices consolidation and seamless deployment.
 
   Find more information at: https://joyspace.jd.com/pages/Ksl7N7wr1XxFanCRIR1y
 `,

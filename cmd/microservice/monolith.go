@@ -81,17 +81,45 @@ func generateJdosDockerfile(m *manifest.Manifest) {
 	} else {
 		color.Yellow("Overwrite %s", fn)
 	}
+
+	// Git add Dockerfile
+	addCmd := exec.Command("git", "add", fn)
+	log.Printf("Executing: %s", strings.Join(addCmd.Args, " "))
+	err := addCmd.Run()
+	if err != nil {
+		log.Printf("Warning: failed to git add %s: %v", fn, err)
+		return
+	}
+
+	// Git commit Dockerfile
+	commitCmd := exec.Command("git", "commit", "-m", fmt.Sprintf("Added JDOS %s", fn))
+	log.Printf("Executing: %s", strings.Join(commitCmd.Args, " "))
+	err = commitCmd.Run()
+	if err != nil {
+		log.Printf("Warning: failed to commit %s: %v", fn, err)
+		return
+	}
+
+	color.Cyan("%s added and committed", fn)
 }
 
 func addGitSubmodules(m *manifest.Manifest) error {
 	gitmodulesUpdate := false
 	for _, c := range m.Components {
+		// 检查 submodule 是否已存在
+		checkCmd := exec.Command("git", "submodule", "status", c.Name)
+		err := checkCmd.Run()
+		if err == nil {
+			// Submodule 已存在，跳过
+			continue
+		}
+
 		cmd := exec.Command("git", "submodule", "add", c.Repo, c.Name)
 		log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 
-		err := cmd.Run()
+		err = cmd.Run()
 		if err == nil {
 			color.Cyan("Added git submodule: %s", c.Name)
 
