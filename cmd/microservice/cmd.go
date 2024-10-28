@@ -10,14 +10,16 @@ import (
 var CmdGroup = &cobra.Command{
 	Use:   "microservice",
 	Short: "Orchestrate microservice consolidation and optimization",
-	Long: `Streamline and enhance your microservice architecture through intelligent consolidation and optimization.
+	Long: `Streamline and enhance your microservice architecture through strategic consolidation and optimization.
 
 To initiate a fusion project:
-1. Create a new repository and author a manifest.yaml file.
-2. Navigate to the repository and run 'federate microservice scaffold' to generate 
-   the project structure and essential files (e.g., Makefile, Dockerfile).
-3. Execute 'make consolidate' to merge and optimize microservices.
-4. Push changes to the repository to trigger deployment.`,
+1. Create a new repository and author the manifest.yaml file.
+2. Execute 'federate microservice scaffold' to generate the project structure 
+   and essential files (e.g., Makefile, Dockerfile).
+3. Execute 'make fusion-start' to generate the fusion-starter Maven module. 
+   Use this module as a foundation for further development and customization.
+4. Execute 'make consolidate ENV=<env>' to merge and optimize microservices.
+5. Push changes to the repository to trigger JDOS deployment.`,
 }
 
 func init() {
