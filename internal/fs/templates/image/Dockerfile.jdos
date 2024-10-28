@@ -2,6 +2,7 @@
 #
 # https://joyspace.jd.com/pages/H418SnY0XBcJ1jikfMk0
 # 注意不需要写FROM，jdos构建时会使用选择的“基础镜像”作为FROM镜像
+# git user: JDOSBOOT
 
 ENV LANG=zh_CN.UTF-8
 ENV LANGUAGE=zh_CN:zh
@@ -14,25 +15,20 @@ ARG DEPLOYMENT_ENV=
 
 RUN yum install -y maven
 
-# 设置工作目录
-WORKDIR /app
-
 # 复制整个项目目录，被处理为：COPY --from=git /workspace/source/../.. .
 COPY . .
 
-# 安装 federate 工具
-RUN make install-federate
+# 安装 federate 工具 TODO
 
-# 切换到正确的目录执行 merge-stock-synergy-test 目标
-WORKDIR /app
+# 执行 sync-submodules, fusion-start, consolidate
 RUN make consolidate ENV=$DEPLOYMENT_ENV
 
 # 进入生成的项目目录
-WORKDIR /app/generated/wms-stock-synergy
+WORKDIR {{.Name}}
 
 # 编译和打包项目
 RUN make package
 
 # 设置启动命令
-CMD ["bash", "target/wms-stock-synergy-1.0.0-SNAPSHOT-package/bin/start.sh"]
+CMD ["bash", "target/{{.Name}}-1.0.0-SNAPSHOT-package/bin/start.sh"]
 

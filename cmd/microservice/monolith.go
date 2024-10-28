@@ -59,7 +59,7 @@ func generateMonolithFiles(m *manifest.Manifest) {
 		log.Fatalf("Error creating directory: %v", err)
 	}
 
-	color.Green("🍺 Fusion project[%s] scaffolded.", m.Main.Name)
+	color.Green("🍺 Fusion project[%s] scaffolded. You MUST add user:JDOSBOOT for this git repo!", m.Main.Name)
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {

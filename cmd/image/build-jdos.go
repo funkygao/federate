@@ -16,7 +16,11 @@ var jdosCmd = &cobra.Command{
 }
 
 func GenerateJdosDockerfile(m *manifest.Manifest, outfile string) (overwrite bool) {
-	data := struct{}{}
+	data := struct {
+		Name string
+	}{
+		Name: m.Main.Name,
+	}
 	return fs.GenerateFileFromTmpl("templates/image/Dockerfile.jdos", outfile, data)
 }
 
