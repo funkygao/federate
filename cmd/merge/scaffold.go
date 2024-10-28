@@ -168,8 +168,6 @@ func generateStartStopScripts(m *manifest.Manifest) {
 	}
 	start := filepath.Join(root, "src", "main", "assembly", "bin", "start.sh")
 	fs.GenerateExecutableFileFromTmpl("templates/start.sh", start, data)
-	start_container := filepath.Join(root, "src", "main", "assembly", "bin", "start_container.sh")
-	fs.GenerateExecutableFileFromTmpl("templates/start_container.sh", start_container, data)
 	stop := filepath.Join(root, "src", "main", "assembly", "bin", "stop.sh")
 	overwrite := fs.GenerateExecutableFileFromTmpl("templates/stop.sh", stop, data)
 	if overwrite {

@@ -18,6 +18,7 @@ ENV IDENTIFIER=${IDENTIFIER}
 ARG SITE
 ENV SITE=${SITE}
 
+# 执行用户的 编译命令
 RUN --mount=type=secret,id=security-signature,target=/opt/local/sign/signer.jks,required=true,mode=0400,uid=1000,gid=1000 \
     --mount=type=bind,from=git,src=/workspace/source,rw=true,target=/source \
     cd /source/ && \
