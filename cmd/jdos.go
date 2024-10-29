@@ -23,11 +23,11 @@ var jdosCmd = &cobra.Command{
 	Use:   "jdos",
 	Short: "Configure JDOS 3.0 CI/CD for fusion project",
 	Run: func(cmd *cobra.Command, args []string) {
+		m := manifest.Load()
 		if showDocker {
-			displayDocker()
+			displayDocker(m)
 		} else {
-			manifest := manifest.Load()
-			setupJDOS(manifest)
+			setupJDOS(m)
 		}
 	},
 }
@@ -37,7 +37,7 @@ func setupJDOS(m *manifest.Manifest) {
 		{"构建方式", "代码构建", "源码地址：填写你的融合项目代码库"},
 		{"成员管理", "JDOSBOOT", "融合代码库需要为该用户分配 Guest 权限"},
 		{"基础镜像", "base_worker/java-jd-centos7-jdk8.0.192-tom8.5.42-ngx197:latest", "包含了 make/java/maven"},
-		{"制品路径", fmt.Sprintf("%s/%s", m.Main.Name, m.Main.Name)},
+		{"制品路径", fmt.Sprintf("/source/%s/target", m.Main.Name)},
 	}
 	header := []string{"Item", "Config Value", "Remark"}
 	tablerender.DisplayTable(header, configs, true)
@@ -66,8 +66,10 @@ func setupJDOS(m *manifest.Manifest) {
 	fs.GenerateFileFromTmpl("templates/jdos.compile.sh", "", data)
 }
 
-func displayDocker() {
-	data, _ := fs.FS.ReadFile("templates/image/Dockerfile.jdos.builtin")
+func displayDocker(m *manifest.Manifest) {
+	data := fs.ParseTemplateToString("templates/image/Dockerfile.jdos.builtin", map[string]string{
+		"Target": fmt.Sprintf("/source/%s/target", m.Main.Name),
+	})
 	lexer := lexers.Get("docker")
 	iterator, err := lexer.Tokenise(nil, string(data))
 	if err != nil {
