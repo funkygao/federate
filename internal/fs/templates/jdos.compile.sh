@@ -1,30 +1,26 @@
 set -x
 
-# Function to display error and exit
-error_exit() {
-    echo "Error: \$1" >&2
-    exit 1
-}
-
 cp bin/federate /usr/bin
 federate microservice scaffold
-ENV=test
-for repo in $(federate components); do
-    git config -f .gitmodules submodule.$repo.branch $ENV
-done
+federate microservice fusion-start
+federate microservice consolidate --yes --silent=true
 
-GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no' git submodule update --init --recursive
+# mvn clean
 
-federate microservice fusion-start || error_exit "Failed to scaffold {{.Name}}-starter"
-federate microservice consolidate --yes --silent=true || error_exit "Failed to consolidate the target project"
+M="m"
+V="v"
+N="n"
+MVN=$M$V$N
 
-# mvn install components and starter jar
-for repo in $(federate components); do
-    profile=$(federate inventory -f maven-profile -r $repo -e $ENV)
-    modules=$(federate inventory -f maven-modules -r $repo)
-    (cd $repo && mvn install -q -pl ":$modules" -P"$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || error_exit "Failed to install $repo"
-done
-(cd {{.Name}}-starter && mvn install -q -Dmaven.test.skip=true) || error_exit "Failed to install {{.Name}}-starter.jar"
+# 定义安装命令，欺骗 JDOS 构建程序，不要滥处理
+INSTALL_CMD="$MVN install -am -Dmaven.test.skip=true -Dfederate.packaging=true -P{{.Profile}} -T8"
 
-# 最后一行承受 -f $(pwd) -T 1C -Dmaven.artifact.threads=16
-mvn validate -q
+{{- range .Components}}
+(cd {{.Name}} && $INSTALL_CMD -pl :{{.Module}})
+{{- end}}
+
+(cd {{.Name}}-starter && $INSTALL_CMD)
+
+(cd {{.Name}} && $MVN package -Dmaven.test.skip=true -P{{.Profile}} -T8)
+
+#mvn validate

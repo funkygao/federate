@@ -14,7 +14,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var showDocker bool
+var (
+	showDocker bool
+	mvnProfile string
+)
 
 var jdosCmd = &cobra.Command{
 	Use:   "jdos",
@@ -39,10 +42,26 @@ func setupJDOS(m *manifest.Manifest) {
 	header := []string{"Item", "Config Value", "Remark"}
 	tablerender.DisplayTable(header, configs, true)
 	log.Println("编译命令:")
+	type module struct {
+		Name   string
+		Module string
+	}
+	var modules []module
+	for _, c := range m.Components {
+		modules = append(modules, module{
+			Name:   c.Name,
+			Module: c.MavenBuildModules(),
+		})
+	}
+
 	data := struct {
-		Name string
+		Name       string
+		Profile    string
+		Components []module
 	}{
-		Name: m.Main.Name,
+		Name:       m.Main.Name,
+		Profile:    mvnProfile,
+		Components: modules,
 	}
 	fs.GenerateFileFromTmpl("templates/jdos.compile.sh", "", data)
 }
@@ -64,4 +83,5 @@ func displayDocker() {
 func init() {
 	manifest.RequiredManifestFileFlag(jdosCmd)
 	jdosCmd.Flags().BoolVarP(&showDocker, "dockerfile", "d", false, "Display JDOS generated Dockerfile")
+	jdosCmd.Flags().StringVarP(&mvnProfile, "activate-profiles", "P", "test", "Comma-delimited list of profiles to activate")
 }
