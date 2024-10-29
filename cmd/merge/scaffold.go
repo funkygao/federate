@@ -119,8 +119,8 @@ func generateMakefile(m *manifest.Manifest) {
 		AppName:    m.Main.Name,
 		AppSrc:     fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
 		ClassName:  m.Main.MainClass.Name,
-		JvmSize:    m.RpmByEnv("on-premmise").JvmSize,
-		TomcatPort: m.RpmByEnv("on-premmise").TomcatPort,
+		JvmSize:    m.RpmByEnv("on-premise").JvmSize,
+		TomcatPort: m.RpmByEnv("on-premise").TomcatPort,
 		Env:        m.Main.Runtime.Env,
 	}
 	if data.JvmSize == "" {

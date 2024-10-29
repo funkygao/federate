@@ -16,6 +16,7 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "wms-stock-api-provider", manifest.Main.Dependency.Includes[0].ArtifactId)
 	assert.Equal(t, "wms-inventory-web", manifest.Main.Dependency.Excludes[0].ArtifactId)
 	assert.Equal(t, 1, len(manifest.Main.Reconcile.Resources.PropertySettlement))
+	assert.Equal(t, int16(8082), manifest.RpmByEnv("on-premise").TomcatPort)
 
 	if manifest.Main.Name != "demo-starter" {
 		t.Errorf("Expected main name to be 'demo-starter', got '%s'", manifest.Main.Name)

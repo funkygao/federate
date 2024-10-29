@@ -12,6 +12,11 @@ federated:
   features:
     - spring-configsec-sdk
     - redis
+  rpm:
+    - env: on-premise
+      tomcatPort: 8082
+      jvmSize: large # medium, small
+      JAVA_OPTS:
   reconcile:
     resources:
       propertySettlement:
