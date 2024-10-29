@@ -86,6 +86,27 @@ install-completion: ## Install shell completion for federate on MacOS.
 	esac; \
 	echo "Completion installation finished. Please restart your shell or source the appropriate file to enable completion."
 
+docker-build: ## Build Docker image for federate.
+	docker build \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg GIT_BRANCH=$(GIT_BRANCH) \
+		--build-arg GIT_STATE=$(GIT_STATE) \
+		--build-arg BUILD_DATE='$(BUILD_DATE)' \
+		-t federate:latest .
+	echo "🍺 Docker image built: federate:latest"
+
+docker-test: docker-build
+	echo "Creating temporary Dockerfile for testing..."
+	echo "FROM centos:7" > Dockerfile.test
+	echo "COPY --from=federate:latest /federate /usr/local/bin/federate" >> Dockerfile.test
+	echo "Building test image..."
+	docker build -t federate:test -f Dockerfile.test .
+	echo "Running test container..."
+	docker run --rm federate:test ls -l /usr/local/bin/federate
+	echo "Cleaning up..."
+	rm -f Dockerfile.test
+	docker rmi federate:test
+
 PLATFORMS := linux-amd64 # linux-arm64 darwin-amd64 darwin-arm64
 
 release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
