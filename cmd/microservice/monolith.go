@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"federate/cmd/image"
 	"federate/internal/fs"
 	"federate/pkg/federated"
 	"federate/pkg/java"
@@ -71,36 +70,6 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 	} else {
 		color.Cyan("Generated %s", targetFile)
 	}
-}
-
-func generateJdosDockerfile(m *manifest.Manifest) {
-	fn := "Dockerfile"
-	overwrite := image.GenerateJdosDockerfile(m, fn)
-	if !overwrite {
-		color.Cyan("Generated %s", fn)
-	} else {
-		color.Yellow("Overwrite %s", fn)
-	}
-
-	// Git add Dockerfile
-	addCmd := exec.Command("git", "add", fn)
-	log.Printf("Executing: %s", strings.Join(addCmd.Args, " "))
-	err := addCmd.Run()
-	if err != nil {
-		log.Printf("Warning: failed to git add %s: %v", fn, err)
-		return
-	}
-
-	// Git commit Dockerfile
-	commitCmd := exec.Command("git", "commit", "-m", fmt.Sprintf("Added JDOS %s", fn))
-	log.Printf("Executing: %s", strings.Join(commitCmd.Args, " "))
-	err = commitCmd.Run()
-	if err != nil {
-		log.Printf("Warning: failed to commit %s: %v", fn, err)
-		return
-	}
-
-	color.Cyan("%s added and committed", fn)
 }
 
 func addGitSubmodules(m *manifest.Manifest) error {
