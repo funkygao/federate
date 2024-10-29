@@ -22,7 +22,7 @@
         {{- end }}
         <dependency>
             <groupId>{{.GroupId}}</groupId>
-            <artifactId>{{.ArtifactId}}-fusion-starter</artifactId>
+            <artifactId>{{.ArtifactId}}-starter</artifactId>
             <version>${project.version}</version>
             <exclusions>
                 {{- range .ExcludeDependencies}}
