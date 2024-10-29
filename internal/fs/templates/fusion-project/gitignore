@@ -32,5 +32,7 @@ pom.xml
 {{.FusionStarter}}/**/Makefile
 {{.FusionStarter}}/**/pom.xml
 
+README.md
+
 # Ignore federate generated fusion-starter contents
 {{.FusionProjectName}}/

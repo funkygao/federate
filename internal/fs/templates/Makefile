@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SILENT:
 
 help:
-	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Build
 
@@ -11,34 +11,28 @@ clean:
 	echo "☕️ mvn clean ..."
 	mvn clean -q
 
-package:clean ## Compile and package {{.AppName}}.
-	echo "☕️ mvn package ..."
-	mvn package -q -U -Dmaven.test.skip=true -T8
-
-inspect: ## Inspect indirect conflict risk before runtime.
+check_package_dir:
 	if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
-		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
-		$(MAKE) package; \
+		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Execute 'make package' at project root dir"; \
+		exit 1; \
 	fi
+
+inspect:check_package_dir ## Inspect indirect conflict risk before runtime.
 	java -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
-run-local: ## Debug {{.AppName}} foreground on your host.
-	if [ ! -d "target/{{.AppName}}-1.0.0-SNAPSHOT-package" ]; then \
-		echo "target/{{.AppName}}-1.0.0-SNAPSHOT-package not found. Running 'make package'..."; \
-		$(MAKE) package; \
-	fi
+run-local:check_package_dir ## Debug {{.AppName}} foreground on your host.
 	echo "☕️ Starting {{.AppName}} ..."
 	env {{.Env}} java -DappName={{.AppName}} -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
 ##@ Analysis
 
-dependency-tree: ## Execute mvn dependency:tree.
+dependency-tree:check_package_dir ## Execute mvn dependency:tree.
 	mvn dependency:tree -Dmaven.test.skip=true -DoutputFile=tree.txt -q
 	echo "🍺 check out tree.txt"
 
 ##@ Deployment
 
-build-rpm: ## Build {{.AppName}} into RPM to upload to yum repo.
+build-rpm:check_package_dir ## Build {{.AppName}} into RPM to upload to yum repo.
 	federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}
 
 build-rpm-debug:

@@ -11,17 +11,15 @@ ENV ?=
 ##   Use sci=1 with merge targets to Skip Components Installation.
 
 help: 
-	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make ENV=test \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Submodule
 
 sync-submodules: ## Clean and synchronize submodules to latest remote commits.
 	if [ -z "$(ENV)" ]; then \
-		echo "Error: ENV is not set. Please use 'make ENV=<environment>'"; \
+		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
 		exit 1; \
 	fi
-	echo "☕️ Ignore .gitmodules changes"
-	git update-index --assume-unchanged .gitmodules
 	$(MAKE) restore-submodules
 	echo "☕️ Config all submodules repository for $$ENV environment"
 	$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
@@ -29,7 +27,7 @@ sync-submodules: ## Clean and synchronize submodules to latest remote commits.
 		eval $$cmd; \
 	done
 	echo "☕️ Syncing all submodules repository for $$ENV environment"
-	GIT_SSH_COMMAND='ssh -o StrictHostKeyChecking=no' git submodule update --init --recursive --remote
+	git submodule update --init --recursive --remote
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
 diff-submodules: ## Display local changes compared with their original state.
@@ -49,15 +47,15 @@ clean:restore-submodules
 
 ##@ Consolidate
 
-fusion-start: ## Scaffold {{.FusionStarter}}.
+fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 	if [ ! -f {{.FusionStarter}}/Makefile ]; then \
 		echo "☕️ Scaffolding {{.FusionStarter}} ..."; \
 		federate microservice fusion-start; \
 	fi
 
-consolidate:sync-submodules fusion-start ## Synchronize submodules and generate the target system for the specified environment.
-	echo "☕️ Consolidating the target project ..."
-	federate microservice consolidate --yes --yaml-conflict-cell-width 32 --silent=true
+consolidate:sync-submodules ## Synchronize submodules and generate the federated system for the specified environment.
+	echo "☕️ Consolidating the federated project ..."
+	federate microservice consolidate --yes --silent=true
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
 		for repo in $$(federate components); do \
@@ -69,8 +67,12 @@ consolidate:sync-submodules fusion-start ## Synchronize submodules and generate 
 	else \
 		echo "☕️ Skipped Components Installation"; \
 	fi
-	echo "☕️ Local installing {{.FusionStarter}}.jar ..."
-	$(MAKE) -C {{.FusionStarter}} install
-	echo "☕️ Optimizing target project ..."
-	federate microservice optimize --yes
+	$(MAKE) package
 	echo "🍺 Congrat, consolidated!"
+
+package: ## Build {{.FusionProjectName}} after consolidation.
+	echo "☕️ Building {{.FusionProjectName}} ..."
+	mvn package -q -T8 -Dmaven.artifact.threads=16
+
+optimize: ## Optimize {{.FusionProjectName}} resource consumption.
+	federate microservice optimize --yes --verbosity 3

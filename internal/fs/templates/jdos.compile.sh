@@ -1,3 +1,4 @@
+
 cp bin/federate /usr/bin
 federate microservice scaffold
 federate microservice fusion-start
