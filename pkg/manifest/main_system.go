@@ -1,25 +1,26 @@
 package manifest
 
 import (
-	"strings"
-
 	"federate/pkg/java"
 )
 
 type MainSystem struct {
 	Name          string `yaml:"name"`
+	GroupId       string `yaml:"groupId"`
 	SpringProfile string `yaml:"springProfile"`
 	Version       string `yaml:"version"`
 
 	Runtime   RuntimeSpec   `yaml:"runtime"`
 	MainClass MainClassSpec `yaml:"springBootApplication"`
 
-	RawParent string         `yaml:"parent"`
-	Parent    DependencyInfo `yaml:"-"`
+	RawParent string              `yaml:"parent"`
+	Parent    java.DependencyInfo `yaml:"-"`
 
 	Dependency MainDependencySpec `yaml:"dependency"`
 
 	Reconcile ReconcileSpec `yaml:"reconcile"`
+
+	Rpms []RpmSpec `yaml:"rpm"`
 
 	// Deprecated
 	Features []string `yaml:"features"`
@@ -29,8 +30,8 @@ type MainDependencySpec struct {
 	RawInclude []string `yaml:"include"`
 	RawExclude []string `yaml:"exclude"`
 
-	Includes []DependencyInfo `yaml:"-"`
-	Excludes []DependencyInfo `yaml:"-"`
+	Includes []java.DependencyInfo `yaml:"-"`
+	Excludes []java.DependencyInfo `yaml:"-"`
 }
 
 type RuntimeSpec struct {
@@ -43,11 +44,6 @@ type MainClassSpec struct {
 	ComponentScan ComponentScan `yaml:"componentScan"`
 	Imports       []string      `yaml:"import"`
 	Excludes      []string      `yaml:"exclude"`
-}
-
-func (m *MainSystem) GroupId() string {
-	parts := strings.Split(m.MainClass.Name, ".")
-	return strings.Join(parts[:3], ".")
 }
 
 func (m *MainSystem) FederatedRuntimePackage() string {

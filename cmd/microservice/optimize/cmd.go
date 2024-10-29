@@ -15,7 +15,7 @@ var CmdGroup = &cobra.Command{
 	Short: "Identify potential areas for optimization",
 	Long:  `The optimize command identify potential areas for optimization.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		manifest := manifest.LoadManifest()
+		manifest := manifest.Load()
 		optimize(manifest)
 	},
 }

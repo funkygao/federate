@@ -6,8 +6,10 @@ import (
 )
 
 const (
-	GeneratedDir = "generated"
+	GeneratedDir = ""
 	FederatedDir = "federated"
+
+	starterSuffix = "-starter"
 )
 
 var resourceDir = filepath.Join("src", "main", "resources", FederatedDir)
@@ -26,4 +28,8 @@ func ResourceBaseName(filePath string) string {
 
 func GeneratedTargetRoot(targetSystemName string) string {
 	return filepath.Join(GeneratedDir, targetSystemName)
+}
+
+func StarterBaseDir(targetSystemName string) string {
+	return targetSystemName + starterSuffix
 }

@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bytes"
 	"embed"
 	"io"
 	"log"
@@ -74,4 +75,25 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (ov
 		log.Fatalf("Error executing template: %v", err)
 	}
 	return
+}
+
+func ParseTemplateToString(templatePath string, data interface{}) string {
+	// 解析嵌入的模板文件
+	tmplName := filepath.Base(templatePath)
+	tmpl, err := template.New(tmplName).ParseFS(FS, templatePath)
+	if err != nil {
+		log.Fatalf("Error parsing template: %v", err)
+	}
+
+	// 使用 bytes.Buffer 来存储渲染结果
+	var buf bytes.Buffer
+
+	// 执行模板
+	err = tmpl.Execute(&buf, data)
+	if err != nil {
+		log.Fatalf("Error parsing template: %v", err)
+	}
+
+	// 返回渲染后的字符串
+	return buf.String()
 }

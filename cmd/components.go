@@ -12,7 +12,7 @@ var componentsCmd = &cobra.Command{
 	Use:   "components",
 	Short: "List components of the manifest",
 	Run: func(cmd *cobra.Command, args []string) {
-		manifest := manifest.LoadManifest()
+		manifest := manifest.Load()
 
 		listComponents(manifest)
 	},

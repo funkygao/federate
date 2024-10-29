@@ -3,7 +3,9 @@ package step
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 )
@@ -32,4 +34,15 @@ func promptToProceed(seq, total int, stepName string) {
 	}
 	reader := bufio.NewReader(os.Stdin)
 	reader.ReadString('\n')
+}
+
+func ConfirmAction(prompt string) bool {
+	fmt.Printf("%s (y/N): ", prompt)
+	var response string
+	_, err := fmt.Scanln(&response)
+	if err != nil && response != "" {
+		log.Fatalf("Error reading response: %v", err)
+	}
+
+	return strings.ToLower(response) == "y" || strings.ToLower(response) == "yes"
 }

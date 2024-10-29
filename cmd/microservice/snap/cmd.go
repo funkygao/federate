@@ -34,7 +34,7 @@ Outputs:
 These outputs form a professional-grade, ready-to-deliver package that
 enables customers to build and run the application independently.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		m := manifest.LoadManifest()
+		m := manifest.Load()
 		runSnap(m)
 	},
 }

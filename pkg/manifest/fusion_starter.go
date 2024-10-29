@@ -1,8 +1,12 @@
 package manifest
 
+import (
+	"federate/pkg/java"
+)
+
 type FusionStarterSpec struct {
-	RawDependencies []string         `yaml:"dependencies"`
-	Dependencies    []DependencyInfo `yaml:"-"`
+	RawDependencies []string              `yaml:"dependencies"`
+	Dependencies    []java.DependencyInfo `yaml:"-"`
 
 	Inspect InspectSpec `yaml:"inspect"`
 

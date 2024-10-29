@@ -9,19 +9,27 @@ import (
 	"strings"
 
 	"federate/pkg/federated"
+	"federate/pkg/java"
 )
 
 type Manifest struct {
 	Version string `yaml:"version"`
 
-	Main        MainSystem        `yaml:"federated"`
-	Starter     FusionStarterSpec `yaml:"fusion-starter"`
-	Components  []ComponentInfo   `yaml:"components"`
-	Deployments []DeploymentSpec  `yaml:"deployment"`
+	Main       MainSystem        `yaml:"federated"`
+	Starter    FusionStarterSpec `yaml:"fusion-starter"`
+	Components []ComponentInfo   `yaml:"components"`
 
 	// Dir of the manifest file
 	Dir   string            `yaml:"-"`
 	State IntermediateState `yaml:"-"`
+}
+
+func (m *Manifest) StarterBaseDir() string {
+	return federated.StarterBaseDir(m.Main.Name)
+}
+
+func (m *Manifest) TargetBaseDir() string {
+	return m.Main.Name
 }
 
 func (m *Manifest) ParseMainClass() (string, string) {
@@ -31,21 +39,21 @@ func (m *Manifest) ParseMainClass() (string, string) {
 	return packageName, className
 }
 
-func (m *Manifest) ComponentDependencies() []DependencyInfo {
-	var dependencies []DependencyInfo
+func (m *Manifest) ComponentModules() []java.DependencyInfo {
+	var dependencies []java.DependencyInfo
 	for _, component := range m.Components {
-		dependencies = append(dependencies, component.Dependencies...)
+		dependencies = append(dependencies, component.Modules...)
 	}
 	return dependencies
 }
 
-func (m *Manifest) DeploymentByEnv(env string) *DeploymentSpec {
-	for _, d := range m.Deployments {
+func (m *Manifest) RpmByEnv(env string) *RpmSpec {
+	for _, d := range m.Main.Rpms {
 		if d.Env == env {
 			return &d
 		}
 	}
-	return &DeploymentSpec{}
+	return &RpmSpec{}
 }
 
 func (m *Manifest) ComponentByName(componentName string) *ComponentInfo {
@@ -112,7 +120,7 @@ func (m *Manifest) CreateTargetSystemDir() (string, error) {
 }
 
 func (m *Manifest) TargetRootDir() string {
-	return filepath.Join(federated.GeneratedDir, m.Main.Name)
+	return m.Main.Name
 }
 
 func (m *Manifest) TargetResourceDir() string {

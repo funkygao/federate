@@ -6,19 +6,22 @@ import (
 	"os"
 	"path/filepath"
 
+	"federate/pkg/java"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
 var filePath string
 
-// RequiredManifestFileFlag adds the --input flag to the given command and marks it as required
 func RequiredManifestFileFlag(cmd *cobra.Command) {
-	cmd.Flags().StringVarP(&filePath, "input", "i", "", "Path to the manifest file")
-	cmd.MarkFlagRequired("input")
+	cmd.Flags().StringVarP(&filePath, "input", "i", "manifest.yaml", "Path of the manifest file")
 }
 
-func LoadManifest() *Manifest {
+func File() string {
+	return filePath
+}
+
+func Load() *Manifest {
 	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatalf("Error loading manifest: %v", err)
@@ -37,7 +40,7 @@ func LoadManifest() *Manifest {
 		Main: MainSystem{
 			Version: defaultMainVersion,
 			Reconcile: ReconcileSpec{
-				Taint: Taint{
+				Taint: TaintSpec{
 					LogConfigXml:     defaultLogConfigXml,
 					MybatisConfigXml: defaultMybatisConfigXml,
 				},
@@ -49,17 +52,17 @@ func LoadManifest() *Manifest {
 		log.Fatalf("Error loading manifest: %v", err)
 	}
 
-	manifest.Main.Dependency.Includes = parseDependencies(manifest.Main.Dependency.RawInclude)
-	manifest.Main.Dependency.Excludes = parseDependencies(manifest.Main.Dependency.RawExclude)
-	manifest.Starter.Dependencies = parseDependencies(manifest.Starter.RawDependencies)
-	manifest.Main.Parent = parseDependency(manifest.Main.RawParent)
+	manifest.Main.Dependency.Includes = java.ParseDependencies(manifest.Main.Dependency.RawInclude)
+	manifest.Main.Dependency.Excludes = java.ParseDependencies(manifest.Main.Dependency.RawExclude)
+	manifest.Starter.Dependencies = java.ParseDependencies(manifest.Starter.RawDependencies)
+	manifest.Main.Parent = java.ParseDependency(manifest.Main.RawParent)
 
 	manifest.Main.Reconcile.M = &manifest.Main
 
 	// 设置每个组件的引用 MainSystem 并解析 dependencies 字段
 	for i := range manifest.Components {
 		manifest.Components[i].M = &manifest.Main
-		manifest.Components[i].Dependencies = parseDependencies(manifest.Components[i].RawDependencies)
+		manifest.Components[i].Modules = java.ParseDependencies(manifest.Components[i].RawModules)
 	}
 
 	return &manifest

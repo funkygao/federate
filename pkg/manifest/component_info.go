@@ -3,19 +3,24 @@ package manifest
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"federate/pkg/federated"
+	"federate/pkg/java"
 	"federate/pkg/util"
 )
 
 type ComponentInfo struct {
 	Name          string `yaml:"name"`
+	Repo          string `yaml:"repo"`
 	SpringProfile string `yaml:"springProfile"`
 
-	RawDependencies []string         `yaml:"modules"`
-	Dependencies    []DependencyInfo `yaml:"-"`
+	RawModules []string              `yaml:"modules"`
+	Modules    []java.DependencyInfo `yaml:"-"`
 
 	Resources ComponentResourceSpec `yaml:"resources"`
+
+	Envs []EnvironmentSpec `yaml:"environments"`
 
 	// BaseDir is used for unit test: change source dir
 	BaseDir string `yaml:"-"`
@@ -38,6 +43,14 @@ func (c *ComponentInfo) RootDir() string {
 		return filepath.Join(c.BaseDir, c.Name)
 	}
 	return filepath.Join(c.Name)
+}
+
+func (c *ComponentInfo) MavenBuildModules() string {
+	var r []string
+	for _, m := range c.Modules {
+		r = append(r, m.ArtifactId)
+	}
+	return strings.Join(r, ",")
 }
 
 // 该组件的基于 baseDir 的源代码目录

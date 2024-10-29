@@ -22,6 +22,7 @@ test: generate fmt
 
 clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
+	rm -rf build
 
 install: test ## Build and install federate. If HOMEBREW_PREFIX is set, install there, otherwise use GOPATH/bin.
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
@@ -85,12 +86,12 @@ install-completion: ## Install shell completion for federate on MacOS.
 	esac; \
 	echo "Completion installation finished. Please restart your shell or source the appropriate file to enable completion."
 
-PLATFORMS := darwin-amd64 darwin-arm64 linux-amd64 linux-arm64
+PLATFORMS := linux-amd64 # linux-arm64 darwin-amd64 darwin-arm64
 
 release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
 	for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
-		-o ../bin/federate-$$platform \
+		-o build/federate-$$platform \
 		-ldflags " \
 			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
 			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \

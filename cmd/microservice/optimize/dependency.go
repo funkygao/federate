@@ -18,7 +18,7 @@ var dependencyCmd = &cobra.Command{
 	Use:   "dependency",
 	Short: "Optimize project JAR dependencies",
 	Run: func(cmd *cobra.Command, args []string) {
-		manifest := manifest.LoadManifest()
+		manifest := manifest.Load()
 		optimizeDependency(manifest)
 	},
 }

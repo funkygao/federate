@@ -11,5 +11,5 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(jdosCmd, buildRpmCmd, buildDockerCmd)
+	CmdGroup.AddCommand(buildRpmCmd, buildDockerCmd)
 }

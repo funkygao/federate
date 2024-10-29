@@ -1,17 +1,22 @@
 version: 1.0
 
-#===================
-# 联邦应用：测试环境
-#===================
+#=========
+# 联邦应用
+#=========
 federated:
-  name: wms-stock-synergy
-  parent: com.jdwl.wms:fusion-projects:1.0.0-SNAPSHOT
+  name: fusion-stock-inventory
+  groupId: com.jdwl.wms
   dependency:
     exclude:
       - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
   springProfile: test
+  rpm:
+    - env: on-premise
+      tomcatPort: 8082
+      jvmSize: large # medium, small
+      JAVA_OPTS:
   springBootApplication:
-    class: com.jdwl.wms.fusion.WmsStockSynergy
+    class: com.jdwl.wms.fusion.WmsStockInventory
     exclude: # @SpringBootApplication#exclude
        - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
     import:  # @Import
@@ -34,7 +39,6 @@ federated:
         - com.jdwl.wms.stock.common.WebMvcConfig
         - com.jdwl.wms.inventory.intercept.WebMvcConfig
         - com.jdwl.wms.stock.common.config.SwaggerConfig
-
   reconcile: # 资源调和
     taint: # 污点：无法自动合并，用户提供
       logConfigXml: logback-test.xml
@@ -85,6 +89,11 @@ fusion-starter:
 #===========
 components:
   - name: wms-stock
+    repo: git@coding.jd.com:wms-ng/wms-stock.git
+    environments:
+      - name: test
+        branch: test
+        mavenProfile: test
     springProfile: test
     modules: # 启动包
       - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
@@ -106,6 +115,11 @@ components:
         - jsf-consumer.xml
 
   - name: wms-inventory
+    repo: git@coding.jd.com:wms-ng/wms-inventory.git
+    environments:
+      - name: test
+        branch: test
+        mavenProfile: test
     springProfile: test
     modules: # 启动包
       - com.jdwl.wms:wms-inventory-web:1.0.0-SNAPSHOT
@@ -128,13 +142,3 @@ components:
         - jimkv/*.xml
       jsfConsumerXml:
         - jsf/jsf-consumer*.xml
-
-#===========
-# 部署信息
-#===========
-deployment:
-  - env: on-premise
-    tomcatPort: 8082
-    jvmSize: large # medium, small
-    JAVA_OPTS:
-

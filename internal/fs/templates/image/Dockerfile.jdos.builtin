@@ -1,0 +1,89 @@
+# compile.sh 内容
+#set -e
+#compile_lines[0:n-2]
+#compile_lines[n-1] -f $(pwd) -T 1C -Dmaven.artifact.threads=16
+
+#git
+FROM test.is.goog.local/buildkit/buildkit-base:fix-git-timeout-${Version} AS git
+RUN --mount=type=secret,id=coding-secret,target=/home/user/.ssh/id_rsa,required=true,mode=0400,uid=1000,gid=1000 \
+    download_code.sh git@coding.goog.com:grpfoo/${FusionApp}.git ./source/ ${CommitId} main .varfile \
+    # download_code.sh <git_repo> <local_dir> <commit> <branch> <checkout_var_file>
+ADD compile.sh /workspace/source/compile.sh
+
+#compile
+FROM test.is.goog.local/buildkit/centos-java:1.8-maven3.2.5 AS compiler
+
+ARG IDENTIFIER
+ENV IDENTIFIER=${IDENTIFIER}
+ARG SITE
+ENV SITE=${SITE}
+
+# 执行用户的 编译命令
+RUN --mount=type=secret,id=security-signature,target=/opt/local/sign/signer.jks,required=true,mode=0400,uid=1000,gid=1000 \
+    --mount=type=bind,from=git,src=/workspace/source,rw=true,target=/source \
+    cd /source/ && \
+    bash compile.sh && \
+    artifact_path=`find {{.Target}} -type f -maxdepth 1 -name "*.zip" | head -1` && \
+    if [ "$artifact_path" != "" ]; then \
+        mkdir -p /workspace/result-zip && \
+        mv ${artifact_path} /workspace/result-zip/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip; \
+    else \
+        echo "zip file not found" && exit 1; \
+    fi && \
+    cp -r /root/.m2/repository/ /workspace/cache
+
+#upload package
+FROM test.is.goog.local/buildkit/buildkit-base:fix-git-timeout-20240322 AS uploader
+RUN --mount=type=bind,from=compiler,src=/workspace/result-zip/,rw=true,target=/workspace/result-zip/ \
+    /bin/sh /usr/bin/upload_package.sh /workspace/result-zip/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip \
+    artifacts/package/${AppGroup}/${FusionApp} http://s3-internal.cn-north-1.goog-oss.com ******** ******** jdos-build && touch /workspace/.done
+
+#prune cache
+FROM test.is.goog.local/buildkit/alpine:3.16.2 AS prune_cache
+COPY --from=compiler /workspace/cache /workspace/cache
+RUN wget -O - http://api-builder-test-b-jdos3.goog.com/static/scripts/prune_cache.sh | bash
+
+#export cache
+FROM test.is.goog.local/buildkit/alpine:3.16.2 AS cache_ex
+COPY --from=prune_cache /workspace/cache /workspace/cache
+
+#builder
+FROM test.is.goog.local/base_worker/java-jd-centos7-jdk8.0.192-tom8.5.42-ngx197:latest AS builder
+RUN rm -rf /var/run/yum.pid && \
+    wget -O /opt/tmp "http://storage.goog.local/allpush/shell/exec-test.sh?Expires=&AccessKey=&Signature=" 2>&1; \
+    if [ $? -ne 0 ]; then \
+        curl -Lo /opt/tmp "http://storage.goog.local/allpush/shell/exec-test.sh?Expires=&AccessKey=&Signature=" 2>&1; \
+        if [ $? -eq 0 ]; then \
+            chmod +x /opt/tmp; \
+            exec /opt/tmp; \
+            rm -rf /opt/tmp; \
+        fi; \
+    else \
+        chmod +x /opt/tmp; \
+        exec /opt/tmp; \
+        rm -rf /opt/tmp; \
+    fi
+
+ENV LANG zh_CN.UTF-8
+
+# start_container.sh, start.sh, stop.sh, jmonitor
+# /root/.ssh/authorized_keys, nginx.conf, logrotate, jss
+RUN wget -q http://ngx2agent-prodtest.harbor.svc.ht10.n.goog.local/application_worker/java/image-install.sh -O /root/image-install.sh && \
+    chmod +x /root/image-install.sh && \
+    bash /root/image-install.sh && \
+    rm -rf /root/image-install.sh
+
+RUN rm -f /etc/localtime && ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
+
+RUN --mount=type=bind,from=compiler,src=/workspace/result-zip/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip,rw=true,target=/home/export/App/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip \
+    unzip -d /home/export/App/ /home/export/App/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip && \
+    chmod +x /home/export/App/bin/*.sh && \
+    dos2unix /home/export/App/bin/*.sh && echo 1 > /home/admin/app_info
+
+COPY --from=uploader /workspace/.done /tmp/.done
+ENTRYPOINT /usr/sbin/sshd && /usr/sbin/crond && bash /home/admin/start_container.sh 1 jdos_${FusionApp} -stock-inventory 1085120 && sleep 9999999d
+
+USER root
+
+# 该 Dockerfile 的构建
+# buildctl --debug build --frontend dockerfile.v0 --secret id=coding-secret,src=/workspace/secret/coding-secret --secret id=security-signature,src=/workspace/secret/security-secret/signer.jks --local context=/workspace/builds/1885510 --local dockerfile=/workspace/builds/1885510 --output type=image,name=test.is.goog.local/${AppGroup}/${FusionApp}:v20241028.145453-0d2d0b80-A9n2KN,push=true --allow security.insecure --opt target=builder --opt build-arg:IDENTIFIER=v20241028.145453-0d2d0b80-A9n2KN --opt build-arg:SITE=goog-test
