@@ -95,6 +95,18 @@ docker-build: ## Build Docker image for federate.
 		-t federate:latest .
 	echo "🍺 Docker image built: federate:latest"
 
+docker-test: docker-build
+	echo "Creating temporary Dockerfile for testing..."
+	echo "FROM centos:7" > Dockerfile.test
+	echo "COPY --from=federate:latest /federate /usr/local/bin/federate" >> Dockerfile.test
+	echo "Building test image..."
+	docker build -t federate:test -f Dockerfile.test .
+	echo "Running test container..."
+	docker run --rm federate:test ls -l /usr/local/bin/federate
+	echo "Cleaning up..."
+	rm -f Dockerfile.test
+	docker rmi federate:test
+
 PLATFORMS := linux-amd64 # linux-arm64 darwin-amd64 darwin-arm64
 
 release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
