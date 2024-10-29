@@ -69,9 +69,12 @@ install-completion: ## Install shell completion for federate on MacOS.
 			mkdir -p "$$COMPLETION_DIR"; \
 			federate completion zsh > "$$COMPLETION_DIR/_federate"; \
 			echo "Zsh completion for federate installed to $$COMPLETION_DIR/_federate"; \
-			echo "Please add the following lines to your ~/.zshrc:"; \
-			echo "  fpath=($$COMPLETION_DIR \$$fpath)"; \
-			echo "  autoload -Uz compinit && compinit"; \
+			echo "+---------------------------------------------------------+"; \
+			echo "| Please add the following lines to your ~/.zshrc:        |"; \
+			echo "+---------------------------------------------------------+"; \
+			echo "fpath=($$COMPLETION_DIR \$$fpath)"; \
+			echo "autoload -Uz compinit && compinit"; \
+			echo "+---------------------------------------------------------+"; \
 			;; \
 		fish) \
 			COMPLETION_DIR=$$HOME/.config/fish/completions; \
