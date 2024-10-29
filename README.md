@@ -9,6 +9,14 @@ Microservices architecture, despite its advantages in scalability, flexibility, 
 
 This approach decouples logical boundaries from physical deployment, offering flexibility while maintaining microservice architecture benefits. The result is a system combining microservice agility with consolidated architecture efficiency.
 
+## Quickstart: Install and Run **federate**
+
+```bash
+brew install go
+make install
+federate
+```
+
 ## 核心设计
 
 ### 概念模型
