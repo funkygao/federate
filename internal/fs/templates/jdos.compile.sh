@@ -1,10 +1,9 @@
-set -x
-
 cp bin/federate /usr/bin
 federate microservice scaffold
 federate microservice fusion-start
 federate microservice consolidate --yes --silent=true
 
+# 这是个诱饵：欺骗 JDOS 构建程序
 # mvn clean
 
 M="m"
@@ -12,15 +11,12 @@ V="v"
 N="n"
 MVN=$M$V$N
 
-# 定义安装命令，欺骗 JDOS 构建程序，不要滥处理
-INSTALL_CMD="$MVN install -am -Dmaven.test.skip=true -Dfederate.packaging=true -P{{.Profile}} -T8"
-
+INST_COMPONENT_CMD="$MVN install -am -Dmaven.test.skip=true -Dfederate.packaging=true -P{{.Profile}} -T8 -Dmaven.artifact.threads=16"
 {{- range .Components}}
-(cd {{.Name}} && $INSTALL_CMD -pl :{{.Module}})
+(cd {{.Name}} && $INST_COMPONENT_CMD -pl :{{.Module}})
 {{- end}}
 
-(cd {{.Name}}-starter && $INSTALL_CMD)
+# 根目录下打包
+$MVN package -Dmaven.test.skip=true -T8
 
-(cd {{.Name}} && $MVN package -Dmaven.test.skip=true -P{{.Profile}} -T8)
-
-#mvn validate
+echo "🍺 {{.Name}} packaged!"

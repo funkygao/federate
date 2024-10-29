@@ -23,7 +23,7 @@ RUN --mount=type=secret,id=security-signature,target=/opt/local/sign/signer.jks,
     --mount=type=bind,from=git,src=/workspace/source,rw=true,target=/source \
     cd /source/ && \
     bash compile.sh && \
-    artifact_path=`find /source/target -type f -maxdepth 1 -name "*.zip" | head -1` && \
+    artifact_path=`find {{.Target}} -type f -maxdepth 1 -name "*.zip" | head -1` && \
     if [ "$artifact_path" != "" ]; then \
         mkdir -p /workspace/result-zip && \
         mv ${artifact_path} /workspace/result-zip/${AppGroup}-${FusionApp}-20241028.145453.723-0d2d0b80.zip; \
