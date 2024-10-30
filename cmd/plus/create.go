@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"federate/cmd/merge"
 	"federate/internal/fs"
@@ -20,6 +21,7 @@ var createCmd = &cobra.Command{
 	Short: "Generate a Plus Project with standard structure and boilerplate code",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
+		validatePlusSpec(m.Main.Plus)
 		doCreate(m)
 	},
 }
@@ -30,30 +32,42 @@ func doCreate(m *manifest.Manifest) {
 		log.Fatalf("Error adding git submodules: %v", err)
 	}
 
+	// 脚手架
 	log.Printf("Scaffolding %s project structure ...", m.Main.Name)
 	generatePlusProjectFiles(m)
 
-	log.Println("Instrumenting submodule pom.xml ...")
+	// 让WMS6.0代码安装后可以被依赖
+	log.Println("Instrumenting submodule pom.xml for JAR dependency ...")
 	merge.EchoBeer = false
 	merge.InstrumentPomForFederatePackaging(m)
-	color.Green("🍺 Congrat, %s scaffolded! Next, `make install-kernel` and start programming!", m.Main.Name)
+
+	color.Green("🍺 Congrat, %s scaffolded! Next, `make install-kernel` and start Plus Programming!", m.Main.Name)
 }
 
 func generatePlusProjectFiles(m *manifest.Manifest) {
+	basePackage := m.Main.PlusBasePackage()
 	data := struct {
 		ArtifactId            string
 		ComponentDependencies []java.DependencyInfo
+		BasePackage           string
+		SpringXml             string
 	}{
 		ArtifactId:            m.Main.Name,
 		ComponentDependencies: m.ComponentModules(),
+		BasePackage:           basePackage,
+		SpringXml:             m.Main.Plus.SpringXml,
 	}
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("Makefile", "Makefile", data)
-	generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
+	generateFile("package.xml", filepath.Join("src", "main", "assembly", "package.xml"), data)
+	if m.Main.Plus.SpringXml != "" {
+		// 自动引导用户提供的 spring xml
+		generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
+		generateFile("SpringResourcePlusLoader.java", filepath.Join("src", "main", "java", java.Pkg2Path(basePackage), "configuration", "SpringResourcePlusLoader.java"), data)
+	}
 
-	basePackage := m.Main.PlusBasePackage()
 	paths := [][]string{
-		{"src", "main", "java", java.Pkg2Path(basePackage), "config"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "configuration"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "controller"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "device"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "policy"},
@@ -62,7 +76,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		{"src", "main", "java", java.Pkg2Path(basePackage), "application"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "entity"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "service"},
-		{"src", "main", "resources", "META-INF"},
+		{"src", "main", "resources", filepath.Dir(m.Main.Plus.SpringXml)},
 		{"src", "test", "java"},
 		{"src", "test", "resources"},
 	}
@@ -91,14 +105,20 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 		return
 	}
 
+	log.Printf("Generating %s", targetFile)
 	fs.GenerateFileFromTmpl("templates/plus/"+fromTemplateFile, targetFile, data)
-	log.Printf("Generated %s", targetFile)
 }
 
 func mkdir(path string) {
 	log.Printf("Generating %s", path)
 	if err := os.MkdirAll(path, 0755); err != nil {
 		log.Fatalf("mkdir: %v", err)
+	}
+}
+
+func validatePlusSpec(p manifest.PlusSpec) {
+	if p.SpringXml != "" && !strings.HasSuffix(p.SpringXml, ".xml") {
+		log.Fatalf("manifest.yaml federated.plus.springXml MUST be xml file instead of directory")
 	}
 }
 
