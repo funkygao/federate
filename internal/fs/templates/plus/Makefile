@@ -40,11 +40,14 @@ restore-submodules:
 
 ##@ Plus
 
-install-kernel: ## Set up WMS6.0 kernel for Plus Development.
+install-kernel: ## Set up WMS6.0 kernel with src attached for Plus Development.
 	for repo in $$($(INVENTORY_CMD) -f components); do \
 		echo "Installing $$repo ..."; \
-		(cd $$repo && mvn -q install -am -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
+		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 	done
 
-assemble: ## Create deployable artifact for the Plus Project.
+package: ## Compile and package {{.AppName}}.
 	mvn package -T8 -Dmaven.artifact.threads=16
+
+build-rpm: ## Create deployable RPM artifact for {{.AppName}}.
+	federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}
