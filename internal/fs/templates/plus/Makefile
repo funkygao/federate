@@ -47,4 +47,4 @@ install-kernel: ## Set up WMS6.0 kernel for Plus Development.
 	done
 
 assemble: ## Create deployable artifact for the Plus Project.
-	mvn package -q -T8 -Dmaven.artifact.threads=16
+	mvn package -T8 -Dmaven.artifact.threads=16
