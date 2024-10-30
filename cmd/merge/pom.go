@@ -28,7 +28,9 @@ func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
 			}
 		}
 	}
-	color.Green("🍺 pom.xml Instrumented for federate packaging")
+	if EchoBeer {
+		color.Green("🍺 pom.xml Instrumented for federate packaging")
+	}
 }
 
 func instrumentPom(pomPath string) error {
@@ -91,7 +93,7 @@ func instrumentPom(pomPath string) error {
 				skip = configuration.CreateElement("skip")
 			}
 			skip.SetText("${federate.packaging}")
-			log.Printf("Updated spring-boot-maven-plugin configuration in %s", pomPath)
+			log.Printf("Rewritten spring-boot-maven-plugin configuration in %s", pomPath)
 			break
 		}
 	}

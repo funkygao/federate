@@ -38,20 +38,13 @@ restore-submodules:
 		fi; \
 	done
 
-clean:restore-submodules
-	rm -rf generated test.log
-
 ##@ Plus
 
 install-kernel: ## Local install WMS6.0 kernel.
-	if [ "$(sci)" != "1" ]; then \
-		for repo in $$(federate inventory -f components); do \
-			echo "   Installing $$repo"; \
-			(cd $$repo && mvn clean install -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
-		done; \
-	else \
-		echo "☕️ Skipped Components Installation"; \
-	fi
+	for repo in $$($(INVENTORY_CMD) -f components); do \
+		echo "Installing $$repo ..."; \
+		(cd $$repo && mvn -q install -am -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
+	done
 
-package: ## Build {{.ArtifactId}} after consolidation.
+assemble: ## Create deployable artifact for {{.ArtifactId}}.
 	mvn package -q -T8 -Dmaven.artifact.threads=16

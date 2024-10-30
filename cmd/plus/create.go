@@ -11,14 +11,14 @@ import (
 	"federate/pkg/git"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/util"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Generate a new plus project with standard structure",
-	Long:  `Scaffold a new plus project, laying the foundation for platform extensions with an optimized directory structure and essential boilerplate code.`,
+	Short: "Generate a new Plus project with standard structure and boilerplate code",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
 		doCreate(m)
@@ -31,10 +31,13 @@ func doCreate(m *manifest.Manifest) {
 		log.Fatalf("Error adding git submodules: %v", err)
 	}
 
+	log.Printf("Scaffolding %s project structure ...", m.Main.Name)
 	generatePlusProjectFiles(m)
 
-	log.Println("Instrument submodule pom.xml ...")
+	log.Println("Instrumenting submodule pom.xml ...")
+	merge.EchoBeer = false
 	merge.InstrumentPomForFederatePackaging(m)
+	color.Green("🍺 Congrat, %s scaffolded! Next, `make install-kernel` and start programming!", m.Main.Name)
 }
 
 func generatePlusProjectFiles(m *manifest.Manifest) {
@@ -60,12 +63,13 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {
-	overwrite := fs.GenerateFileFromTmpl("templates/plus/"+fromTemplateFile, targetFile, data)
-	if overwrite {
-		color.Yellow("Overwrite %s", targetFile)
-	} else {
-		color.Cyan("Generated %s", targetFile)
+	if util.FileExists(targetFile) {
+		log.Printf("%s exists, skipped to avoid being overwritten", targetFile)
+		return
 	}
+
+	fs.GenerateFileFromTmpl("templates/plus/"+fromTemplateFile, targetFile, data)
+	log.Printf("Generated %s", targetFile)
 }
 
 func mkdir(path string) {
