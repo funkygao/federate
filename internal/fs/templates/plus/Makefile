@@ -7,11 +7,17 @@ INVENTORY_CMD := $(FEDERATE_CMD) inventory
 ENV ?=
 
 help: 
-	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
-##@ Submodule
+##@ WMS6.0 Kernel
 
-sync-submodules: ## Clean and synchronize submodules to latest remote commits.
+install: ## Set up WMS6.0 kernel with src attached for Plus Development.
+	for repo in $$($(INVENTORY_CMD) -f components); do \
+		echo "Installing $$repo ..."; \
+		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
+	done
+
+sync: ## Synchronize WMS6.0 kernel to latest remote commits.
 	if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
 		exit 1; \
@@ -26,7 +32,7 @@ sync-submodules: ## Clean and synchronize submodules to latest remote commits.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
-diff-submodules: ## Display local changes compared with their original state.
+diff: ## Display local changes compared with WMS6.0 kernel.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
 restore-submodules:
@@ -38,13 +44,7 @@ restore-submodules:
 		fi; \
 	done
 
-##@ Plus
-
-install-kernel: ## Set up WMS6.0 kernel with src attached for Plus Development.
-	for repo in $$($(INVENTORY_CMD) -f components); do \
-		echo "Installing $$repo ..."; \
-		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
-	done
+##@ Plus Development
 
 package: ## Compile and package {{.AppName}}.
 	mvn package -T8 -Dmaven.artifact.threads=16
