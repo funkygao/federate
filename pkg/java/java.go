@@ -57,3 +57,7 @@ func IsSpringYamlFile(info os.FileInfo, path string) bool {
 	base := filepath.Base(path)
 	return yamlFilePattern.MatchString(base)
 }
+
+func Pkg2Path(pkg string) string {
+	return filepath.FromSlash(strings.ReplaceAll(pkg, ".", "/"))
+}

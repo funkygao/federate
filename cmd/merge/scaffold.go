@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
-	"strings"
 
 	"federate/internal/fs"
 	"federate/pkg/java"
@@ -97,7 +96,7 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	mainClassDir := filepath.Join(root, "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
+	mainClassDir := filepath.Join(root, "src", "main", "java", java.Pkg2Path(packageName))
 	fn := filepath.Join(mainClassDir, className+".java")
 	overwrite := fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
 	if overwrite {

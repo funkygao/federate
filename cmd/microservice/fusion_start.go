@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"federate/internal/fs"
 	"federate/pkg/java"
@@ -120,7 +119,7 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 		AddOns:                m.Starter.Inspect.AddOn,
 		ExcludedBeanPatterns:  m.Starter.BeanNameGenerator.ExcludedBeanPatterns,
 	}
-	mainClassDir := filepath.Join(m.StarterBaseDir(), "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(packageName, ".", "/")))
+	mainClassDir := filepath.Join(m.StarterBaseDir(), "src", "main", "java", java.Pkg2Path(packageName))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-starter/"+simpleClassName+".java", javaFile, data)
 	if !overwrite {
@@ -136,7 +135,7 @@ func cleanFusionStarterProject(m *manifest.Manifest) {
 		filepath.Join(m.StarterBaseDir(), "Makefile"),
 	}
 
-	packagePath := filepath.Join(m.StarterBaseDir(), "src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.FederatedRuntimePackage(), ".", "/")))
+	packagePath := filepath.Join(m.StarterBaseDir(), "src", "main", "java", java.Pkg2Path(m.Main.FederatedRuntimePackage()))
 	for _, cls := range runtimeClasses {
 		filesToRemove = append(filesToRemove, filepath.Join(packagePath, cls+".java"))
 	}

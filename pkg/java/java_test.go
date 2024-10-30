@@ -39,6 +39,10 @@ func TestIsResourceFile(t *testing.T) {
 	}
 }
 
+func TestPkg2Path(t *testing.T) {
+	assert.Equal(t, "com/goog/wms/addon", Pkg2Path("com.goog.wms.addon"))
+}
+
 func TestIsSpringYamlFile(t *testing.T) {
 	tests := []struct {
 		path     string

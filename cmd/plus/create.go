@@ -4,7 +4,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"federate/cmd/merge"
 	"federate/internal/fs"
@@ -51,15 +50,38 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("Makefile", "Makefile", data)
 
+	basePackage := m.Main.PlusBasePackage()
 	paths := [][]string{
-		{"src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.Plus.BasePackage, ".", "/")), "plus", "controller"},
-		{"src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.Plus.BasePackage, ".", "/")), "plus", "policy"},
-		{"src", "main", "java", filepath.FromSlash(strings.ReplaceAll(m.Main.Plus.BasePackage, ".", "/")), "plus", "pattern"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "config"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "controller"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "device"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "policy"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "pattern"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "repository"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "application"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "entity"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "service"},
 		{"src", "main", "resources"},
+		{"src", "test", "java"},
+		{"src", "test", "resources"},
 	}
 	for _, p := range paths {
 		mkdir(filepath.Join(p...))
 	}
+
+	generatePackageInfo(m)
+}
+
+func generatePackageInfo(m *manifest.Manifest) {
+	pkg := m.Main.PlusBasePackage()
+	data := struct {
+		Package string
+	}{
+		Package: pkg,
+	}
+	mainClassDir := filepath.Join("src", "main", "java", java.Pkg2Path(pkg))
+	fn := filepath.Join(mainClassDir, "package-info.java")
+	generateFile("package-info.java", fn, data)
 }
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {

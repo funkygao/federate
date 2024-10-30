@@ -51,6 +51,10 @@ func (m *MainSystem) FederatedRuntimePackage() string {
 	return java.ClassPackageName(m.MainClass.Name) + ".runtime"
 }
 
+func (m *MainSystem) PlusBasePackage() string {
+	return m.Plus.BasePackage + ".plus"
+}
+
 func (m *MainSystem) HasFeature(feature string) bool {
 	for _, f := range m.Features {
 		if f == feature {
