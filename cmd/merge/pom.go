@@ -11,7 +11,7 @@ import (
 	"github.com/fatih/color"
 )
 
-func instrumentPomForFederatePackaging(m *manifest.Manifest) {
+func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
 	for _, c := range m.Components {
 		rootPom := filepath.Join(c.RootDir(), "pom.xml")
 		if err := instrumentPom(rootPom); err != nil {

@@ -1,14 +1,12 @@
 package microservice
 
 import (
-	"fmt"
 	"log"
 	"os"
-	"os/exec"
-	"strings"
 
 	"federate/internal/fs"
 	"federate/pkg/federated"
+	"federate/pkg/git"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"github.com/fatih/color"
@@ -31,7 +29,7 @@ func scaffoldMonolith() {
 	m := manifest.Load()
 
 	// 添加 git submodules
-	if err := addGitSubmodules(m); err != nil {
+	if err := git.AddSubmodules(m); err != nil {
 		log.Fatalf("Error adding git submodules: %v", err)
 	}
 
@@ -71,45 +69,6 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 	} else {
 		color.Cyan("Generated %s", targetFile)
 	}
-}
-
-func addGitSubmodules(m *manifest.Manifest) error {
-	gitmodulesUpdate := false
-	for _, c := range m.Components {
-		// 检查 submodule 是否已存在
-		checkCmd := exec.Command("git", "submodule", "status", c.Name)
-		err := checkCmd.Run()
-		if err == nil {
-			// Submodule 已存在，跳过
-			continue
-		}
-
-		cmd := exec.Command("git", "submodule", "add", c.Repo, c.Name)
-		log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
-		err = cmd.Run()
-		if err == nil {
-			color.Cyan("Added git submodule: %s", c.Name)
-
-			gitmodulesUpdate = true
-		}
-	}
-
-	if !gitmodulesUpdate {
-		return nil
-	}
-
-	// 提交 .gitmodules 更改
-	commitCmd := exec.Command("git", "commit", "-am", "Update .gitmodules to maintain shallow clones")
-	log.Printf("Executing: %s", strings.Join(commitCmd.Args, " "))
-	err := commitCmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to commit .gitmodules changes: %v", err)
-	}
-	color.Cyan(".gitmodules updated and committed")
-	return nil
 }
 
 func init() {

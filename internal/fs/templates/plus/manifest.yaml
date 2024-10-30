@@ -6,8 +6,8 @@ kind: Plus
 #=========
 federated:
   name: plus-example
-  groupId: com.jdwl.wms
-  parent: com.jdwl.wms:wms-parent:2.3.0-SNAPSHOT
+  plus:
+    basePackage: com.jdwl.wms.ib
   rpm:
     - env: on-premise
       tomcatPort: 8082
