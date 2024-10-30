@@ -41,7 +41,7 @@ export CPU_QUOTA MEMORY_LIMIT CPU_AFFINITY
 cd /root/rpmbuild
 
 chmod 777 SOURCES/app/bin/run.sh
-chmod 777 SOURCES/app/bin/stop.sh
+[ -f SOURCES/app/bin/stop.sh ] && chmod 777 SOURCES/app/bin/stop.sh
 
 # 创建临时目录用于打包
 mkdir -p SOURCES/temp/${APP_NAME}-${VERSION}
