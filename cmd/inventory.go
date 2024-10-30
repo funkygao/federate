@@ -42,6 +42,8 @@ func parseInventory() {
 		printHumanReadable(inv)
 	case "make":
 		printMakeFormat(inv)
+	case "components":
+		listComponents(m)
 	case "env-list":
 		printEnvList(inv)
 	case "repo-list":
@@ -58,6 +60,14 @@ func parseInventory() {
 		fmt.Printf("Unknown format: %s\n", format)
 		os.Exit(1)
 	}
+}
+
+func listComponents(m *manifest.Manifest) {
+	var components []string
+	for _, c := range m.Components {
+		components = append(components, c.Name)
+	}
+	fmt.Println(strings.Join(components, " "))
 }
 
 func printHumanReadable(inv *manifest.Inventory) {

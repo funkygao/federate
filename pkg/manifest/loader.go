@@ -36,6 +36,7 @@ func Load() *Manifest {
 	// set default value
 	manifest := Manifest{
 		Version: "1.0",
+		Kind:    "Fusion",
 		Dir:     filepath.Dir(filePath),
 		Main: MainSystem{
 			Version: defaultMainVersion,

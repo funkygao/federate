@@ -58,7 +58,7 @@ consolidate:sync-submodules ## Synchronize submodules and generate the federated
 	federate microservice consolidate --yes --silent=true
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
-		for repo in $$(federate components); do \
+		for repo in $$(federate inventory -f components); do \
 			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $$ENV); \
 			modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
 			echo "   Installing $$repo with profile:$$profile on modules:$$modules"; \

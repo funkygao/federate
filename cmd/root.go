@@ -79,7 +79,6 @@ func init() {
 	chatgpt.CmdGroup.GroupID = "utility"
 	github.CmdGroup.GroupID = "utility"
 	allCmd.GroupID = "utility"
-	componentsCmd.GroupID = "utility"
 	inventoryCmd.GroupID = "utility"
 
 	version.CmdGroup.GroupID = "system"
@@ -102,7 +101,7 @@ func init() {
 	)
 
 	// utility
-	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, github.CmdGroup, inventoryCmd, componentsCmd, allCmd)
+	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, github.CmdGroup, inventoryCmd, allCmd)
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)

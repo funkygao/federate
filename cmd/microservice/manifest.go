@@ -15,13 +15,14 @@ import (
 
 var (
 	generateGuide bool
+	plusKind      bool
 	outputFile    string
 )
 
 var manifestCmd = &cobra.Command{
 	Use:   "manifest",
-	Short: "Display or generate a guide for the manifest.yaml",
-	Long:  `The manifest command displays the manifest.yaml with syntax highlighting or generates a detailed reference guide.`,
+	Short: "Display guide for the manifest.yaml",
+	Long:  `The manifest command displays the manifest.yaml with syntax highlighting.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if generateGuide {
 			generateManifestGuide()
@@ -32,7 +33,13 @@ var manifestCmd = &cobra.Command{
 }
 
 func showManifest() {
-	yaml, _ := fs.FS.ReadFile("templates/doc/manifest.yaml")
+	var file string
+	if plusKind {
+		file = "templates/doc/manifest.plus.yaml"
+	} else {
+		file = "templates/doc/manifest.yaml"
+	}
+	yaml, _ := fs.FS.ReadFile(file)
 	lexer := lexers.Get("yaml")
 	iterator, err := lexer.Tokenise(nil, string(yaml))
 	if err != nil {
@@ -146,5 +153,6 @@ func getType(v interface{}) string {
 
 func init() {
 	manifestCmd.Flags().BoolVarP(&generateGuide, "guide", "g", false, "Generate a reference guide for the manifest")
+	manifestCmd.Flags().BoolVarP(&plusKind, "plus", "p", false, "Display manifest of Plus kind")
 	manifestCmd.Flags().StringVarP(&outputFile, "output", "o", "", "Output file for the generated guide (default is stdout)")
 }

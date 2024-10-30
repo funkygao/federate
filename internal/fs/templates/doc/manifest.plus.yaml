@@ -1,0 +1,25 @@
+version: 1.0
+kind: Plus
+
+#=========
+# 目标应用
+#=========
+federated:
+  name: plus-example
+  groupId: com.jdwl.wms
+  parent: com.jdwl.wms:wms-parent:2.3.0-SNAPSHOT
+  rpm:
+    - env: on-premise
+      tomcatPort: 8082
+      jvmSize: large # medium, small
+      JAVA_OPTS: "-Xms2048m -Xmx2048m -XX:MaxPermSize=256m"
+    resources: # 资源文件处理
+
+#============
+# 平台能力构成
+#============
+components:
+  - name: wms-stock
+    repo: git@coding.jd.com:wms-ng/wms-stock.git
+    modules: # 启动包
+      - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
