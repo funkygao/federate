@@ -62,7 +62,7 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Instrumentation of spring-boot-maven-plugin",
 			Fn: func() {
-				instrumentPomForFederatePackaging(m) // 代码插桩
+				InstrumentPomForFederatePackaging(m) // 代码插桩
 			}},
 		{
 			Name: "Reconciling ENV variables conflicts",

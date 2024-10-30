@@ -20,8 +20,7 @@ var (
 
 var manifestCmd = &cobra.Command{
 	Use:   "manifest",
-	Short: "Display or generate a guide for the manifest.yaml",
-	Long:  `The manifest command displays the manifest.yaml with syntax highlighting or generates a detailed reference guide.`,
+	Short: "Display a manifest.yaml for reference",
 	Run: func(cmd *cobra.Command, args []string) {
 		if generateGuide {
 			generateManifestGuide()

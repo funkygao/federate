@@ -6,10 +6,6 @@ FEDERATE_CMD ?= federate
 INVENTORY_CMD := $(FEDERATE_CMD) inventory
 ENV ?=
 
-##@ General Options
-
-##   Use sci=1 with merge targets to Skip Components Installation.
-
 help: 
 	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
@@ -45,34 +41,17 @@ restore-submodules:
 clean:restore-submodules
 	rm -rf generated test.log
 
-##@ Consolidate
+##@ Plus
 
-fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
-	if [ ! -f {{.FusionStarter}}/Makefile ]; then \
-		echo "☕️ Scaffolding {{.FusionStarter}} ..."; \
-		federate microservice fusion-start; \
-	fi
-
-consolidate:sync-submodules ## Synchronize submodules and generate the federated system for the specified environment.
-	echo "☕️ Consolidating the federated project ..."
-	federate microservice consolidate --yes --silent=true
+install-kernel: ## Local install WMS6.0 kernel.
 	if [ "$(sci)" != "1" ]; then \
-		echo "☕️ Local installing the Instrumented Components ..."; \
 		for repo in $$(federate inventory -f components); do \
-			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $$ENV); \
-			modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
-			echo "   Installing $$repo with profile:$$profile on modules:$$modules"; \
-			(cd $$repo && mvn clean install -q -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
+			echo "   Installing $$repo"; \
+			(cd $$repo && mvn clean install -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 		done; \
 	else \
 		echo "☕️ Skipped Components Installation"; \
 	fi
-	$(MAKE) package
-	echo "🍺 Congrat, consolidated!"
 
-package: ## Build {{.FusionProjectName}} after consolidation.
-	echo "☕️ Building {{.FusionProjectName}} ..."
+package: ## Build {{.ArtifactId}} after consolidation.
 	mvn package -q -T8 -Dmaven.artifact.threads=16
-
-optimize: ## Optimize {{.FusionProjectName}} resource consumption.
-	federate microservice optimize --yes --verbosity 3
