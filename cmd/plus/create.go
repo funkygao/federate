@@ -62,6 +62,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 	generateFile("package.xml", filepath.Join("src", "main", "assembly", "package.xml"), data)
 	if m.Main.Plus.SpringXml != "" {
 		// 自动引导用户提供的 spring xml
+		generateFile("spring.xml", filepath.Join("src", "main", "resources", m.Main.Plus.SpringXml), data)
 		generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
 		generateFile("SpringResourcePlusLoader.java", filepath.Join("src", "main", "java", java.Pkg2Path(basePackage), "configuration", "SpringResourcePlusLoader.java"), data)
 	}
