@@ -77,7 +77,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		{"src", "main", "java", java.Pkg2Path(basePackage), "application"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "entity"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "service"},
-		{"src", "main", "resources", filepath.Dir(m.Main.Plus.SpringXml)},
+		{"src", "main", "resources"},
 		{"src", "test", "java"},
 		{"src", "test", "resources"},
 	}
