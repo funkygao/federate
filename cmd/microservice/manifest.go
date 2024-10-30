@@ -32,7 +32,7 @@ var manifestCmd = &cobra.Command{
 }
 
 func showManifest() {
-	yaml, _ := fs.FS.ReadFile("templates/manifest.yaml")
+	yaml, _ := fs.FS.ReadFile("templates/doc/manifest.yaml")
 	lexer := lexers.Get("yaml")
 	iterator, err := lexer.Tokenise(nil, string(yaml))
 	if err != nil {
@@ -46,7 +46,7 @@ func showManifest() {
 }
 
 func generateManifestGuide() {
-	yaml, _ := fs.FS.ReadFile("templates/manifest.yaml")
+	yaml, _ := fs.FS.ReadFile("templates/doc/manifest.yaml")
 
 	guide, err := doGenerateGuide(yaml)
 	if err != nil {

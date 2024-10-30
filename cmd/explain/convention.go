@@ -24,7 +24,7 @@ Example usage:
 }
 
 func displayConventions() {
-	allConventions := convention.GetAll(fs.FS, "templates/conventions.yml")
+	allConventions := convention.GetAll(fs.FS, "templates/doc/conventions.yml")
 	kinds := allConventions.Kinds()
 
 	if len(kinds) == 0 {

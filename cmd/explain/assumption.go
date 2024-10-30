@@ -22,7 +22,7 @@ Example usage:
 }
 
 func displayAssumptions() {
-	allAssumptions := convention.GetAll(fs.FS, "templates/assumptions.yml")
+	allAssumptions := convention.GetAll(fs.FS, "templates/doc/assumptions.yml")
 	kinds := allAssumptions.Kinds()
 
 	// Collect all assumptions into a slice for sorting
