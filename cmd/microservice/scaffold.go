@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var monolithCmd = &cobra.Command{
+var scaffoldCmd = &cobra.Command{
 	Use:   "scaffold",
 	Short: "Scaffold a logical monolith from multiple existing code repositories",
 	Long: `The monolith command scaffolds a logical monolithic code repository by integrating 
@@ -113,5 +113,5 @@ func addGitSubmodules(m *manifest.Manifest) error {
 }
 
 func init() {
-	manifest.RequiredManifestFileFlag(monolithCmd)
+	manifest.RequiredManifestFileFlag(scaffoldCmd)
 }
