@@ -18,7 +18,7 @@ import (
 
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Generate a new Plus project with standard structure and boilerplate code",
+	Short: "Generate a Plus Project with standard structure and boilerplate code",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
 		doCreate(m)

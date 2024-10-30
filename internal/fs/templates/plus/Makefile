@@ -40,11 +40,11 @@ restore-submodules:
 
 ##@ Plus
 
-install-kernel: ## Local install WMS6.0 kernel.
+install-kernel: ## Set up WMS6.0 kernel for Plus Development.
 	for repo in $$($(INVENTORY_CMD) -f components); do \
 		echo "Installing $$repo ..."; \
 		(cd $$repo && mvn -q install -am -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 	done
 
-assemble: ## Create deployable artifact for {{.ArtifactId}}.
+assemble: ## Create deployable artifact for the Plus Project.
 	mvn package -q -T8 -Dmaven.artifact.threads=16

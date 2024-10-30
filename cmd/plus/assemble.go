@@ -7,7 +7,7 @@ import (
 
 var assembleCmd = &cobra.Command{
 	Use:   "assemble",
-	Short: "Create deployable artifact for the Plus project",
+	Short: "Create deployable artifact for the Plus Project",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
 		doAssemble(m)
