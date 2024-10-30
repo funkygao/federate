@@ -57,3 +57,11 @@ func FileExists(filename string) bool {
 	}
 	return !info.IsDir()
 }
+
+func DirExists(path string) bool {
+	_, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
+}

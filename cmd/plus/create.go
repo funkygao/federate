@@ -42,7 +42,7 @@ func doCreate(m *manifest.Manifest) {
 	merge.EchoBeer = false
 	merge.InstrumentPomForFederatePackaging(m)
 
-	color.Green("🍺 Congrat, %s scaffolded! Next, `make install-kernel` and start Plus Programming!", m.Main.Name)
+	color.Green("🍺 Congrat, %s scaffolded!", m.Main.Name)
 }
 
 func generatePlusProjectFiles(m *manifest.Manifest) {
@@ -113,7 +113,7 @@ func generatePackageInfo(m *manifest.Manifest) {
 
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 	if util.FileExists(targetFile) {
-		log.Printf("%s exists, skipped to avoid being overwritten", targetFile)
+		log.Printf("Skipped existing %s", targetFile)
 		return
 	}
 
@@ -122,6 +122,10 @@ func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 }
 
 func mkdir(path string) {
+	if util.DirExists(path) {
+		return
+	}
+
 	log.Printf("Generating %s", path)
 	if err := os.MkdirAll(path, 0755); err != nil {
 		log.Fatalf("mkdir: %v", err)

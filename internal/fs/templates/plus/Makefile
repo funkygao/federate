@@ -11,7 +11,7 @@ help:
 
 ##@ WMS6.0 Kernel
 
-install: ## Set up WMS6.0 kernel with src attached for Plus Development.
+install: ## Install WMS6.0 kernel with src attached for Plus Development.
 	for repo in $$($(INVENTORY_CMD) -f components); do \
 		echo "Installing $$repo ..."; \
 		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
@@ -45,6 +45,9 @@ restore-submodules:
 	done
 
 ##@ Plus Development
+
+scaffold: ## Scaffold project structure based on latest manifest.yaml.
+	federate plus create
 
 package: ## Compile and package {{.AppName}}.
 	mvn package -T8 -Dmaven.artifact.threads=16
