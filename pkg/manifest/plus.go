@@ -1,6 +1,7 @@
 package manifest
 
 type PlusSpec struct {
-	BasePackage string `yaml:"basePackage"`
-	SpringXml   string `yaml:"springXml"`
+	BasePackage     string `yaml:"basePackage"`
+	EntryPointClass string `yaml:"entryPoint"`
+	SpringXml       string `yaml:"springXml"`
 }

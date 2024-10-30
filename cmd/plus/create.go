@@ -1,6 +1,7 @@
 package plus
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -51,11 +52,21 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		ComponentDependencies []java.DependencyInfo
 		BasePackage           string
 		SpringXml             string
+		AppName               string
+		AppSrc                string
+		ClassName             string
+		JvmSize               string
+		TomcatPort            int16
 	}{
 		ArtifactId:            m.Main.Name,
 		ComponentDependencies: m.ComponentModules(),
 		BasePackage:           basePackage,
 		SpringXml:             m.Main.Plus.SpringXml,
+		AppName:               m.Main.Name,
+		AppSrc:                fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
+		ClassName:             m.Main.Plus.EntryPointClass,
+		JvmSize:               m.RpmByEnv("on-premise").JvmSize,
+		TomcatPort:            m.RpmByEnv("on-premise").TomcatPort,
 	}
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("Makefile", "Makefile", data)

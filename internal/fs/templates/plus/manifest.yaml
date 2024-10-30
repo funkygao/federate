@@ -6,6 +6,8 @@ federated:
     basePackage: com.jdwl.wms.addon
     # springXml：你自己的spring xml引导文件名，要与WMS6.0目录隔离以避免冲突，SpringResourcePlusLoader 会自动加载
     springXml: /addon/spring/plus.xml
+    # entryPoint：SpringBootApplication 启动类 FQCN
+    entryPoint: com.jdwl.wms.stock.ApiProviderApplication
   rpm: # RPM 打包规约
     - env: on-premise
       tomcatPort: 8082

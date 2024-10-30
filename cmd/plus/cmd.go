@@ -14,5 +14,5 @@ Enables custom solutions through extension points and other extensibility mechan
 }
 
 func init() {
-	CmdGroup.AddCommand(createCmd, assembleCmd, manifestCmd)
+	CmdGroup.AddCommand(createCmd, manifestCmd)
 }
