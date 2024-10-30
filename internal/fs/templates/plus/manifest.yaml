@@ -13,7 +13,6 @@ federated:
       tomcatPort: 8082
       jvmSize: large # medium, small
       JAVA_OPTS: "-Xms2048m -Xmx2048m -XX:MaxPermSize=256m"
-    resources: # 资源文件处理
 
 #============
 # 平台能力构成
