@@ -1,5 +1,4 @@
-# 目标应用
-federated:
+federated: # 目标应用
   name: plus-example
   plus: # 扩展开发规约
     # basePackage 要在 com.jdwl.wms 下(自动ComponentScan)，同时与WMS6.0隔离以避免类冲突
@@ -14,8 +13,7 @@ federated:
       jvmSize: large # medium, small
       JAVA_OPTS: "-Xms2048m -Xmx2048m -XX:MaxPermSize=256m"
 
-# WMS6.0 平台能力依赖
-components:
+components: # WMS6.0 平台能力依赖
   - name: wms-stock
     repo: git@coding.jd.com:wms-ng/wms-stock.git
     modules: # 启动包
