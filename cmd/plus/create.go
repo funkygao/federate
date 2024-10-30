@@ -49,6 +49,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 	}
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("Makefile", "Makefile", data)
+	generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
 
 	basePackage := m.Main.PlusBasePackage()
 	paths := [][]string{
@@ -61,7 +62,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		{"src", "main", "java", java.Pkg2Path(basePackage), "application"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "entity"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "service"},
-		{"src", "main", "resources"},
+		{"src", "main", "resources", "META-INF"},
 		{"src", "test", "java"},
 		{"src", "test", "resources"},
 	}

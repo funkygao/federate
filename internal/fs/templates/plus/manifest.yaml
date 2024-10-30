@@ -8,7 +8,6 @@ federated:
   name: plus-example
   plus:
     basePackage: com.jdwl.wms.addon
-    resources:
   rpm:
     - env: on-premise
       tomcatPort: 8082
