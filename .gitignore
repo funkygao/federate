@@ -21,4 +21,5 @@ lsp/
 *.swo
 .vscode/
 
+prompt.txt
 build/

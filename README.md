@@ -82,3 +82,7 @@ Top level fields:
 - components
 - fusion-starter
 - deployment
+
+## TODO
+
+- manifest.components.springProfile 需要为不同环境配置

@@ -10,6 +10,7 @@ import (
 	"federate/cmd/image"
 	"federate/cmd/microservice"
 	"federate/cmd/onpremise"
+	"federate/cmd/plus"
 	"federate/cmd/version"
 	"federate/pkg/logo"
 
@@ -70,6 +71,7 @@ func init() {
 	// 分组设置
 	microservice.CmdGroup.GroupID = "microservice"
 	onpremise.CmdGroup.GroupID = "microservice"
+	plus.CmdGroup.GroupID = "microservice"
 	image.CmdGroup.GroupID = "microservice"
 	jdosCmd.GroupID = "microservice"
 
@@ -99,7 +101,16 @@ func init() {
 		},
 	)
 
+	// utility
 	rootCmd.AddCommand(chatgpt.CmdGroup, ygrepCmd, github.CmdGroup, inventoryCmd, componentsCmd, allCmd)
-	rootCmd.AddCommand(microservice.CmdGroup, image.CmdGroup, onpremise.CmdGroup, jdosCmd)
+
+	// microservice, sorted
+	rootCmd.AddCommand(microservice.CmdGroup)
+	rootCmd.AddCommand(plus.CmdGroup)
+	rootCmd.AddCommand(jdosCmd)
+	rootCmd.AddCommand(onpremise.CmdGroup)
+	rootCmd.AddCommand(image.CmdGroup)
+
+	// system
 	rootCmd.AddCommand(version.CmdGroup)
 }

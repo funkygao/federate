@@ -14,6 +14,7 @@ import (
 
 type Manifest struct {
 	Version string `yaml:"version"`
+	Kind    string `yaml:"kind"`
 
 	Main       MainSystem        `yaml:"federated"`
 	Starter    FusionStarterSpec `yaml:"fusion-starter"`
