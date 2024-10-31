@@ -51,6 +51,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		ArtifactId            string
 		ComponentDependencies []java.DependencyInfo
 		BasePackage           string
+		BasePackageDir        string
 		SpringXml             string
 		AppName               string
 		AppSrc                string
@@ -61,6 +62,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		ArtifactId:            m.Main.Name,
 		ComponentDependencies: m.ComponentModules(),
 		BasePackage:           basePackage,
+		BasePackageDir:        java.Pkg2Path(basePackage),
 		SpringXml:             m.Main.Plus.SpringXml,
 		AppName:               m.Main.Name,
 		AppSrc:                fmt.Sprintf("target/%s-%s-package", m.Main.Name, m.Main.Version),
@@ -68,6 +70,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		JvmSize:               m.RpmByEnv("on-premise").JvmSize,
 		TomcatPort:            m.RpmByEnv("on-premise").TomcatPort,
 	}
+	generateFile("gitignore", ".gitignore", data)
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("Makefile", "Makefile", data)
 
