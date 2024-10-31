@@ -39,11 +39,8 @@ restore-submodules:
 scaffold: ## Scaffold project structure based on latest manifest.yaml.
 	federate plus create
 
-commit-hack: ## Hack submodule class in unsafe area and commit changes back.
-	echo "Not implemented"
-
 package: ## Compile and package {{.AppName}}.
 	mvn package -T8 -Dmaven.artifact.threads=16
 
-build-rpm: ## Create deployable RPM artifact for {{.AppName}}.
+rpmdist: ## Create deployable RPM artifact for {{.AppName}}.
 	federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}

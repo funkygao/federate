@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * 演示：如何增强扩展点的路由.
+ *
+ * <p>外挂：理论上可以在不修改内核前提下改变任何内核执行结果.</p>
  */
 @Aspect
 @Component
