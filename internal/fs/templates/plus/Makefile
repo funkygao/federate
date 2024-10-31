@@ -22,7 +22,7 @@ sync: ## Synchronize local WMS6 kernel with latest remote main branch.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules are latest"
 
-diff: ## Display local changes compared with WMS6 kernel.
+diff:
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
 restore-submodules:

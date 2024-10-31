@@ -19,6 +19,7 @@ type ComponentInfo struct {
 	Modules    []java.DependencyInfo `yaml:"-"`
 
 	Resources ComponentResourceSpec `yaml:"resources"`
+	Hack      HackSpec              `yaml:"hack"`
 
 	Envs []EnvironmentSpec `yaml:"environments"`
 
