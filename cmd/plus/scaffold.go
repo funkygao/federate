@@ -17,9 +17,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var createCmd = &cobra.Command{
-	Use:   "create",
-	Short: "Generate a Plus Project with standard structure and boilerplate code",
+var scaffoldCmd = &cobra.Command{
+	Use:   "scaffold",
+	Short: "Generate a WMS6 Plus Project with standard structure and boilerplate code",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
 		validatePlusSpec(m.Main.Plus)
@@ -144,5 +144,5 @@ func validatePlusSpec(p manifest.PlusSpec) {
 }
 
 func init() {
-	manifest.RequiredManifestFileFlag(createCmd)
+	manifest.RequiredManifestFileFlag(scaffoldCmd)
 }
