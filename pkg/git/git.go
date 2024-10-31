@@ -41,7 +41,7 @@ func AddSubmodules(m *manifest.Manifest) error {
 	}
 
 	// 提交 .gitmodules 更改
-	cmd := exec.Command("git", "commit", "-am", "Update .gitmodules to maintain shallow clones")
+	cmd := exec.Command("git", "commit", "-am", "Update .gitmodules")
 	log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
 	err := cmd.Run()
 	if err != nil {
