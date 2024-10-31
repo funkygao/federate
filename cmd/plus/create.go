@@ -70,14 +70,8 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 	}
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("Makefile", "Makefile", data)
-	generateFile("package.xml", filepath.Join("src", "main", "assembly", "package.xml"), data)
-	if m.Main.Plus.SpringXml != "" {
-		// 自动引导用户提供的 spring xml
-		generateFile("spring.xml", filepath.Join("src", "main", "resources", m.Main.Plus.SpringXml), data)
-		generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
-		generateFile("SpringResourcePlusLoader.java", filepath.Join("src", "main", "java", java.Pkg2Path(basePackage), "configuration", "SpringResourcePlusLoader.java"), data)
-	}
 
+	generatePackageInfo(m)
 	paths := [][]string{
 		{"src", "main", "java", java.Pkg2Path(basePackage), "configuration"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "controller"},
@@ -96,7 +90,14 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		mkdir(filepath.Join(p...))
 	}
 
-	generatePackageInfo(m)
+	generateFile("package.xml", filepath.Join("src", "main", "assembly", "package.xml"), data)
+
+	if m.Main.Plus.SpringXml != "" {
+		// 自动引导用户提供的 spring xml
+		generateFile("spring.xml", filepath.Join("src", "main", "resources", m.Main.Plus.SpringXml), data)
+		generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
+		generateFile("SpringResourcePlusLoader.java", filepath.Join("src", "main", "java", java.Pkg2Path(basePackage), "configuration", "SpringResourcePlusLoader.java"), data)
+	}
 }
 
 func generatePackageInfo(m *manifest.Manifest) {
