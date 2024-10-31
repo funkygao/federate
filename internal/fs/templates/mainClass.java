@@ -12,7 +12,6 @@ import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
-import com.jd.security.configsec.spring.config.JDSecurityPropertyCleanService;
 import com.jd.security.configsec.spring.config.JDSecurityPropertySourceFactory;
 
 import java.io.IOException;
@@ -33,7 +32,6 @@ import java.util.Arrays;
 @ImportResource(locations = {"/federated/spring.xml"})
 @Import({
         //FederatedMybatisConfig.class,
-        JDSecurityPropertyCleanService.class,
     {{- range .Imports}}
         {{.}}.class,
     {{- end}}
