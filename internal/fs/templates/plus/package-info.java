@@ -9,8 +9,7 @@
  *   <li>service: Domain Service</li>
  *   <li>entity: Domain Entity</li>
  *   <li>repository: Spring Repository</li>
- *   <li>policy: Policy based extension point provider</li>
- *   <li>pattern: Pattern based extension point provider</li>
+ *   <li>extension: Extension Point Implementation</li>
  * </ul>
  * 
  * @see <a href="https://joyspace.jd.com/pages/mfDzTgiGkoC7fYLdakJf">WMS6.0 Plus开发指南</a>
