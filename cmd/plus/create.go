@@ -79,7 +79,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		{"src", "main", "java", java.Pkg2Path(basePackage), "configuration"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "controller"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "device"},
-		{"src", "main", "java", java.Pkg2Path(basePackage), "extension"},
+		{"src", "main", "java", java.Pkg2Path(basePackage), "extension", "aspect"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "repository"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "application"},
 		{"src", "main", "java", java.Pkg2Path(basePackage), "entity"},
@@ -100,6 +100,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 		generateFile("spring.xml", filepath.Join("src", "main", "resources", m.Main.Plus.SpringXml), data)
 		generateFile("spring.factories", filepath.Join("src", "main", "resources", "META-INF", "spring.factories"), data)
 		generateFile("SpringResourcePlusLoader.java", filepath.Join("src", "main", "java", java.Pkg2Path(basePackage), "configuration", "SpringResourcePlusLoader.java"), data)
+		generateFile("ExtensionPolicyRoutingEnhancementAspect.java", filepath.Join("src", "main", "java", "unsafe", "hack", "ExtensionPolicyRoutingEnhancementAspect.java"), data)
 	}
 }
 
