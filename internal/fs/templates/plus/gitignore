@@ -27,4 +27,5 @@ lsp/
 Makefile
 src/main/java/{{.BasePackageDir}}/package-info.java
 src/main/java/{{.BasePackageDir}}/configuration/SpringResourcePlusLoader.java
+src/main/java/unsafe/hack/ExtensionPolicyRoutingEnhancementAspect.java
 src/main/assembly
