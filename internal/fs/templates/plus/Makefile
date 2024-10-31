@@ -10,17 +10,17 @@ help:
 
 ##@ WMS6 Kernel
 
-install: ## Local install WMS6 kernel with src attached for Plus Development.
-	for repo in $$($(INVENTORY_CMD) -f components); do \
-		echo "Installing $$repo ..."; \
-		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
-	done
-
 sync: ## Synchronize local WMS6 kernel with latest remote main branch.
 	$(MAKE) restore-submodules
 	echo "☕️ Syncing all submodules repository" 
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules are latest"
+
+install: ## Local install WMS6 kernel with src attached for Plus Development.
+	for repo in $$($(INVENTORY_CMD) -f components); do \
+		echo "Installing $$repo ..."; \
+		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
+	done
 
 diff:
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
