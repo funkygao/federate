@@ -39,6 +39,9 @@ restore-submodules:
 scaffold: ## Scaffold project structure based on latest manifest.yaml.
 	federate plus create
 
+commit-hack: ## Hack submodule class in unsafe area and commit changes back.
+	echo "Not implemented"
+
 package: ## Compile and package {{.AppName}}.
 	mvn package -T8 -Dmaven.artifact.threads=16
 
