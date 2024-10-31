@@ -7,6 +7,7 @@ import (
 )
 
 var (
+	GitUser    = "unknown"
 	GitCommit  = "unknown"
 	GitBranch  = "unknown"
 	GitState   = "unknown"
@@ -33,5 +34,6 @@ func showVersion() {
 	}
 
 	fmt.Printf("Git Summary: %s\n", gitSummary)
+	fmt.Printf("Build By: %s\n", GitUser)
 	fmt.Printf("Build Date : %s\n", BuildDate)
 }

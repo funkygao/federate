@@ -3,8 +3,15 @@ SHELL := /bin/bash
 
 GIT_COMMIT := $(shell git rev-parse --short HEAD)
 GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_USER := $(shell git config user.name)
 GIT_STATE := $(shell if git diff-index --ignore-submodules=all --quiet HEAD --; then echo "clean"; else echo "dirty"; fi)
 BUILD_DATE := $(shell LC_TIME=zh_CN.UTF-8 date +"%A %Y/%m/%d %H:%M:%S")
+
+LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
+           -X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
+           -X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
+           -X 'federate/cmd/version.GitState=$(GIT_STATE)' \
+           -X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'
 
 help:
 	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
@@ -26,18 +33,10 @@ clean:
 
 install: test ## Build and install federate. If HOMEBREW_PREFIX is set, install there, otherwise use GOPATH/bin.
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
-		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "\
-			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
-			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
-			-X 'federate/cmd/version.GitState=$(GIT_STATE)' \
-			-X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'"; \
+		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)"; \
 		echo "Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
 	else \
-		go install -ldflags "\
-			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
-			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
-			-X 'federate/cmd/version.GitState=$(GIT_STATE)' \
-			-X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'"; \
+		go install -ldflags "$(LDFLAGS)"; \
 		echo "Installed to $$(go env GOPATH)/bin/federate"; \
 	fi
 
@@ -91,6 +90,7 @@ install-completion: ## Install shell completion for federate on MacOS.
 
 docker-build: ## Build Docker image for federate.
 	docker build \
+		--build-arg GIT_USER=$(GIT_USER) \
 		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
 		--build-arg GIT_BRANCH=$(GIT_BRANCH) \
 		--build-arg GIT_STATE=$(GIT_STATE) \
@@ -116,9 +116,5 @@ release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-a
 	for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
 		-o build/federate-$$platform \
-		-ldflags " \
-			-X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
-			-X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
-			-X 'federate/cmd/version.GitState=$(GIT_STATE)' \
-			-X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'"; \
+		-ldflags "$(LDFLAGS)"; \
 	done

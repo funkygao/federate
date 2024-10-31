@@ -10,6 +10,7 @@ ENV GOOS=linux
 ENV GOARCH=amd64
 
 # 获取Git信息
+ARG GIT_USER
 ARG GIT_COMMIT
 ARG GIT_BRANCH
 ARG GIT_STATE
@@ -18,6 +19,7 @@ ARG BUILD_DATE
 # 构建应用
 RUN go build -o federate \
     -ldflags " \
+    -X 'federate/cmd/version.GitUser=${GIT_USER}' \
     -X 'federate/cmd/version.GitCommit=${GIT_COMMIT}' \
     -X 'federate/cmd/version.GitBranch=${GIT_BRANCH}' \
     -X 'federate/cmd/version.GitState=${GIT_STATE}' \
