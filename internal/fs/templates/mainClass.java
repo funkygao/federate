@@ -12,6 +12,9 @@ import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
+import com.jd.security.configsec.spring.config.JDSecurityPropertyCleanService;
+import com.jd.security.configsec.spring.config.JDSecurityPropertySourceFactory;
+
 import java.io.IOException;
 import java.util.Arrays;
 
@@ -24,12 +27,13 @@ import java.util.Arrays;
     {{- end}}
 })
 @PropertySources(value = {
-        @PropertySource(value = {"/federated/federated.properties"}, encoding = "utf-8"),
+        @PropertySource(value = {"/federated/federated.properties"}, encoding = "utf-8", factory = JDSecurityPropertySourceFactory.class),
         @PropertySource(value = {"/federated/application.yml"}, encoding = "utf-8"),
 })
 @ImportResource(locations = {"/federated/spring.xml"})
 @Import({
         //FederatedMybatisConfig.class,
+        JDSecurityPropertyCleanService.class,
     {{- range .Imports}}
         {{.}}.class,
     {{- end}}
