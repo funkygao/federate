@@ -37,7 +37,7 @@ restore-submodules:
 	echo "☕️ Restoring submodules repository ..."
 	for repo in $$($(INVENTORY_CMD) -f repo-list); do \
 		if [ -d "$$repo" ]; then \
-			echo "   Checking out $$repo..."; \
+			echo "   Checking out $$repo"; \
 			(cd $$repo && git checkout -q .) || echo "Failed to checkout $$repo"; \
 		fi; \
 	done

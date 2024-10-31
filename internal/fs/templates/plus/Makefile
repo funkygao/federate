@@ -4,42 +4,32 @@ SHELL := /bin/bash
 
 FEDERATE_CMD ?= federate
 INVENTORY_CMD := $(FEDERATE_CMD) inventory
-ENV ?=
 
 help: 
-	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
-##@ WMS6.0 Kernel
+##@ WMS6 Kernel
 
-install: ## Install WMS6.0 kernel with src attached for Plus Development.
+install: ## Local install WMS6 kernel with src attached for Plus Development.
 	for repo in $$($(INVENTORY_CMD) -f components); do \
 		echo "Installing $$repo ..."; \
 		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 	done
 
-sync: ## Synchronize WMS6.0 kernel to latest remote commits.
-	if [ -z "$(ENV)" ]; then \
-		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
-		exit 1; \
-	fi
+sync: ## Synchronize local WMS6 kernel with latest remote main branch.
 	$(MAKE) restore-submodules
-	echo "☕️ Config all submodules repository for $$ENV environment"
-	$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
-		echo "   Executing: $$cmd"; \
-		eval $$cmd; \
-	done
-	echo "☕️ Syncing all submodules repository for $$ENV environment"
+	echo "☕️ Syncing all submodules repository" 
 	git submodule update --init --recursive --remote
-	echo "🍺 Submodules synchronized for $$ENV environment."
+	echo "🍺 Submodules are latest"
 
-diff: ## Display local changes compared with WMS6.0 kernel.
+diff: ## Display local changes compared with WMS6 kernel.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
 restore-submodules:
 	echo "☕️ Restoring submodules repository ..."
 	for repo in $$($(INVENTORY_CMD) -f repo-list); do \
 		if [ -d "$$repo" ]; then \
-			echo "   Checking out $$repo..."; \
+			echo "   Checking out $$repo"; \
 			(cd $$repo && git checkout -q .) || echo "Failed to checkout $$repo"; \
 		fi; \
 	done
