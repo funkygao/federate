@@ -3,7 +3,6 @@ package merge
 import (
 	"bufio"
 	"fmt"
-	"io/fs"
 	"log"
 	"os"
 	"path/filepath"
@@ -18,11 +17,15 @@ import (
 func (cm *PropertyManager) analyzePropertiesFile(filePath string, component manifest.ComponentInfo) error {
 	file, err := os.Open(filePath)
 	if err != nil {
-		return cm.handleFileErr(component.Name, filePath, err)
+		return err
 	}
 	defer file.Close()
 
 	log.Printf("[%s] Processing %s", component.Name, filePath)
+
+	if cm.allProperties[component.Name] == nil {
+		cm.allProperties[component.Name] = make(map[string]interface{})
+	}
 
 	properties := make(map[string]interface{})
 	scanner := bufio.NewScanner(file)
@@ -36,6 +39,19 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			properties[key] = value
+			cm.allProperties[component.Name][key] = value
+
+			// 捕获属性引用
+			if strings.Contains(value, "${") {
+				cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
+					Component: component.Name,
+					Key:       key,
+					Value:     value,
+					IsYAML:    false,
+					FilePath:  filePath,
+				})
+				cm.unresolvedReferences[key] = true
+			}
 		}
 	}
 
@@ -50,7 +66,7 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string, component manifest.ComponentInfo) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return cm.handleFileErr(component.Name, filePath, err)
+		return err
 	}
 
 	log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
@@ -63,8 +79,27 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		return err
 	}
 
+	if cm.allProperties[component.Name] == nil {
+		cm.allProperties[component.Name] = make(map[string]interface{})
+	}
+
 	flatConfig := make(map[string]interface{})
 	cm.flattenYamlMap(config, "", flatConfig)
+
+	// 捕获属性引用
+	for key, value := range flatConfig {
+		cm.allProperties[component.Name][key] = value
+		if strValue, ok := value.(string); ok && strings.Contains(strValue, "${") {
+			cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
+				Component: component.Name,
+				Key:       key,
+				Value:     strValue,
+				IsYAML:    true,
+				FilePath:  filePath,
+			})
+			cm.unresolvedReferences[key] = true
+		}
+	}
 
 	mergeMaps(cm.mergedYaml, flatConfig, cm.yamlConflictKeys, cm, component)
 
@@ -82,13 +117,6 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 	}
 
 	return nil
-}
-
-func (cm *PropertyManager) handleFileErr(componentName, filePath string, err error) error {
-    if _, ok := err.(*fs.PathError); ok {
-        return nil
-    }
-    return err
 }
 
 func (cm *PropertyManager) recordConflict(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {

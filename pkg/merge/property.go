@@ -3,6 +3,7 @@ package merge
 import (
 	"fmt"
 	"log"
+    "reflect"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,15 +16,15 @@ import (
 type PropertyManager struct {
 	m *manifest.Manifest
 
-	propertyReferences []PropertyReference
+	propertyReferences   []PropertyReference
+	allProperties        map[string]map[string]interface{} // 合并 YAML 和 Properties
+	unresolvedReferences map[string]bool
 
 	yamlConflictKeys map[string]map[string]interface{} // [key][componentName]
 	mergedYaml       map[string]interface{}
 
 	propertiesConflictKeys map[string]map[string]interface{}
 	mergedProperties       map[string]interface{}
-
-	allProperties map[string]interface{} // 合并 YAML 和 Properties
 
 	// 属性文件的扩展名有哪些
 	propertySourceExts map[string]struct{}
@@ -37,74 +38,108 @@ type PropertyManager struct {
 
 func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
 	return &PropertyManager{
+		m:                      m,
 		yamlConflictKeys:       make(map[string]map[string]interface{}),
 		propertiesConflictKeys: make(map[string]map[string]interface{}),
+		allProperties:          make(map[string]map[string]interface{}),
+		propertyReferences:     []PropertyReference{},
+		unresolvedReferences:   make(map[string]bool),
 		mergedYaml:             make(map[string]interface{}),
 		mergedProperties:       make(map[string]interface{}),
 		propertySourceExts: map[string]struct{}{
 			".properties": {},
+			".yml":        {},
+			".yaml":       {},
 		},
 		reservedYamlKeys:    reservedKeyHandlers,
 		reservedValues:      make(map[string][]ComponentKeyValue),
 		servletContextPath:  make(map[string]string),
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
-		m:                   m,
 	}
 }
 
-// 扫描 application.yml 以及 application-{profile}.yml，发现冲突的keys
-func (cm *PropertyManager) AnalyzeApplicationYamlFiles() error {
+func (cm *PropertyManager) AnalyzeAllPropertySources() error {
 	for _, component := range cm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
+
+			// 分析 application.yml
 			if err := cm.analyzeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
 				return err
 			}
+
+			// 分析 application-{profile}.yml
 			if component.SpringProfile != "" {
 				if err := cm.analyzeYamlFile(filepath.Join(sourceDir, "application-"+component.SpringProfile+".yml"), component.SpringProfile, component); err != nil {
 					return err
 				}
 			}
-		}
-	}
 
-	cm.applyReservedPropertyRules()
-	return nil
-}
-
-// 扫描指定的 properties，发现冲突 keys
-func (cm *PropertyManager) AnalyzePropertyFiles() error {
-	for _, component := range cm.m.Components {
-		for _, baseDir := range component.Resources.BaseDirs {
+			// 分析其他属性文件
 			for _, propertySource := range component.Resources.PropertySources {
+				filePath := filepath.Join(sourceDir, propertySource)
 				ext := filepath.Ext(propertySource)
+
 				if _, present := cm.propertySourceExts[ext]; !present {
 					return fmt.Errorf("Invalid property source: %s", propertySource)
 				}
 
-				sourceDir := component.SrcDir(baseDir)
-				if err := cm.analyzePropertiesFile(filepath.Join(sourceDir, propertySource), component); err != nil {
-					return err
+				switch ext {
+				case ".yml", ".yaml":
+					if err := cm.analyzeYamlFile(filePath, component.SpringProfile, component); err != nil {
+						return err
+					}
+				case ".properties":
+					if err := cm.analyzePropertiesFile(filePath, component); err != nil {
+						return err
+					}
+				default:
+					return fmt.Errorf("Unsupported file type: %s", filePath)
 				}
 			}
-
 		}
 	}
 
+	// 解析所有引用并应用规则
+	cm.resolveAllReferences()
 	cm.applyReservedPropertyRules()
 	return nil
 }
 
 // 合并 YAML 和 Properties 的冲突
-func (cm *PropertyManager) IdentifyAllPropertyConflicts() map[string]map[string]interface{} {
-	allConflicts := make(map[string]map[string]interface{})
-	for k, v := range cm.IdentifyYamlFileConflicts() {
-		allConflicts[k] = v
+func (pm *PropertyManager) IdentifyAllPropertyConflicts() map[string]map[string]interface{} {
+	conflicts := make(map[string]map[string]interface{})
+	for key := range pm.getAllUniqueKeys() {
+		componentValues := make(map[string]interface{})
+		var firstValue interface{}
+		isConflict := false
+
+		for component, props := range pm.allProperties {
+			if value, exists := props[key]; exists {
+				componentValues[component] = value
+				if firstValue == nil {
+					firstValue = value
+				} else if !reflect.DeepEqual(firstValue, value) {
+					isConflict = true
+				}
+			}
+		}
+
+		if isConflict {
+			conflicts[key] = componentValues
+		}
 	}
-	for k, v := range cm.IdentifyPropertiesFileConflicts() {
-		allConflicts[k] = v
+	return conflicts
+}
+
+func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
+	keys := make(map[string]struct{})
+	for _, props := range pm.allProperties {
+		for key := range props {
+			keys[key] = struct{}{}
+		}
 	}
-	return allConflicts
+	return keys
 }
 
 func (cm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
@@ -175,4 +210,3 @@ func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
 		log.Fatalf("Error writing merged properties to %s: %v", targetFile, err)
 	}
 }
-

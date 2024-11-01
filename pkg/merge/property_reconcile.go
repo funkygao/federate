@@ -102,14 +102,17 @@ func (t *reconcileTask) Execute() error {
 	// 现在yml里该key冲突，datasource.master.ds2.mysql.url -> stock.datasource.master.ds2.mysql.url，需要 resolve master.ds2.mysql.url
 	// 这就带来新的问题：如果一次扫描发现冲突，就会造成不同component master.ds2.mysql.url之前引用的key是相同的，而reconcile后就不同了
 	// 因此，扫描时，要发现所有的 value reference 展开，把 yaml 与 properties 统一处理后，才能发现冲突
+	// 我建议：在 reconcile 前，注册冲突前，捕获属性引用，之后才注册冲突，这样更方便代码实现，而且不漏
+	// 即：把所有的 reference 都解析完了，再发现冲突
+	// TODO end
 
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
+	if err := t.prefixKeyReferences(java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
 		return err
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.prefixKeyReferences(t.component.TargetResourceDir(), t.keys, t.prefix, t.dryRun, java.IsXml, t.cm.createXmlRegex); err != nil {
+	if err := t.prefixKeyReferences(java.IsXml, t.cm.createXmlRegex); err != nil {
 		return err
 	}
 
@@ -155,13 +158,13 @@ func (t *reconcileTask) updateRequestMappings() error {
 	})
 }
 
-func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefix string, dryRun bool, fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
-	keyRegexes := make([]*regexp.Regexp, len(keys))
-	for i, key := range keys {
+func (t *reconcileTask) prefixKeyReferences(fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
+	keyRegexes := make([]*regexp.Regexp, len(t.keys))
+	for i, key := range t.keys {
 		keyRegexes[i] = createRegex(key)
 	}
 
-	return filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -180,7 +183,7 @@ func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefi
 				if len(matches) > 0 {
 					changed = true
 					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-						replaced := t.cm.replaceKeyInMatch(match, keys[i], prefix)
+						replaced := t.cm.replaceKeyInMatch(match, t.keys[i], t.prefix)
 						dmp := diffmatchpatch.New()
 						diffs := dmp.DiffMain(match, replaced, false)
 						log.Printf("%s", dmp.DiffPrettyText(diffs))
@@ -190,7 +193,7 @@ func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefi
 				}
 			}
 
-			if changed && !dryRun {
+			if changed && !t.dryRun {
 				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 				if err != nil {
 					return err
