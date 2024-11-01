@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 
@@ -17,49 +16,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	rootCmd = &cobra.Command{
-		Use:   "federate",
-		Short: "federate - A compiler and toolchain for microservices management",
-		Long: logo.Federate() + `: A compiler-centric toolchain engineered for efficient microservices consolidation and seamless deployment.
+var rootCmd = &cobra.Command{
+	Use:   "federate",
+	Short: "federate - A compiler and toolchain for microservices management",
+	Long: logo.Federate() + `: A compiler-centric toolchain engineered for efficient microservices consolidation and seamless deployment.
 
   Find more information at: https://joyspace.jd.com/pages/Ksl7N7wr1XxFanCRIR1y
 `,
-	}
-
-	allCmd = &cobra.Command{
-		Use:   "all",
-		Short: "List all subcommands recursively",
-		Long: `The 'all' command lists all subcommands recursively.
-
-It displays the entire command tree, showing the hierarchy of all
-available commands and subcommands.`,
-
-		Run: func(cmd *cobra.Command, args []string) {
-			// Get the root command
-			root := cmd.Root()
-			// List all subcommands recursively
-			listSubcommands(root, "")
-		},
-	}
-)
+}
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
-	}
-}
-
-func listSubcommands(cmd *cobra.Command, indent string) {
-	fmt.Printf("%s%s - %s\n", indent, cmd.Use, cmd.Short)
-
-	for _, subCmd := range cmd.Commands() {
-		if !subCmd.IsAvailableCommand() || subCmd.IsAdditionalHelpTopicCommand() {
-			continue
-		}
-		listSubcommands(subCmd, indent+"  ")
 	}
 }
 
@@ -77,8 +47,6 @@ func init() {
 
 	chatgpt.CmdGroup.GroupID = "utility"
 	util.CmdGroup.GroupID = "utility"
-	allCmd.GroupID = "utility"
-	inventoryCmd.GroupID = "utility"
 
 	version.CmdGroup.GroupID = "system"
 	rootCmd.SetHelpCommandGroupID("system")
@@ -100,7 +68,7 @@ func init() {
 	)
 
 	// utility
-	rootCmd.AddCommand(chatgpt.CmdGroup, util.CmdGroup, inventoryCmd, allCmd)
+	rootCmd.AddCommand(chatgpt.CmdGroup, util.CmdGroup)
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
