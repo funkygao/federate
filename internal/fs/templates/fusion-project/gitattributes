@@ -1,1 +1,4 @@
-.gitmodules merge=ours
+.gitmodules merge=keep-local
+{{- range .Components}}
+{{.}} merge=keep-local
+{{- end }}

@@ -42,15 +42,18 @@ func generateMonolithFiles(m *manifest.Manifest) {
 		FusionStarter     string
 		Parent            java.DependencyInfo
 		GroupId           string
+		Components        []string
 	}{
 		FusionProjectName: m.Main.Name,
 		FusionStarter:     federated.StarterBaseDir(m.Main.Name),
 		Parent:            m.Main.Parent,
 		GroupId:           m.Main.GroupId,
+		Components:        m.ComponentNames(),
 	}
 	generateFile("Makefile", "Makefile", data)
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("gitignore", ".gitignore", data)
+	// Add .gitattributes to skip merging specific files
 	generateFile("gitattributes", ".gitattributes", data)
 	generateFile("README.md", "README.md", data)
 

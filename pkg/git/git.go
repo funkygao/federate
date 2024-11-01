@@ -3,12 +3,10 @@ package git
 import (
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
 	"strings"
 
 	"federate/pkg/manifest"
-	"github.com/fatih/color"
 )
 
 func AddSubmodules(m *manifest.Manifest) error {
@@ -25,28 +23,27 @@ func AddSubmodules(m *manifest.Manifest) error {
 
 		cmd = exec.Command("git", "submodule", "add", c.Repo, c.Name)
 		log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-
 		err = cmd.Run()
 		if err == nil {
-			color.Cyan("Added git submodule: %s", c.Name)
-
 			gitmodulesUpdate = true
 		}
 	}
 
-	if !gitmodulesUpdate {
-		return nil
+	// 让每个 submodule 的最新commit ID/分支，各自独立，在 git merge 时不进行合并
+	cmd := exec.Command("git", "config", "merge.keep-local.driver", "true")
+	log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to enable merge.keep-local.driver: %v", err)
 	}
 
-	// 提交 .gitmodules 更改
-	cmd := exec.Command("git", "commit", "-am", "Update .gitmodules")
-	log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
-	err := cmd.Run()
-	if err != nil {
-		return fmt.Errorf("failed to commit .gitmodules changes: %v", err)
+	if gitmodulesUpdate {
+		// 提交 .gitmodules 更改
+		cmd := exec.Command("git", "commit", "-am", "Update .gitmodules")
+		log.Printf("Executing: %s", strings.Join(cmd.Args, " "))
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to commit .gitmodules changes: %v", err)
+		}
 	}
-	color.Cyan(".gitmodules updated and committed")
+
 	return nil
 }

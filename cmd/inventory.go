@@ -63,11 +63,7 @@ func parseInventory() {
 }
 
 func listComponents(m *manifest.Manifest) {
-	var components []string
-	for _, c := range m.Components {
-		components = append(components, c.Name)
-	}
-	fmt.Println(strings.Join(components, " "))
+	fmt.Println(strings.Join(m.ComponentNames(), " "))
 }
 
 func printHumanReadable(inv *manifest.Inventory) {

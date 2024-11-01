@@ -66,6 +66,13 @@ func (m *Manifest) ComponentByName(componentName string) *ComponentInfo {
 	return nil
 }
 
+func (m *Manifest) ComponentNames() (names []string) {
+	for _, c := range m.Components {
+		names = append(names, c.Name)
+	}
+	return
+}
+
 // Ignore component source file
 func (m *Manifest) IgnoreResourceSrcFile(info os.FileInfo, component ComponentInfo) bool {
 	if info.IsDir() {
