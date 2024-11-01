@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,13 +12,10 @@ import (
 	"strings"
 
 	"federate/pkg/concurrent"
-	"federate/pkg/diff"
-	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
 	"federate/pkg/util"
 	"github.com/fatih/color"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"gopkg.in/yaml.v2"
 )
 
@@ -31,6 +27,8 @@ type PropertySourcesManager struct {
 
 	propertiesConflictKeys map[string]map[string]interface{}
 	mergedProperties       map[string]interface{}
+
+	allProperties map[string]interface{} // 合并 YAML 和 Properties
 
 	propertySourceExts map[string]struct{}
 
@@ -58,6 +56,7 @@ func NewPropertySourcesManager(m *manifest.Manifest) *PropertySourcesManager {
 	}
 }
 
+// 扫描 application.yml 以及 application-{profile}.yml，发现冲突的keys
 func (cm *PropertySourcesManager) PrepareMergeApplicationYaml() error {
 	for _, component := range cm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
@@ -77,6 +76,7 @@ func (cm *PropertySourcesManager) PrepareMergeApplicationYaml() error {
 	return nil
 }
 
+// 扫描指定的 properties，发现冲突 keys
 func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
 	for _, component := range cm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
@@ -99,6 +99,18 @@ func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
 	return nil
 }
 
+// 合并 YAML 和 Properties 的冲突
+func (cm *PropertySourcesManager) GetAllConflicts() map[string]map[string]interface{} {
+	allConflicts := make(map[string]map[string]interface{})
+	for k, v := range cm.GetYamlConflicts() {
+		allConflicts[k] = v
+	}
+	for k, v := range cm.GetPropertiesConflicts() {
+		allConflicts[k] = v
+	}
+	return allConflicts
+}
+
 func (cm *PropertySourcesManager) GetPropertiesConflicts() map[string]map[string]interface{} {
 	return cm.getConflicts(cm.propertiesConflictKeys)
 }
@@ -112,6 +124,7 @@ type PropertySourcesReconciled struct {
 	RequestMapping int
 }
 
+// 调和冲突：
 func (cm *PropertySourcesManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconciled, err error) {
 	conflictKeys := cm.GetYamlConflicts()
 	if len(conflictKeys) == 0 {
@@ -170,77 +183,8 @@ func (cm *PropertySourcesManager) ReconcileConflicts(dryRun bool) (result Proper
 	return
 }
 
-type reconcileTask struct {
-	cm *PropertySourcesManager
-
-	component          *manifest.ComponentInfo
-	keys               []string
-	prefix             string
-	dryRun             bool
-	servletContextPath string
-	result             reconcileTaskResult
-}
-
-type reconcileTaskResult struct {
-	keyPrefixed    int
-	requestMapping int
-}
-
-func (t *reconcileTask) Execute() error {
-	// 为Java源代码里这些key的引用增加组件名称前缀
-	if err := t.prefixKeyReferences(t.component.RootDir(), t.keys, t.prefix, t.dryRun, java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
-		return err
-	}
-
-	// 为xml里这些key的引用增加组件名称前缀
-	if err := t.prefixKeyReferences(t.component.TargetResourceDir(), t.keys, t.prefix, t.dryRun, java.IsXml, t.cm.createXmlRegex); err != nil {
-		return err
-	}
-
-	// 解决 server.servlet.context-path 冲突：修改Java源代码
-	if !t.dryRun && t.servletContextPath != "" {
-		if err := t.updateRequestMappings(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (cm *PropertySourcesManager) componentKeyPrefix(componentName string) string {
 	return componentName + "."
-}
-
-func (t *reconcileTask) updateRequestMappings() error {
-	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if java.IsJavaMainSource(info, path) {
-			content, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			oldContent := string(content)
-			newContent := t.cm.updateRequestMappingInFile(oldContent, t.servletContextPath)
-			if newContent != oldContent {
-				if !t.dryRun {
-					diff.RenderUnifiedDiff(oldContent, newContent)
-
-					err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
-					if err != nil {
-						return err
-					}
-					log.Printf("%s", path)
-					t.result.requestMapping++
-				}
-			}
-		}
-
-		return nil
-	})
 }
 
 func (cm *PropertySourcesManager) updateRequestMappingInFile(content, contextPath string) string {
@@ -252,53 +196,6 @@ func (cm *PropertySourcesManager) updateRequestMappingInFile(content, contextPat
 			return submatches[1] + newPath + submatches[3]
 		}
 		return match
-	})
-}
-
-func (t *reconcileTask) prefixKeyReferences(baseDir string, keys []string, prefix string, dryRun bool, fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
-	keyRegexes := make([]*regexp.Regexp, len(keys))
-	for i, key := range keys {
-		keyRegexes[i] = createRegex(key)
-	}
-
-	return filepath.Walk(baseDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if fileFilter(info, path) {
-			content, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			oldContent := string(content)
-			newContent := oldContent
-			changed := false
-
-			for i, regex := range keyRegexes {
-				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
-				if len(matches) > 0 {
-					changed = true
-					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-						replaced := t.cm.replaceKeyInMatch(match, keys[i], prefix)
-						dmp := diffmatchpatch.New()
-						diffs := dmp.DiffMain(match, replaced, false)
-						log.Printf("%s", dmp.DiffPrettyText(diffs))
-						return replaced
-					})
-					t.result.keyPrefixed++
-				}
-			}
-
-			if changed && !dryRun {
-				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
-				if err != nil {
-					return err
-				}
-				log.Printf("%s", path)
-			}
-		}
-		return nil
 	})
 }
 
