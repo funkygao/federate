@@ -35,7 +35,7 @@ func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyS
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 
-	pn := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "federated.properties")
+	pn := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "application.properties")
 	manager.WriteMergedProperties(pn)
 	an := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "application.yml")
 	manager.WriteMergedYaml(an)

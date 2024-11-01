@@ -30,6 +30,7 @@ type PropertySourcesManager struct {
 
 	allProperties map[string]interface{} // 合并 YAML 和 Properties
 
+	// 属性文件的扩展名有哪些
 	propertySourceExts map[string]struct{}
 
 	reservedYamlKeys map[string]ValueOverride
