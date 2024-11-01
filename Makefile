@@ -34,10 +34,10 @@ clean:
 install: test ## Build and install federate. If HOMEBREW_PREFIX is set, install there, otherwise use GOPATH/bin.
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
 		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)"; \
-		echo "Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
+		echo "🍺 Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
 	else \
 		go install -ldflags "$(LDFLAGS)"; \
-		echo "Installed to $$(go env GOPATH)/bin/federate"; \
+		echo "🍺 Installed to $$(go env GOPATH)/bin/federate"; \
 	fi
 
 install-completion: ## Install shell completion for federate on MacOS.

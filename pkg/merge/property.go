@@ -8,19 +8,18 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 
-	"federate/pkg/concurrent"
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
-	"federate/pkg/util"
 	"github.com/fatih/color"
 	"gopkg.in/yaml.v2"
 )
 
-type PropertySourcesManager struct {
+type PropertyManager struct {
 	m *manifest.Manifest
+
+	propertyReferences []PropertyReference
 
 	yamlConflictKeys map[string]map[string]interface{} // [key][componentName]
 	mergedYaml       map[string]interface{}
@@ -40,8 +39,8 @@ type PropertySourcesManager struct {
 	requestMappingRegex *regexp.Regexp
 }
 
-func NewPropertySourcesManager(m *manifest.Manifest) *PropertySourcesManager {
-	return &PropertySourcesManager{
+func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
+	return &PropertyManager{
 		yamlConflictKeys:       make(map[string]map[string]interface{}),
 		propertiesConflictKeys: make(map[string]map[string]interface{}),
 		mergedYaml:             make(map[string]interface{}),
@@ -58,27 +57,27 @@ func NewPropertySourcesManager(m *manifest.Manifest) *PropertySourcesManager {
 }
 
 // 扫描 application.yml 以及 application-{profile}.yml，发现冲突的keys
-func (cm *PropertySourcesManager) PrepareMergeApplicationYaml() error {
+func (cm *PropertyManager) AnalyzeApplicationYamlFiles() error {
 	for _, component := range cm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
-			if err := cm.planMergeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
+			if err := cm.analyzeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
 				return err
 			}
 			if component.SpringProfile != "" {
-				if err := cm.planMergeYamlFile(filepath.Join(sourceDir, "application-"+component.SpringProfile+".yml"), component.SpringProfile, component); err != nil {
+				if err := cm.analyzeYamlFile(filepath.Join(sourceDir, "application-"+component.SpringProfile+".yml"), component.SpringProfile, component); err != nil {
 					return err
 				}
 			}
 		}
 	}
 
-	cm.finalizeReservedKeys()
+	cm.applyReservedPropertyRules()
 	return nil
 }
 
 // 扫描指定的 properties，发现冲突 keys
-func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
+func (cm *PropertyManager) AnalyzePropertyFiles() error {
 	for _, component := range cm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
 			for _, propertySource := range component.Resources.PropertySources {
@@ -88,7 +87,7 @@ func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
 				}
 
 				sourceDir := component.SrcDir(baseDir)
-				if err := cm.planMergePropertiesFile(filepath.Join(sourceDir, propertySource), component); err != nil {
+				if err := cm.analyzePropertiesFile(filepath.Join(sourceDir, propertySource), component); err != nil {
 					return err
 				}
 			}
@@ -96,99 +95,31 @@ func (cm *PropertySourcesManager) PrepareMergePropertiesFiles() error {
 		}
 	}
 
-	cm.finalizeReservedKeys()
+	cm.applyReservedPropertyRules()
 	return nil
 }
 
 // 合并 YAML 和 Properties 的冲突
-func (cm *PropertySourcesManager) GetAllConflicts() map[string]map[string]interface{} {
+func (cm *PropertyManager) IdentifyAllPropertyConflicts() map[string]map[string]interface{} {
 	allConflicts := make(map[string]map[string]interface{})
-	for k, v := range cm.GetYamlConflicts() {
+	for k, v := range cm.IdentifyYamlFileConflicts() {
 		allConflicts[k] = v
 	}
-	for k, v := range cm.GetPropertiesConflicts() {
+	for k, v := range cm.IdentifyPropertiesFileConflicts() {
 		allConflicts[k] = v
 	}
 	return allConflicts
 }
 
-func (cm *PropertySourcesManager) GetPropertiesConflicts() map[string]map[string]interface{} {
-	return cm.getConflicts(cm.propertiesConflictKeys)
+func (cm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
+	return cm.identifyPropertyConflicts(cm.propertiesConflictKeys)
 }
 
-func (cm *PropertySourcesManager) GetYamlConflicts() map[string]map[string]interface{} {
-	return cm.getConflicts(cm.yamlConflictKeys)
+func (cm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
+	return cm.identifyPropertyConflicts(cm.yamlConflictKeys)
 }
 
-type PropertySourcesReconciled struct {
-	KeyPrefixed    int
-	RequestMapping int
-}
-
-// 调和冲突：
-func (cm *PropertySourcesManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconciled, err error) {
-	conflictKeys := cm.GetYamlConflicts()
-	if len(conflictKeys) == 0 {
-		return
-	}
-
-	// Group keys by component
-	componentKeys := make(map[string][]string)
-	var cellData [][]string
-	for key, components := range conflictKeys {
-		for componentName, value := range components {
-			componentKeys[componentName] = append(componentKeys[componentName], key)
-
-			prefixedKey := cm.componentKeyPrefix(componentName) + key
-			if value == nil {
-				value = ""
-			}
-			cm.mergedYaml[prefixedKey] = value
-			//delete(cm.mergedYaml, key) 原有的key不能删除：第三方包内部，可能在使用该 key
-
-			cellData = append(cellData, []string{prefixedKey, util.Truncate(fmt.Sprintf("%v", value), 60)})
-		}
-	}
-
-	header := []string{"New Key", "Value"}
-	tablerender.DisplayTable(header, cellData, false, -1)
-	log.Printf("Reconciled %d conflicting keys into %d keys", len(conflictKeys), len(cellData))
-
-	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
-	for componentName, keys := range componentKeys {
-		component := cm.m.ComponentByName(componentName)
-		prefix := cm.componentKeyPrefix(componentName)
-
-		executor.AddTask(&reconcileTask{
-			cm:                 cm,
-			component:          component,
-			keys:               keys,
-			prefix:             prefix,
-			dryRun:             dryRun,
-			servletContextPath: cm.servletContextPath[componentName],
-			result:             reconcileTaskResult{},
-		})
-	}
-
-	errors := executor.Execute()
-	if len(errors) > 0 {
-		err = errors[0] // 返回第一个遇到的错误
-	}
-
-	for _, task := range executor.Tasks() {
-		reconcileTask := task.(*reconcileTask)
-		result.KeyPrefixed += reconcileTask.result.keyPrefixed
-		result.RequestMapping += reconcileTask.result.requestMapping
-	}
-
-	return
-}
-
-func (cm *PropertySourcesManager) componentKeyPrefix(componentName string) string {
-	return componentName + "."
-}
-
-func (cm *PropertySourcesManager) updateRequestMappingInFile(content, contextPath string) string {
+func (cm *PropertyManager) updateRequestMappingInFile(content, contextPath string) string {
 	return cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
 		submatches := cm.requestMappingRegex.FindStringSubmatch(match)
 		if len(submatches) == 4 {
@@ -200,26 +131,26 @@ func (cm *PropertySourcesManager) updateRequestMappingInFile(content, contextPat
 	})
 }
 
-func (cm *PropertySourcesManager) createJavaRegex(key string) *regexp.Regexp {
+func (cm *PropertyManager) createJavaRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
 }
 
-func (cm *PropertySourcesManager) createXmlRegex(key string) *regexp.Regexp {
+func (cm *PropertyManager) createXmlRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 
-func (cm *PropertySourcesManager) replaceKeyInMatch(match, key, prefix string) string {
+func (cm *PropertyManager) replaceKeyInMatch(match, key, prefix string) string {
 	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
 }
 
-func (cm *PropertySourcesManager) handleFileErr(componentName, filePath string, err error) error {
+func (cm *PropertyManager) handleFileErr(componentName, filePath string, err error) error {
 	if _, ok := err.(*fs.PathError); ok {
 		return nil
 	}
 	return err
 }
 
-func (cm *PropertySourcesManager) planMergePropertiesFile(filePath string, component manifest.ComponentInfo) error {
+func (cm *PropertyManager) analyzePropertiesFile(filePath string, component manifest.ComponentInfo) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return cm.handleFileErr(component.Name, filePath, err)
@@ -251,7 +182,7 @@ func (cm *PropertySourcesManager) planMergePropertiesFile(filePath string, compo
 	return nil
 }
 
-func (cm *PropertySourcesManager) planMergeYamlFile(filePath string, springProfile string, component manifest.ComponentInfo) error {
+func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string, component manifest.ComponentInfo) error {
 	data, err := os.ReadFile(filePath)
 	if err != nil {
 		return cm.handleFileErr(component.Name, filePath, err)
@@ -279,7 +210,7 @@ func (cm *PropertySourcesManager) planMergeYamlFile(filePath string, springProfi
 				includeProfile = strings.TrimSpace(includeProfile)
 				log.Printf("[%s:%s] Detected spring.profiles.include: %s", component.Name, springProfile, includeProfile)
 				if includeProfile != "" {
-					cm.planMergeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+includeProfile+".yml"), includeProfile, component)
+					cm.analyzeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+includeProfile+".yml"), includeProfile, component)
 				}
 			}
 		}
@@ -288,14 +219,14 @@ func (cm *PropertySourcesManager) planMergeYamlFile(filePath string, springProfi
 	return nil
 }
 
-func (cm *PropertySourcesManager) recordConflict(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
+func (cm *PropertyManager) recordConflict(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
 	if _, exists := conflictMap[key]; !exists {
 		conflictMap[key] = make(map[string]interface{})
 	}
 	conflictMap[key][componentName] = trimValue(value)
 }
 
-func (cm *PropertySourcesManager) getConflicts(conflictKeys map[string]map[string]interface{}) map[string]map[string]interface{} {
+func (cm *PropertyManager) identifyPropertyConflicts(conflictKeys map[string]map[string]interface{}) map[string]map[string]interface{} {
 	filteredConflicts := make(map[string]map[string]interface{})
 	for key, components := range conflictKeys {
 		if len(components) == 1 {
@@ -317,7 +248,7 @@ func (cm *PropertySourcesManager) getConflicts(conflictKeys map[string]map[strin
 	return filteredConflicts
 }
 
-func (cm *PropertySourcesManager) WriteMergedYaml(targetFile string) {
+func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 	// merge with propertySettlement
 	for key, val := range cm.m.Main.Reconcile.Resources.PropertySettlement {
 		log.Printf("propertySettlement %s:%v", key, val)
@@ -339,7 +270,7 @@ func (cm *PropertySourcesManager) WriteMergedYaml(targetFile string) {
 	}
 }
 
-func (cm *PropertySourcesManager) WriteMergedProperties(targetFile string) {
+func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
 	var builder strings.Builder
 	for key, value := range cm.mergedProperties {
 		builder.WriteString(fmt.Sprintf("%s=%v\n", key, value))
@@ -354,7 +285,7 @@ func (cm *PropertySourcesManager) WriteMergedProperties(targetFile string) {
 	}
 }
 
-func (cm *PropertySourcesManager) flattenYamlMap(data map[interface{}]interface{}, parentKey string, result map[string]interface{}) {
+func (cm *PropertyManager) flattenYamlMap(data map[interface{}]interface{}, parentKey string, result map[string]interface{}) {
 	for k, v := range data {
 		fullKey := strings.TrimPrefix(fmt.Sprintf("%s.%v", parentKey, k), ".")
 		switch vTyped := v.(type) {
@@ -366,7 +297,7 @@ func (cm *PropertySourcesManager) flattenYamlMap(data map[interface{}]interface{
 	}
 }
 
-func (cm *PropertySourcesManager) unflattenYamlMap(data map[string]interface{}) map[string]interface{} {
+func (cm *PropertyManager) unflattenYamlMap(data map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
 	for key, value := range data {
 		keys := strings.Split(key, ".")
@@ -385,12 +316,12 @@ func (cm *PropertySourcesManager) unflattenYamlMap(data map[string]interface{}) 
 	return result
 }
 
-func mergeMaps(dest, src map[string]interface{}, conflictMap map[string]map[string]interface{}, cm *PropertySourcesManager, component manifest.ComponentInfo) {
+func mergeMaps(dest, src map[string]interface{}, conflictMap map[string]map[string]interface{}, cm *PropertyManager, component manifest.ComponentInfo) {
 	for k, v := range src {
-		if !cm.isReservedKey(k) {
-			cm.recordValue(conflictMap, k, component.Name, v)
+		if !cm.isReservedProperty(k) {
+			cm.registerPropertyValue(conflictMap, k, component.Name, v)
 		} else {
-			cm.recordReservedValue(k, component, v)
+			cm.registerReservedProperty(k, component, v)
 		}
 
 		dest[k] = v
@@ -398,21 +329,21 @@ func mergeMaps(dest, src map[string]interface{}, conflictMap map[string]map[stri
 }
 
 // 记录值并检查冲突
-func (cm *PropertySourcesManager) recordValue(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
+func (cm *PropertyManager) registerPropertyValue(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
 	if _, exists := conflictMap[key]; !exists {
 		conflictMap[key] = make(map[string]interface{})
 	}
 	conflictMap[key][componentName] = value
 }
 
-func (cm *PropertySourcesManager) recordReservedValue(key string, component manifest.ComponentInfo, value interface{}) {
+func (cm *PropertyManager) registerReservedProperty(key string, component manifest.ComponentInfo, value interface{}) {
 	if _, exists := cm.reservedValues[key]; !exists {
 		cm.reservedValues[key] = []ComponentKeyValue{}
 	}
 	cm.reservedValues[key] = append(cm.reservedValues[key], ComponentKeyValue{Component: component, Value: value})
 }
 
-func (cm *PropertySourcesManager) finalizeReservedKeys() {
+func (cm *PropertyManager) applyReservedPropertyRules() {
 	var cellData [][]string
 	for key, values := range cm.reservedValues {
 		if handler, exists := cm.reservedYamlKeys[key]; exists {
@@ -460,7 +391,7 @@ func trimValue(value interface{}) interface{} {
 	return value
 }
 
-func (cm *PropertySourcesManager) isReservedKey(key string) bool {
+func (cm *PropertyManager) isReservedProperty(key string) bool {
 	_, exists := cm.reservedYamlKeys[key]
 	return exists
 }

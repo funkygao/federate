@@ -7,7 +7,7 @@ import (
 )
 
 func TestUpdateRequestMappingInFile(t *testing.T) {
-	cm := NewPropertySourcesManager(nil)
+	cm := NewPropertyManager(nil)
 
 	testCases := []struct {
 		name        string
@@ -58,7 +58,7 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 }
 
 func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
-	cm := NewPropertySourcesManager(nil)
+	cm := NewPropertyManager(nil)
 
 	testCases := []struct {
 		name        string
@@ -101,7 +101,7 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 }
 
 func TestUnflattenYamlMap(t *testing.T) {
-	cm := &PropertySourcesManager{}
+	cm := &PropertyManager{}
 
 	tests := []struct {
 		name     string

@@ -48,7 +48,7 @@ func doMerge(m *manifest.Manifest) {
 		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(rpc))
 	}
 
-	propertySourcesManager := merge.NewPropertySourcesManager(m)
+	propertyManager := merge.NewPropertyManager(m)
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
@@ -87,17 +87,17 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Prepare Merging PropertySources of .properties files",
 			Fn: func() {
-				prepareMergePropertiesFiles(m, propertySourcesManager)
+				prepareMergePropertiesFiles(m, propertyManager)
 			}},
 		{
 			Name: "Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'",
 			Fn: func() {
-				prepareMergeApplicationYaml(m, propertySourcesManager)
+				prepareMergeApplicationYaml(m, propertyManager)
 			}},
 		{
 			Name: "Reconciling Placeholder conflicts references by rewriting .java/.xml files",
 			Fn: func() {
-				reconcilePropertiesConflicts(m, propertySourcesManager)
+				reconcilePropertiesConflicts(m, propertyManager)
 			}},
 		{
 			Name: "Reconciling Spring XML BeanDefinition conflicts",
