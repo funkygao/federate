@@ -85,14 +85,9 @@ func doMerge(m *manifest.Manifest) {
 				recursiveFlatCopyResources(m, resourceManager)
 			}},
 		{
-			Name: "Prepare Merging PropertySources of .properties files",
+			Name: "Analyze All Property Sources and Identify Conflicts",
 			Fn: func() {
-				prepareMergePropertiesFiles(m, propertyManager)
-			}},
-		{
-			Name: "Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'",
-			Fn: func() {
-				prepareMergeApplicationYaml(m, propertyManager)
+				identifyPropertyConflicts(m, propertyManager)
 			}},
 		{
 			Name: "Reconciling Placeholder conflicts references by rewriting .java/.xml files",

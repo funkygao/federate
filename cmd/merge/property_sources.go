@@ -15,17 +15,11 @@ import (
 	"github.com/fatih/color"
 )
 
-func prepareMergePropertiesFiles(m *manifest.Manifest, manager *merge.PropertyManager) {
-	if err := manager.AnalyzePropertyFiles(); err != nil {
+func identifyPropertyConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
+	if err := manager.AnalyzeAllPropertySources(); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 	showPropertiesConflicts(m, manager)
-}
-
-func prepareMergeApplicationYaml(m *manifest.Manifest, manager *merge.PropertyManager) {
-	if err := manager.AnalyzeApplicationYamlFiles(); err != nil {
-		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
-	}
 	showYamlConflicts(m, manager)
 }
 
