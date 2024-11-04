@@ -110,16 +110,6 @@ func (cm *PropertyManager) registerProperty(component manifest.ComponentInfo, ke
 			Value:    value,
 			FilePath: filePath,
 		}
-
-		// 捕获属性引用
-		if str, ok := value.(string); ok && strings.Contains(str, "${") {
-			cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
-				Component: component.Name,
-				Key:       key,
-				Value:     str,
-				FilePath:  filePath,
-			})
-		}
 	}
 }
 

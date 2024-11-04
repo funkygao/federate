@@ -24,8 +24,9 @@ func (cm *PropertyManager) resolveAllReferences() {
 					newValue := cm.resolvePropertyReference(component, strValue)
 					if newValue != strValue {
 						cm.resolvedProperties[component][key] = PropertySource{
-							Value:    newValue,
-							FilePath: propSource.FilePath,
+							Value:         newValue,
+							OrigianlValue: strValue,
+							FilePath:      propSource.FilePath,
 						}
 						changed = true
 					}
@@ -43,7 +44,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 					if _, present := cm.unresolvedProperties[component]; !present {
 						cm.unresolvedProperties[component] = make(map[string]PropertySource)
 					}
-					unresolved = append(unresolved, []string{component, key, strValue})
+					unresolved = append(unresolved, []string{component, key, strValue, fmt.Sprintf("%v", propSource.IsYAML())})
 					cm.unresolvedProperties[component][key] = propSource
 					delete(cm.resolvedProperties[component], key)
 				} else {
@@ -58,7 +59,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 	}
 
 	if len(unresolved) > 0 {
-		header := []string{"Component", "Key", "Unresolved Value"}
+		header := []string{"Component", "Key", "Unresolved Value", "Yaml"}
 		color.Yellow("%d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
 		tablerender.DisplayTable(header, unresolved, false, -1)
 	}

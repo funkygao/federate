@@ -17,7 +17,6 @@ import (
 type PropertyManager struct {
 	m *manifest.Manifest
 
-	propertyReferences   []PropertyReference
 	resolvedProperties   map[string]map[string]PropertySource // 合并 YAML 和 Properties
 	unresolvedProperties map[string]map[string]PropertySource // 无法解析的引用
 
@@ -37,7 +36,6 @@ func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
 
 		resolvedProperties:   make(map[string]map[string]PropertySource),
 		unresolvedProperties: make(map[string]map[string]PropertySource),
-		propertyReferences:   []PropertyReference{},
 
 		propertySourceExts: map[string]struct{}{
 			".properties": {},
