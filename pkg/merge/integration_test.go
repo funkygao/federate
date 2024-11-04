@@ -17,8 +17,8 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 
 	pm := NewPropertyManager(m)
 	require.NoError(t, pm.AnalyzeAllPropertySources())
-	allPropertiesJSON, _ := json.MarshalIndent(pm.allProperties, "", "  ")
-	t.Logf("All properties:\n%s", string(allPropertiesJSON))
+	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvedProperties, "", "  ")
+	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
 
 	conflicts := pm.IdentifyAllConflicts()
 	conflictsJSON, _ := json.MarshalIndent(conflicts, "", "  ")
@@ -34,16 +34,16 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	assert.NotContains(t, conflicts, "mysql.driver")
 
 	// 验证引用解析
-	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.allProperties["a"]["datasource.mysql.url"])
-	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.allProperties["b"]["datasource.mysql.url"])
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"])
+	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.resolvedProperties["b"]["datasource.mysql.url"])
 
 	assert.Equal(t, "jdbc:mysql://1.1.1.1", conflicts["datasource.mysql.url"]["a"])
 	assert.Equal(t, "jdbc:mysql://1.1.1.8", conflicts["datasource.mysql.url"]["b"])
 
 	// 不冲突
-	assert.Equal(t, "foo", pm.allProperties["a"]["a.key"])
-	assert.Equal(t, "0", pm.allProperties["b"]["b.key"])
-	assert.Equal(t, "com.mysql.jdbc.Driver", pm.allProperties["a"]["wms.datasource.driverClassName"])
+	assert.Equal(t, "foo", pm.resolvedProperties["a"]["a.key"])
+	assert.Equal(t, "0", pm.resolvedProperties["b"]["b.key"])
+	assert.Equal(t, "com.mysql.jdbc.Driver", pm.resolvedProperties["a"]["wms.datasource.driverClassName"])
 }
 
 // properties引用了yml，yml也引用了properties

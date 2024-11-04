@@ -13,7 +13,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 		for _, ref := range cm.propertyReferences {
 			newValue := cm.resolvePropertyReference(ref.Component, ref.Value)
 			if newValue != ref.Value {
-				cm.allProperties[ref.Component][ref.Key] = newValue
+				cm.resolvedProperties[ref.Component][ref.Key] = newValue
 				resolved[ref.Component+"."+ref.Key] = true
 				log.Printf("[%s] %s: %s => %s", ref.Component, ref.Key, ref.Value, newValue)
 			} else {
@@ -38,11 +38,11 @@ func (cm *PropertyManager) resolveAllReferences() {
 func (cm *PropertyManager) resolvePropertyReference(component, value string) string {
 	return os.Expand(value, func(key string) string {
 		// 首先在当前组件中查找
-		if v, ok := cm.allProperties[component][key]; ok {
+		if v, ok := cm.resolvedProperties[component][key]; ok {
 			return fmt.Sprintf("%v", v)
 		}
 		// 如果在当前组件中找不到，则在所有组件中查找
-		for _, props := range cm.allProperties {
+		for _, props := range cm.resolvedProperties {
 			if v, ok := props[key]; ok {
 				return fmt.Sprintf("%v", v)
 			}

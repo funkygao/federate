@@ -23,8 +23,8 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 
 	log.Printf("[%s] Processing %s", component.Name, filePath)
 
-	if cm.allProperties[component.Name] == nil {
-		cm.allProperties[component.Name] = make(map[string]interface{})
+	if cm.resolvedProperties[component.Name] == nil {
+		cm.resolvedProperties[component.Name] = make(map[string]interface{})
 	}
 
 	properties := make(map[string]interface{})
@@ -39,7 +39,7 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			properties[key] = value
-			cm.allProperties[component.Name][key] = value
+			cm.resolvedProperties[component.Name][key] = value
 
 			// 捕获属性引用
 			if strings.Contains(value, "${") {
@@ -79,8 +79,8 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		return err
 	}
 
-	if cm.allProperties[component.Name] == nil {
-		cm.allProperties[component.Name] = make(map[string]interface{})
+	if cm.resolvedProperties[component.Name] == nil {
+		cm.resolvedProperties[component.Name] = make(map[string]interface{})
 	}
 
 	flatConfig := make(map[string]interface{})
@@ -88,7 +88,7 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 
 	// 捕获属性引用
 	for key, value := range flatConfig {
-		cm.allProperties[component.Name][key] = value
+		cm.resolvedProperties[component.Name][key] = value
 		if strValue, ok := value.(string); ok && strings.Contains(strValue, "${") {
 			cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
 				Component: component.Name,

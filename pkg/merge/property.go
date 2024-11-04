@@ -17,7 +17,7 @@ type PropertyManager struct {
 	m *manifest.Manifest
 
 	propertyReferences   []PropertyReference
-	allProperties        map[string]map[string]interface{} // 合并 YAML 和 Properties
+	resolvedProperties   map[string]map[string]interface{} // 合并 YAML 和 Properties
 	unresolvedReferences map[string]bool
 
 	yamlConflictKeys map[string]map[string]interface{} // [key][componentName]
@@ -41,7 +41,7 @@ func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
 		m:                      m,
 		yamlConflictKeys:       make(map[string]map[string]interface{}),
 		propertiesConflictKeys: make(map[string]map[string]interface{}),
-		allProperties:          make(map[string]map[string]interface{}),
+		resolvedProperties:     make(map[string]map[string]interface{}),
 		propertyReferences:     []PropertyReference{},
 		unresolvedReferences:   make(map[string]bool),
 		mergedYaml:             make(map[string]interface{}),
@@ -114,7 +114,7 @@ func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interfac
 		var firstValue interface{}
 		isConflict := false
 
-		for component, props := range pm.allProperties {
+		for component, props := range pm.resolvedProperties {
 			if value, exists := props[key]; exists {
 				componentValues[component] = value
 				if firstValue == nil {
@@ -134,7 +134,7 @@ func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interfac
 
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	keys := make(map[string]struct{})
-	for _, props := range pm.allProperties {
+	for _, props := range pm.resolvedProperties {
 		for key := range props {
 			keys[key] = struct{}{}
 		}
