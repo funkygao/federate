@@ -40,7 +40,7 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	assert.NotContains(t, conflicts, "mysql.driver")
 
 	// 验证引用解析
-	assert.Equal(t, "1234", pm.resolvedProperties["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
+	assert.Equal(t, 1234, pm.resolvedProperties["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
 	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"].Value)
 	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"].Value)
 	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.resolvedProperties["b"]["datasource.mysql.url"].Value)

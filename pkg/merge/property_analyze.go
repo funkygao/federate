@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 
 	"federate/pkg/manifest"
@@ -106,6 +107,16 @@ func (cm *PropertyManager) registerProperty(component manifest.ComponentInfo, ke
 			FilePath: filePath,
 		}
 	} else {
+		// 检查属性是否已存在
+		if existingProp, exists := cm.resolvedProperties[component.Name][key]; exists {
+			// 如果现有值不为空且新值是引用或为空，保留现有值
+			if existingProp.Value != nil && (value == nil || (reflect.TypeOf(value).Kind() == reflect.String && strings.Contains(value.(string), "${"))) {
+				log.Printf("[%s] Keeping existing value for %s: %v (new value was: %v)", component.Name, key, existingProp.Value, value)
+				return
+			}
+		}
+
+		// 注册新值
 		cm.resolvedProperties[component.Name][key] = PropertySource{
 			Value:    value,
 			FilePath: filePath,
