@@ -40,6 +40,8 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	assert.NotContains(t, conflicts, "mysql.driver")
 
 	// 验证引用解析
+	assert.Equal(t, "1234", pm.resolvedProperties["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"].Value)
 	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"].Value)
 	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.resolvedProperties["b"]["datasource.mysql.url"].Value)
 	assert.Equal(t, "jdbc:mysql://1.1.1.9", pm.resolvedProperties["a"]["wms.reverse.datasource.ds0-master.jdbcUrl"].Value)
@@ -89,6 +91,7 @@ mysql.driver=com.mysql.jdbc.Driver
 mysql.url=${datasource.mysql.url}
 mysql.maximumPoolSize=10
 reverse.master.ds0.mysql.url=${datasource.reverse.master.mysql.url}
+schedule.token=${schedule.token}
 `
 	aRoot := filepath.Join(tempDir, "a")
 	os.MkdirAll(aRoot, 0755)
@@ -103,6 +106,10 @@ datasource:
     master:
       mysql:
         url: jdbc:mysql://1.1.1.9
+
+schedule:
+  token: 1234
+
 wms:
   reverse:
     datasource:
