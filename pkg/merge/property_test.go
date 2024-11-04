@@ -154,3 +154,13 @@ func TestUnflattenYamlMap(t *testing.T) {
 		})
 	}
 }
+
+func TestPropertySource(t *testing.T) {
+	ps := PropertySource{FilePath: "foo.yaml"}
+	assert.Equal(t, true, ps.IsYAML())
+	assert.Equal(t, false, ps.IsProperties())
+	ps.FilePath = "a/b/bar.properties"
+	assert.Equal(t, true, ps.IsProperties())
+	ps.FilePath = "a/b/egg.prOpeRties"
+	assert.Equal(t, true, ps.IsProperties())
+}

@@ -58,7 +58,7 @@ federated:
       copy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
         - "*.html"
         - "*.json"
-      override: # 对冲突的Spring属性进行人工仲裁
+      override: # 对冲突的属性进行人工仲裁
         app.demo.feature.newFeature.enabled: true
       singletonBeans: # 这些 bean 只加载1次：资源复用
         - com.jd.jim.cli.ReloadableJimClientFactoryBean

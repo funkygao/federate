@@ -24,34 +24,22 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 	log.Printf("[%s] Processing %s", component.Name, filePath)
 
 	if cm.resolvedProperties[component.Name] == nil {
-		cm.resolvedProperties[component.Name] = make(map[string]interface{})
+		cm.resolvedProperties[component.Name] = make(map[string]PropertySource)
 	}
 
-	properties := make(map[string]interface{})
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
+
 		parts := strings.SplitN(line, "=", 2)
 		if len(parts) == 2 {
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
-			properties[key] = value
-			cm.resolvedProperties[component.Name][key] = value
 
-			// 捕获属性引用
-			if strings.Contains(value, "${") {
-				cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
-					Component: component.Name,
-					Key:       key,
-					Value:     value,
-					IsYAML:    false,
-					FilePath:  filePath,
-				})
-				cm.unresolvedReferences[key] = true
-			}
+			cm.registerProperty(component, key, value, filePath)
 		}
 	}
 
@@ -59,7 +47,6 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 		return err
 	}
 
-	mergeMaps(cm.mergedProperties, properties, cm.propertiesConflictKeys, cm, component)
 	return nil
 }
 
@@ -72,6 +59,7 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 	log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
 
 	dataStr := string(data)
+	// handling @spring.profiles.active@
 	dataStr = strings.ReplaceAll(dataStr, springProfileActive, springProfile)
 
 	var config map[interface{}]interface{}
@@ -80,7 +68,7 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 	}
 
 	if cm.resolvedProperties[component.Name] == nil {
-		cm.resolvedProperties[component.Name] = make(map[string]interface{})
+		cm.resolvedProperties[component.Name] = make(map[string]PropertySource)
 	}
 
 	flatConfig := make(map[string]interface{})
@@ -88,20 +76,8 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 
 	// 捕获属性引用
 	for key, value := range flatConfig {
-		cm.resolvedProperties[component.Name][key] = value
-		if strValue, ok := value.(string); ok && strings.Contains(strValue, "${") {
-			cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
-				Component: component.Name,
-				Key:       key,
-				Value:     strValue,
-				IsYAML:    true,
-				FilePath:  filePath,
-			})
-			cm.unresolvedReferences[key] = true
-		}
+		cm.registerProperty(component, key, value, filePath)
 	}
-
-	mergeMaps(cm.mergedYaml, flatConfig, cm.yamlConflictKeys, cm, component)
 
 	// 处理 spring.profiles.include
 	if includes, ok := flatConfig[springProfileInclude]; ok {
@@ -119,11 +95,32 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 	return nil
 }
 
-func (cm *PropertyManager) recordConflict(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
-	if _, exists := conflictMap[key]; !exists {
-		conflictMap[key] = make(map[string]interface{})
+func (cm *PropertyManager) registerProperty(component manifest.ComponentInfo, key string, value interface{}, filePath string) {
+	if cm.isReservedProperty(key) {
+		// 保留字
+		cm.registerReservedProperty(key, component, value)
+	} else if val, overridden := cm.m.PropertyOverridden(key); overridden {
+		// 用户手工指定值
+		cm.resolvedProperties[component.Name][key] = PropertySource{
+			Value:    val,
+			FilePath: filePath,
+		}
+	} else {
+		cm.resolvedProperties[component.Name][key] = PropertySource{
+			Value:    value,
+			FilePath: filePath,
+		}
+
+		// 捕获属性引用
+		if str, ok := value.(string); ok && strings.Contains(str, "${") {
+			cm.propertyReferences = append(cm.propertyReferences, PropertyReference{
+				Component: component.Name,
+				Key:       key,
+				Value:     str,
+				FilePath:  filePath,
+			})
+		}
 	}
-	conflictMap[key][componentName] = trimValue(value)
 }
 
 func (cm *PropertyManager) identifyPropertyConflicts(conflictKeys map[string]map[string]interface{}) map[string]map[string]interface{} {
@@ -179,18 +176,6 @@ func (cm *PropertyManager) unflattenYamlMap(data map[string]interface{}) map[str
 	return result
 }
 
-func mergeMaps(dest, src map[string]interface{}, conflictMap map[string]map[string]interface{}, cm *PropertyManager, component manifest.ComponentInfo) {
-	for k, v := range src {
-		if !cm.isReservedProperty(k) {
-			cm.registerPropertyValue(conflictMap, k, component.Name, v)
-		} else {
-			cm.registerReservedProperty(k, component, v)
-		}
-
-		dest[k] = v
-	}
-}
-
 // 记录值并检查冲突
 func (cm *PropertyManager) registerPropertyValue(conflictMap map[string]map[string]interface{}, key, componentName string, value interface{}) {
 	if _, exists := conflictMap[key]; !exists {
@@ -214,16 +199,26 @@ func (cm *PropertyManager) applyReservedPropertyRules() {
 				color.Yellow("key:%s reserved, but used directive: propertySettled, skipped", key)
 				continue
 			}
+
 			if value := handler(cm, values); value != nil {
-				cm.mergedYaml[key] = value
+				for _, componentProps := range cm.resolvedProperties {
+					componentProps[key] = PropertySource{
+						Value:    value,
+						FilePath: "reserved.yml",
+					}
+				}
+
 				cellData = append(cellData, []string{key, fmt.Sprintf("%v", value)})
 			} else {
-				delete(cm.mergedYaml, key)
+				for _, componentProps := range cm.resolvedProperties {
+					delete(componentProps, key)
+				}
 				cellData = append(cellData, []string{key, color.New(color.FgRed).Add(color.CrossedOut).Sprintf("deleted")})
 			}
 		}
 	}
 
+	log.Printf("Reserved keys processed:")
 	header := []string{"Reserved Key", "Value"}
 	tablerender.DisplayTable(header, cellData, false, -1)
 }

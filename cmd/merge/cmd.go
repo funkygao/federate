@@ -90,7 +90,7 @@ func doMerge(m *manifest.Manifest) {
 				identifyPropertyConflicts(m, propertyManager)
 			}},
 		{
-			Name: "Reconciling Placeholder conflicts references by rewriting .java/.xml files",
+			Name: "Reconciling Property Conflicts References by rewriting .java/.xml files",
 			Fn: func() {
 				reconcilePropertiesConflicts(m, propertyManager)
 			}},

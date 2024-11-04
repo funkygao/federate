@@ -2,51 +2,84 @@ package merge
 
 import (
 	"fmt"
-	"log"
 	"os"
+	"strings"
+
+	"federate/pkg/tablerender"
+	"github.com/fatih/color"
 )
 
 func (cm *PropertyManager) resolveAllReferences() {
-	resolved := make(map[string]bool)
-	for len(cm.propertyReferences) > 0 {
-		unresolved := make([]PropertyReference, 0)
-		for _, ref := range cm.propertyReferences {
-			newValue := cm.resolvePropertyReference(ref.Component, ref.Value)
-			if newValue != ref.Value {
-				cm.resolvedProperties[ref.Component][ref.Key] = newValue
-				resolved[ref.Component+"."+ref.Key] = true
-				log.Printf("[%s] %s: %s => %s", ref.Component, ref.Key, ref.Value, newValue)
-			} else {
-				unresolved = append(unresolved, ref)
+	maxIterations := 10 // 设置最大迭代次数，防止无限循环
+	iteration := 0
+	changed := true
+
+	for changed && iteration < maxIterations {
+		changed = false
+		iteration++
+
+		for component, props := range cm.resolvedProperties {
+			for key, propSource := range props {
+				if strValue, ok := propSource.Value.(string); ok && strings.Contains(strValue, "${") {
+					newValue := cm.resolvePropertyReference(component, strValue)
+					if newValue != strValue {
+						cm.resolvedProperties[component][key] = PropertySource{
+							Value:    newValue,
+							FilePath: propSource.FilePath,
+						}
+						changed = true
+					}
+				}
 			}
 		}
-		if len(unresolved) == len(cm.propertyReferences) {
-			// 如果没有解析任何引用，退出循环以避免无限循环
-			break
-		}
-		cm.propertyReferences = unresolved
 	}
 
-	// 处理任何剩余的未解析引用
-	for _, ref := range cm.propertyReferences {
-		if !resolved[ref.Component+"."+ref.Key] {
-			log.Printf("Warning: Unresolved reference in [%s] %s: %s", ref.Component, ref.Key, ref.Value)
+	// 删除所有未解析的引用并输出警告
+	var unresolved [][]string
+	for component, props := range cm.resolvedProperties {
+		for key, propSource := range props {
+			if strValue, ok := propSource.Value.(string); ok {
+				if strings.Contains(strValue, "${") {
+					if _, present := cm.unresolvedProperties[component]; !present {
+						cm.unresolvedProperties[component] = make(map[string]PropertySource)
+					}
+					unresolved = append(unresolved, []string{component, key, strValue})
+					cm.unresolvedProperties[component][key] = propSource
+					delete(cm.resolvedProperties[component], key)
+				} else {
+					// 确保值不包含 ${}
+					cm.resolvedProperties[component][key] = PropertySource{
+						Value:    strings.ReplaceAll(strValue, "${", ""),
+						FilePath: propSource.FilePath,
+					}
+				}
+			}
 		}
+	}
+
+	if len(unresolved) > 0 {
+		header := []string{"Component", "Key", "Unresolved Value"}
+		color.Yellow("%d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
+		tablerender.DisplayTable(header, unresolved, false, -1)
 	}
 }
 
 func (cm *PropertyManager) resolvePropertyReference(component, value string) string {
 	return os.Expand(value, func(key string) string {
-		// 首先在当前组件中查找
-		if v, ok := cm.resolvedProperties[component][key]; ok {
-			return fmt.Sprintf("%v", v)
+		// 首先在当前组件中查找，包括 YAML 和 Properties 文件
+		if propSource, ok := cm.resolvedProperties[component][key]; ok {
+			return fmt.Sprintf("%v", propSource.Value)
 		}
-		// 如果在当前组件中找不到，则在所有组件中查找
-		for _, props := range cm.resolvedProperties {
-			if v, ok := props[key]; ok {
-				return fmt.Sprintf("%v", v)
+
+		// 如果在当前组件中找不到，则在所有其他组件中查找
+		for otherComponent, props := range cm.resolvedProperties {
+			if otherComponent != component {
+				if propSource, ok := props[key]; ok {
+					return fmt.Sprintf("%v", propSource.Value)
+				}
 			}
 		}
+
 		// 如果找不到引用的值，返回原始占位符
 		return "${" + key + "}"
 	})

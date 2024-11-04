@@ -1,5 +1,10 @@
 package merge
 
+import (
+	"path/filepath"
+	"strings"
+)
+
 type Key string
 
 func (k Key) WithNamespace(ns string) string {
@@ -13,17 +18,30 @@ func (k Key) NamespacePrefix(ns string) string {
 type PropertySource struct {
 	Value    interface{}
 	FilePath string
-	FileType string // "yaml" 或 "properties"
+}
+
+func (ps *PropertySource) IsYAML() bool {
+	ext := ps.fileExt()
+	return ext == ".yaml" || ext == ".yml"
+}
+
+func (ps *PropertySource) fileExt() string {
+	return strings.ToLower(filepath.Ext(ps.FilePath))
+}
+
+func (ps *PropertySource) IsProperties() bool {
+	ext := ps.fileExt()
+	return ext == ".properties"
 }
 
 type PropertyReference struct {
 	Component string
 	Key       string
 	Value     string
-	IsYAML    bool
 	FilePath  string
 }
 
-func (ps *PropertySource) IsYAML() bool {
-	return ps.FileType == "yaml"
+func (pr *PropertyReference) IsYAML() bool {
+	ext := strings.ToLower(filepath.Ext(pr.FilePath))
+	return ext == ".yaml" || ext == ".yml"
 }

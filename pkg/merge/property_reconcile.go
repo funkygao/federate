@@ -26,7 +26,7 @@ type PropertySourcesReconcileReport struct {
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconcileReport, err error) {
-	conflictKeys := cm.identifyPropertyConflicts(cm.yamlConflictKeys)
+	conflictKeys := cm.IdentifyAllConflicts()
 	if len(conflictKeys) == 0 {
 		return
 	}
@@ -42,7 +42,13 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 			if value == nil {
 				value = ""
 			}
-			cm.mergedYaml[prefixedKey] = value
+			// Update the resolvedProperties with the prefixed key
+			//log.Printf("[%s] Overwrite key[%s => %s] = %s", componentName, key, prefixedKey, value)
+			cm.resolvedProperties[componentName][prefixedKey] = PropertySource{
+				Value:    value,
+				FilePath: cm.resolvedProperties[componentName][key].FilePath,
+			}
+
 			//delete(cm.mergedYaml, key) 原有的key不能删除：第三方包内部，可能在使用该 key
 
 			cellData = append(cellData, []string{prefixedKey, util.Truncate(fmt.Sprintf("%v", value), 60)})
@@ -121,16 +127,6 @@ type reconcileTaskResult struct {
 }
 
 func (t *reconcileTask) Execute() error {
-	// TODO yaml 与 properties 的相互引用：key增加了ns，则需要为相应引用处也修改
-	// important.properties:  master.ds2.mysql.url = ${datasource.master.ds2.mysql.url} # 安全要求，代码库里important.properties不能明文保存账钥等
-	// application.yml:       datasource.master.ds2.mysql.url: jdbc:mysql://1.1.1.1:3306/foo
-	// 现在yml里该key冲突，datasource.master.ds2.mysql.url -> stock.datasource.master.ds2.mysql.url，需要 resolve master.ds2.mysql.url
-	// 这就带来新的问题：如果一次扫描发现冲突，就会造成不同component master.ds2.mysql.url之前引用的key是相同的，而reconcile后就不同了
-	// 因此，扫描时，要发现所有的 value reference 展开，把 yaml 与 properties 统一处理后，才能发现冲突
-	// 我建议：在 reconcile 前，注册冲突前，捕获属性引用，之后才注册冲突，这样更方便代码实现，而且不漏
-	// 即：把所有的 reference 都解析完了，再发现冲突
-	// TODO end
-
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
 	if err := t.prefixKeyReferences(java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
 		return err
