@@ -6,14 +6,6 @@ import (
 	"os"
 )
 
-type PropertyReference struct {
-	Component string
-	Key       string
-	Value     string
-	IsYAML    bool
-	FilePath  string
-}
-
 func (cm *PropertyManager) resolveAllReferences() {
 	resolved := make(map[string]bool)
 	for len(cm.propertyReferences) > 0 {

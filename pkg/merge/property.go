@@ -3,9 +3,9 @@ package merge
 import (
 	"fmt"
 	"log"
-    "reflect"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 
