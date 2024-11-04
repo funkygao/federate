@@ -44,7 +44,7 @@ func showPropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManage
 		return
 	}
 
-	color.Red("Found .properties conflicts: %d", len(conflictKeys))
+	color.Yellow("Found .properties conflicts: %d", len(conflictKeys))
 	keys := make([]string, 0, len(conflictKeys))
 	for key := range conflictKeys {
 		keys = append(keys, key)

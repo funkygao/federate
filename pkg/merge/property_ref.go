@@ -60,7 +60,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 
 	if len(unresolved) > 0 {
 		header := []string{"Component", "Key", "Unresolved Value", "Yaml"}
-		color.Yellow("%d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
+		color.Yellow("Found %d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
 		tablerender.DisplayTable(header, unresolved, false, -1)
 	}
 }
