@@ -5,9 +5,9 @@ import (
 )
 
 type ReconcileSpec struct {
-	ExcludedBeanClasses []string `yaml:"excludeClasses"`
+	ExcludedBeanClasses []string `yaml:"excludeBeans"`
 
-	Taint     TaintSpec              `yaml:"taint"`
+	Taint     TaintSpec              `yaml:"manual"`
 	Resources ResourcesReconcileSpec `yaml:"resources"`
 
 	Rpc RpcSpec `yaml:"rpc"`
@@ -18,8 +18,8 @@ type ReconcileSpec struct {
 type ResourcesReconcileSpec struct {
 	// xml 里定义的 bean
 	SingletonBeanClasses []string               `yaml:"singletonClasses"`
-	FlatCopy             []string               `yaml:"flatCopy"`
-	PropertySettlement   map[string]interface{} `yaml:"propertySettlement"`
+	FlatCopy             []string               `yaml:"copy"`
+	PropertySettlement   map[string]interface{} `yaml:"override"`
 }
 
 func (s *ReconcileSpec) ExcludeBeanClass(class string) bool {
