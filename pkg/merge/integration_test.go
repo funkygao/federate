@@ -20,7 +20,7 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	allPropertiesJSON, _ := json.MarshalIndent(pm.allProperties, "", "  ")
 	t.Logf("All properties:\n%s", string(allPropertiesJSON))
 
-	conflicts := pm.IdentifyAllPropertyConflicts()
+	conflicts := pm.IdentifyAllConflicts()
 	conflictsJSON, _ := json.MarshalIndent(conflicts, "", "  ")
 	t.Logf("Conflicts:\n%s", string(conflictsJSON))
 

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 
 	"federate/pkg/concurrent"
 	"federate/pkg/diff"
@@ -25,7 +26,7 @@ type PropertySourcesReconcileReport struct {
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconcileReport, err error) {
-	conflictKeys := cm.IdentifyYamlFileConflicts()
+	conflictKeys := cm.identifyPropertyConflicts(cm.yamlConflictKeys)
 	if len(conflictKeys) == 0 {
 		return
 	}
@@ -77,6 +78,30 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 	}
 
 	return
+}
+
+func (cm *PropertyManager) updateRequestMappingInFile(content, contextPath string) string {
+	return cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
+		submatches := cm.requestMappingRegex.FindStringSubmatch(match)
+		if len(submatches) == 4 {
+			oldPath := submatches[2]
+			newPath := filepath.Join(contextPath, oldPath)
+			return submatches[1] + newPath + submatches[3]
+		}
+		return match
+	})
+}
+
+func (cm *PropertyManager) createJavaRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
+}
+
+func (cm *PropertyManager) createXmlRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
+}
+
+func (cm *PropertyManager) replaceKeyInMatch(match, key, prefix string) string {
+	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
 }
 
 type reconcileTask struct {

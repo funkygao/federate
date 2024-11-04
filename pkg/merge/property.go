@@ -63,23 +63,21 @@ func (cm *PropertyManager) AnalyzeAllPropertySources() error {
 		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
 
-			// 分析 application.yml
-			if err := cm.analyzeYamlFile(filepath.Join(sourceDir, "application.yml"), component.SpringProfile, component); err != nil {
-				return err
-			}
-
-			// 分析 application-{profile}.yml
+			// 分析 application.yml 和 application-{profile}.yml
+			yamlFiles := []string{"application.yml"}
 			if component.SpringProfile != "" {
-				if err := cm.analyzeYamlFile(filepath.Join(sourceDir, "application-"+component.SpringProfile+".yml"), component.SpringProfile, component); err != nil {
+				yamlFiles = append(yamlFiles, "application-"+component.SpringProfile+".yml")
+			}
+			for _, f := range yamlFiles {
+				if err := cm.analyzeYamlFile(filepath.Join(sourceDir, f), component.SpringProfile, component); err != nil {
 					return err
 				}
 			}
 
-			// 分析其他属性文件
+			// 分析其他属性文件，基本上就是 .properties
 			for _, propertySource := range component.Resources.PropertySources {
 				filePath := filepath.Join(sourceDir, propertySource)
 				ext := filepath.Ext(propertySource)
-
 				if _, present := cm.propertySourceExts[ext]; !present {
 					return fmt.Errorf("Invalid property source: %s", propertySource)
 				}
@@ -100,14 +98,16 @@ func (cm *PropertyManager) AnalyzeAllPropertySources() error {
 		}
 	}
 
-	// 解析所有引用并应用规则
+	// 解析所有引用
 	cm.resolveAllReferences()
+
+	// 应用保留key处理规则
 	cm.applyReservedPropertyRules()
 	return nil
 }
 
 // 合并 YAML 和 Properties 的冲突
-func (pm *PropertyManager) IdentifyAllPropertyConflicts() map[string]map[string]interface{} {
+func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interface{} {
 	conflicts := make(map[string]map[string]interface{})
 	for key := range pm.getAllUniqueKeys() {
 		componentValues := make(map[string]interface{})
@@ -140,38 +140,6 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 		}
 	}
 	return keys
-}
-
-func (cm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
-	return cm.identifyPropertyConflicts(cm.propertiesConflictKeys)
-}
-
-func (cm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
-	return cm.identifyPropertyConflicts(cm.yamlConflictKeys)
-}
-
-func (cm *PropertyManager) updateRequestMappingInFile(content, contextPath string) string {
-	return cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
-		submatches := cm.requestMappingRegex.FindStringSubmatch(match)
-		if len(submatches) == 4 {
-			oldPath := submatches[2]
-			newPath := filepath.Join(contextPath, oldPath)
-			return submatches[1] + newPath + submatches[3]
-		}
-		return match
-	})
-}
-
-func (cm *PropertyManager) createJavaRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
-}
-
-func (cm *PropertyManager) createXmlRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
-}
-
-func (cm *PropertyManager) replaceKeyInMatch(match, key, prefix string) string {
-	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
 }
 
 func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
