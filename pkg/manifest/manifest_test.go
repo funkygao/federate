@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"os"
 	"testing"
 
 	"federate/pkg/java"
@@ -14,6 +15,13 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "1.2", manifest.Version)
 	assert.Equal(t, "com.jdwl.wms.runtime", manifest.Main.FederatedRuntimePackage())
 	assert.Equal(t, "wms-stock-api-provider", manifest.Main.Dependency.Includes[0].ArtifactId)
+	assert.Equal(t, "com.goog", manifest.Main.GroupId)
+
+	// 设置环境变量
+	os.Setenv("GROUP_ID", "com.goog.foo")
+	manifest = Load()
+	assert.Equal(t, "com.goog.foo", manifest.Main.GroupId)
+
 	assert.Equal(t, "wms-inventory-web", manifest.Main.Dependency.Excludes[0].ArtifactId)
 	assert.Equal(t, 1, len(manifest.Main.Reconcile.Resources.PropertySettlement))
 	assert.Equal(t, int16(8082), manifest.RpmByEnv("on-premise").TomcatPort)
@@ -179,4 +187,79 @@ func TestTargetResourceDir(t *testing.T) {
 		},
 	}
 	assert.Equal(t, "foo/src/main/resources", manifest.TargetResourceDir())
+}
+
+func TestParseEnvVars(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		envVars  map[string]string
+		expected string
+	}{
+		{
+			name:     "No env vars",
+			input:    "Hello, World!",
+			envVars:  nil,
+			expected: "Hello, World!",
+		},
+		{
+			name:     "Single env var with default",
+			input:    "Hello, ${NAME:World}!",
+			envVars:  nil,
+			expected: "Hello, World!",
+		},
+		{
+			name:  "Single env var without default",
+			input: "Hello, ${NAME}!",
+			envVars: map[string]string{
+				"NAME": "John",
+			},
+			expected: "Hello, John!",
+		},
+		{
+			name:  "Multiple env vars",
+			input: "${GREETING:Hello}, ${NAME:World}!",
+			envVars: map[string]string{
+				"GREETING": "Hi",
+			},
+			expected: "Hi, World!",
+		},
+		{
+			name:  "Env var within text",
+			input: "The value is ${VALUE:default} today",
+			envVars: map[string]string{
+				"VALUE": "special",
+			},
+			expected: "The value is special today",
+		},
+		{
+			name:     "Env var with empty default",
+			input:    "Empty default: ${EMPTY:}",
+			envVars:  nil,
+			expected: "Empty default: ",
+		},
+		{
+			name:  "Env var with colon in value",
+			input: "Time: ${TIME:12:00}",
+			envVars: map[string]string{
+				"TIME": "15:30",
+			},
+			expected: "Time: 15:30",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set environment variables
+			for k, v := range tt.envVars {
+				os.Setenv(k, v)
+				defer os.Unsetenv(k)
+			}
+
+			result := parseEnvVars(tt.input)
+			if result != tt.expected {
+				t.Errorf("parseEnvVars(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
 }

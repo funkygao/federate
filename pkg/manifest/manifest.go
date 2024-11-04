@@ -57,6 +57,11 @@ func (m *Manifest) RpmByEnv(env string) *RpmSpec {
 	return &RpmSpec{}
 }
 
+func (m *Manifest) PropertyOverridden(key string) (val interface{}, present bool) {
+	val, present = m.Main.Reconcile.Resources.PropertySettlement[key]
+	return
+}
+
 func (m *Manifest) ComponentByName(componentName string) *ComponentInfo {
 	for _, c := range m.Components {
 		if c.Name == componentName {

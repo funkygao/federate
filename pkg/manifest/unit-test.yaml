@@ -2,6 +2,7 @@ version: 1.2
 
 federated:
   name: demo-starter
+  groupId: ${GROUP_ID:com.goog}
   springBootApplication:
     class: com.jdwl.wms.DemoDeepFusionApplication
   dependency:
@@ -19,7 +20,7 @@ federated:
       JAVA_OPTS:
   reconcile:
     resources:
-      propertySettlement:
+      override:
         app.demo.feature.newFeature.enabled: true
 
 components:
