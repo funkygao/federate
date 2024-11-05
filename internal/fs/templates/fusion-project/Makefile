@@ -64,7 +64,7 @@ consolidate:sync-submodules ## Synchronize submodules, generate and pacakge the 
 		echo "☕️ Skipped Components Installation"; \
 	fi
 	$(MAKE) package
-	echo "🍺 Congrat, consolidated and packaged!"
+	echo "🍺 {{.FusionProjectName}} consolidated and packaged!"
 
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
