@@ -59,7 +59,7 @@ func upgradeBinary() {
 	if !forceUpgrade {
 		cachedRelease, err := loadCachedRelease()
 		if err == nil && release.TagName <= cachedRelease.TagName {
-			log.Println("Already lastest stable version.")
+			log.Printf("Already lastest stable version %s", cachedRelease.TagName)
 			return
 		}
 	}
@@ -83,7 +83,7 @@ func upgradeBinary() {
 		log.Fatalf("No matching binary found for %s-%s", runtime.GOOS, arch)
 	}
 
-	log.Printf("Downloading: %s", downloadURL)
+	log.Printf("Downloading %s", downloadURL)
 
 	// 创建临时文件
 	tmpFile, err := os.CreateTemp("", "federate-*")
@@ -97,12 +97,19 @@ func upgradeBinary() {
 		log.Fatalf("Failed to download the latest version: %v", err)
 	}
 
-	homebrewPrefix := os.Getenv("HOMEBREW_PREFIX")
-	if homebrewPrefix == "" {
-		homebrewPrefix = "/usr/local"
+	// 确定安装目录
+	var installDir string
+	if homebrewPrefix := os.Getenv("HOMEBREW_PREFIX"); homebrewPrefix != "" {
+		installDir = filepath.Join(homebrewPrefix, "bin")
+	} else {
+		gopath := os.Getenv("GOPATH")
+		if gopath == "" {
+			gopath = filepath.Join(os.Getenv("HOME"), "go")
+		}
+		installDir = filepath.Join(gopath, "bin")
 	}
-	binPath := filepath.Join(homebrewPrefix, "bin", "federate")
-	log.Printf("Installing to %s", binPath)
+
+	binPath := filepath.Join(installDir, "federate")
 
 	// 替换当前的二进制文件
 	if err := os.Rename(tmpFile.Name(), binPath); err != nil {
@@ -117,7 +124,7 @@ func upgradeBinary() {
 	// 缓存结果
 	cacheRelease(release)
 
-	fmt.Printf("🍺 Upgrade successful, cost: %s\n", time.Since(t0))
+	fmt.Printf("🍺 Upgrade to %s, cost: %s\n", binPath, time.Since(t0))
 }
 
 func getLatestRelease() (*GithubRelease, error) {
