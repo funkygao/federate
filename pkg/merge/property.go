@@ -183,6 +183,8 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 	if err := os.WriteFile(targetFile, data, 0644); err != nil {
 		log.Fatalf("Error writing merged config to %s: %v", targetFile, err)
 	}
+
+	log.Printf("Generated %s", targetFile)
 }
 
 func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
@@ -203,4 +205,6 @@ func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
 	if err := os.WriteFile(targetFile, []byte(builder.String()), 0644); err != nil {
 		log.Fatalf("Error writing merged properties to %s: %v", targetFile, err)
 	}
+
+	log.Printf("Generated %s", targetFile)
 }

@@ -12,8 +12,6 @@ import (
 )
 
 func TestUpdateRequestMappingInFile(t *testing.T) {
-	cm := NewPropertyManager(nil)
-
 	testCases := []struct {
 		name        string
 		input       string
@@ -52,9 +50,10 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 		},
 	}
 
+	task := reconcileTask{cm: NewPropertyManager(nil)}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := cm.updateRequestMappingInFile(tc.input, tc.contextPath)
+			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
 			if result != tc.expected {
 				t.Errorf("Expected:\n%s\nGot:\n%s", tc.expected, result)
 			}
@@ -63,8 +62,6 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 }
 
 func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
-	cm := NewPropertyManager(nil)
-
 	testCases := []struct {
 		name        string
 		input       string
@@ -97,9 +94,10 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 		},
 	}
 
+	task := reconcileTask{cm: NewPropertyManager(nil)}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := cm.updateRequestMappingInFile(tc.input, tc.contextPath)
+			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
 			assert.Equal(t, tc.expected, result, "The updated content should match the expected output")
 		})
 	}

@@ -42,8 +42,8 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 			if value == nil {
 				value = ""
 			}
-			// Update the resolvedProperties with the prefixed key
-			//log.Printf("[%s] Overwrite key[%s => %s] = %s", componentName, key, prefixedKey, value)
+
+			// Update the resolvedProperties with the prefixed key, for .properties && .yml
 			cm.resolvedProperties[componentName][prefixedKey] = PropertySource{
 				Value:    value,
 				FilePath: cm.resolvedProperties[componentName][key].FilePath,
@@ -60,6 +60,7 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 	log.Printf("Reconciled %d conflicting keys into %d keys", len(conflictKeys), len(cellData))
 
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
+	executor.SetName("Overwrite Java/XML conflicted property references & RequestMapping")
 	for componentName, keys := range componentKeys {
 		executor.AddTask(&reconcileTask{
 			cm:                 cm,
@@ -86,30 +87,6 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 	return
 }
 
-func (cm *PropertyManager) updateRequestMappingInFile(content, contextPath string) string {
-	return cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
-		submatches := cm.requestMappingRegex.FindStringSubmatch(match)
-		if len(submatches) == 4 {
-			oldPath := submatches[2]
-			newPath := filepath.Join(contextPath, oldPath)
-			return submatches[1] + newPath + submatches[3]
-		}
-		return match
-	})
-}
-
-func (cm *PropertyManager) createJavaRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
-}
-
-func (cm *PropertyManager) createXmlRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
-}
-
-func (cm *PropertyManager) replaceKeyInMatch(match, key, prefix string) string {
-	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
-}
-
 type reconcileTask struct {
 	cm *PropertyManager
 
@@ -128,12 +105,12 @@ type reconcileTaskResult struct {
 
 func (t *reconcileTask) Execute() error {
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.prefixKeyReferences(java.IsJavaMainSource, t.cm.createJavaRegex); err != nil {
+	if err := t.prefixKeyReferences(java.IsJavaMainSource, t.createJavaRegex); err != nil {
 		return err
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.prefixKeyReferences(java.IsXml, t.cm.createXmlRegex); err != nil {
+	if err := t.prefixKeyReferences(java.IsXml, t.createXmlRegex); err != nil {
 		return err
 	}
 
@@ -145,6 +122,18 @@ func (t *reconcileTask) Execute() error {
 	}
 
 	return nil
+}
+
+func (t *reconcileTask) createJavaRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
+}
+
+func (t *reconcileTask) createXmlRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
+}
+
+func (t *reconcileTask) replaceKeyInMatch(match, key, prefix string) string {
+	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
 }
 
 func (t *reconcileTask) updateRequestMappings() error {
@@ -160,7 +149,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 			}
 
 			oldContent := string(content)
-			newContent := t.cm.updateRequestMappingInFile(oldContent, t.servletContextPath)
+			newContent := t.updateRequestMappingInFile(oldContent, t.servletContextPath)
 			if newContent != oldContent {
 				if !t.dryRun {
 					diff.RenderUnifiedDiff(oldContent, newContent)
@@ -176,6 +165,18 @@ func (t *reconcileTask) updateRequestMappings() error {
 		}
 
 		return nil
+	})
+}
+
+func (t *reconcileTask) updateRequestMappingInFile(content, contextPath string) string {
+	return t.cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
+		submatches := t.cm.requestMappingRegex.FindStringSubmatch(match)
+		if len(submatches) == 4 {
+			oldPath := submatches[2]
+			newPath := filepath.Join(contextPath, oldPath)
+			return submatches[1] + newPath + submatches[3]
+		}
+		return match
 	})
 }
 
@@ -204,7 +205,7 @@ func (t *reconcileTask) prefixKeyReferences(fileFilter func(os.FileInfo, string)
 				if len(matches) > 0 {
 					changed = true
 					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-						replaced := t.cm.replaceKeyInMatch(match, t.keys[i], t.prefix)
+						replaced := t.replaceKeyInMatch(match, t.keys[i], t.prefix)
 						dmp := diffmatchpatch.New()
 						diffs := dmp.DiffMain(match, replaced, false)
 						log.Printf("%s", dmp.DiffPrettyText(diffs))

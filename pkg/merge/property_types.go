@@ -16,9 +16,8 @@ func (k Key) NamespacePrefix(ns string) string {
 }
 
 type PropertySource struct {
-	Value         interface{}
-	OrigianlValue string
-	FilePath      string
+	Value    interface{}
+	FilePath string
 }
 
 func (ps *PropertySource) IsYAML() bool {

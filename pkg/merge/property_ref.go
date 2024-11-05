@@ -24,9 +24,8 @@ func (cm *PropertyManager) resolveAllReferences() {
 					newValue := cm.resolvePropertyReference(component, strValue)
 					if newValue != strValue {
 						cm.resolvedProperties[component][key] = PropertySource{
-							Value:         newValue,
-							OrigianlValue: strValue,
-							FilePath:      propSource.FilePath,
+							Value:    newValue,
+							FilePath: propSource.FilePath,
 						}
 						changed = true
 					}
