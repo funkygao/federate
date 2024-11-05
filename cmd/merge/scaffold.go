@@ -22,7 +22,7 @@ func scaffoldTargetSystem(m *manifest.Manifest) {
 	generateStartStopScripts(m)
 	copyTaint(m)
 
-	color.Green("🍺 Scaffold generated for target system: %s", m.Main.Name)
+	color.Green("🍺 Scaffold generated for the federated system: %s", m.Main.Name)
 }
 
 func generatePomFile(m *manifest.Manifest) {
@@ -44,9 +44,9 @@ func generatePomFile(m *manifest.Manifest) {
 	fn := filepath.Join(root, "pom.xml")
 	overwrite := fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
 	if overwrite {
-		color.Yellow("Overwrite %s", fn)
+		log.Printf("Overwrite %s", fn)
 	} else {
-		color.Cyan("Generated %s", fn)
+		log.Printf("Generated %s", fn)
 	}
 }
 
@@ -64,9 +64,9 @@ func generateMetaInf(m *manifest.Manifest) {
 	fn := filepath.Join(root, "src", "main", "resources", "META-INF", "spring.factories")
 	overwrite := fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
 	if overwrite {
-		color.Yellow("Overwrite %s", fn)
+		log.Printf("Overwrite %s", fn)
 	} else {
-		color.Cyan("Generated %s", fn)
+		log.Printf("Generated %s", fn)
 	}
 }
 
@@ -100,9 +100,9 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	fn := filepath.Join(mainClassDir, className+".java")
 	overwrite := fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
 	if overwrite {
-		color.Yellow("Overwrite %s", fn)
+		log.Printf("Overwrite %s", fn)
 	} else {
-		color.Cyan("Generated %s", fn)
+		log.Printf("Generated %s", fn)
 	}
 }
 
@@ -132,9 +132,9 @@ func generateMakefile(m *manifest.Manifest) {
 	fn := filepath.Join(root, "Makefile")
 	overwrite := fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
 	if overwrite {
-		color.Yellow("Overwrite %s", fn)
+		log.Printf("Overwrite %s", fn)
 	} else {
-		color.Cyan("Generated %s", fn)
+		log.Printf("Generated %s", fn)
 	}
 }
 
@@ -146,9 +146,9 @@ func generatePackageXml(m *manifest.Manifest) {
 	fn := filepath.Join(root, "src", "main", "assembly", "package.xml")
 	overwrite := fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
 	if overwrite {
-		color.Yellow("Overwrite %s", fn)
+		log.Printf("Overwrite %s", fn)
 	} else {
-		color.Cyan("Generated %s", fn)
+		log.Printf("Generated %s", fn)
 	}
 }
 
@@ -170,9 +170,9 @@ func generateStartStopScripts(m *manifest.Manifest) {
 	stop := filepath.Join(root, "src", "main", "assembly", "bin", "stop.sh")
 	overwrite := fs.GenerateExecutableFileFromTmpl("templates/stop.sh", stop, data)
 	if overwrite {
-		color.Yellow("Overwrite %s, %s", start, filepath.Base(stop))
+		log.Printf("Overwrite %s, %s", start, filepath.Base(stop))
 	} else {
-		color.Cyan("Generated %s, %s", start, filepath.Base(stop))
+		log.Printf("Generated %s, %s", start, filepath.Base(stop))
 	}
 }
 
@@ -188,7 +188,7 @@ func copyTaint(m *manifest.Manifest) {
 		if err := util.CopyFile(src, target); err != nil {
 			log.Fatalf("%v", err)
 		}
-		color.Cyan("Taint Copied %s -> %s", src, target)
+		log.Printf("Taint Copied %s -> %s", src, target)
 	}
 
 }

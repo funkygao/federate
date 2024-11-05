@@ -13,6 +13,7 @@ import (
 	"federate/pkg/concurrent"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"github.com/fatih/color"
 )
 
 type getBeanRisk struct {
@@ -54,9 +55,11 @@ func (b *XmlBeanManager) showGetBeanRisk() error {
 		return errors[0] // 返回第一个遇到的错误
 	}
 
-	log.Printf("⚠️  getBean(name) %d risks, %d java files analyzed, cost %s", len(risks), counter.Value(), time.Since(t0))
-	for _, risk := range risks {
-		log.Printf("getBean(%s): %s", risk.beanName, risk.filePath)
+	if len(risks) > 0 {
+		color.Yellow("getBean(name) %d risks, %d java files analyzed, cost %s", len(risks), counter.Value(), time.Since(t0))
+		for _, risk := range risks {
+			log.Printf("getBean(%s): %s", risk.beanName, risk.filePath)
+		}
 	}
 	return nil
 }
