@@ -10,8 +10,8 @@ make fusion-start                # 生成 fusion-starter 项目脚手架
 make consolidate ENV=<env>       # 针对目标环境进行合并编译
 
 # 融合项目管理，支持本地调试和本地打包
-make -C fusion-example           # 查看帮助
-make -C fusion-example run-local # 本地调试
+make -C {{.FusionProjectName}}           # 查看帮助
+make -C {{.FusionProjectName}} run-local # 本地调试
 ```
 
 ## 行云部署
@@ -19,9 +19,3 @@ make -C fusion-example run-local # 本地调试
 ```bash
 federate jdos # 自动生成 JDOS 构建需要填写的表单参数
 ```
-
-## 哪些文件需要纳入git管理
-
-- bin/federate
-- {{.FusionProjectName}}-starter 下你手工维护的代码和资源文件
-- .gitmodules

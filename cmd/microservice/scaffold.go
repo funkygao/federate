@@ -68,9 +68,9 @@ func generateMonolithFiles(m *manifest.Manifest) {
 func generateFile(fromTemplateFile, targetFile string, data interface{}) {
 	overwrite := fs.GenerateFileFromTmpl("templates/fusion-project/"+fromTemplateFile, targetFile, data)
 	if overwrite {
-		color.Yellow("Overwrite %s", targetFile)
+		log.Printf("Overwrite %s", targetFile)
 	} else {
-		color.Cyan("Generated %s", targetFile)
+		log.Printf("Generated %s", targetFile)
 	}
 }
 

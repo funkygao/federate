@@ -7,7 +7,6 @@ import (
 	"federate/cmd/chatgpt"
 	"federate/cmd/image"
 	"federate/cmd/microservice"
-	"federate/cmd/onpremise"
 	"federate/cmd/plus"
 	"federate/cmd/util"
 	"federate/cmd/version"
@@ -40,7 +39,6 @@ func init() {
 
 	// 分组设置
 	microservice.CmdGroup.GroupID = "microservice"
-	onpremise.CmdGroup.GroupID = "microservice"
 	plus.CmdGroup.GroupID = "microservice"
 	image.CmdGroup.GroupID = "microservice"
 	jdosCmd.GroupID = "microservice"
@@ -74,7 +72,6 @@ func init() {
 	rootCmd.AddCommand(microservice.CmdGroup)
 	rootCmd.AddCommand(plus.CmdGroup)
 	rootCmd.AddCommand(jdosCmd)
-	rootCmd.AddCommand(onpremise.CmdGroup)
 	rootCmd.AddCommand(image.CmdGroup)
 
 	// system
