@@ -87,5 +87,3 @@ Top level fields:
 
 - manifest.components.springProfile 需要为不同环境配置
 - FederatedMybatisConfig
-- plus 扩展点路由
-- spoon AST
