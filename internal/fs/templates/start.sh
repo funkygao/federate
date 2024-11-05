@@ -19,7 +19,7 @@ if [ -z $START_JAVA_OPTS ]; then
 fi
 
 # exec 
-nohup java -DappName={{.AppName}} $START_JAVA_OPTS -Xss1m -server -classpath $SHDIR/../conf/:$SHDIR/../lib/* {{.MainClass}} &
+nohup java -DappName={{.AppName}} $START_JAVA_OPTS -Xss1m -server -classpath $SHDIR/../conf/:$SHDIR/../lib/* {{.MainClass}} > /dev/null 2>&1 &
 
 # wirte pid to file
 if [ $? -eq 0 ] 
