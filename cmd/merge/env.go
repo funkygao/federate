@@ -1,13 +1,12 @@
 package merge
 
 import (
-	"log"
-
 	"federate/pkg/manifest"
+	"federate/pkg/merge"
 	"github.com/fatih/color"
 )
 
 func reconcileEnvConflicts(m *manifest.Manifest) {
-	log.Printf("System.getProperty")
+	merge.ReconcileEnvConflicts(m)
 	color.Green("🍺 ENV variables conflicts reconciled")
 }

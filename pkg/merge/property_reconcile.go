@@ -183,6 +183,7 @@ func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
 }
 
 func (t *reconcileTask) updateRequestMappings() error {
+	contextPath := filepath.Clean("/" + strings.Trim(t.servletContextPath, "/"))
 	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -195,7 +196,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 			}
 
 			oldContent := string(content)
-			newContent := t.updateRequestMappingInFile(oldContent, t.servletContextPath)
+			newContent := t.updateRequestMappingInFile(oldContent, contextPath)
 			if newContent != oldContent {
 				if !t.dryRun {
 					diff.RenderUnifiedDiff(oldContent, newContent)
@@ -204,7 +205,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 					if err != nil {
 						return err
 					}
-					log.Printf("%s", path)
+					log.Printf("Updated RequestMapping in %s", path)
 					t.result.requestMapping++
 				}
 			}
@@ -218,7 +219,10 @@ func (t *reconcileTask) updateRequestMappingInFile(content, contextPath string) 
 	return t.cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
 		submatches := t.cm.requestMappingRegex.FindStringSubmatch(match)
 		if len(submatches) == 4 {
-			oldPath := submatches[2]
+			oldPath := filepath.Clean("/" + strings.TrimPrefix(submatches[2], "/"))
+			if strings.HasPrefix(oldPath, contextPath) {
+				return match // 如果已经包含，则不做改变
+			}
 			newPath := filepath.Join(contextPath, oldPath)
 			return submatches[1] + newPath + submatches[3]
 		}

@@ -40,7 +40,7 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 			name:        "RequestMapping with existing context path",
 			input:       `@RequestMapping("/wms-stock/api/users")`,
 			contextPath: "/wms-stock",
-			expected:    `@RequestMapping("/wms-stock/wms-stock/api/users")`,
+			expected:    `@RequestMapping("/wms-stock/api/users")`,
 		},
 		{
 			name:        "No RequestMapping",

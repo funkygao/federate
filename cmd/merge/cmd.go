@@ -55,7 +55,7 @@ func doMerge(m *manifest.Manifest) {
 
 	steps := []step.Step{
 		{
-			Name: "Generating target system scaffold",
+			Name: "Generating federated system scaffold",
 			Fn: func() {
 				scaffoldTargetSystem(m)
 			}},
