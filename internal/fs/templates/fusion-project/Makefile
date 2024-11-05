@@ -55,7 +55,7 @@ fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 
 consolidate:sync-submodules ## Synchronize submodules and generate the federated system for the specified environment.
 	echo "☕️ Consolidating the federated project ..."
-	federate microservice consolidate --yes --silent=true
+	federate microservice consolidate --yes --silent=false
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
 		for repo in $$($(INVENTORY_CMD) -f components); do \
