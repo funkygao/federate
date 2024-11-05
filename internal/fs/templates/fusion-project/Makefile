@@ -49,7 +49,7 @@ fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 		federate microservice fusion-start; \
 	fi
 
-consolidate:sync-submodules ## Synchronize submodules and generate the federated system for the specified environment.
+consolidate:sync-submodules ## Synchronize submodules, generate and pacakge the federated system.
 	echo "☕️ Consolidating the federated project ..."
 	federate microservice consolidate --yes --silent=false
 	if [ "$(sci)" != "1" ]; then \
@@ -66,7 +66,7 @@ consolidate:sync-submodules ## Synchronize submodules and generate the federated
 	$(MAKE) package
 	echo "🍺 Congrat, consolidated!"
 
-package: ## Build {{.FusionProjectName}} after consolidation.
+package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
 	mvn package -q -T8 -Dmaven.artifact.threads=16
 

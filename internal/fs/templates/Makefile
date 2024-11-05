@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SILENT:
 
 help:
-	awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Build
 
@@ -22,7 +22,7 @@ inspect:check_package_dir ## Inspect indirect conflict risk before runtime.
 
 run-local:check_package_dir ## Debug {{.AppName}} foreground on your host.
 	echo "☕️ Starting {{.AppName}} ..."
-	env {{.Env}} java -DappName={{.AppName}} -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
+	env {{.Env}} java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
 ##@ Analysis
 
