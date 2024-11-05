@@ -1,7 +1,6 @@
 package merge
 
 import (
-	"fmt"
 	"io/ioutil"
 	"log"
 	"os"
@@ -14,8 +13,6 @@ import (
 	"federate/pkg/diff"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
-	"federate/pkg/tablerender"
-	"federate/pkg/util"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -26,15 +23,14 @@ type PropertySourcesReconcileReport struct {
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconcileReport, err error) {
-	conflictKeys := cm.IdentifyAllConflicts()
-	if len(conflictKeys) == 0 {
+	conflicts := cm.IdentifyAllConflicts()
+	if len(conflicts) == 0 {
 		return
 	}
 
 	// Group keys by component
 	conflictingKeysOfComponents := make(map[string][]string)
-	var cellData [][]string
-	for key, components := range conflictKeys {
+	for key, components := range conflicts {
 		for componentName, value := range components {
 			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
@@ -50,14 +46,8 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 			}
 
 			//delete(cm.mergedYaml, key) 原有的key不能删除：第三方包内部，可能在使用该 key
-
-			cellData = append(cellData, []string{prefixedKey, util.Truncate(fmt.Sprintf("%v", value), 60)})
 		}
 	}
-
-	header := []string{"New Key", "Value"}
-	tablerender.DisplayTable(header, cellData, false, -1)
-	log.Printf("Reconciled %d conflicting keys into %d keys", len(conflictKeys), len(cellData))
 
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
 	executor.SetName("Overwrite Java/XML conflicted property references & RequestMapping")

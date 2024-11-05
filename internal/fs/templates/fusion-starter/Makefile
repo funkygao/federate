@@ -8,4 +8,4 @@ help:
 ##@ Build
 
 install: ## Compile and install {{.AppName}}-starter.jar on your host.
-	@mvn clean install -q -U -Dmaven.test.skip=true -T8
+	mvn clean install -q -U -Dmaven.test.skip=true -T8
