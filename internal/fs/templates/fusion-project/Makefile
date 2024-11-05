@@ -69,6 +69,7 @@ consolidate:sync-submodules ## Synchronize submodules, generate and pacakge the 
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
 	mvn package -q -T8 -Dmaven.artifact.threads=16
+	echo "   {{.FusionProjectName}} packaged"
 
 optimize: ## Optimize {{.FusionProjectName}} resource consumption.
 	federate microservice optimize --yes --verbosity 3
