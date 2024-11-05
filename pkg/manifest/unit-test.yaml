@@ -20,8 +20,10 @@ federated:
       JAVA_OPTS:
   reconcile:
     resources:
-      override:
-        app.demo.feature.newFeature.enabled: true
+      property:
+        dryrun: ${RECONCILE:false}
+        override:
+          app.demo.feature.newFeature.enabled: true
 
 components:
   - name: wms-stock

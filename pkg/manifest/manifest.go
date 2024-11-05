@@ -58,7 +58,7 @@ func (m *Manifest) RpmByEnv(env string) *RpmSpec {
 }
 
 func (m *Manifest) PropertyOverridden(key string) (val interface{}, present bool) {
-	val, present = m.Main.Reconcile.Resources.PropertySettlement[key]
+	val, present = m.Main.Reconcile.Resources.Property.Overrides[key]
 	return
 }
 

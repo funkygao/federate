@@ -32,11 +32,11 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 	}
 
 	// Group keys by component
-	componentKeys := make(map[string][]string)
+	conflictingKeysOfComponents := make(map[string][]string)
 	var cellData [][]string
 	for key, components := range conflictKeys {
 		for componentName, value := range components {
-			componentKeys[componentName] = append(componentKeys[componentName], key)
+			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
 			prefixedKey := Key(key).WithNamespace(componentName)
 			if value == nil {
@@ -61,12 +61,11 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
 	executor.SetName("Overwrite Java/XML conflicted property references & RequestMapping")
-	for componentName, keys := range componentKeys {
+	for componentName, keys := range conflictingKeysOfComponents {
 		executor.AddTask(&reconcileTask{
 			cm:                 cm,
 			component:          cm.m.ComponentByName(componentName),
 			keys:               keys,
-			prefix:             Key("").NamespacePrefix(componentName),
 			dryRun:             dryRun,
 			servletContextPath: cm.servletContextPath[componentName],
 			result:             reconcileTaskResult{},
@@ -92,7 +91,6 @@ type reconcileTask struct {
 
 	component          *manifest.ComponentInfo
 	keys               []string
-	prefix             string
 	dryRun             bool
 	servletContextPath string
 	result             reconcileTaskResult
@@ -105,12 +103,12 @@ type reconcileTaskResult struct {
 
 func (t *reconcileTask) Execute() error {
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.prefixKeyReferences(java.IsJavaMainSource, t.createJavaRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, t.createJavaRegex); err != nil {
 		return err
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.prefixKeyReferences(java.IsXml, t.createXmlRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsXml, t.createXmlRegex); err != nil {
 		return err
 	}
 
@@ -124,6 +122,54 @@ func (t *reconcileTask) Execute() error {
 	return nil
 }
 
+func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
+	keyRegexes := make([]*regexp.Regexp, len(t.keys))
+	for i, key := range t.keys {
+		keyRegexes[i] = createRegex(key)
+	}
+
+	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if fileFilter(info, path) {
+			content, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			oldContent := string(content)
+			newContent := oldContent
+			changed := false
+
+			for i, regex := range keyRegexes {
+				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
+				if len(matches) > 0 {
+					changed = true
+					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
+						newKey := Key(t.keys[i]).WithNamespace(t.component.Name)
+						replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
+						dmp := diffmatchpatch.New()
+						diffs := dmp.DiffMain(match, replaced, false)
+						log.Printf("%s", dmp.DiffPrettyText(diffs))
+						return replaced
+					})
+					t.result.keyPrefixed++
+				}
+			}
+
+			if changed && !t.dryRun {
+				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
+				if err != nil {
+					return err
+				}
+				log.Printf("%s", path)
+			}
+		}
+		return nil
+	})
+}
+
 func (t *reconcileTask) createJavaRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
 }
@@ -132,8 +178,8 @@ func (t *reconcileTask) createXmlRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 
-func (t *reconcileTask) replaceKeyInMatch(match, key, prefix string) string {
-	return strings.Replace(match, "${"+key, "${"+prefix+key, 1)
+func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
+	return strings.Replace(match, "${"+key, "${"+newKey, 1)
 }
 
 func (t *reconcileTask) updateRequestMappings() error {
@@ -177,52 +223,5 @@ func (t *reconcileTask) updateRequestMappingInFile(content, contextPath string) 
 			return submatches[1] + newPath + submatches[3]
 		}
 		return match
-	})
-}
-
-func (t *reconcileTask) prefixKeyReferences(fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
-	keyRegexes := make([]*regexp.Regexp, len(t.keys))
-	for i, key := range t.keys {
-		keyRegexes[i] = createRegex(key)
-	}
-
-	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if fileFilter(info, path) {
-			content, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			oldContent := string(content)
-			newContent := oldContent
-			changed := false
-
-			for i, regex := range keyRegexes {
-				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
-				if len(matches) > 0 {
-					changed = true
-					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-						replaced := t.replaceKeyInMatch(match, t.keys[i], t.prefix)
-						dmp := diffmatchpatch.New()
-						diffs := dmp.DiffMain(match, replaced, false)
-						log.Printf("%s", dmp.DiffPrettyText(diffs))
-						return replaced
-					})
-					t.result.keyPrefixed++
-				}
-			}
-
-			if changed && !t.dryRun {
-				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
-				if err != nil {
-					return err
-				}
-				log.Printf("%s", path)
-			}
-		}
-		return nil
 	})
 }

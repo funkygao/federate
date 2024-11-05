@@ -23,7 +23,8 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "com.goog.foo", manifest.Main.GroupId)
 
 	assert.Equal(t, "wms-inventory-web", manifest.Main.Dependency.Excludes[0].ArtifactId)
-	assert.Equal(t, 1, len(manifest.Main.Reconcile.Resources.PropertySettlement))
+	assert.Equal(t, 1, len(manifest.Main.Reconcile.Resources.Property.Overrides))
+	assert.Equal(t, false, manifest.Main.Reconcile.Resources.Property.IsDryRun())
 	assert.Equal(t, int16(8082), manifest.RpmByEnv("on-premise").TomcatPort)
 
 	if manifest.Main.Name != "demo-starter" {
