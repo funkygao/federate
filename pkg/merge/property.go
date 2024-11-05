@@ -161,11 +161,15 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 	mergedYaml := make(map[string]interface{})
 
+	// 使用一个 set 来跟踪已处理的 key：否则非冲突key被写入多次
+	processedKeys := make(map[string]bool)
+
 	// Merge all resolved properties
 	for _, componentProps := range cm.resolvedProperties {
 		for key, propSource := range componentProps {
-			if propSource.IsYAML() {
+			if propSource.IsYAML() && !processedKeys[key] {
 				mergedYaml[key] = propSource.Value
+				processedKeys[key] = true
 			}
 		}
 	}
@@ -189,11 +193,16 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 
 func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
 	var builder strings.Builder
+
+	// 使用一个 set 来跟踪已处理的 key
+	processedKeys := make(map[string]bool)
+
 	// Merge all resolved properties
 	for _, componentProps := range cm.resolvedProperties {
 		for key, propSource := range componentProps {
-			if propSource.IsProperties() {
+			if propSource.IsProperties() && !processedKeys[key] {
 				builder.WriteString(fmt.Sprintf("%s=%v\n", key, propSource.Value))
+				processedKeys[key] = true
 			}
 		}
 	}
