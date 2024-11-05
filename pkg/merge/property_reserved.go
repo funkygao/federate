@@ -14,23 +14,23 @@ type ComponentKeyValue struct {
 
 // ValueOverride is a type alias for functions that calculate special key values.
 // If return value is nil, the key will be deleted.
-type ValueOverride func(*PropertySourcesManager, []ComponentKeyValue) interface{}
+type ValueOverride func(*PropertyManager, []ComponentKeyValue) interface{}
 
 func M(values []ComponentKeyValue) *manifest.MainSystem {
 	return values[0].Component.M
 }
 
 var reservedKeyHandlers = map[string]ValueOverride{
-	"spring.application.name": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"spring.application.name": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		return M(values).Name
 	},
-	"spring.profiles.active": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"spring.profiles.active": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		return M(values).SpringProfile
 	},
-	"spring.profiles.include": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"spring.profiles.include": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		return nil
 	},
-	"spring.messages.basename": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"spring.messages.basename": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		basenameSet := make(map[string]struct{})
 		for _, v := range values {
 			if basenameStr, ok := v.Value.(string); ok {
@@ -51,13 +51,13 @@ var reservedKeyHandlers = map[string]ValueOverride{
 
 		return strings.Join(uniqueBasenames, ",")
 	},
-	"logging.config": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"logging.config": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		return nil
 	},
-	"mybatis.config-location": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"mybatis.config-location": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		return nil
 	},
-	"server.servlet.context-path": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"server.servlet.context-path": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		for _, v := range values {
 			if contextPath, ok := v.Value.(string); ok {
 				m.recordServletContextPath(v.Component, contextPath)
@@ -65,11 +65,11 @@ var reservedKeyHandlers = map[string]ValueOverride{
 		}
 		return "/"
 	},
-	"server.tomcat.accesslog.directory": func(m *PropertySourcesManager, values []ComponentKeyValue) interface{} {
+	"server.tomcat.accesslog.directory": func(m *PropertyManager, values []ComponentKeyValue) interface{} {
 		return "${LOG_HOME}"
 	},
 }
 
-func (m *PropertySourcesManager) recordServletContextPath(c manifest.ComponentInfo, contextPath string) {
+func (m *PropertyManager) recordServletContextPath(c manifest.ComponentInfo, contextPath string) {
 	m.servletContextPath[c.Name] = contextPath
 }

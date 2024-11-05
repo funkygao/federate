@@ -37,7 +37,7 @@ type MainDependencySpec struct {
 
 type RuntimeSpec struct {
 	Env                 string   `yaml:"env"`
-	SingletonComponents []string `yaml:"singletonClasses"`
+	SingletonComponents []string `yaml:"singletonBeans"`
 }
 
 type MainClassSpec struct {

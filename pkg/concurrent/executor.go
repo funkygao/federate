@@ -1,6 +1,7 @@
 package concurrent
 
 import (
+	"log"
 	"sync"
 )
 
@@ -8,6 +9,7 @@ import (
 type ParallelExecutor struct {
 	maxWorkers int
 	tasks      []Task
+	name       string
 }
 
 // NewParallelExecutor creates a new ParallelExecutor
@@ -23,6 +25,10 @@ func (pe *ParallelExecutor) AddTask(task Task) {
 	pe.tasks = append(pe.tasks, task)
 }
 
+func (pe *ParallelExecutor) SetName(name string) {
+	pe.name = name
+}
+
 func (pe *ParallelExecutor) Tasks() []Task {
 	return pe.tasks
 }
@@ -34,6 +40,10 @@ func (pe *ParallelExecutor) Execute() []error {
 
 	// Create a buffered channel to limit the number of concurrent goroutines
 	semaphore := make(chan struct{}, pe.maxWorkers)
+
+	if pe.name != "" {
+		log.Printf("Excutor with %d tasks started: %s", len(pe.tasks), pe.name)
+	}
 
 	for _, task := range pe.tasks {
 		wg.Add(1)

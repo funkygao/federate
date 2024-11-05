@@ -5,9 +5,9 @@ import (
 )
 
 type ReconcileSpec struct {
-	ExcludedBeanClasses []string `yaml:"excludeClasses"`
+	ExcludedBeanClasses []string `yaml:"excludeBeans"`
 
-	Taint     TaintSpec              `yaml:"taint"`
+	Taint     TaintSpec              `yaml:"manual"`
 	Resources ResourcesReconcileSpec `yaml:"resources"`
 
 	Rpc RpcSpec `yaml:"rpc"`
@@ -17,9 +17,18 @@ type ReconcileSpec struct {
 
 type ResourcesReconcileSpec struct {
 	// xml 里定义的 bean
-	SingletonBeanClasses []string               `yaml:"singletonClasses"`
-	FlatCopy             []string               `yaml:"flatCopy"`
-	PropertySettlement   map[string]interface{} `yaml:"propertySettlement"`
+	SingletonBeanClasses []string              `yaml:"singletonClasses"`
+	FlatCopy             []string              `yaml:"copy"`
+	Property             PropertyReconcileSpec `yaml:"property"`
+}
+
+type PropertyReconcileSpec struct {
+	Overrides map[string]interface{} `yaml:"override"`
+	DryRun    string                 `yaml:"dryrun"`
+}
+
+func (ps *PropertyReconcileSpec) IsDryRun() bool {
+	return ps.DryRun == "true"
 }
 
 func (s *ReconcileSpec) ExcludeBeanClass(class string) bool {
@@ -31,7 +40,7 @@ func (s *ReconcileSpec) SingletonBeanClass(class string) bool {
 }
 
 func (s *ReconcileSpec) PropertySettled(key string) bool {
-	_, exists := s.Resources.PropertySettlement[key]
+	_, exists := s.Resources.Property.Overrides[key]
 	return exists
 }
 

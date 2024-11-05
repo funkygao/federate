@@ -40,11 +40,11 @@ federated:
         - com.jdwl.wms.stock.common.WebMvcConfig
         - com.jdwl.wms.inventory.intercept.WebMvcConfig
         - com.jdwl.wms.stock.common.config.SwaggerConfig
-  reconcile: # 资源调和
-    taint: # 污点：无法自动合并，用户提供
+  reconcile: # 冲突调和
+    manual: # 无法自动合并，用户手工合并
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml
-    excludeClasses: # 不加载这些类对应的bean
+    excludeBeans: # 不加载这些类对应的bean
     rpc:
       provider: # 抑制暴露哪些服务
       consumer: # 远程RPC调用拉回到JVM内
@@ -55,12 +55,14 @@ federated:
               - com.jdwl.wms.stock.api.external.InteractQueryService
           - package: com.jdwl.wms.inventory.api
     resources: # 资源文件处理
-      flatCopy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
+      copy: # 合并到目标系统 src/main/resources/，因为代码里写死路径；并自动检测重名文件冲突
         - "*.html"
         - "*.json"
-      propertySettlement: # 对冲突的Spring属性进行仲裁
-        app.demo.feature.newFeature.enabled: true
-      singletonClasses: # 这些 bean 只加载1次：资源复用
+      property: # 属性 key 的冲突：yml/properties
+        dryrun: ${RECONCILE_PROPERTY_DRYRUN:false}
+        override: # 对属性值进行人工设定
+          app.demo.feature.newFeature.enabled: true
+      singletonBeans: # 这些 bean 只加载1次：资源复用
         - com.jd.jim.cli.ReloadableJimClientFactoryBean
         - com.jdwl.wms.common.redis.jimdb.JimdbClient
         - com.jdwl.wms.common.lock.JimdbLocker

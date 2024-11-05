@@ -77,7 +77,6 @@ func instrumentPom(pomPath string) error {
 	if properties.SelectElement("federate.packaging") == nil {
 		federatePackaging := properties.CreateElement("federate.packaging")
 		federatePackaging.SetText("false")
-		log.Printf("Added federate.packaging property to %s", pomPath)
 	}
 
 	// Update spring-boot-maven-plugin configuration
@@ -93,7 +92,7 @@ func instrumentPom(pomPath string) error {
 				skip = configuration.CreateElement("skip")
 			}
 			skip.SetText("${federate.packaging}")
-			log.Printf("Rewritten spring-boot-maven-plugin configuration in %s", pomPath)
+			log.Printf("Rewritten spring-boot-maven-plugin skip federate.packaging in %s", pomPath)
 			break
 		}
 	}

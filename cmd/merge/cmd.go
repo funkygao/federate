@@ -48,14 +48,14 @@ func doMerge(m *manifest.Manifest) {
 		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(rpc))
 	}
 
-	propertySourcesManager := merge.NewPropertySourcesManager(m)
+	propertyManager := merge.NewPropertyManager(m)
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
 
 	steps := []step.Step{
 		{
-			Name: "Generating target system scaffold",
+			Name: "Generating federated system scaffold",
 			Fn: func() {
 				scaffoldTargetSystem(m)
 			}},
@@ -85,19 +85,14 @@ func doMerge(m *manifest.Manifest) {
 				recursiveFlatCopyResources(m, resourceManager)
 			}},
 		{
-			Name: "Prepare Merging PropertySources of .properties files",
+			Name: "Analyze All Property Sources and Identify Conflicts",
 			Fn: func() {
-				prepareMergePropertiesFiles(m, propertySourcesManager)
+				identifyPropertyConflicts(m, propertyManager)
 			}},
 		{
-			Name: "Prepare Merging PropertySources of application.yml, handling 'spring.profiles.include'",
+			Name: "Reconciling Property Conflicts References by rewriting .java/.xml files",
 			Fn: func() {
-				prepareMergeApplicationYaml(m, propertySourcesManager)
-			}},
-		{
-			Name: "Reconciling Placeholder conflicts references by rewriting .java/.xml files",
-			Fn: func() {
-				reconcilePropertiesConflicts(m, propertySourcesManager)
+				reconcilePropertiesConflicts(m, propertyManager)
 			}},
 		{
 			Name: "Reconciling Spring XML BeanDefinition conflicts",

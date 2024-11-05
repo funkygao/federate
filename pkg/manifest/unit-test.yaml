@@ -2,6 +2,7 @@ version: 1.2
 
 federated:
   name: demo-starter
+  groupId: ${GROUP_ID:com.goog}
   springBootApplication:
     class: com.jdwl.wms.DemoDeepFusionApplication
   dependency:
@@ -19,8 +20,10 @@ federated:
       JAVA_OPTS:
   reconcile:
     resources:
-      propertySettlement:
-        app.demo.feature.newFeature.enabled: true
+      property:
+        dryrun: ${RECONCILE:false}
+        override:
+          app.demo.feature.newFeature.enabled: true
 
 components:
   - name: wms-stock

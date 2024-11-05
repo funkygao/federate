@@ -73,7 +73,7 @@ func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, c
 			return err
 		}
 		if ignored := m.IgnoreResourceSrcFile(info, component); ignored {
-			log.Printf("[%s:%s] Skipped federatedIgnore: %s", component.Name, component.SpringProfile, info.Name())
+			log.Printf("[%s:%s] Skipped components.resources.ignore: %s", component.Name, component.SpringProfile, info.Name())
 			return nil
 		}
 
