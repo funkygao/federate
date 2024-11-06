@@ -14,7 +14,7 @@ LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
            -X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'
 
 help:
-	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Build
 
@@ -31,7 +31,16 @@ clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build
 
-install: test ## Build and install federate. If HOMEBREW_PREFIX is set, install there, otherwise use GOPATH/bin.
+
+install: test ## Check if Go is installed, install if not, then build and install federate.
+	@if ! command -v go >/dev/null 2>&1; then \
+		echo "Golang is not installed. Attempting to install via Homebrew..."; \
+		if ! command -v brew >/dev/null 2>&1; then \
+			echo "Error: Homebrew is not installed. Please install Homebrew first."; \
+			exit 1; \
+		fi; \
+		brew install go; \
+	fi
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
 		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)"; \
 		echo "🍺 Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
@@ -40,7 +49,7 @@ install: test ## Build and install federate. If HOMEBREW_PREFIX is set, install 
 		echo "🍺 Installed to $$(go env GOPATH)/bin/federate"; \
 	fi
 
-install-completion: ## Install shell completion for federate on MacOS.
+completion: ## Install shell completion for federate on MacOS.
 	if [ "$$(uname)" != "Darwin" ]; then \
 		echo "This target is only for MacOS users."; \
 		exit 1; \
