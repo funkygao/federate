@@ -17,5 +17,5 @@ make -C {{.FusionProjectName}} run-local # 本地调试
 ## 行云部署
 
 ```bash
-federate jdos # 自动生成 JDOS 构建需要填写的表单参数
+federate microservice jdos # 自动生成 JDOS 构建需要填写的表单参数
 ```

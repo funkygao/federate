@@ -22,7 +22,7 @@ To initiate a fusion project:
 }
 
 func init() {
-	CmdGroup.AddCommand(scaffoldCmd, fusionStartCmd, merge.MergeCmd, optimize.CmdGroup, manifestCmd)
+	CmdGroup.AddCommand(scaffoldCmd, fusionStartCmd, merge.MergeCmd, optimize.CmdGroup, manifestCmd, jdosCmd)
 	if false {
 		CmdGroup.AddCommand(explain.CmdGroup)
 	}

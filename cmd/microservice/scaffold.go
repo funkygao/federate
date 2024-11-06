@@ -15,8 +15,8 @@ import (
 
 var scaffoldCmd = &cobra.Command{
 	Use:   "scaffold",
-	Short: "Scaffold a logical monolith from multiple existing code repositories",
-	Long: `The monolith command scaffolds a logical monolithic code repository by integrating 
+	Short: "Scaffold a fusion project from multiple existing code repositories",
+	Long: `The monolith command scaffolds a fusion project code repository by integrating 
 multiple existing code repositories using git submodules.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		scaffoldMonolith()

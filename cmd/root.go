@@ -41,7 +41,6 @@ func init() {
 	microservice.CmdGroup.GroupID = "microservice"
 	plus.CmdGroup.GroupID = "microservice"
 	image.CmdGroup.GroupID = "microservice"
-	jdosCmd.GroupID = "microservice"
 
 	chatgpt.CmdGroup.GroupID = "utility"
 	util.CmdGroup.GroupID = "utility"
@@ -71,7 +70,6 @@ func init() {
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
 	rootCmd.AddCommand(plus.CmdGroup)
-	rootCmd.AddCommand(jdosCmd)
 	rootCmd.AddCommand(image.CmdGroup)
 
 	// system
