@@ -18,7 +18,7 @@ check_package_dir:
 	fi
 
 inspect:check_package_dir ## Inspect indirect conflict risk before runtime.
-	java -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
+	java -DLOG_HOME=. -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
 run-local:check_package_dir ## Debug {{.AppName}} foreground on your host.
 	echo "☕️ Starting {{.AppName}} ..."
