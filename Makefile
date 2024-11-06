@@ -86,7 +86,7 @@ install-completion: ## Install shell completion for federate on MacOS.
 			exit 1; \
 			;; \
 	esac; \
-	echo "Completion installation finished. Please restart your shell or source the appropriate file to enable completion."
+	echo "🍺 Completion installation finished. Please restart your shell or source the appropriate file to enable completion."
 
 docker-build:
 	docker build \
