@@ -17,7 +17,7 @@ type ReconcileSpec struct {
 
 type ResourcesReconcileSpec struct {
 	// xml 里定义的 bean
-	SingletonBeanClasses []string              `yaml:"singletonClasses"`
+	SingletonBeanClasses []string              `yaml:"singletonBeans"`
 	FlatCopy             []string              `yaml:"copy"`
 	Property             PropertyReconcileSpec `yaml:"property"`
 }
