@@ -3,7 +3,7 @@ SHELL := /bin/bash
 .SILENT:
 
 help:
-	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-30s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Build
 
@@ -30,6 +30,7 @@ dependency-tree:check_package_dir ## Execute mvn dependency:tree.
 	mvn dependency:tree -Dmaven.test.skip=true -DoutputFile=tree.txt -q
 	echo "🍺 check out tree.txt"
 
+{{- if ne .TomcatPort 0}}
 ##@ Deployment
 
 build-rpm:check_package_dir ## Build {{.AppName}} into RPM to upload to yum repo.
@@ -40,3 +41,4 @@ build-rpm-debug:
 
 build-docker: ## Build {{.AppName}} into Docker image to push to jdcloud image registry.
 	federate image build-docker --image-repo {{.AppName}} --app-source-path {{.AppSrc}}
+{{- end}}

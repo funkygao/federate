@@ -6,11 +6,11 @@ kind: Fusion
 #=========
 federated:
   name: fusion-stock-inventory
+  springProfile: test
   groupId: com.jdwl.wms
   dependency:
     exclude:
       - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
-  springProfile: test
   rpm:
     - env: on-premise
       tomcatPort: 8082

@@ -153,7 +153,7 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 				if err != nil {
 					return err
 				}
-				log.Printf("%s", path)
+				log.Printf("↖ %s", path)
 			}
 		}
 		return nil
@@ -195,7 +195,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 					if err != nil {
 						return err
 					}
-					log.Printf("Updated RequestMapping in %s", path)
+					log.Printf("↖ %s", path)
 					t.result.requestMapping++
 				}
 			}
