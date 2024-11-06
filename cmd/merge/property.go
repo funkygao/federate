@@ -33,7 +33,8 @@ func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyM
 	manager.GenerateMergedPropertiesFile(pn)
 	an := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "application.yml")
 	manager.GenerateMergedYamlFile(an)
-	color.Cyan("Source code rewritten, @RequestMapping: %d, KeyReferenceNamespaced: %d", result.RequestMapping, result.KeyPrefixed)
+	color.Cyan("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
+		result.RequestMapping, result.KeyPrefixed, result.ConfigurationProperties)
 	color.Green("🍺 Reconciled placeholder conflicts: %s, %s", an, pn)
 }
 

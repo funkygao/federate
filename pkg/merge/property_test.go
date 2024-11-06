@@ -12,6 +12,49 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+func TestReplaceKeyInMatch(t *testing.T) {
+	tests := []struct {
+		name     string
+		match    string
+		key      string
+		newKey   string
+		expected string
+	}{
+		{
+			name:     "Replace @Value annotation",
+			match:    `@Value("${app.name}")`,
+			key:      "app.name",
+			newKey:   "component1.app.name",
+			expected: `@Value("${component1.app.name}")`,
+		},
+		{
+			name:     "Replace XML property",
+			match:    `value="${db.url}"`,
+			key:      "db.url",
+			newKey:   "component2.db.url",
+			expected: `value="${component2.db.url}"`,
+		},
+		{
+			name:     "Replace @ConfigurationProperties annotation",
+			match:    `@ConfigurationProperties("app")`,
+			key:      "app",
+			newKey:   "component3.app",
+			expected: `@ConfigurationProperties("component3.app")`,
+		},
+	}
+
+	task := &reconcileTask{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := task.replaceKeyInMatch(tt.match, tt.key, tt.newKey)
+			if result != tt.expected {
+				t.Errorf("replaceKeyInMatch() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
+
 func TestUpdateRequestMappingInFile(t *testing.T) {
 	testCases := []struct {
 		name        string

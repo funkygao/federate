@@ -17,8 +17,9 @@ import (
 )
 
 type PropertySourcesReconcileReport struct {
-	KeyPrefixed    int
-	RequestMapping int
+	KeyPrefixed             int
+	RequestMapping          int
+	ConfigurationProperties int
 }
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
@@ -60,6 +61,7 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 		reconcileTask := task.(*reconcileTask)
 		result.KeyPrefixed += reconcileTask.result.keyPrefixed
 		result.RequestMapping += reconcileTask.result.requestMapping
+		result.ConfigurationProperties += reconcileTask.result.configurationProperties
 	}
 
 	return
@@ -76,8 +78,9 @@ type reconcileTask struct {
 }
 
 type reconcileTaskResult struct {
-	keyPrefixed    int
-	requestMapping int
+	keyPrefixed             int
+	requestMapping          int
+	configurationProperties int
 }
 
 func (t *reconcileTask) Execute() error {
@@ -88,6 +91,11 @@ func (t *reconcileTask) Execute() error {
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
 	if err := t.namespaceKeyReferences(java.IsXml, t.createXmlRegex); err != nil {
+		return err
+	}
+
+	// 处理 @ConfigurationProperties
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, t.createConfigurationPropertiesRegex); err != nil {
 		return err
 	}
 
@@ -134,6 +142,11 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 						return replaced
 					})
 					t.result.keyPrefixed++
+					if strings.Contains(regex.String(), "@ConfigurationProperties") {
+						t.result.configurationProperties++
+					} else {
+						t.result.keyPrefixed++
+					}
 				}
 			}
 
@@ -157,7 +170,14 @@ func (t *reconcileTask) createXmlRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 
+func (t *reconcileTask) createConfigurationPropertiesRegex(key string) *regexp.Regexp {
+	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
+}
+
 func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
+	if strings.Contains(match, "@ConfigurationProperties") {
+		return strings.Replace(match, `"`+key+`"`, `"`+newKey+`"`, 1)
+	}
 	return strings.Replace(match, "${"+key, "${"+newKey, 1)
 }
 
