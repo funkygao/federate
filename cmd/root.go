@@ -54,7 +54,7 @@ func init() {
 	rootCmd.AddGroup(
 		&cobra.Group{
 			ID:    "microservice",
-			Title: "Microservice Management Commands:",
+			Title: "Microservice Commands:",
 		},
 		&cobra.Group{
 			ID:    "utility",
