@@ -9,7 +9,51 @@ import (
 	"federate/pkg/manifest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
+
+func TestReplaceKeyInMatch(t *testing.T) {
+	tests := []struct {
+		name     string
+		match    string
+		key      string
+		newKey   string
+		expected string
+	}{
+		{
+			name:     "Replace @Value annotation",
+			match:    `@Value("${app.name}")`,
+			key:      "app.name",
+			newKey:   "component1.app.name",
+			expected: `@Value("${component1.app.name}")`,
+		},
+		{
+			name:     "Replace XML property",
+			match:    `value="${db.url}"`,
+			key:      "db.url",
+			newKey:   "component2.db.url",
+			expected: `value="${component2.db.url}"`,
+		},
+		{
+			name:     "Replace @ConfigurationProperties annotation",
+			match:    `@ConfigurationProperties("app")`,
+			key:      "app",
+			newKey:   "component3.app",
+			expected: `@ConfigurationProperties("component3.app")`,
+		},
+	}
+
+	task := &reconcileTask{}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := task.replaceKeyInMatch(tt.match, tt.key, tt.newKey)
+			if result != tt.expected {
+				t.Errorf("replaceKeyInMatch() = %v, want %v", result, tt.expected)
+			}
+		})
+	}
+}
 
 func TestUpdateRequestMappingInFile(t *testing.T) {
 	testCases := []struct {
@@ -103,61 +147,6 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestUnflattenYamlMap(t *testing.T) {
-	cm := &PropertyManager{}
-
-	tests := []struct {
-		name     string
-		input    map[string]interface{}
-		expected map[string]interface{}
-	}{
-		{
-			name: "simple nested map",
-			input: map[string]interface{}{
-				"a.b.c": "d",
-			},
-			expected: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": map[string]interface{}{
-						"c": "d",
-					},
-				},
-			},
-		},
-		{
-			name: "flat map",
-			input: map[string]interface{}{
-				"a": "b",
-				"c": "d",
-			},
-			expected: map[string]interface{}{
-				"a": "b",
-				"c": "d",
-			},
-		},
-		{
-			name: "mixed nested map",
-			input: map[string]interface{}{
-				"a.b": "c",
-				"d":   "e",
-			},
-			expected: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": "c",
-				},
-				"d": "e",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := cm.unflattenYamlMap(tt.input)
-			assert.Equal(t, tt.expected, result, "they should be equal")
-		})
-	}
-}
-
 func TestPropertySource(t *testing.T) {
 	ps := PropertySource{FilePath: "foo.yaml"}
 	assert.Equal(t, true, ps.IsYAML())
@@ -214,6 +203,8 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 调和冲突
 	_, err := pm.ReconcileConflicts(true) // 使用 dryRun 模式
 	require.NoError(t, err)
+	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.resolvedProperties, "", "  ")
+	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
 
 	// 检查解决后的属性
 	resolvedProps := pm.resolvedProperties
@@ -227,6 +218,8 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 检查 mysql.maximumPoolSize 是否被正确前缀化
 	assert.Contains(t, resolvedProps["a"], "a.mysql.maximumPoolSize")
 	assert.Contains(t, resolvedProps["b"], "b.mysql.maximumPoolSize")
+	// 该值仍引用
+	assert.Equal(t, "${a.mysql.maximumPoolSize}", resolvedProps["a"]["a.wms.datasource.maximumPoolSize"].OriginalString)
 	assert.Equal(t, "10", resolvedProps["a"]["a.mysql.maximumPoolSize"].Value)
 	assert.Equal(t, "20", resolvedProps["b"]["b.mysql.maximumPoolSize"].Value)
 
@@ -237,6 +230,37 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 检查原始的冲突键是否仍然存在（因为它们可能被第三方包使用）
 	assert.Contains(t, resolvedProps["a"], "datasource.mysql.url")
 	assert.Contains(t, resolvedProps["b"], "datasource.mysql.url")
+}
+
+func TestGenerateMergedYamlFile(t *testing.T) {
+	tempDir := t.TempDir()
+	m := prepareTestManifest(t, tempDir)
+
+	pm := NewPropertyManager(m)
+	require.NoError(t, pm.AnalyzeAllPropertySources())
+
+	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
+	pm.GenerateMergedYamlFile(mergedYamlPath)
+
+	// 读取生成的YAML文件
+	data, err := os.ReadFile(mergedYamlPath)
+	require.NoError(t, err)
+	t.Logf("%s", string(data))
+
+	var mergedConfig map[string]interface{}
+	err = yaml.Unmarshal(data, &mergedConfig)
+	require.NoError(t, err)
+
+	assert.Equal(t, "${mysql.maximumPoolSize}", mergedConfig["wms.datasource.maximumPoolSize"])
+
+	// 检查不包含引用的值是否使用了解析后的实际值
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", mergedConfig["datasource.mysql.url"])
+	assert.Equal(t, 1234, mergedConfig["schedule.token"])
+
+	// 确保properties文件中的属性没有被包含
+	assert.NotContains(t, mergedConfig, "mysql.url")
+	assert.NotContains(t, mergedConfig, "a.key")
+	assert.NotContains(t, mergedConfig, "b.key")
 }
 
 // properties引用了yml，yml也引用了properties

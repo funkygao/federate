@@ -106,6 +106,23 @@ func (cm *PropertyManager) AnalyzeAllPropertySources() error {
 	return nil
 }
 
+// 合并 YAML 和 Properties 的冲突
+func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(nil)
+}
+
+func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(func(ps *PropertySource) bool {
+		return ps.IsProperties()
+	})
+}
+
+func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(func(ps *PropertySource) bool {
+		return ps.IsYAML()
+	})
+}
+
 func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource) bool) map[string]map[string]interface{} {
 	conflicts := make(map[string]map[string]interface{})
 	for key := range pm.getAllUniqueKeys() {
@@ -131,23 +148,6 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 	return conflicts
 }
 
-// 合并 YAML 和 Properties 的冲突
-func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(nil)
-}
-
-func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(func(ps *PropertySource) bool {
-		return ps.IsProperties()
-	})
-}
-
-func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(func(ps *PropertySource) bool {
-		return ps.IsYAML()
-	})
-}
-
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	keys := make(map[string]struct{})
 	for _, props := range pm.resolvedProperties {
@@ -168,7 +168,13 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 	for _, componentProps := range cm.resolvedProperties {
 		for key, propSource := range componentProps {
 			if propSource.IsYAML() && !processedKeys[key] {
-				mergedYaml[key] = propSource.Value
+				if strings.Contains(propSource.OriginalString, "${") {
+					// 如果包含引用，使用 OriginalString
+					mergedYaml[key] = propSource.OriginalString
+				} else {
+					// 否则使用解析后的值
+					mergedYaml[key] = propSource.Value
+				}
 				processedKeys[key] = true
 			}
 		}
