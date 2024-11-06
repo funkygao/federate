@@ -88,7 +88,7 @@ install-completion: ## Install shell completion for federate on MacOS.
 	esac; \
 	echo "Completion installation finished. Please restart your shell or source the appropriate file to enable completion."
 
-docker-build: ## Build Docker image for federate.
+docker-build:
 	docker build \
 		--build-arg GIT_USER=$(GIT_USER) \
 		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
