@@ -168,7 +168,13 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 	for _, componentProps := range cm.resolvedProperties {
 		for key, propSource := range componentProps {
 			if propSource.IsYAML() && !processedKeys[key] {
-				mergedYaml[key] = propSource.Value
+				if strings.Contains(propSource.OriginalString, "${") {
+					// 如果包含引用，使用 OriginalString
+					mergedYaml[key] = propSource.OriginalString
+				} else {
+					// 否则使用解析后的值
+					mergedYaml[key] = propSource.Value
+				}
 				processedKeys[key] = true
 			}
 		}

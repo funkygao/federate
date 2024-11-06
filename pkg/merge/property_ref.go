@@ -24,8 +24,9 @@ func (cm *PropertyManager) resolveAllReferences() {
 					newValue := cm.resolvePropertyReference(component, strValue)
 					if newValue != strValue {
 						cm.resolvedProperties[component][key] = PropertySource{
-							Value:    newValue,
-							FilePath: propSource.FilePath,
+							Value:          newValue,
+							OriginalString: propSource.OriginalString,
+							FilePath:       propSource.FilePath,
 						}
 						changed = true
 					}
@@ -49,8 +50,9 @@ func (cm *PropertyManager) resolveAllReferences() {
 				} else {
 					// 确保值不包含 ${}
 					cm.resolvedProperties[component][key] = PropertySource{
-						Value:    strings.ReplaceAll(strValue, "${", ""),
-						FilePath: propSource.FilePath,
+						Value:          strings.ReplaceAll(strValue, "${", ""),
+						OriginalString: propSource.OriginalString,
+						FilePath:       propSource.FilePath,
 					}
 				}
 			}

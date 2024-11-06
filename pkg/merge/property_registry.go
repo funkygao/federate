@@ -1,7 +1,9 @@
 package merge
 
 import (
+	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"strings"
 
@@ -34,23 +36,37 @@ func (cm *PropertyManager) registerProperty(component manifest.ComponentInfo, ke
 
 		// 注册新值
 		cm.resolvedProperties[component.Name][key] = PropertySource{
-			Value:    value,
-			FilePath: filePath,
+			Value:          value,
+			OriginalString: fmt.Sprintf("%v", value),
+			FilePath:       filePath,
 		}
 	}
 }
 
 func (cm *PropertyManager) resolveConflict(componentName string, key Key, value interface{}) {
-	if value == nil {
-		value = "" // 避免 yaml 序列化后的文件里出现 nil
+	strKey := string(key)
+	originalSource := cm.resolvedProperties[componentName][strKey]
+
+	newOriginalString := originalSource.OriginalString
+	if strings.Contains(newOriginalString, "${") {
+		// 更新 OriginalString 中的引用 ${foo} => ${component1.foo}
+		newOriginalString = cm.updateReferencesInString(originalSource.OriginalString, componentName)
+		log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalSource.OriginalString, newOriginalString)
 	}
 
 	// Update the resolvedProperties with the prefixed key, for .properties && .yml
 	nsKey := key.WithNamespace(componentName)
 	cm.resolvedProperties[componentName][nsKey] = PropertySource{
-		Value:    value,
-		FilePath: cm.resolvedProperties[componentName][string(key)].FilePath,
+		Value:          value,
+		OriginalString: newOriginalString,
+		FilePath:       originalSource.FilePath,
 	}
 
 	//delete(cm.resolvedProperties[componentName], key) 原有的key不能删除：第三方包内部，可能在使用该 key
+}
+
+func (cm *PropertyManager) updateReferencesInString(s, componentName string) string {
+	return os.Expand(s, func(key string) string {
+		return "${" + componentName + "." + key + "}"
+	})
 }

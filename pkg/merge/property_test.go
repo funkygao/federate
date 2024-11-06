@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"federate/pkg/manifest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/yaml.v2"
 )
 
 func TestUpdateRequestMappingInFile(t *testing.T) {
@@ -160,6 +160,8 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 调和冲突
 	_, err := pm.ReconcileConflicts(true) // 使用 dryRun 模式
 	require.NoError(t, err)
+	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.resolvedProperties, "", "  ")
+	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
 
 	// 检查解决后的属性
 	resolvedProps := pm.resolvedProperties
@@ -173,9 +175,8 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 检查 mysql.maximumPoolSize 是否被正确前缀化
 	assert.Contains(t, resolvedProps["a"], "a.mysql.maximumPoolSize")
 	assert.Contains(t, resolvedProps["b"], "b.mysql.maximumPoolSize")
-	expectedIntValue := resolvedProps["a"]["wms.datasource.maximumPoolSize"].Value
-	t.Logf("wms.datasource.maximumPoolSize kind: %+v", reflect.TypeOf(expectedIntValue).Kind())
-	assert.Equal(t, reflect.Int, reflect.TypeOf(expectedIntValue).Kind())
+	// 该值仍引用
+	assert.Equal(t, "${a.mysql.maximumPoolSize}", resolvedProps["a"]["a.wms.datasource.maximumPoolSize"].OriginalString)
 	assert.Equal(t, "10", resolvedProps["a"]["a.mysql.maximumPoolSize"].Value)
 	assert.Equal(t, "20", resolvedProps["b"]["b.mysql.maximumPoolSize"].Value)
 
@@ -186,6 +187,37 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 检查原始的冲突键是否仍然存在（因为它们可能被第三方包使用）
 	assert.Contains(t, resolvedProps["a"], "datasource.mysql.url")
 	assert.Contains(t, resolvedProps["b"], "datasource.mysql.url")
+}
+
+func TestGenerateMergedYamlFile(t *testing.T) {
+	tempDir := t.TempDir()
+	m := prepareTestManifest(t, tempDir)
+
+	pm := NewPropertyManager(m)
+	require.NoError(t, pm.AnalyzeAllPropertySources())
+
+	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
+	pm.GenerateMergedYamlFile(mergedYamlPath)
+
+	// 读取生成的YAML文件
+	data, err := os.ReadFile(mergedYamlPath)
+	require.NoError(t, err)
+	t.Logf("%s", string(data))
+
+	var mergedConfig map[string]interface{}
+	err = yaml.Unmarshal(data, &mergedConfig)
+	require.NoError(t, err)
+
+	assert.Equal(t, "${mysql.maximumPoolSize}", mergedConfig["wms.datasource.maximumPoolSize"])
+
+	// 检查不包含引用的值是否使用了解析后的实际值
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", mergedConfig["datasource.mysql.url"])
+	assert.Equal(t, 1234, mergedConfig["schedule.token"])
+
+	// 确保properties文件中的属性没有被包含
+	assert.NotContains(t, mergedConfig, "mysql.url")
+	assert.NotContains(t, mergedConfig, "a.key")
+	assert.NotContains(t, mergedConfig, "b.key")
 }
 
 // properties引用了yml，yml也引用了properties
