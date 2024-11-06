@@ -6,11 +6,10 @@ import (
 
 var CmdGroup = &cobra.Command{
 	Use:   "workload",
-	Short: "Workload governance and protection",
-	Long: `Workload governance and protection mechanisms for system resource safeguarding.
-Ensures system stability and performance under diverse workload conditions.
+	Short: "Workload safeguarding and governance",
+	Long: `Workload safeguarding and governance mechanisms for system resource protection.
 
-Features include:
+Ensures system stability, performance, and reliability under diverse workload conditions through:
 - Overload protection
 - Self-healing
 - Large payload protection
