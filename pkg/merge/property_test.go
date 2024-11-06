@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	"federate/pkg/manifest"
@@ -103,61 +104,6 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestUnflattenYamlMap(t *testing.T) {
-	cm := &PropertyManager{}
-
-	tests := []struct {
-		name     string
-		input    map[string]interface{}
-		expected map[string]interface{}
-	}{
-		{
-			name: "simple nested map",
-			input: map[string]interface{}{
-				"a.b.c": "d",
-			},
-			expected: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": map[string]interface{}{
-						"c": "d",
-					},
-				},
-			},
-		},
-		{
-			name: "flat map",
-			input: map[string]interface{}{
-				"a": "b",
-				"c": "d",
-			},
-			expected: map[string]interface{}{
-				"a": "b",
-				"c": "d",
-			},
-		},
-		{
-			name: "mixed nested map",
-			input: map[string]interface{}{
-				"a.b": "c",
-				"d":   "e",
-			},
-			expected: map[string]interface{}{
-				"a": map[string]interface{}{
-					"b": "c",
-				},
-				"d": "e",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := cm.unflattenYamlMap(tt.input)
-			assert.Equal(t, tt.expected, result, "they should be equal")
-		})
-	}
-}
-
 func TestPropertySource(t *testing.T) {
 	ps := PropertySource{FilePath: "foo.yaml"}
 	assert.Equal(t, true, ps.IsYAML())
@@ -227,6 +173,9 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 检查 mysql.maximumPoolSize 是否被正确前缀化
 	assert.Contains(t, resolvedProps["a"], "a.mysql.maximumPoolSize")
 	assert.Contains(t, resolvedProps["b"], "b.mysql.maximumPoolSize")
+	expectedIntValue := resolvedProps["a"]["wms.datasource.maximumPoolSize"].Value
+	t.Logf("wms.datasource.maximumPoolSize kind: %+v", reflect.TypeOf(expectedIntValue).Kind())
+	assert.Equal(t, reflect.Int, reflect.TypeOf(expectedIntValue).Kind())
 	assert.Equal(t, "10", resolvedProps["a"]["a.mysql.maximumPoolSize"].Value)
 	assert.Equal(t, "20", resolvedProps["b"]["b.mysql.maximumPoolSize"].Value)
 

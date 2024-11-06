@@ -64,11 +64,11 @@ func (cm *PropertyManager) resolveAllReferences() {
 	}
 }
 
-func (cm *PropertyManager) resolvePropertyReference(component, value string) string {
+func (cm *PropertyManager) resolvePropertyReference(component, value string) interface{} {
 	return os.Expand(value, func(key string) string {
 		// 首先在当前组件中查找，包括 YAML 和 Properties 文件
 		if propSource, ok := cm.resolvedProperties[component][key]; ok {
-			return fmt.Sprintf("%v", propSource.Value)
+			return fmt.Sprintf("%v", propSource.Value) // TODO
 		}
 
 		// 如果在当前组件中找不到，则在所有其他组件中查找

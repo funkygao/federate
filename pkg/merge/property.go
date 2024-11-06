@@ -106,6 +106,23 @@ func (cm *PropertyManager) AnalyzeAllPropertySources() error {
 	return nil
 }
 
+// 合并 YAML 和 Properties 的冲突
+func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(nil)
+}
+
+func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(func(ps *PropertySource) bool {
+		return ps.IsProperties()
+	})
+}
+
+func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(func(ps *PropertySource) bool {
+		return ps.IsYAML()
+	})
+}
+
 func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource) bool) map[string]map[string]interface{} {
 	conflicts := make(map[string]map[string]interface{})
 	for key := range pm.getAllUniqueKeys() {
@@ -129,23 +146,6 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 		}
 	}
 	return conflicts
-}
-
-// 合并 YAML 和 Properties 的冲突
-func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(nil)
-}
-
-func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(func(ps *PropertySource) bool {
-		return ps.IsProperties()
-	})
-}
-
-func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(func(ps *PropertySource) bool {
-		return ps.IsYAML()
-	})
 }
 
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {

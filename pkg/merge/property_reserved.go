@@ -1,9 +1,13 @@
 package merge
 
 import (
+	"fmt"
+	"log"
 	"strings"
 
 	"federate/pkg/manifest"
+	"federate/pkg/tablerender"
+	"github.com/fatih/color"
 )
 
 // ComponentKeyValue represents a key-value pair for a specific component.
@@ -18,6 +22,11 @@ type ValueOverride func(*PropertyManager, []ComponentKeyValue) interface{}
 
 func M(values []ComponentKeyValue) *manifest.MainSystem {
 	return values[0].Component.M
+}
+
+func (cm *PropertyManager) isReservedProperty(key string) bool {
+	_, exists := cm.reservedYamlKeys[key]
+	return exists
 }
 
 var reservedKeyHandlers = map[string]ValueOverride{
@@ -72,4 +81,43 @@ var reservedKeyHandlers = map[string]ValueOverride{
 
 func (m *PropertyManager) recordServletContextPath(c manifest.ComponentInfo, contextPath string) {
 	m.servletContextPath[c.Name] = contextPath
+}
+
+func (cm *PropertyManager) registerReservedProperty(key string, component manifest.ComponentInfo, value interface{}) {
+	if _, exists := cm.reservedValues[key]; !exists {
+		cm.reservedValues[key] = []ComponentKeyValue{}
+	}
+	cm.reservedValues[key] = append(cm.reservedValues[key], ComponentKeyValue{Component: component, Value: value})
+}
+
+func (cm *PropertyManager) applyReservedPropertyRules() {
+	var cellData [][]string
+	for key, values := range cm.reservedValues {
+		if handler, exists := cm.reservedYamlKeys[key]; exists {
+			if cm.m.Main.Reconcile.PropertySettled(key) {
+				color.Yellow("key:%s reserved, but used directive: propertySettled, skipped", key)
+				continue
+			}
+
+			if value := handler(cm, values); value != nil {
+				for _, componentProps := range cm.resolvedProperties {
+					componentProps[key] = PropertySource{
+						Value:    value,
+						FilePath: "reserved.yml",
+					}
+				}
+
+				cellData = append(cellData, []string{key, fmt.Sprintf("%v", value)})
+			} else {
+				for _, componentProps := range cm.resolvedProperties {
+					delete(componentProps, key)
+				}
+				cellData = append(cellData, []string{key, color.New(color.FgRed).Add(color.CrossedOut).Sprintf("deleted")})
+			}
+		}
+	}
+
+	log.Printf("Reserved keys processed:")
+	header := []string{"Reserved Key", "Value"}
+	tablerender.DisplayTable(header, cellData, false, -1)
 }

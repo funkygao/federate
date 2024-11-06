@@ -34,18 +34,7 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 		for componentName, value := range components {
 			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
-			prefixedKey := Key(key).WithNamespace(componentName)
-			if value == nil {
-				value = ""
-			}
-
-			// Update the resolvedProperties with the prefixed key, for .properties && .yml
-			cm.resolvedProperties[componentName][prefixedKey] = PropertySource{
-				Value:    value,
-				FilePath: cm.resolvedProperties[componentName][key].FilePath,
-			}
-
-			//delete(cm.mergedYaml, key) 原有的key不能删除：第三方包内部，可能在使用该 key
+			cm.resolveConflict(componentName, Key(key), value)
 		}
 	}
 
