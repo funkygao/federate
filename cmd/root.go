@@ -10,6 +10,7 @@ import (
 	"federate/cmd/plus"
 	"federate/cmd/util"
 	"federate/cmd/version"
+	"federate/cmd/workload"
 	"federate/pkg/logo"
 
 	"github.com/spf13/cobra"
@@ -40,6 +41,7 @@ func init() {
 	// 分组设置
 	microservice.CmdGroup.GroupID = "microservice"
 	plus.CmdGroup.GroupID = "microservice"
+	workload.CmdGroup.GroupID = "microservice"
 	image.CmdGroup.GroupID = "microservice"
 
 	chatgpt.CmdGroup.GroupID = "utility"
@@ -69,6 +71,7 @@ func init() {
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
+	rootCmd.AddCommand(workload.CmdGroup)
 	rootCmd.AddCommand(plus.CmdGroup)
 	rootCmd.AddCommand(image.CmdGroup)
 
