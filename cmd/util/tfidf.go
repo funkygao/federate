@@ -11,10 +11,11 @@ import (
 	"strings"
 
 	"federate/pkg/java"
-	"federate/pkg/tablerender"
 	"federate/pkg/util"
 	"github.com/spf13/cobra"
 )
+
+var featureN int
 
 var tfidfCmd = &cobra.Command{
 	Use:   "tfidf [directory] [file extension]",
@@ -52,17 +53,10 @@ func showKeyFeatures(directory string) {
 
 	tfidf := calculateTFIDF(corpus)
 
-	// 使用表格形式展示结果
-	header := []string{"File", "Top Features"}
-	var rows [][]string
-
 	for i, file := range files {
-		topFeatures := getTopFeatures(tfidf[i], 5)
-		row := []string{getFileNameWithoutExtension(file), topFeatures}
-		rows = append(rows, row)
+		topFeatures := getTopFeatures(tfidf[i], featureN)
+		fmt.Printf("%s\n  %s\n", getFileNameWithoutExtension(file), topFeatures)
 	}
-
-	tablerender.DisplayTable(header, rows, false, 0)
 }
 
 func getFileNameWithoutExtension(filePath string) string {
@@ -186,8 +180,12 @@ func getTopFeatures(tfidf map[string]float64, n int) string {
 
 	var topFeatures []string
 	for i := 0; i < n && i < len(scores); i++ {
-		topFeatures = append(topFeatures, util.Truncate(scores[i].word, 10))
+		topFeatures = append(topFeatures, util.Truncate(scores[i].word, 15))
 	}
 
 	return strings.Join(topFeatures, "  ")
+}
+
+func init() {
+	tfidfCmd.Flags().IntVarP(&featureN, "features", "n", 10, "How many features to extract")
 }
