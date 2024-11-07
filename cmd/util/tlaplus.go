@@ -12,7 +12,10 @@ import (
 )
 
 var (
-	tla2ToolsPath string
+	tla2ToolsPath   string
+	maxHeapSize     int
+	invariants      []string
+	collectCoverage bool
 )
 
 var tlaplusCmd = &cobra.Command{
@@ -28,14 +31,64 @@ Download from: https://github.com/tlaplus/tlaplus/releases/latest`,
 	},
 }
 
-func useTLAplus(file string) {
-	if filepath.Ext(file) != ".tla" {
+func useTLAplus(specFile string) {
+	if filepath.Ext(specFile) != ".tla" {
 		fmt.Println("Error: The specified file must have a .tla extension")
 		os.Exit(1)
 	}
 
-	javaArgs := []string{"-cp", tla2ToolsPath, "tlc2.TLC", file}
+	// 初始化 Java 参数
+	javaArgs := []string{fmt.Sprintf("-Xmx%dg", maxHeapSize)}
 
+	// 处理 classpath
+	sysClasspath := os.Getenv("CLASSPATH")
+	var classpath string
+	if tla2ToolsPath != "tla2tools.jar" {
+		// 如果用户明确指定了 tla2tools.jar 的路径
+		classpath = tla2ToolsPath
+	} else if sysClasspath != "" {
+		// 如果没有明确指定，但系统 CLASSPATH 不为空
+		// 在系统 CLASSPATH 中查找 tla2tools.jar
+		paths := strings.Split(sysClasspath, ":")
+		for _, path := range paths {
+			if _, err := os.Stat(filepath.Join(path, "tla2tools.jar")); err == nil {
+				classpath = filepath.Join(path, "tla2tools.jar")
+				break
+			}
+		}
+		if classpath == "" {
+			fmt.Println("Error: tla2tools.jar not found in CLASSPATH")
+			os.Exit(1)
+		}
+	} else {
+		// 如果既没有明确指定，系统 CLASSPATH 也为空，则使用当前目录
+		if _, err := os.Stat("tla2tools.jar"); err == nil {
+			classpath = "tla2tools.jar"
+		} else {
+			fmt.Println("Error: tla2tools.jar not found in current directory")
+			os.Exit(1)
+		}
+	}
+	javaArgs = append(javaArgs, "-cp", classpath)
+
+	// 添加 TLC 主类和规范文件
+	javaArgs = append(javaArgs, "tlc2.TLC")
+
+	// 检查配置文件是否存在
+	cfgFile := strings.TrimSuffix(specFile, ".tla") + ".cfg"
+	if _, err := os.Stat(cfgFile); err == nil {
+		javaArgs = append(javaArgs, "-config", cfgFile)
+	}
+
+	for _, inv := range invariants {
+		javaArgs = append(javaArgs, "-invariant", inv)
+	}
+
+	if collectCoverage {
+		javaArgs = append(javaArgs, "-coverage", "1")
+	}
+
+	javaArgs = append(javaArgs, specFile)
 	cmd := exec.Command("java", javaArgs...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -49,5 +102,8 @@ func useTLAplus(file string) {
 }
 
 func init() {
-	tlaplusCmd.Flags().StringVarP(&tla2ToolsPath, "tla2tools", "t", "tla2tools.jar", "Path to tla2tools.jar")
+	tlaplusCmd.Flags().StringVarP(&tla2ToolsPath, "tla2tools", "t", "tla2tools.jar", "Path to tla2tools.jar (default: use system CLASSPATH)")
+	tlaplusCmd.Flags().IntVarP(&maxHeapSize, "max-heap", "m", 75, "Maximum heap size in GB")
+	tlaplusCmd.Flags().StringSliceVarP(&invariants, "invariant", "i", []string{}, "Invariants to check")
+	tlaplusCmd.Flags().BoolVarP(&collectCoverage, "coverage", "c", false, "Collect coverage information")
 }
