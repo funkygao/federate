@@ -13,7 +13,7 @@ var (
 )
 
 func Interact(codebaseDir string, echoVal bool) {
-	fmt.Printf("💡 输入 '%s' 引用文件，'%s' 引用目录，输入 'go' 生成提示，按 Ctrl+D 退出\n", filePrefix, dirPrefix)
+	fmt.Printf("💡 输入 '%s' 引用文件，'%s' 引用目录，'go' 生成提示，'!cmd' 执行命令，'!!cmd' 只执行不记录，Ctrl+D 退出\n", filePrefix, dirPrefix)
 
 	baseDir = codebaseDir
 	echo = echoVal

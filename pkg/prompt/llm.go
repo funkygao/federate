@@ -1,6 +1,7 @@
 package prompt
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -89,6 +90,41 @@ func (pg *PromptGenerator) echoFileInput(path string) {
 	}
 
 	fmt.Println(content)
+}
+
+func (pg *PromptGenerator) executeShellCommand(input string) {
+	var cmd *exec.Cmd
+	var outputToPrompt bool
+
+	shell := os.Getenv("SHELL")
+	if shell == "" {
+		shell = "/bin/bash" // 默认使用 bash
+	}
+
+	if strings.HasPrefix(input, "!!") {
+		cmd = exec.Command(shell, "-ic", input[2:])
+		outputToPrompt = false
+	} else {
+		cmd = exec.Command(shell, "-ic", input[1:])
+		outputToPrompt = true
+	}
+
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Printf("执行命令时出错: %v\n", err)
+		return
+	}
+
+	output := out.String()
+	fmt.Print(output)
+
+	if outputToPrompt {
+		promptGenerator.AddInput(fmt.Sprintf("Shell command: %s\nOutput:\n%s", input[1:], output))
+	}
 }
 
 func (pg *PromptGenerator) processLineWithMention(line string) {

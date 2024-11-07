@@ -14,6 +14,8 @@ func executor(input string) {
 		promptGenerator.GenerateHighQualityPrompt(true)
 	case input == "gon":
 		promptGenerator.GenerateHighQualityPrompt(false)
+	case strings.HasPrefix(input, "!"):
+		promptGenerator.executeShellCommand(input)
 	default:
 		promptGenerator.AddInput(input)
 		if echo && promptGenerator.isMentionLine(input) {
