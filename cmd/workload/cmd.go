@@ -19,5 +19,5 @@ Ensures system stability, performance, and reliability under diverse workload co
 }
 
 func init() {
-	CmdGroup.AddCommand(integrationCmd)
+	CmdGroup.AddCommand(integrationCmd, heterogeneousCmd)
 }
