@@ -2,22 +2,26 @@ package util
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 
+	"federate/internal/fs"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
 var (
-	tla2ToolsPath   string
-	maxHeapSize     int
-	invariants      []string
-	collectCoverage bool
-	simulateMode    bool
+	tla2ToolsPath    string
+	maxHeapSize      int
+	invariants       []string
+	collectCoverage  bool
+	simulateMode     bool
+	verboseMode      bool
+	generateDemoMode bool
 )
 
 var tlaplusCmd = &cobra.Command{
@@ -27,9 +31,17 @@ var tlaplusCmd = &cobra.Command{
 
 Make sure you have the TLA+ tools installed and the 'tla2tools.jar' file is accessible.
 Download from: https://github.com/tlaplus/tlaplus/releases/latest`,
-	Args: cobra.ExactArgs(1),
+	Args: cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
-		useTLAplus(args[0])
+		if generateDemoMode {
+			generateDemo()
+		} else {
+			if len(args) != 1 {
+				cmd.Help()
+				return
+			}
+			useTLAplus(args[0])
+		}
 	},
 }
 
@@ -85,13 +97,14 @@ func useTLAplus(specFile string) {
 	for _, inv := range invariants {
 		javaArgs = append(javaArgs, "-invariant", inv)
 	}
-
 	if collectCoverage {
 		javaArgs = append(javaArgs, "-coverage", "1")
 	}
-
 	if simulateMode {
 		javaArgs = append(javaArgs, "-simulate")
+	}
+	if verboseMode {
+		javaArgs = append(javaArgs, "-debug")
 	}
 
 	javaArgs = append(javaArgs, "-workers", fmt.Sprintf("%v", runtime.NumCPU()))
@@ -108,10 +121,20 @@ func useTLAplus(specFile string) {
 	}
 }
 
+func generateDemo() {
+	files := []string{"SimpleCounter.tla", "SimpleCounter.cfg"}
+	for _, f := range files {
+		log.Printf("Generated: %s", f)
+		fs.GenerateFileFromTmpl(filepath.Join("templates", "tla", f), f, nil)
+	}
+}
+
 func init() {
 	tlaplusCmd.Flags().StringVarP(&tla2ToolsPath, "tla2tools", "t", "tla2tools.jar", "Path to tla2tools.jar (default: use system CLASSPATH)")
 	tlaplusCmd.Flags().IntVarP(&maxHeapSize, "max-heap", "m", 75, "Maximum heap size in GB")
 	tlaplusCmd.Flags().StringSliceVarP(&invariants, "invariant", "i", []string{}, "Invariants to check")
 	tlaplusCmd.Flags().BoolVarP(&collectCoverage, "coverage", "c", false, "Collect coverage information")
-	tlaplusCmd.Flags().BoolVarP(&simulateMode, "simulate", "s", true, "Run in simulation mode")
+	tlaplusCmd.Flags().BoolVarP(&verboseMode, "verbose", "v", false, "Verbose mode")
+	tlaplusCmd.Flags().BoolVarP(&simulateMode, "simulate", "s", false, "Run in simulation mode")
+	tlaplusCmd.Flags().BoolVarP(&generateDemoMode, "generate-demo", "g", false, "Generate tla specification files")
 }
