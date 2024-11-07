@@ -21,6 +21,7 @@ var (
 		"FederatedMybatisConfig",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",
+		"FederatedApplicationListener",
 
 		// Inspect
 		"FederatedIndirectRiskDetector",
@@ -112,12 +113,14 @@ func generateJava(m *manifest.Manifest, simpleClassName string) {
 		SingletonClasses      []string
 		AddOns                []string
 		ExcludedBeanPatterns  []string
+		Abort                 bool
 	}{
 		Package:               packageName,
 		MapperScanBasePackage: "com.jdwl.wms", // TODO
 		SingletonClasses:      m.Main.Runtime.SingletonComponents,
 		AddOns:                m.Starter.Inspect.AddOn,
 		ExcludedBeanPatterns:  m.Starter.BeanNameGenerator.ExcludedBeanPatterns,
+		Abort:                 m.Starter.ExitOnStartupFailure,
 	}
 	mainClassDir := filepath.Join(m.StarterBaseDir(), "src", "main", "java", java.Pkg2Path(packageName))
 	javaFile := filepath.Join(mainClassDir, simpleClassName+".java")

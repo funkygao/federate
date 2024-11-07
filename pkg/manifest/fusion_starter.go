@@ -5,6 +5,8 @@ import (
 )
 
 type FusionStarterSpec struct {
+	ExitOnStartupFailure bool `yaml:"exitOnStartupFailure"`
+
 	RawDependencies []string              `yaml:"dependencies"`
 	Dependencies    []java.DependencyInfo `yaml:"-"`
 
