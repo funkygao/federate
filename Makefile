@@ -33,7 +33,7 @@ clean:
 
 
 install: test ## Check if Go is installed, install if not, then build and install federate.
-	@if ! command -v go >/dev/null 2>&1; then \
+	if ! command -v go >/dev/null 2>&1; then \
 		echo "Golang is not installed. Attempting to install via Homebrew..."; \
 		if ! command -v brew >/dev/null 2>&1; then \
 			echo "Error: Homebrew is not installed. Please install Homebrew first."; \
