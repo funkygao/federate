@@ -14,12 +14,13 @@ import (
 var wordRegexp bool
 
 var ygrepCmd = &cobra.Command{
-	Use:   "ygrep",
+	Use:   "ygrep <key> [dir]",
 	Short: "Search for a specified key in YAML files within a directory",
 	Long: `The ygrep command searches for a specified key in YAML files within a specified directory recursively.
 
 Example usage:
-  federate ygrep spring.profiles.active [directory]`,
+  federate ygrep spring.profiles.active [dir]`,
+	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Please provide a key to search for.")

@@ -18,12 +18,13 @@ import (
 var featureN int
 
 var tfidfCmd = &cobra.Command{
-	Use:   "tfidf [directory] [file extension]",
+	Use:   "tfidf <dir>",
 	Short: "Extract key features from specified files using TF-IDF",
 	Long: `The tfidf command extracts key features from specified files in a Maven code repository using the TF-IDF algorithm.
 
 Example usage:
   federate util tfidf ./my-maven-project`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			fmt.Println("Please provide a directory.")
