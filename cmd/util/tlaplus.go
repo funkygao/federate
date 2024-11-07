@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
@@ -16,6 +17,7 @@ var (
 	maxHeapSize     int
 	invariants      []string
 	collectCoverage bool
+	simulateMode    bool
 )
 
 var tlaplusCmd = &cobra.Command{
@@ -88,6 +90,11 @@ func useTLAplus(specFile string) {
 		javaArgs = append(javaArgs, "-coverage", "1")
 	}
 
+	if simulateMode {
+		javaArgs = append(javaArgs, "-simulate")
+	}
+
+	javaArgs = append(javaArgs, "-workers", fmt.Sprintf("%v", runtime.NumCPU()))
 	javaArgs = append(javaArgs, specFile)
 	cmd := exec.Command("java", javaArgs...)
 	cmd.Stdout = os.Stdout
@@ -106,4 +113,5 @@ func init() {
 	tlaplusCmd.Flags().IntVarP(&maxHeapSize, "max-heap", "m", 75, "Maximum heap size in GB")
 	tlaplusCmd.Flags().StringSliceVarP(&invariants, "invariant", "i", []string{}, "Invariants to check")
 	tlaplusCmd.Flags().BoolVarP(&collectCoverage, "coverage", "c", false, "Collect coverage information")
+	tlaplusCmd.Flags().BoolVarP(&simulateMode, "simulate", "s", true, "Run in simulation mode")
 }
