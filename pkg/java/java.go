@@ -32,7 +32,7 @@ func ClassPackageName(classFullName string) string {
 
 func IsJavaMainSource(info os.FileInfo, path string) bool {
 	return !info.IsDir() &&
-		!strings.HasSuffix(info.Name(), "package-info") &&
+		!strings.HasSuffix(info.Name(), "package-info.java") &&
 		strings.HasSuffix(info.Name(), ".java") &&
 		!strings.Contains(path, "/test/")
 }
