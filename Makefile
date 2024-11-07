@@ -1,12 +1,15 @@
 SHELL := /bin/bash
+.DEFAULT_GOAL := help
 .SILENT:
 
-GIT_COMMIT := $(shell git rev-parse --short HEAD)
-GIT_BRANCH := $(shell git rev-parse --abbrev-ref HEAD)
-GIT_USER := $(shell git config user.name)
-GIT_STATE := $(shell if git diff-index --ignore-submodules=all --quiet HEAD --; then echo "clean"; else echo "dirty"; fi)
-BUILD_DATE := $(shell LC_TIME=zh_CN.UTF-8 date +"%A %Y/%m/%d %H:%M:%S")
+# Variables to be built into the binary
+GIT_COMMIT  := $(shell git rev-parse --short HEAD)
+GIT_BRANCH  := $(shell git rev-parse --abbrev-ref HEAD)
+GIT_USER    := $(shell git config user.name)
+GIT_STATE   := $(shell if git diff-index --ignore-submodules=all --quiet HEAD --; then echo "clean"; else echo "dirty"; fi)
+BUILD_DATE  := $(shell LC_TIME=zh_CN.UTF-8 date +"%A %Y/%m/%d %H:%M:%S")
 
+# Flags
 LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
            -X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
            -X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
