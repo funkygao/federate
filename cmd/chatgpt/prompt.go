@@ -5,8 +5,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var echo bool
-
 var promptCmd = &cobra.Command{
 	Use:   "prompt",
 	Short: "Interactively generate ChatGPT prompt like using Cursor AI IDE",
@@ -26,9 +24,10 @@ Example usage:
 }
 
 func generatePrompt(codebaseDir string) {
-	prompt.Interact(codebaseDir, echo)
+	prompt.Interact(codebaseDir)
 }
 
 func init() {
-	promptCmd.Flags().BoolVarP(&echo, "echo", "e", true, "Echo mentioned file contents")
+	promptCmd.Flags().BoolVarP(&prompt.Echo, "echo", "e", true, "Echo mentioned file contents")
+	promptCmd.Flags().BoolVarP(&prompt.Dump, "dump", "d", false, "Dump prompt to file")
 }

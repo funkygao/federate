@@ -18,7 +18,7 @@ func executor(input string) {
 		promptGenerator.executeShellCommand(input)
 	default:
 		promptGenerator.AddInput(input)
-		if echo && promptGenerator.isMentionLine(input) {
+		if Echo && promptGenerator.isMentionLine(input) {
 			promptGenerator.echoMentions(input)
 		}
 	}

@@ -213,19 +213,24 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt(useTemplate bool) {
 	// 将 initialBuffer 的内容添加到 pg.buffer 的最前面
 	finalContent := initialBuffer.String() + pg.buffer.String()
 
-	err := ioutil.WriteFile(promptFile, []byte(finalContent), 0644)
-	if err != nil {
-		log.Fatalf("%v", err)
+	if Dump {
+		if err := ioutil.WriteFile(promptFile, []byte(finalContent), 0644); err != nil {
+			log.Fatalf("%v", err)
+		}
 	}
 
 	// 将内容复制到剪贴板
 	cmd := exec.Command("pbcopy")
 	cmd.Stdin = strings.NewReader(finalContent)
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
 	tokenCount := CountTokensInK(finalContent)
-	fmt.Printf("生成的高质量 ChatGPT prompt 已保存到 %s，并已复制到剪贴板，约 %.2fK tokens\n", promptFile, tokenCount)
+	if Dump {
+		fmt.Printf("生成的高质量 ChatGPT prompt 已保存到 %s，并已复制到剪贴板，约 %.2fK tokens\n", promptFile, tokenCount)
+	} else {
+		fmt.Printf("生成的高质量 ChatGPT prompt ，已复制到剪贴板，约 %.2fK tokens\n", tokenCount)
+	}
 }

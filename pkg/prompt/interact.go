@@ -7,20 +7,21 @@ import (
 )
 
 var (
+	Echo bool
+	Dump bool
+
 	baseDir         string
-	echo            bool
 	promptGenerator *PromptGenerator
 )
 
-func Interact(codebaseDir string, echoVal bool) {
+func Interact(codebaseDir string) {
 	fmt.Printf("💡 输入 '%s' 引用文件，'%s' 引用目录，'go' 生成提示，'!cmd' 执行命令，'!!cmd' 只执行不记录，Ctrl+D 退出\n", filePrefix, dirPrefix)
 
 	baseDir = codebaseDir
-	echo = echoVal
 	promptGenerator = NewPromptGenerator()
 
 	var prefixOption prompt.Option
-	if echo {
+	if Echo {
 		prefixOption = prompt.OptionPrefix("> ")
 	} else {
 		prefixOption = prompt.OptionLivePrefix(livePrefix)
@@ -45,7 +46,7 @@ func Interact(codebaseDir string, echoVal bool) {
 
 // 在每次输入时都会被调用，而不是在每次换行时
 func livePrefix() (string, bool) {
-	if echo &&
+	if Echo &&
 		len(promptGenerator.lastLine) > 1 &&
 		promptGenerator.isMentionLine(promptGenerator.lastLine) {
 		prefix := "> " + promptGenerator.lastLine + "\n> "
