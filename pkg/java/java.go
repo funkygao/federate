@@ -61,3 +61,8 @@ func IsSpringYamlFile(info os.FileInfo, path string) bool {
 func Pkg2Path(pkg string) string {
 	return filepath.FromSlash(strings.ReplaceAll(pkg, ".", "/"))
 }
+
+func JavaFile2Class(javaSrcPath string) string {
+	fileName := filepath.Base(javaSrcPath)
+	return strings.TrimSuffix(fileName, ".java")
+}

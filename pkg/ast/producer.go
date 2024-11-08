@@ -18,7 +18,7 @@ type javaFileProducer struct {
 	parser *javaParser
 }
 
-const fileChannelBufferSize = 500
+const fileChannelBufferSize = 1000
 
 func (p *javaFileProducer) Produce(dir string) <-chan fileInfo {
 	filesChan := make(chan fileInfo, fileChannelBufferSize)

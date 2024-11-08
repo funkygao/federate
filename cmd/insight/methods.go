@@ -10,7 +10,7 @@ import (
 var methodsCmd = &cobra.Command{
 	Use:   "methods <dir>",
 	Short: "Count the total number of methods in Java source files",
-	Long:  `This command recursively analyzes Java source files in the specified directory, counting the total number of methods while excluding test files.`,
+	Long:  `This command recursively analyzes Java source files, counting the total number of methods while excluding test files.`,
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		showMethodCount(args[0])
@@ -24,4 +24,8 @@ func showMethodCount(dir string) {
 	}
 
 	log.Printf("Total number of methods: %d", l.MethodCount)
+}
+
+func init() {
+	methodsCmd.Flags().BoolVarP(&debug, "debug", "d", true, "Debug mode")
 }

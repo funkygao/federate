@@ -39,6 +39,10 @@ func TestIsResourceFile(t *testing.T) {
 	}
 }
 
+func TestJavaFile2Class(t *testing.T) {
+	assert.Equal(t, "Foo", JavaFile2Class("a/b/c/Foo.java"))
+}
+
 func TestPkg2Path(t *testing.T) {
 	assert.Equal(t, "com/goog/wms/addon", Pkg2Path("com.goog.wms.addon"))
 }

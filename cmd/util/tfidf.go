@@ -56,13 +56,8 @@ func showKeyFeatures(directory string) {
 
 	for i, file := range files {
 		topFeatures := getTopFeatures(tfidf[i], featureN)
-		fmt.Printf("%s\n  %s\n", getFileNameWithoutExtension(file), topFeatures)
+		fmt.Printf("%s\n  %s\n", java.JavaFile2Class(file), topFeatures)
 	}
-}
-
-func getFileNameWithoutExtension(filePath string) string {
-	fileName := filepath.Base(filePath)
-	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
 }
 
 func getFiles(directory string) ([]string, error) {

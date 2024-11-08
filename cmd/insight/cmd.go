@@ -4,6 +4,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var debug bool
+
 var CmdGroup = &cobra.Command{
 	Use:   "insight",
 	Short: "Gain insights from Java source code",
