@@ -12,7 +12,6 @@ This approach decouples logical boundaries from physical deployment, offering fl
 ## Quickstart: Install and Run **federate**
 
 ```bash
-brew install go
 make install
 federate
 ```

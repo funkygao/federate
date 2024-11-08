@@ -5,7 +5,7 @@ SHELL := /bin/bash
 help:
 	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
-##@ Build
+##@ Debug
 
 clean:
 	echo "☕️ mvn clean ..."
@@ -17,12 +17,12 @@ check_package_dir:
 		exit 1; \
 	fi
 
-inspect:check_package_dir ## Inspect indirect conflict risk before runtime.
-	java -DLOG_HOME=. -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
-
 run-local:check_package_dir ## Local debug {{.AppName}} after configuring hosts.
 	echo "☕️ Starting {{.AppName}} ..."
 	env {{.Env}} java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
+
+inspect:check_package_dir ## Inspect indirect conflict risk before runtime.
+	java -DLOG_HOME=. -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
 ##@ Analysis
 
