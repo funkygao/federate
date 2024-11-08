@@ -9,25 +9,19 @@ import (
 	"federate/pkg/java"
 )
 
-// FileInfo 包含要解析的文件信息
-type FileInfo struct {
+type fileInfo struct {
 	Path    string
 	Content string
 }
 
-// Producer 定义了生产者接口
-type Producer interface {
-	Produce(dir string) (<-chan FileInfo, <-chan error)
-}
-
-type JavaFileProducer struct {
+type javaFileProducer struct {
 	parser *javaParser
 }
 
 const fileChannelBufferSize = 500
 
-func (p *JavaFileProducer) Produce(dir string) <-chan FileInfo {
-	filesChan := make(chan FileInfo, fileChannelBufferSize)
+func (p *javaFileProducer) Produce(dir string) <-chan fileInfo {
+	filesChan := make(chan fileInfo, fileChannelBufferSize)
 
 	go func() {
 		defer close(filesChan)
@@ -50,7 +44,7 @@ func (p *JavaFileProducer) Produce(dir string) <-chan FileInfo {
 				}
 
 				// 如果 channel 已满，会自动阻塞
-				filesChan <- FileInfo{Path: path, Content: string(content)}
+				filesChan <- fileInfo{Path: path, Content: string(content)}
 			}
 			return nil
 		})

@@ -11,8 +11,10 @@ import (
 
 // Parser 定义了 Java8 解析器的接口
 type Parser interface {
+	// Parse a single java source content.
 	Parse(javaSrc string, listener parser.Java8ParserListener) error
 
+	// Recursively parse java sources from a directory.
 	ParseDirectory(dir string, listener parser.Java8ParserListener) error
 
 	// Enable debug.
@@ -62,10 +64,10 @@ func (p *javaParser) Parse(javaSrc string, listener parser.Java8ParserListener) 
 func (p *javaParser) ParseDirectory(dir string, listener parser.Java8ParserListener) error {
 	numWorkers := runtime.NumCPU()
 
-	producer := &JavaFileProducer{parser: p}
+	producer := &javaFileProducer{parser: p}
 	filesChan := producer.Produce(dir)
 
-	consumer := &JavaFileConsumer{parser: p, listener: listener}
+	consumer := &javaFileConsumer{parser: p, listener: listener}
 
 	errorsChan := make(chan error)
 	var wg sync.WaitGroup
