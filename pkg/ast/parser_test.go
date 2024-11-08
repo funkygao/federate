@@ -111,21 +111,6 @@ func TestParser_Parse(t *testing.T) {
 	}
 }
 
-func TestParser_GetLexerAndParser(t *testing.T) {
-	javaSrc := "public class Test {}"
-	parser := NewParser()
-
-	// 首先解析一些代码以初始化 lexer 和 parser
-	err := parser.Parse(javaSrc, &mockListener{})
-	assert.NoError(t, err, "Unexpected error during Parse")
-
-	lexer := parser.GetLexer()
-	assert.NotNil(t, lexer, "GetLexer() returned nil")
-
-	p := parser.GetParser()
-	assert.NotNil(t, p, "GetParser() returned nil")
-}
-
 func TestNewParser(t *testing.T) {
 	parser := NewParser()
 	assert.NotNil(t, parser, "NewParser() returned nil")

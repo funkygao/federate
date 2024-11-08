@@ -2,6 +2,8 @@ package ast
 
 import (
 	"fmt"
+	"runtime"
+	"sync"
 
 	"federate/pkg/ast/parser"
 	"github.com/antlr4-go/antlr/v4"
@@ -11,8 +13,7 @@ import (
 type Parser interface {
 	Parse(javaSrc string, listener parser.Java8ParserListener) error
 
-	GetLexer() *parser.Java8Lexer
-	GetParser() *parser.Java8Parser
+	ParseDirectory(dir string, listener parser.Java8ParserListener) error
 }
 
 func NewParser() Parser {
@@ -49,10 +50,48 @@ func (p *javaParser) Parse(javaSrc string, listener parser.Java8ParserListener) 
 	return nil
 }
 
-func (p *javaParser) GetLexer() *parser.Java8Lexer {
-	return p.lexer
-}
+func (p *javaParser) ParseDirectory(dir string, listener parser.Java8ParserListener) error {
+	numWorkers := runtime.NumCPU()
 
-func (p *javaParser) GetParser() *parser.Java8Parser {
-	return p.parser
+	producer := &JavaFileProducer{}
+	filesChan, producerErrors := producer.Produce(dir)
+
+	consumer := &JavaFileConsumer{parser: p, listener: listener}
+
+	errorsChan := make(chan error)
+	var wg sync.WaitGroup
+
+	// 启动 consumer goroutines
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			consumer.Consume(filesChan, errorsChan)
+		}()
+	}
+
+	// 收集 producer 错误
+	go func() {
+		for err := range producerErrors {
+			errorsChan <- err
+		}
+	}()
+
+	// 等待所有 consumer 完成并关闭 errors channel
+	go func() {
+		wg.Wait()
+		close(errorsChan)
+	}()
+
+	// 收集所有错误
+	var errors []error
+	for err := range errorsChan {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		return fmt.Errorf("encountered %d errors during parsing: %v", len(errors), errors)
+	}
+
+	return nil
 }
