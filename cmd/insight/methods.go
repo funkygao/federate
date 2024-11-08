@@ -3,7 +3,6 @@ package insight
 import (
 	"log"
 
-	"federate/pkg/ast"
 	"federate/pkg/ast/parser"
 	"github.com/spf13/cobra"
 )
@@ -19,11 +18,8 @@ var methodsCmd = &cobra.Command{
 }
 
 func showMethodCount(dir string) {
-	p := ast.NewParser()
-	p.Debug()
 	listener := &methodCountListener{}
-
-	err := p.ParseDirectory(dir, listener)
+	err := parseDir(dir, listener)
 	if err != nil {
 		log.Fatalf("Error parsing directory: %v", err)
 	}

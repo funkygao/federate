@@ -44,10 +44,7 @@ clean:restore-submodules
 ##@ Consolidate
 
 fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
-	if [ ! -f {{.FusionStarter}}/Makefile ]; then \
-		echo "☕️ Scaffolding {{.FusionStarter}} ..."; \
-		federate microservice fusion-start; \
-	fi
+	federate microservice fusion-start
 
 consolidate:sync-submodules ## Synchronize submodules, generate and pacakge the federated system.
 	echo "☕️ Consolidating the federated project ..."

@@ -17,24 +17,26 @@ var (
 	cleanFlag bool
 
 	runtimeClasses = []string{
+		"package-info",
+
 		"FederatedAnnotationBeanNameGenerator",
-		"FederatedMybatisConfig",
 		"FederatedExcludedTypeFilter",
 		"FederatedResourceLoader",
 		"FederatedApplicationListener",
-
-		// Inspect
-		"FederatedIndirectRiskDetector",
-		"RiskDetector",
-		"RiskDetectorConditional",
-		"RiskDetectorRequestMapping",
 
 		// TODO 目前没有实质性意义
 		"FederatedApplicationContextInitializer",
 		"FederatedBeanDefinitionConflictProcessor",
 		"FederatedEnvironmentPostProcessor",
 
-		"package-info",
+		// TODO 还未实现
+		"FederatedMybatisConfig",
+
+		// Inspect
+		"FederatedIndirectRiskDetector",
+		"RiskDetector",
+		"RiskDetectorConditional",
+		"RiskDetectorRequestMapping",
 	}
 )
 

@@ -6,6 +6,7 @@ import org.mybatis.spring.mapper.MapperScannerConfigurer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 
+// TODO 未启用
 @Slf4j
 public class FederatedMybatisConfig {
     @Bean
