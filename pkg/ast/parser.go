@@ -14,6 +14,9 @@ type Parser interface {
 	Parse(javaSrc string, listener parser.Java8ParserListener) error
 
 	ParseDirectory(dir string, listener parser.Java8ParserListener) error
+
+	// Enable debug.
+	Debug()
 }
 
 func NewParser() Parser {
@@ -21,8 +24,14 @@ func NewParser() Parser {
 }
 
 type javaParser struct {
+	debug bool
+
 	lexer  *parser.Java8Lexer
 	parser *parser.Java8Parser
+}
+
+func (p *javaParser) Debug() {
+	p.debug = true
 }
 
 func (p *javaParser) Parse(javaSrc string, listener parser.Java8ParserListener) error {
@@ -53,8 +62,8 @@ func (p *javaParser) Parse(javaSrc string, listener parser.Java8ParserListener) 
 func (p *javaParser) ParseDirectory(dir string, listener parser.Java8ParserListener) error {
 	numWorkers := runtime.NumCPU()
 
-	producer := &JavaFileProducer{}
-	filesChan, producerErrors := producer.Produce(dir)
+	producer := &JavaFileProducer{parser: p}
+	filesChan := producer.Produce(dir)
 
 	consumer := &JavaFileConsumer{parser: p, listener: listener}
 
@@ -70,20 +79,12 @@ func (p *javaParser) ParseDirectory(dir string, listener parser.Java8ParserListe
 		}()
 	}
 
-	// 收集 producer 错误
-	go func() {
-		for err := range producerErrors {
-			errorsChan <- err
-		}
-	}()
-
 	// 等待所有 consumer 完成并关闭 errors channel
 	go func() {
 		wg.Wait()
 		close(errorsChan)
 	}()
 
-	// 收集所有错误
 	var errors []error
 	for err := range errorsChan {
 		errors = append(errors, err)

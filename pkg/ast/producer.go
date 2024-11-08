@@ -1,8 +1,8 @@
 package ast
 
 import (
-	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -20,35 +20,41 @@ type Producer interface {
 	Produce(dir string) (<-chan FileInfo, <-chan error)
 }
 
-type JavaFileProducer struct{}
+type JavaFileProducer struct {
+	parser *javaParser
+}
 
-func (p *JavaFileProducer) Produce(dir string) (<-chan FileInfo, <-chan error) {
-	filesChan := make(chan FileInfo)
-	errorsChan := make(chan error)
+const fileChannelBufferSize = 500
+
+func (p *JavaFileProducer) Produce(dir string) <-chan FileInfo {
+	filesChan := make(chan FileInfo, fileChannelBufferSize)
 
 	go func() {
 		defer close(filesChan)
-		defer close(errorsChan)
 
-		err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return err
+				log.Printf("%s: %v", path, err)
+				return filepath.SkipDir
 			}
+
 			if java.IsJavaMainSource(info, path) {
 				content, err := ioutil.ReadFile(path)
 				if err != nil {
-					errorsChan <- fmt.Errorf("error reading file %s: %v", path, err)
+					log.Printf("Error reading %s: %v", path, err)
 					return nil
 				}
+
+				if p.parser.debug {
+					log.Printf("Parsing %s", path)
+				}
+
+				// 如果 channel 已满，会自动阻塞
 				filesChan <- FileInfo{Path: path, Content: string(content)}
 			}
 			return nil
 		})
-
-		if err != nil {
-			errorsChan <- err
-		}
 	}()
 
-	return filesChan, errorsChan
+	return filesChan
 }
