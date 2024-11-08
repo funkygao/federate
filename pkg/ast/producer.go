@@ -40,7 +40,7 @@ func (p *javaFileProducer) Produce(dir string) <-chan fileInfo {
 				}
 
 				if p.parser.debug {
-					log.Printf("Parsing %s", path)
+					log.Println(path)
 				}
 
 				// 如果 channel 已满，会自动阻塞

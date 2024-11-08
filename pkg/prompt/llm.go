@@ -102,10 +102,10 @@ func (pg *PromptGenerator) executeShellCommand(input string) {
 	}
 
 	if strings.HasPrefix(input, "!!") {
-		cmd = exec.Command(shell, "-ic", input[2:])
+		cmd = exec.Command(shell, "-c", input[2:])
 		outputToPrompt = false
 	} else {
-		cmd = exec.Command(shell, "-ic", input[1:])
+		cmd = exec.Command(shell, "-c", input[1:])
 		outputToPrompt = true
 	}
 
