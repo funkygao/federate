@@ -20,7 +20,7 @@ check_package_dir:
 inspect:check_package_dir ## Inspect indirect conflict risk before runtime.
 	java -DLOG_HOME=. -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}} --detect-indirect-risk
 
-run-local:check_package_dir ## Locally debug {{.AppName}} after configuring hosts.
+run-local:check_package_dir ## Local debug {{.AppName}} after configuring hosts.
 	echo "☕️ Starting {{.AppName}} ..."
 	env {{.Env}} java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
