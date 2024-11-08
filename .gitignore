@@ -23,4 +23,3 @@ lsp/
 
 prompt.txt
 build/
-pkg/ast/parser/
