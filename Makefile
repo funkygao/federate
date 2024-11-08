@@ -27,13 +27,15 @@ generate:
 fmt:
 	go fmt ./...
 
-test: generate fmt
+test: fmt
 	go test ./...
 
 clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build
 
+ast:
+	cd pkg/ast && antlr -Dlanguage=Go -o parser Java8Lexer.g4 Java8Parser.g4
 
 install: test ## Check if Go is installed, install if not, then build and install federate.
 	if ! command -v go >/dev/null 2>&1; then \
