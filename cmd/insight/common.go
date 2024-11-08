@@ -8,7 +8,10 @@ import (
 func parseDir(dir string, listener parser.Java8ParserListener) error {
 	p := ast.NewParser()
 	if debug {
-		p.Debug()
+		p.EnableDebug()
+	}
+	if pprofPort != "" {
+		p.EnablePprof(pprofPort)
 	}
 
 	return p.ParseDirectory(dir, listener)

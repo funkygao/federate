@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"federate/pkg/java"
 )
@@ -18,7 +19,7 @@ type javaFileProducer struct {
 	parser *javaParser
 }
 
-const fileChannelBufferSize = 1000
+var fileChannelBufferSize = runtime.NumCPU() * 2
 
 func (p *javaFileProducer) Produce(dir string) <-chan fileInfo {
 	filesChan := make(chan fileInfo, fileChannelBufferSize)

@@ -4,7 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var debug bool
+var (
+	debug     bool
+	pprofPort string
+)
 
 var CmdGroup = &cobra.Command{
 	Use:   "insight",
