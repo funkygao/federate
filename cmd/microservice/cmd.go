@@ -14,7 +14,7 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(scaffoldCmd, fusionStartCmd, merge.MergeCmd, optimize.CmdGroup, manifestCmd, jdosCmd)
+	CmdGroup.AddCommand(scaffoldCmd, fusionStartCmd, merge.MergeCmd, optimize.CmdGroup, jdosCmd, manifestCmd)
 	if false {
 		CmdGroup.AddCommand(explain.CmdGroup)
 	}
