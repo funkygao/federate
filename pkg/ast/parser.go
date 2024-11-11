@@ -2,9 +2,6 @@ package ast
 
 import (
 	"fmt"
-	"log"
-	"net/http"
-	_ "net/http/pprof"
 	"runtime"
 	"sync"
 
@@ -21,7 +18,6 @@ type Parser interface {
 	ParseDirectory(dir string, listener parser.Java8ParserListener) error
 
 	EnableDebug()
-	EnablePprof(port string)
 }
 
 func NewParser() Parser {
@@ -29,8 +25,7 @@ func NewParser() Parser {
 }
 
 type javaParser struct {
-	debug        bool
-	pprofEnabled bool
+	debug bool
 
 	lexer  *parser.Java8Lexer
 	parser *parser.Java8Parser
@@ -38,13 +33,6 @@ type javaParser struct {
 
 func (p *javaParser) EnableDebug() {
 	p.debug = true
-}
-
-func (p *javaParser) EnablePprof(port string) {
-	p.pprofEnabled = true
-	go func() {
-		log.Println(http.ListenAndServe("localhost:"+port, nil))
-	}()
 }
 
 func (p *javaParser) Parse(javaSrc string, listener parser.Java8ParserListener) error {

@@ -28,5 +28,5 @@ func showMethodCount(dir string) {
 
 func init() {
 	methodsCmd.Flags().BoolVarP(&debug, "debug", "d", true, "Debug mode")
-	methodsCmd.Flags().StringVarP(&pprofPort, "pprof", "p", "", "enable pprof on specified port")
+	methodsCmd.Flags().BoolVarP(&pprof, "pprof", "p", false, "Enable pprof")
 }

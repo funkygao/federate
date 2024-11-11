@@ -3,6 +3,7 @@ package insight
 import (
 	"federate/pkg/ast"
 	"federate/pkg/ast/parser"
+	"federate/pkg/profiler"
 )
 
 func parseDir(dir string, listener parser.Java8ParserListener) error {
@@ -10,8 +11,8 @@ func parseDir(dir string, listener parser.Java8ParserListener) error {
 	if debug {
 		p.EnableDebug()
 	}
-	if pprofPort != "" {
-		p.EnablePprof(pprofPort)
+	if pprof {
+		profiler.Enable()
 	}
 
 	return p.ParseDirectory(dir, listener)

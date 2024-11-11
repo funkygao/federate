@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	debug     bool
-	pprofPort string
+	debug bool
+	pprof bool
 )
 
 var CmdGroup = &cobra.Command{

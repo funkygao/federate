@@ -32,7 +32,7 @@ test: fmt
 
 clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
-	rm -rf build
+	rm -rf build cpu_*
 
 ast:
 	cd pkg/ast && antlr -Dlanguage=Go -o parser Java8Lexer.g4 Java8Parser.g4
@@ -132,3 +132,24 @@ release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-a
 		-o build/federate-$$platform \
 		-ldflags "$(LDFLAGS)"; \
 	done
+
+##@ Diagnose
+
+PROFILE_DURATION=30
+PPROF_PORT=9087
+PROFILE_FILE=cpu_profile.pb.gz
+FLAMEGRAPH_DIR=~/github/FlameGraph
+
+profile:
+	go tool pprof -seconds=$(PROFILE_DURATION) -proto http://localhost:$(PPROF_PORT)/debug/pprof/profile > $(PROFILE_FILE)
+
+pprof:profile ## Visualization and analysis of profiling data.
+	go install github.com/google/pprof@latest
+	pprof -http=:8080 $(PROFILE_FILE)
+
+flamegraph:profile ## FlameGraph.
+	echo "git clone https://github.com/brendangregg/FlameGraph.git"
+	go tool pprof -raw -output=cpu_profile.txt $(PROFILE_FILE)
+	$(FLAMEGRAPH_DIR)/stackcollapse-go.pl cpu_profile.txt > cpu_profile.folded
+	$(FLAMEGRAPH_DIR)/flamegraph.pl cpu_profile.folded > cpu_flamegraph.svg
+	echo "🍺 Checkout cpu_flamegraph.svg"
