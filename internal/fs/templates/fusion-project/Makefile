@@ -15,7 +15,7 @@ pull-submodules: ## Pull submodules to latest remote commits.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
 
-init-submodules: ## Clean and initialize submodules.
+init-submodules:
 	if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
 		exit 1; \
@@ -72,5 +72,5 @@ package:
 	mvn install -q -T8 -Dmaven.artifact.threads=16
 	echo "   {{.FusionProjectName}} packaged"
 
-optimize: ## Optimize {{.FusionProjectName}} resource consumption.
+optimize:
 	federate microservice optimize --yes --verbosity 3
