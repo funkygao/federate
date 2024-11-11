@@ -33,7 +33,6 @@ func RenderUnifiedDiff(oldText, newText string) {
 			} else {
 				// 部分修改的行
 				prettyDiff := dmp.DiffPrettyText(diffs)
-				prettyDiff = prettyDiff
 				log.Print(prettyDiff)
 			}
 		}

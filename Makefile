@@ -21,6 +21,9 @@ help:
 
 ##@ Build
 
+vet:
+	go list ./... | grep -v "federate/pkg/ast/parser" | xargs go vet
+
 generate:
 	go generate ./...
 
