@@ -30,7 +30,7 @@ generate:
 fmt:
 	go fmt ./...
 
-test: fmt
+test: fmt vet
 	go test ./...
 
 clean:
