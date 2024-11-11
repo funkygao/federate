@@ -1,5 +1,4 @@
 SHELL := /bin/bash
-.DEFAULT_GOAL := help
 .SILENT:
 
 # Variables to be built into the binary

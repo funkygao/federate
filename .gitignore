@@ -28,3 +28,7 @@ cpu_profile.pb.gz
 cpu_flamegraph.svg
 cpu_profile.folded
 cpu_profile.txt
+
+# antlr generated
+*.interp
+*.tokens
