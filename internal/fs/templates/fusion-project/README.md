@@ -7,15 +7,14 @@
 ```bash
 federate microservice scaffold   # 生成整个项目脚手架
 make fusion-start                # 生成 fusion-starter 项目脚手架
-make consolidate ENV=<env>       # 针对目标环境进行合并编译
+make consolidate ENV=<env>       # 针对目标环境进行合并编译打包
 
-# 融合项目管理，支持本地调试和本地打包
-make -C {{.FusionProjectName}}           # 查看帮助
-make -C {{.FusionProjectName}} run-local # 本地调试
+# 融合项目本地调试
+make -C {{.FusionProjectName}} run-local
 ```
 
 ## 行云部署
 
 ```bash
-federate microservice jdos # 自动生成 JDOS 构建需要填写的表单参数
+federate microservice jdos # 自动生成 JDOS 构建需要的表单参数
 ```
