@@ -227,7 +227,7 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	assert.Equal(t, "foo", resolvedProps["a"]["a.key"].Value)
 	assert.Equal(t, "0", resolvedProps["b"]["b.key"].Value)
 
-	// 检查原始的冲突键是否仍然存在（因为它们可能被第三方包使用）
+	// 检查原始的冲突键是否被删除
 	assert.Contains(t, resolvedProps["a"], "datasource.mysql.url")
 	assert.Contains(t, resolvedProps["b"], "datasource.mysql.url")
 }

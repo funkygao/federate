@@ -62,7 +62,8 @@ func (cm *PropertyManager) resolveConflict(componentName string, key Key, value 
 		FilePath:       originalSource.FilePath,
 	}
 
-	//delete(cm.resolvedProperties[componentName], key) 原有的key不能删除：第三方包内部，可能在使用该 key
+	// 原有的key删除可能会造成间接依赖的jar里引用找不到：use property.override
+	//delete(cm.resolvedProperties[componentName], strKey)
 }
 
 func (cm *PropertyManager) updateReferencesInString(s, componentName string) string {
