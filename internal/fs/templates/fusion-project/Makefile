@@ -11,7 +11,11 @@ help:
 
 ##@ Submodule
 
-sync-submodules: ## Clean and synchronize submodules to latest remote commits.
+pull-submodules: ## Pull submodules to latest remote commits.
+	git submodule update --init --recursive --remote
+	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
+
+init-submodules: ## Clean and initialize submodules.
 	if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
 		exit 1; \
@@ -23,7 +27,7 @@ sync-submodules: ## Clean and synchronize submodules to latest remote commits.
 		eval $$cmd; \
 	done
 	echo "☕️ Syncing all submodules repository for $$ENV environment"
-	git submodule update --init --recursive --remote
+	git submodule update --init --recursive
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
 diff-submodules: ## Display local changes compared with their original state.
@@ -46,7 +50,7 @@ clean:restore-submodules
 fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 	federate microservice fusion-start
 
-consolidate:sync-submodules ## Synchronize submodules, generate and pacakge the federated system.
+consolidate:init-submodules ## Initialize submodules, generate and pacakge the federated system.
 	echo "☕️ Consolidating the federated project ..."
 	federate microservice consolidate --yes --silent=false
 	if [ "$(sci)" != "1" ]; then \
