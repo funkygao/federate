@@ -22,7 +22,7 @@ func (l *mockListener) EnterMethodDeclaration(ctx *parser.MethodDeclarationConte
 	l.methodCount++
 }
 
-func TestParser_Parse(t *testing.T) {
+func TestParser_ParseJava(t *testing.T) {
 	tests := []struct {
 		name            string
 		javaSrc         string
@@ -98,7 +98,7 @@ func TestParser_Parse(t *testing.T) {
 			parser := NewParser()
 			listener := &mockListener{}
 
-			err := parser.Parse(tt.javaSrc, listener)
+			err := parser.ParseJava(tt.javaSrc, listener)
 
 			if tt.expectError {
 				assert.Error(t, err, "Expected an error, but got none")
@@ -129,7 +129,7 @@ func TestParser_ErrorHandling(t *testing.T) {
 		}
 	`
 
-	err := parser.Parse(javaSrc, listener)
+	err := parser.ParseJava(javaSrc, listener)
 	assert.Error(t, err, "Expected an error due to missing semicolon, but got none")
 	assert.Contains(t, err.Error(), "missing ';'", "Error message does not contain expected content")
 }

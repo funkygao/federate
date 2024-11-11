@@ -65,3 +65,8 @@ func DirExists(path string) bool {
 	}
 	return true
 }
+
+func IsDir(path string) bool {
+	fileInfo, _ := os.Stat(path)
+	return fileInfo.IsDir()
+}

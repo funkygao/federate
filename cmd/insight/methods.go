@@ -4,11 +4,12 @@ import (
 	"log"
 
 	"federate/pkg/ast/listener"
+	"federate/pkg/util"
 	"github.com/spf13/cobra"
 )
 
 var methodsCmd = &cobra.Command{
-	Use:   "methods <dir>",
+	Use:   "methods <dir or file>",
 	Short: "Count the total number of methods in Java source files",
 	Long:  `This command recursively analyzes Java source files, counting the total number of methods while excluding test files.`,
 	Args:  cobra.ExactArgs(1),
@@ -17,9 +18,13 @@ var methodsCmd = &cobra.Command{
 	},
 }
 
-func showMethodCount(dir string) {
+func showMethodCount(path string) {
 	l := listener.NewMethodCountListner()
-	if err := parseDir(dir, l); err != nil {
+	if util.IsDir(path) {
+		if err := parseDir(path, l); err != nil {
+			log.Fatalf("Error parsing directory: %v", err)
+		}
+	} else if err := parseFile(path, l); err != nil {
 		log.Fatalf("Error parsing directory: %v", err)
 	}
 

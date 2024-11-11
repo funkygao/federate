@@ -12,7 +12,7 @@ import (
 // Parser 定义了 Java8 解析器的接口
 type Parser interface {
 	// Parse a single java source content.
-	Parse(javaSrc string, listener parser.Java8ParserListener) error
+	ParseJava(javaSrc string, listener parser.Java8ParserListener) error
 
 	// Recursively parse java sources from a directory.
 	ParseDirectory(dir string, listener parser.Java8ParserListener) error
@@ -35,7 +35,7 @@ func (p *javaParser) EnableDebug() {
 	p.debug = true
 }
 
-func (p *javaParser) Parse(javaSrc string, listener parser.Java8ParserListener) error {
+func (p *javaParser) ParseJava(javaSrc string, listener parser.Java8ParserListener) error {
 	errorListener := newErrorListener()
 
 	// 设置词法分析器及其错误监听

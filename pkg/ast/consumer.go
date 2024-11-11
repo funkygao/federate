@@ -20,7 +20,7 @@ func (c *javaFileConsumer) Consume(files <-chan fileInfo, errors chan<- error) {
 		if c.parser.debug {
 			t0 = time.Now()
 		}
-		err := c.parser.Parse(file.Content, c.listener)
+		err := c.parser.ParseJava(file.Content, c.listener)
 		if c.parser.debug {
 			color.Cyan("%80s %v", java.JavaFile2Class(file.Path), time.Since(t0))
 			if err != nil {
