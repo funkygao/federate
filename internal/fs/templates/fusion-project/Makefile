@@ -11,7 +11,7 @@ help:
 
 ##@ Submodule
 
-pull-submodules: ## Pull submodules to latest remote commits.
+pull-submodules:restore-submodules ## Pull submodules to latest remote commits.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
 
