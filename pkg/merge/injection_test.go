@@ -455,3 +455,280 @@ func TestProcessImports(t *testing.T) {
 		})
 	}
 }
+
+func TestReplaceResourceWithAutowiredForMultipleInstances(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	input := `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    @Resource
+    private Cluster c1;
+
+    @Resource
+    private Cluster c2;
+
+    @Resource(name = "cluster3")
+    private Cluster c3;
+
+    @Resource
+    private AnotherType a1;
+
+    @Resource
+    private AnotherType a2;
+}
+`
+
+	expected := `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    @Autowired
+    @Qualifier("c1")
+    private Cluster c1;
+
+    @Autowired
+    @Qualifier("c2")
+    private Cluster c2;
+
+    @Autowired
+    @Qualifier("cluster3")
+    private Cluster c3;
+
+    @Autowired
+    @Qualifier("a1")
+    private AnotherType a1;
+
+    @Autowired
+    @Qualifier("a2")
+    private AnotherType a2;
+}
+`
+
+	result := manager.replaceResourceWithAutowired(input)
+	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
+}
+
+func TestExtractBeanInfo(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name          string
+		input         string
+		expectedType  string
+		expectedField string
+	}{
+		{
+			name:          "Standard private field",
+			input:         "private Cluster c1;",
+			expectedType:  "Cluster",
+			expectedField: "c1",
+		},
+		{
+			name:          "Field without access modifier",
+			input:         "Cluster c2;",
+			expectedType:  "Cluster",
+			expectedField: "c2",
+		},
+		{
+			name:          "Protected field",
+			input:         "protected AnotherType a1;",
+			expectedType:  "AnotherType",
+			expectedField: "a1",
+		},
+		{
+			name:          "Public field",
+			input:         "public Map<String, Object> map;",
+			expectedType:  "Map<String,Object>",
+			expectedField: "map",
+		},
+		{
+			name:          "Field with generic type",
+			input:         "private List<String> stringList;",
+			expectedType:  "List<String>",
+			expectedField: "stringList",
+		},
+		{
+			name:          "Field with complex generic type",
+			input:         "private Map<String, List<Integer>> complexMap;",
+			expectedType:  "Map<String,List<Integer>>",
+			expectedField: "complexMap",
+		},
+		{
+			name:          "Field with nested generic type",
+			input:         "private Pair<List<String>, Map<Integer, Set<Double>>> nestedGeneric;",
+			expectedType:  "Pair<List<String>,Map<Integer,Set<Double>>>",
+			expectedField: "nestedGeneric",
+		},
+		{
+			name:          "Field with initialization",
+			input:         "private int count = 0;",
+			expectedType:  "int",
+			expectedField: "count",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			beanType, fieldName := manager.extractBeanInfo(tc.input)
+			assert.Equal(t, tc.expectedType, beanType, "Bean type mismatch for input: %s", tc.input)
+			assert.Equal(t, tc.expectedField, fieldName, "Field name mismatch for input: %s", tc.input)
+		})
+	}
+}
+
+func TestReplaceResourceWithAutowiredComments(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	input := `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    // @Resource
+    private SomeService service1;
+
+    /*
+     * @Resource
+     */
+    private OtherService service2;
+
+    /**
+     * @Resource
+     */
+    private AnotherService service3;
+
+    @Resource
+    private RealService service4;
+}
+`
+
+	expected := `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class TestClass {
+    // @Resource
+    private SomeService service1;
+
+    /*
+     * @Resource
+     */
+    private OtherService service2;
+
+    /**
+     * @Resource
+     */
+    private AnotherService service3;
+
+    @Autowired
+    private RealService service4;
+}
+`
+
+	result := manager.replaceResourceWithAutowired(input)
+	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
+}
+
+func TestReplaceResourceWithAutowiredSpecialCases(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	input := `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class TestClass {
+    @Resource
+    private SomeService service1;
+
+    @Autowired
+    private SomeService service2;
+
+    @Autowired(required = false)
+    private SomeService service3;
+
+    @Resource(name = "specificName")
+    private SomeService service4;
+}
+`
+
+	expected := `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    @Autowired
+    @Qualifier("service1")
+    private SomeService service1;
+
+    @Autowired
+    @Qualifier("service2")
+    private SomeService service2;
+
+    @Autowired(required = false)
+    @Qualifier("service3")
+    private SomeService service3;
+
+    @Autowired
+    @Qualifier("specificName")
+    private SomeService service4;
+}
+`
+
+	result := manager.replaceResourceWithAutowired(input)
+	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
+}
+
+func TestReplaceResourceWithAutowiredImports(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	input := `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    @Resource
+    private SomeService service1;
+
+    @Resource
+    private SomeService service2;
+}
+`
+
+	expected := `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    @Autowired
+    @Qualifier("service1")
+    private SomeService service1;
+
+    @Autowired
+    @Qualifier("service2")
+    private SomeService service2;
+}
+`
+
+	result := manager.replaceResourceWithAutowired(input)
+	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
+}

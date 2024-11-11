@@ -16,6 +16,7 @@ type SpringBeanInjectionManager struct {
 	resourcePattern         *regexp.Regexp
 	resourceWithNamePattern *regexp.Regexp
 	genericTypePattern      *regexp.Regexp
+	autowiredPattern        *regexp.Regexp
 }
 
 type ReconcileResourceToAutowiredResult struct {
@@ -27,6 +28,7 @@ func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 		resourcePattern:         regexp.MustCompile(`@Resource(\s*\([^)]*\))?`),
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
 		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
+		autowiredPattern:        regexp.MustCompile(`@Autowired(\s*\([^)]*\))?`),
 	}
 }
 
@@ -103,7 +105,7 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 //   - 它不会更改代码的整体结构或缩进。
 //   - 对于复杂的泛型类型（如嵌套的 Map 或 List），可能需要人工审查结果。
 func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(content string) string {
-	if !m.resourcePattern.MatchString(content) {
+	if !m.resourcePattern.MatchString(content) && !m.autowiredPattern.MatchString(content) {
 		// No changes needed
 		return content
 	}
@@ -139,6 +141,7 @@ func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowi
 	var processedImports []string
 	autowiredImported := false
 	qualifierImported := false
+	resourceImported := false
 
 	for _, imp := range imports {
 		switch {
@@ -146,6 +149,8 @@ func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowi
 			autowiredImported = true
 		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Qualifier"):
 			qualifierImported = true
+		case strings.Contains(imp, "javax.annotation.Resource"):
+			resourceImported = true
 		}
 		processedImports = append(processedImports, imp)
 	}
@@ -156,34 +161,178 @@ func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowi
 	if needQualifier && !qualifierImported {
 		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Qualifier;")
 	}
+	if !resourceImported {
+		// Remove Resource import if it's not needed anymore
+		processedImports = removeResourceImport(processedImports)
+	}
 
 	return processedImports
 }
 
-func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) ([]string, bool, bool) {
-	var processedLines []string
-	needAutowired := false
-	needQualifier := false
+func removeResourceImport(imports []string) []string {
+	var result []string
+	for _, imp := range imports {
+		if !strings.Contains(imp, "javax.annotation.Resource") {
+			result = append(result, imp)
+		}
+	}
+	return result
+}
 
+func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) (processedLines []string, needAutowired bool, needQualifier bool) {
+	beanTypeCount := make(map[string]int)
+	beanLines := make(map[string][]int)
+	inMultiLineComment := false
+
+	// 辅助函数：检查是否在注释中
+	isInComment := func(line string) bool {
+		trimmedLine := strings.TrimSpace(line)
+		if strings.HasPrefix(trimmedLine, "/*") {
+			inMultiLineComment = true
+		}
+		if strings.HasSuffix(trimmedLine, "*/") {
+			inMultiLineComment = false
+		}
+		return inMultiLineComment || strings.HasPrefix(trimmedLine, "//")
+	}
+
+	// 第一次扫描：计数并记录行号
 	for i, line := range codeLines {
-		if m.resourcePattern.MatchString(line) {
+		if isInComment(line) {
+			continue
+		}
+		if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
+			if i+1 < len(codeLines) {
+				beanType, _ := m.extractBeanInfo(codeLines[i+1])
+				if beanType != "" && !m.genericTypePattern.MatchString(codeLines[i+1]) {
+					beanTypeCount[beanType]++
+					beanLines[beanType] = append(beanLines[beanType], i)
+				}
+			}
+		}
+	}
+
+	// 重置多行注释标志
+	inMultiLineComment = false
+
+	// 第二次扫描：进行实际替换
+	for i := 0; i < len(codeLines); i++ {
+		line := codeLines[i]
+
+		if isInComment(line) {
+			processedLines = append(processedLines, line)
+			continue
+		}
+
+		if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
 			if i+1 < len(codeLines) && m.genericTypePattern.MatchString(codeLines[i+1]) {
 				// 保持 Map 和 List 的 @Resource 不变
-				processedLines = append(processedLines, line)
-			} else if matches := m.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
+				processedLines = append(processedLines, line, codeLines[i+1])
+				i++
+			} else if i+1 < len(codeLines) {
 				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
-				processedLines = append(processedLines,
-					indent+"@Autowired",
-					indent+fmt.Sprintf("@Qualifier(\"%s\")", matches[1]))
-				needAutowired = true
-				needQualifier = true
-			} else {
-				processedLines = append(processedLines, strings.Replace(line, "@Resource", "@Autowired", 1))
-				needAutowired = true
+				nextLine := codeLines[i+1]
+				beanType, fieldName := m.extractBeanInfo(nextLine)
+
+				if m.resourcePattern.MatchString(line) {
+					// 替换 @Resource 为 @Autowired
+					processedLines = append(processedLines, indent+"@Autowired")
+					needAutowired = true
+				} else {
+					// 保持原有的 @Autowired 注解
+					processedLines = append(processedLines, line)
+				}
+
+				if beanTypeCount[beanType] > 1 || m.resourceWithNamePattern.MatchString(line) {
+					qualifierName := fieldName
+					if matches := m.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
+						qualifierName = matches[1]
+					}
+					processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
+					needQualifier = true
+				}
+
+				processedLines = append(processedLines, nextLine)
+				i++ // 跳过下一行，因为我们已经处理了它
 			}
 		} else {
 			processedLines = append(processedLines, line)
 		}
 	}
-	return processedLines, needAutowired, needQualifier
+	return
+}
+
+func (m *SpringBeanInjectionManager) extractBeanInfo(line string) (beanType string, fieldName string) {
+	// 移除行首尾的空白字符
+	line = strings.TrimSpace(line)
+
+	// 处理泛型
+	genericDepth := 0
+	var typeBuilder strings.Builder
+	var nameBuilder strings.Builder
+	inType := false
+
+	words := strings.Fields(line)
+	startIndex := 0
+
+	// 跳过访问修饰符
+	if len(words) > 0 && (words[0] == "private" || words[0] == "public" || words[0] == "protected") {
+		startIndex = 1
+	}
+
+	for i := startIndex; i < len(words); i++ {
+		word := words[i]
+		for _, char := range word {
+			if char == '<' {
+				genericDepth++
+			} else if char == '>' {
+				genericDepth--
+			}
+
+			if !inType {
+				typeBuilder.WriteRune(char)
+			} else if char != ';' && char != '=' {
+				nameBuilder.WriteRune(char)
+			}
+		}
+
+		if genericDepth == 0 {
+			if !inType {
+				inType = true
+			} else {
+				break
+			}
+		}
+
+		if inType && i < len(words)-1 {
+			nameBuilder.WriteRune(' ')
+		}
+	}
+
+	beanType = strings.TrimSpace(typeBuilder.String())
+	fieldName = strings.TrimSpace(nameBuilder.String())
+
+	// 处理无效输入
+	if beanType == "" || fieldName == "" {
+		return "", ""
+	}
+
+	return beanType, fieldName
+}
+
+func (m *SpringBeanInjectionManager) isInComment(lines []string, currentIndex int) bool {
+	inMultiLineComment := false
+	for i := 0; i <= currentIndex; i++ {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "//") {
+			continue
+		}
+		if strings.HasPrefix(line, "/*") || strings.HasPrefix(line, "/**") {
+			inMultiLineComment = true
+		}
+		if strings.HasSuffix(line, "*/") {
+			inMultiLineComment = false
+		}
+	}
+	return inMultiLineComment
 }
