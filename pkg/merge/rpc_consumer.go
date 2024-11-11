@@ -36,14 +36,14 @@ func NewRpcConsumerManager(rpcType string) *RpcConsumerManager {
 	}
 }
 
-func (dm *RpcConsumerManager) referenceXmlTag() (tag string) {
+func (dm *RpcConsumerManager) referenceXmlTags() []string {
 	switch dm.rpcType {
-	case RpcJsf: // <jsf:consumer>
-		tag = "//consumer"
+	case RpcJsf: // <jsf:consumer>, <jsf:consumerGroup>
+		return []string{"//consumer", "//consumerGroup"}
 	case RpcDubbo: // <dubbo:reference>
-		tag = "//reference"
+		return []string{"//reference"}
 	}
-	return
+	return []string{}
 }
 
 func (dm *RpcConsumerManager) RPC() string {
@@ -140,7 +140,9 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 	}
 
 	// Merge references from the current xml file
-	dm.mergeReferences(doc.FindElements(dm.referenceXmlTag()), m, component, componentConflicts)
+	for _, tag := range dm.referenceXmlTags() {
+		dm.mergeReferences(doc.FindElements(tag), m, component, componentConflicts)
+	}
 
 	return nil
 }
