@@ -9,6 +9,7 @@ import (
 	"federate/pkg/diff"
 	"federate/pkg/federated"
 	"federate/pkg/java"
+	"federate/pkg/manifest"
 	"github.com/beevik/etree"
 )
 
@@ -43,7 +44,7 @@ func (b *XmlBeanManager) executeReconcilePlan() {
 
 	// 删除多余的 bean class
 	for _, component := range b.m.Components {
-		if err := b.removeRedundantBeanClassesInDir(component.TargetResourceDir()); err != nil {
+		if err := b.removeRedundantBeanClassesInDir(component); err != nil {
 			log.Fatalf("Error removing redundant beans: %v", err)
 		}
 	}
@@ -56,13 +57,13 @@ func (b *XmlBeanManager) executeReconcilePlan() {
 	}
 }
 
-func (b *XmlBeanManager) removeRedundantBeanClassesInDir(dir string) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+func (b *XmlBeanManager) removeRedundantBeanClassesInDir(component manifest.ComponentInfo) error {
+	return filepath.Walk(component.TargetResourceDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 		if java.IsXml(info, path) {
-			if err := b.removeRedundantBeanClassesInFile(path); err != nil {
+			if err := b.removeRedundantBeanClassesInFile(path, component); err != nil {
 				return err
 			}
 		}
@@ -70,7 +71,7 @@ func (b *XmlBeanManager) removeRedundantBeanClassesInDir(dir string) error {
 	})
 }
 
-func (b *XmlBeanManager) removeRedundantBeanClassesInFile(filePath string) error {
+func (b *XmlBeanManager) removeRedundantBeanClassesInFile(filePath string, component manifest.ComponentInfo) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(filePath); err != nil {
 		return err
@@ -85,7 +86,7 @@ func (b *XmlBeanManager) removeRedundantBeanClassesInFile(filePath string) error
 	for _, beanElement := range beans {
 		classFullName := b.extractClassFullName(beanElement)
 		if b.plan.IsRedundantClass(classFullName, filePath) {
-			log.Printf("Killing %s from %s", java.ClassSimpleName(classFullName), federated.ResourceBaseName(filePath))
+			log.Printf("[%s] Killing %s from %s", component.Name, java.ClassSimpleName(classFullName), federated.ResourceBaseName(filePath))
 			update = true
 			parent := beanElement.Parent()
 			if parent != nil {
