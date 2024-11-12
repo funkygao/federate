@@ -907,6 +907,7 @@ public class TestClass {
     }
 }`,
 		},
+
 		{
 			name: "Replace @Resource with name on setter method",
 			input: `
@@ -939,6 +940,7 @@ public class TestClass {
     }
 }`,
 		},
+
 		{
 			name: "Replace multiple @Resource annotations on methods",
 			input: `
