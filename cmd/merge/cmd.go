@@ -7,6 +7,7 @@ import (
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
 	"federate/pkg/step"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +21,7 @@ var (
 	dryRunMerge              bool
 	autoYes                  bool
 	silentMode               bool
+	noColor                  bool
 )
 
 var MergeCmd = &cobra.Command{
@@ -40,6 +42,9 @@ Example usage:
 func doMerge(m *manifest.Manifest) {
 	if silentMode {
 		log.SetOutput(io.Discard)
+	}
+	if noColor {
+		color.NoColor = true
 	}
 
 	rpcTypes := []string{merge.RpcJsf, merge.RpcDubbo}
@@ -121,4 +126,5 @@ func init() {
 	MergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
 	MergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
 	MergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
+	MergeCmd.Flags().BoolVarP(&noColor, "no-color", "n", false, "Enable colorized output")
 }

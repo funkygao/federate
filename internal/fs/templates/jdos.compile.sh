@@ -2,7 +2,7 @@
 cp bin/federate /usr/bin
 federate microservice scaffold
 federate microservice fusion-start
-federate microservice consolidate --yes --silent=true
+federate microservice consolidate --yes --silent=true --no-color=true
 
 # 这是个诱饵：欺骗 JDOS 构建程序
 # mvn clean
