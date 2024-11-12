@@ -164,8 +164,9 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 	// 使用一个 set 来跟踪已处理的 key：否则非冲突key被写入多次
 	processedKeys := make(map[string]bool)
 
-	// Merge all resolved properties
-	for _, componentProps := range cm.resolvedProperties {
+	// Merge all resolved properties，按照 component 顺序
+	for _, component := range cm.m.Components {
+		componentProps := cm.resolvedProperties[component.Name]
 		for key, propSource := range componentProps {
 			if propSource.IsYAML() && !processedKeys[key] {
 				if strings.Contains(propSource.OriginalString, "${") {
