@@ -80,12 +80,12 @@ func doMerge(m *manifest.Manifest) {
 				recursiveFederatedCopyResources(m, resourceManager)
 			}},
 		{
-			Name: "Flat-Copying Resources: reconcile.resources.flatCopy",
+			Name: "Flat-Copying Resources: reconcile.resources.copy",
 			Fn: func() {
 				recursiveFlatCopyResources(m, resourceManager)
 			}},
 		{
-			Name: "Analyze All Property Sources and Identify Conflicts",
+			Name: "Analyze All Property and Identify Conflicts",
 			Fn: func() {
 				identifyPropertyConflicts(m, propertyManager)
 			}},

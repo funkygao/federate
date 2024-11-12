@@ -2,11 +2,11 @@ package merge
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
 	"federate/pkg/tablerender"
-	"github.com/fatih/color"
 )
 
 func (cm *PropertyManager) resolveAllReferences() {
@@ -61,7 +61,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 
 	if len(unresolved) > 0 {
 		header := []string{"Component", "Key", "Unresolved Value", "Yaml"}
-		color.Yellow("Found %d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
+		log.Printf("Found %d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
 		tablerender.DisplayTable(header, unresolved, false, -1)
 	}
 }

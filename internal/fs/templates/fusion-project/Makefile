@@ -26,7 +26,6 @@ init-submodules:
 		echo "   Executing: $$cmd"; \
 		eval $$cmd; \
 	done
-	echo "☕️ Syncing all submodules repository for $$ENV environment"
 	git submodule update --init --recursive
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
@@ -50,7 +49,9 @@ clean:restore-submodules
 fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 	federate microservice fusion-start
 
-consolidate:init-submodules ## Initialize submodules, generate and pacakge the federated system.
+consolidate: ## Initialize submodules, generate and pacakge the federated system.
+	$(MAKE) init-submodules
+	echo
 	echo "☕️ Consolidating the federated project ..."
 	federate microservice consolidate --yes --silent=false
 	if [ "$(sci)" != "1" ]; then \
