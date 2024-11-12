@@ -3,7 +3,6 @@ package merge
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -66,11 +65,13 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 		}
 
 		oldfileContent := string(fileContent)
+		oldfileContent = strings.ReplaceAll(oldfileContent, "\r\n", "\n") // 处理 Windows 风格的行尾
+		oldfileContent = strings.ReplaceAll(oldfileContent, "\r", "\n")   // 处理旧 Mac 风格的行尾
+
 		newfileContent := m.reconcileJavaFile(component, oldfileContent)
 
-		if newfileContent != oldfileContent {
+		if newfileContent != oldfileContent { // TODO 不能以此为准了
 			if !dryRun {
-				log.Printf("[%s] Rewritten %s", component.Name, component.TrimComponentPath(path))
 				err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
 				if err != nil {
 					return err
