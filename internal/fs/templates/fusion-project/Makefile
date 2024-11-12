@@ -69,6 +69,12 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 	$(MAKE) package
 	echo "🍺 {{.FusionProjectName}} consolidated and packaged!"
 
+debug: ## Local debug {{.FusionProjectName}} after configuring hosts.
+	$(MAKE) -C {{.FusionProjectName}} run-local
+
+inspect: ## Inspect indirect conflict risk before runtime.
+	$(MAKE) -C {{.FusionProjectName}} inspect
+
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
 	mvn install -q -T8 -Dmaven.artifact.threads=16

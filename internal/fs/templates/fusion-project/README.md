@@ -8,9 +8,6 @@
 federate microservice scaffold   # 生成整个项目脚手架
 make fusion-start                # 生成 fusion-starter 项目脚手架
 make consolidate ENV=<env>       # 针对目标环境进行合并编译打包
-
-# 融合项目本地调试
-make -C {{.FusionProjectName}} run-local
 ```
 
 ## 行云部署
