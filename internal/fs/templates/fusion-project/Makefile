@@ -54,6 +54,7 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 	echo
 	echo "☕️ Consolidating the federated project ..."
 	federate microservice consolidate --yes --silent=false
+	echo
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
 		for repo in $$($(INVENTORY_CMD) -f components); do \
