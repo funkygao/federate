@@ -17,6 +17,7 @@ type SpringBeanInjectionManager struct {
 	resourceWithNamePattern *regexp.Regexp
 	genericTypePattern      *regexp.Regexp
 	autowiredPattern        *regexp.Regexp
+	qualifierPattern        *regexp.Regexp
 }
 
 type ReconcileResourceToAutowiredResult struct {
@@ -29,13 +30,14 @@ func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
 		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
 		autowiredPattern:        regexp.MustCompile(`@Autowired(\s*\([^)]*\))?`),
+		qualifierPattern:        regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
 	}
 }
 
-func (m *SpringBeanInjectionManager) ReconcileResourceToAutowired(manifest *manifest.Manifest, dryRun bool) (ReconcileResourceToAutowiredResult, error) {
+func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) (ReconcileResourceToAutowiredResult, error) {
 	result := ReconcileResourceToAutowiredResult{}
 	for _, component := range manifest.Components {
-		updated, err := m.reconcileComponentInjections(component, dryRun)
+		updated, err := m.reconcileComponent(component, dryRun)
 		if err != nil {
 			return result, err
 		}
@@ -44,7 +46,7 @@ func (m *SpringBeanInjectionManager) ReconcileResourceToAutowired(manifest *mani
 	return result, nil
 }
 
-func (m *SpringBeanInjectionManager) reconcileComponentInjections(component manifest.ComponentInfo, dryRun bool) (int, error) {
+func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) (int, error) {
 	updated := 0
 	err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -60,7 +62,7 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 		}
 
 		oldContent := string(content)
-		newContent := m.replaceResourceWithAutowired(oldContent)
+		newContent := m.reconcileContent(component, oldContent)
 
 		if newContent != oldContent {
 			if !dryRun {
@@ -76,7 +78,33 @@ func (m *SpringBeanInjectionManager) reconcileComponentInjections(component mani
 	return updated, err
 }
 
-// replaceResourceWithAutowired 处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
+func (m *SpringBeanInjectionManager) reconcileContent(component manifest.ComponentInfo, content string) string {
+	// 首先应用 Bean 转换
+	content = m.applyBeanTransforms(content, component.Transform.Beans)
+
+	// 然后应用 @Resource 到 @Autowired 的转换
+	return m.replaceResourceWithAutowired(content)
+}
+
+func (m *SpringBeanInjectionManager) applyBeanTransforms(content string, beanTransforms map[string]string) string {
+	for oldBean, newBean := range beanTransforms {
+		// 更新 @Autowired 注解
+		content = m.autowiredPattern.ReplaceAllStringFunc(content, func(match string) string {
+			return strings.Replace(match, oldBean, newBean, 1)
+		})
+		// 更新 @Qualifier 注解
+		content = m.qualifierPattern.ReplaceAllStringFunc(content, func(match string) string {
+			return strings.Replace(match, oldBean, newBean, 1)
+		})
+		// 更新 @Resource 注解
+		content = m.resourceWithNamePattern.ReplaceAllStringFunc(content, func(match string) string {
+			return strings.Replace(match, oldBean, newBean, 1)
+		})
+	}
+	return content
+}
+
+// reconcileContent 处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
 //
 // 此方法执行以下操作：

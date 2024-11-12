@@ -732,3 +732,90 @@ public class TestClass {
 	result := manager.replaceResourceWithAutowired(input)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
+
+func TestApplyBeanTransforms(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	tests := []struct {
+		name           string
+		content        string
+		beanTransforms map[string]string
+		expected       string
+	}{
+		{
+			name: "Autowired annotation",
+			content: `
+                @Autowired("oldBean")
+                private SomeType someField;
+            `,
+			beanTransforms: map[string]string{"oldBean": "newBean"},
+			expected: `
+                @Autowired("newBean")
+                private SomeType someField;
+            `,
+		},
+		{
+			name: "Qualifier annotation",
+			content: `
+                @Autowired
+                @Qualifier("oldBean")
+                private SomeType someField;
+            `,
+			beanTransforms: map[string]string{"oldBean": "newBean"},
+			expected: `
+                @Autowired
+                @Qualifier("newBean")
+                private SomeType someField;
+            `,
+		},
+		{
+			name: "Resource annotation",
+			content: `
+                @Resource(name = "oldBean")
+                private SomeType someField;
+            `,
+			beanTransforms: map[string]string{"oldBean": "newBean"},
+			expected: `
+                @Resource(name = "newBean")
+                private SomeType someField;
+            `,
+		},
+		{
+			name: "Multiple transformations",
+			content: `
+                @Autowired("oldBean1")
+                private SomeType field1;
+
+                @Qualifier("oldBean2")
+                @Autowired
+                private SomeType field2;
+
+                @Resource(name = "oldBean3")
+                private SomeType field3;
+            `,
+			beanTransforms: map[string]string{
+				"oldBean1": "newBean1",
+				"oldBean2": "newBean2",
+				"oldBean3": "newBean3",
+			},
+			expected: `
+                @Autowired("newBean1")
+                private SomeType field1;
+
+                @Qualifier("newBean2")
+                @Autowired
+                private SomeType field2;
+
+                @Resource(name = "newBean3")
+                private SomeType field3;
+            `,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := manager.applyBeanTransforms(tt.content, tt.beanTransforms)
+			assert.Equal(t, tt.expected, result, tt.name)
+		})
+	}
+}
