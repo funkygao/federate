@@ -388,7 +388,7 @@ func TestProcessCodeLines(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, needAutowired, needQualifier := manager.processCodeLines(tc.input)
+			output, needAutowired, needQualifier := manager.processNonCommentCodeLines(tc.input)
 			assert.Equal(t, tc.expectedOutput, output)
 			assert.Equal(t, tc.expectedAutowired, needAutowired)
 			assert.Equal(t, tc.expectedQualifier, needQualifier)
@@ -618,17 +618,10 @@ import javax.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TestClass {
-    // @Resource
     private SomeService service1;
 
-    /*
-     * @Resource
-     */
     private OtherService service2;
 
-    /**
-     * @Resource
-     */
     private AnotherService service3;
 
     @Autowired
@@ -816,6 +809,187 @@ func TestApplyBeanTransforms(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := manager.applyBeanTransforms(tt.content, tt.beanTransforms)
 			assert.Equal(t, tt.expected, result, tt.name)
+		})
+	}
+}
+
+func TestMethodResourcePattern(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{
+			name: "Simple @Resource on method",
+			input: `@Resource
+    public void setService(SomeService service) {`,
+			expected: true,
+		},
+		{
+			name: "Resource with name on method",
+			input: `@Resource(name = "customName")
+    public void setService(SomeService service) {`,
+			expected: true,
+		},
+		{
+			name: "Resource with whitespace",
+			input: `  @Resource
+    public void setService(SomeService service) {`,
+			expected: true,
+		},
+		{
+			name: "Resource on field (should not match)",
+			input: `@Resource
+    private SomeService service;`,
+			expected: false,
+		},
+		{
+			name: "Autowired on method (should not match)",
+			input: `@Autowired
+    public void setService(SomeService service) {`,
+			expected: false,
+		},
+		{
+			name: "Resource on non-setter method (should not match)",
+			input: `@Resource
+    public SomeService getService() {`,
+			expected: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := manager.methodResourcePattern.MatchString(tc.input)
+			assert.Equal(t, tc.expected, result, "For input: %s", tc.input)
+		})
+	}
+}
+
+func TestReplaceResourceWithAutowiredOnMethods(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name: "Replace @Resource on setter method",
+			input: `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    private SomeService service;
+
+    @Resource
+    public void setService(SomeService service) {
+        this.service = service;
+    }
+}`,
+			expected: `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    private SomeService service;
+
+    @Autowired
+    @Qualifier("service")
+    public void setService(SomeService service) {
+        this.service = service;
+    }
+}`,
+		},
+		{
+			name: "Replace @Resource with name on setter method",
+			input: `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    private SomeService service;
+
+    @Resource(name = "customServiceName")
+    public void setService(SomeService service) {
+        this.service = service;
+    }
+}`,
+			expected: `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    private SomeService service;
+
+    @Autowired
+    @Qualifier("customServiceName")
+    public void setService(SomeService service) {
+        this.service = service;
+    }
+}`,
+		},
+		{
+			name: "Replace multiple @Resource annotations on methods",
+			input: `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    private SomeService service1;
+    private OtherService service2;
+
+    @Resource
+    public void setService1(SomeService service) {
+        this.service1 = service;
+    }
+
+    @Resource(name = "customName")
+    public void setService2(OtherService service) {
+        this.service2 = service;
+    }
+}`,
+			expected: `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    private SomeService service1;
+    private OtherService service2;
+
+    @Autowired
+    @Qualifier("service1")
+    public void setService1(SomeService service) {
+        this.service1 = service;
+    }
+
+    @Autowired
+    @Qualifier("customName")
+    public void setService2(OtherService service) {
+        this.service2 = service;
+    }
+}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := manager.replaceResourceWithAutowired(tc.input)
+			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 		})
 	}
 }

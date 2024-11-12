@@ -7,15 +7,15 @@ INVENTORY_CMD := $(FEDERATE_CMD) util inventory
 ENV ?=
 
 help: 
-	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-25s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Submodule
 
-pull-submodules:restore-submodules ## Pull submodules to latest remote commits.
+pull:restore-submodules ## Pull submodules to latest remote commits.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
 
-init-submodules:
+init:
 	if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
 		exit 1; \
@@ -29,7 +29,7 @@ init-submodules:
 	git submodule update --init --recursive
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
-diff-submodules: ## Display local changes compared with their original state.
+diff: ## Display local changes compared with their original state.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
 restore-submodules:
@@ -44,13 +44,13 @@ restore-submodules:
 clean:restore-submodules
 	rm -rf generated test.log
 
-##@ Consolidate
+##@ Fuse
 
 fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 	federate microservice fusion-start
 
 consolidate: ## Initialize submodules, generate and pacakge the federated system.
-	$(MAKE) init-submodules
+	$(MAKE) init
 	echo
 	echo "☕️ Consolidating the federated project ..."
 	federate microservice consolidate --yes --silent=false
