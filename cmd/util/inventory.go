@@ -50,7 +50,7 @@ func parseInventory() {
 		printRepoList(inv)
 	case "repo-info":
 		printRepoInfoTable(inv, env)
-	case "sync-submodules":
+	case "init-submodules":
 		syncSubmodules(inv, env, repo)
 	case "maven-profile":
 		printMavenProfile(inv, env, repo)
@@ -189,7 +189,7 @@ func printMavenModules(inv *manifest.Inventory, repo string) {
 
 func init() {
 	manifest.RequiredManifestFileFlag(inventoryCmd)
-	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, repo-info, sync-submodules, maven-profile, or maven-modules")
+	inventoryCmd.Flags().StringVarP(&format, "format", "f", "human", "Output format: human, make, env-list, repo-list, repo-info, init-submodules, maven-profile, or maven-modules")
 	inventoryCmd.Flags().StringVarP(&repo, "repo", "r", "", "Repository name for maven-profile and maven-modules formats")
 	inventoryCmd.Flags().StringVarP(&env, "env", "e", "", "Environment for repo-info format")
 }

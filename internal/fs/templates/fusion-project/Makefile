@@ -22,7 +22,7 @@ init-submodules:
 	fi
 	$(MAKE) restore-submodules
 	echo "☕️ Config all submodules repository for $$ENV environment"
-	$(INVENTORY_CMD) -f sync-submodules -e $$ENV | while read cmd; do \
+	$(INVENTORY_CMD) -f init-submodules -e $$ENV | while read cmd; do \
 		echo "   Executing: $$cmd"; \
 		eval $$cmd; \
 	done
