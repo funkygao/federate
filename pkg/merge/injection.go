@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"unicode"
 
 	"federate/pkg/java"
 	"federate/pkg/manifest"
@@ -200,89 +201,138 @@ func removeResourceImport(imports []string) []string {
 	return result
 }
 
-func (m *SpringBeanInjectionManager) scanBeanTypes(codeLines []string) (beanTypeCount map[string]int) {
-	beanTypeCount = make(map[string]int)
-	for i, line := range codeLines {
+func (m *SpringBeanInjectionManager) scanBeanTypeCounts(codeLines []string) map[string]int {
+	beanTypeCount := make(map[string]int)
+	for i := 0; i < len(codeLines); i++ {
+		line := codeLines[i]
 		if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
 			if i+1 < len(codeLines) {
-				beanType, _ := m.parseFieldDeclaration(codeLines[i+1])
-				if beanType != "" && !m.genericTypePattern.MatchString(codeLines[i+1]) {
-					beanTypeCount[beanType]++
+				nextLine := codeLines[i+1]
+				if m.methodResourcePattern.MatchString(line + "\n" + nextLine) {
+					// 方法注入
+					beanType := m.getBeanTypeFromMethodSignature(nextLine)
+					if beanType != "" {
+						beanTypeCount[beanType]++
+					}
+					i++ // 跳过下一行
+				} else {
+					// 字段注入
+					beanType, _ := m.parseFieldDeclaration(nextLine)
+					if beanType != "" && !m.genericTypePattern.MatchString(nextLine) {
+						beanTypeCount[beanType]++
+					}
 				}
 			}
 		}
 	}
+	return beanTypeCount
+}
 
-	return
+func (m *SpringBeanInjectionManager) getBeanTypeFromMethodSignature(line string) string {
+	// 从方法签名中提取参数类型
+	// 例如：从 "public void setService(SomeService service)" 提取 "SomeService"
+	parts := strings.Split(strings.TrimSpace(line), "(")
+	if len(parts) > 1 {
+		paramParts := strings.Split(parts[1], ")")
+		if len(paramParts) > 0 {
+			typeParts := strings.Fields(paramParts[0])
+			if len(typeParts) > 0 {
+				return typeParts[0]
+			}
+		}
+	}
+	return ""
 }
 
 func (m *SpringBeanInjectionManager) processNonCommentCodeLines(codeLines []string) (processedLines []string, needAutowired bool, needQualifier bool) {
-	// 扫描代码行，统计每种 bean 类型的出现次数
-	// 这有助于确定是否需要为特定类型添加 @Qualifier 注解
-	beanTypeCount := m.scanBeanTypes(codeLines)
+	beanTypeCount := m.scanBeanTypeCounts(codeLines)
 
-	// 第二次扫描：进行实际替换
 	for i := 0; i < len(codeLines); i++ {
 		line := codeLines[i]
 
-		// 检查是否是方法上的 @Resource
-		if i+1 < len(codeLines) && m.methodResourcePattern.MatchString(line+"\n"+codeLines[i+1]) {
-			matches := m.methodResourcePattern.FindStringSubmatch(line + "\n" + codeLines[i+1])
-			if len(matches) > 2 {
-				methodName := matches[2]
-				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
-				qualifierName := strings.ToLower(methodName[3:4]) + methodName[4:] // 去掉 "set" 前缀并将首字母小写
-
-				// 检查是否有自定义的 name
-				if resourceNameMatch := m.resourceWithNamePattern.FindStringSubmatch(line); len(resourceNameMatch) > 1 {
-					qualifierName = resourceNameMatch[1]
-				}
-
-				processedLines = append(processedLines, indent+"@Autowired")
-				processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
-				needAutowired = true
-				needQualifier = true
-
-				// 添加原始方法签名，去掉 @Resource 注解
-				processedLines = append(processedLines, indent+strings.TrimPrefix(codeLines[i+1], indent))
-				i++ // 跳过下一行，因为我们已经处理了它
-			} else {
-				processedLines = append(processedLines, line)
-			}
-		} else if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
-			// 原有的字段处理逻辑保持不变
-			if i+1 < len(codeLines) && m.genericTypePattern.MatchString(codeLines[i+1]) {
-				processedLines = append(processedLines, line, codeLines[i+1])
-				i++
-			} else if i+1 < len(codeLines) {
-				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
+		if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
+			if i+1 < len(codeLines) {
 				nextLine := codeLines[i+1]
-				beanType, fieldName := m.parseFieldDeclaration(nextLine)
+				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
 
-				if m.resourcePattern.MatchString(line) {
+				if m.methodResourcePattern.MatchString(line + "\n" + nextLine) {
+					// 处理方法注入
+					beanType := m.getBeanTypeFromMethodSignature(nextLine)
 					processedLines = append(processedLines, indent+"@Autowired")
 					needAutowired = true
-				} else {
-					processedLines = append(processedLines, line)
-				}
-
-				if beanTypeCount[beanType] > 1 || m.resourceWithNamePattern.MatchString(line) {
-					qualifierName := fieldName
-					if matches := m.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
-						qualifierName = matches[1]
+					qualifierName := m.getQualifierNameFromMethod(line, nextLine)
+					if qualifierName == "" {
+						// fallback
+						qualifierName = strings.ToLower(beanType[:1]) + beanType[1:]
 					}
-					processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
-					needQualifier = true
-				}
 
-				processedLines = append(processedLines, nextLine)
-				i++
+					if beanTypeCount[beanType] > 1 || m.resourceWithNamePattern.MatchString(line) {
+						processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
+						needQualifier = true
+					}
+
+					processedLines = append(processedLines, nextLine)
+					i++ // 跳过下一行
+				} else {
+					// 处理字段注入
+					beanType, fieldName := m.parseFieldDeclaration(nextLine)
+
+					// 检查是否为 Map, HashMap 或 List 类型
+					if m.genericTypePattern.MatchString(nextLine) {
+						processedLines = append(processedLines, line, nextLine)
+						i++
+						continue
+					}
+
+					if m.resourcePattern.MatchString(line) {
+						processedLines = append(processedLines, indent+"@Autowired")
+						needAutowired = true
+					} else {
+						processedLines = append(processedLines, line)
+					}
+
+					if beanTypeCount[beanType] > 1 || m.resourceWithNamePattern.MatchString(line) {
+						qualifierName := fieldName
+						if matches := m.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
+							qualifierName = matches[1]
+						}
+						processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
+						needQualifier = true
+					}
+
+					processedLines = append(processedLines, nextLine)
+					i++ // 跳过下一行
+				}
 			}
 		} else {
 			processedLines = append(processedLines, line)
 		}
 	}
-	return
+
+	return processedLines, needAutowired, needQualifier
+}
+
+func (m *SpringBeanInjectionManager) getQualifierNameFromMethod(resourceLine, methodLine string) string {
+	// 首先检查是否在 @Resource 中明确指定了 name
+	if matches := m.resourceWithNamePattern.FindStringSubmatch(resourceLine); len(matches) > 1 {
+		return matches[1]
+	}
+
+	// 如果没有明确指定 name，则从 setter 方法名中提取
+	methodParts := strings.Fields(methodLine)
+	for _, part := range methodParts {
+		if strings.HasPrefix(part, "set") && strings.Contains(part, "(") {
+			methodName := strings.Split(part, "(")[0]
+			if len(methodName) > 3 && methodName[:3] == "set" && unicode.IsUpper(rune(methodName[3])) {
+				// 只处理标准的 setter 方法（set后面紧跟大写字母）
+				return strings.ToLower(methodName[3:4]) + methodName[4:]
+			}
+			// 如果不是标准的 setter 方法，直接返回空字符串
+			return ""
+		}
+	}
+
+	return "" // 如果无法提取到合适的名称，返回空字符串
 }
 
 func (m *SpringBeanInjectionManager) isInComment(line string, inMultiLineComment *bool) bool {

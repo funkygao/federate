@@ -895,13 +895,11 @@ package com.example;
 
 import javax.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 
 public class TestClass {
     private SomeService service;
 
     @Autowired
-    @Qualifier("service")
     public void setService(SomeService service) {
         this.service = service;
     }
@@ -974,7 +972,6 @@ public class TestClass {
     private OtherService service2;
 
     @Autowired
-    @Qualifier("service1")
     public void setService1(SomeService service) {
         this.service1 = service;
     }
@@ -986,12 +983,235 @@ public class TestClass {
     }
 }`,
 		},
+
+		{
+			name: "Replace @Resource on setter method with multiple beans of the same type",
+			input: `
+package com.example;
+
+import javax.annotation.Resource;
+
+public class TestClass {
+    private SomeService service1;
+    private SomeService service2;
+
+    @Resource
+    public void setService1(SomeService service) {
+        this.service1 = service;
+    }
+    @Resource
+    public void setService2(SomeService service) {
+        this.service2 = service;
+    }
+}`,
+			expected: `
+package com.example;
+
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+public class TestClass {
+    private SomeService service1;
+    private SomeService service2;
+
+    @Autowired
+    @Qualifier("service1")
+    public void setService1(SomeService service) {
+        this.service1 = service;
+    }
+    @Autowired
+    @Qualifier("service2")
+    public void setService2(SomeService service) {
+        this.service2 = service;
+    }
+}`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := manager.replaceResourceWithAutowired(tc.input)
-			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
+			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
+		})
+	}
+}
+
+func TestScanBeanTypeCounts(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name     string
+		input    []string
+		expected map[string]int
+	}{
+		{
+			name: "Field injections",
+			input: []string{
+				"@Resource",
+				"private SomeService service1;",
+				"@Autowired",
+				"private SomeService service2;",
+				"@Resource",
+				"private OtherService otherService;",
+			},
+			expected: map[string]int{
+				"SomeService":  2,
+				"OtherService": 1,
+			},
+		},
+		{
+			name: "Method injections",
+			input: []string{
+				"@Resource",
+				"public void setService1(SomeService service) {",
+				"}",
+				"@Resource",
+				"public void setService2(SomeService service) {",
+				"}",
+				"@Resource",
+				"public void setOtherService(OtherService service) {",
+				"}",
+			},
+			expected: map[string]int{
+				"SomeService":  2,
+				"OtherService": 1,
+			},
+		},
+		{
+			name: "Mixed field and method injections",
+			input: []string{
+				"@Resource",
+				"private SomeService service1;",
+				"@Resource",
+				"public void setService2(SomeService service) {",
+				"}",
+				"@Autowired",
+				"private OtherService otherService;",
+			},
+			expected: map[string]int{
+				"SomeService":  2,
+				"OtherService": 1,
+			},
+		},
+		{
+			name: "Generic types",
+			input: []string{
+				"@Resource",
+				"private List<String> stringList;",
+				"@Autowired",
+				"private Map<String, Object> objectMap;",
+			},
+			expected: map[string]int{},
+		},
+		{
+			name: "No injections",
+			input: []string{
+				"public class TestClass {",
+				"    private SomeService service;",
+				"    public void doSomething() {}",
+				"}",
+			},
+			expected: map[string]int{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := manager.scanBeanTypeCounts(tc.input)
+			assert.Equal(t, tc.expected, result, "For input: %v", tc.input)
+		})
+	}
+}
+
+func TestGetBeanTypeFromMethodSignature(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Standard setter method",
+			input:    "public void setService(SomeService service) {",
+			expected: "SomeService",
+		},
+		{
+			name:     "Setter method with generic type",
+			input:    "public void setList(List<String> list) {",
+			expected: "List<String>",
+		},
+		{
+			name:     "Setter method with multiple parameters",
+			input:    "public void setComplexService(SomeService service, int value) {",
+			expected: "SomeService",
+		},
+		{
+			name:     "Non-setter method",
+			input:    "public SomeService getService() {",
+			expected: "",
+		},
+		{
+			name:     "Method with no parameters",
+			input:    "public void doSomething() {",
+			expected: "",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := manager.getBeanTypeFromMethodSignature(tc.input)
+			assert.Equal(t, tc.expected, result, "For input: %s", tc.input)
+		})
+	}
+}
+
+func TestGetQualifierNameFromMethod(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	testCases := []struct {
+		name         string
+		resourceLine string
+		methodLine   string
+		expected     string
+	}{
+		{
+			name:         "Resource with explicit name",
+			resourceLine: "@Resource(name = \"customName\")",
+			methodLine:   "public void setService(SomeService service) {",
+			expected:     "customName",
+		},
+		{
+			name:         "Resource without name, standard setter",
+			resourceLine: "@Resource",
+			methodLine:   "public void setService(SomeService service) {",
+			expected:     "service",
+		},
+		{
+			name:         "Resource without name, capitalized setter",
+			resourceLine: "@Resource",
+			methodLine:   "public void setMyService(SomeService service) {",
+			expected:     "myService",
+		},
+		{
+			name:         "Resource without name, non-standard setter",
+			resourceLine: "@Resource",
+			methodLine:   "public void setupService(SomeService service) {",
+			expected:     "",
+		},
+		{
+			name:         "No Resource annotation",
+			resourceLine: "",
+			methodLine:   "public void setService(SomeService service) {",
+			expected:     "service",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := manager.getQualifierNameFromMethod(tc.resourceLine, tc.methodLine)
+			assert.Equal(t, tc.expected, result, "For resource line: %s, method line: %s", tc.resourceLine, tc.methodLine)
 		})
 	}
 }
