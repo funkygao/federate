@@ -274,3 +274,8 @@ func TestParseEnvVars(t *testing.T) {
 		})
 	}
 }
+
+func TestTrimComponentPath(t *testing.T) {
+	c := ComponentInfo{Name: "wms-stock"}
+	assert.Equal(t, "foo/bar.java", c.TrimComponentPath("wms-stock/foo/bar.java"))
+}

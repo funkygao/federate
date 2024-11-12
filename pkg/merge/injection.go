@@ -3,6 +3,7 @@ package merge
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -66,6 +67,7 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 
 		if newContent != oldContent {
 			if !dryRun {
+				log.Printf("[%s] Rewritten %s", component.Name, component.TrimComponentPath(path))
 				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 				if err != nil {
 					return err

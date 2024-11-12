@@ -105,3 +105,10 @@ func (c *ComponentInfo) DubboEnabled() bool {
 func (c *ComponentInfo) NeedsTransform() bool {
 	return len(c.Transform.Beans) > 0
 }
+
+func (c *ComponentInfo) TrimComponentPath(path string) string {
+	// 统一路径分隔符
+	path = filepath.ToSlash(path)
+	prefix := filepath.ToSlash(c.Name) + "/"
+	return strings.TrimPrefix(path, prefix)
+}
