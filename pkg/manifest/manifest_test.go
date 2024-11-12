@@ -9,6 +9,10 @@ import (
 )
 
 func TestLoad(t *testing.T) {
+	t.Cleanup(func() {
+		os.Unsetenv("GROUP_ID")
+	})
+
 	filePath = "unit-test.yaml"
 	manifest := Load()
 
