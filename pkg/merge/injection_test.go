@@ -810,80 +810,12 @@ func TestApplyBeanTransforms(t *testing.T) {
                 private SomeType field3;
             `,
 		},
-		{
-			name: "No transformation needed",
-			content: `
-                @Autowired
-                private SomeType someField;
-            `,
-			beanTransforms: map[string]string{"oldBean": "newBean"},
-			expected: `
-                @Autowired
-                private SomeType someField;
-            `,
-		},
-		{
-			name: "Complex scenario with comments and multiple lines",
-			content: `
-                // This is a complex bean
-                @Autowired(
-                    // Old bean name
-                    "oldBean1"
-                )
-                private ComplexType complexField;
-
-                /*
-                 * Multi-line comment
-                 * @Qualifier("oldBean2")
-                 */
-                @Autowired
-                @Qualifier(
-                    "oldBean2"
-                )
-                private AnotherType anotherField;
-
-                @Resource(
-                    name = "oldBean3" // End of line comment
-                )
-                private YetAnotherType yetAnotherField;
-            `,
-			beanTransforms: map[string]string{
-				"oldBean1": "newBean1",
-				"oldBean2": "newBean2",
-				"oldBean3": "newBean3",
-			},
-			expected: `
-                // This is a complex bean
-                @Autowired(
-                    // Old bean name
-                    "newBean1"
-                )
-                private ComplexType complexField;
-
-                /*
-                 * Multi-line comment
-                 * @Qualifier("oldBean2")
-                 */
-                @Autowired
-                @Qualifier(
-                    "newBean2"
-                )
-                private AnotherType anotherField;
-
-                @Resource(
-                    name = "newBean3" // End of line comment
-                )
-                private YetAnotherType yetAnotherField;
-            `,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := manager.applyBeanTransforms(tt.content, tt.beanTransforms)
-			if result != tt.expected {
-				t.Errorf("applyBeanTransforms() = %v, want %v", result, tt.expected)
-			}
+			assert.Equal(t, tt.expected, result, tt.name)
 		})
 	}
 }

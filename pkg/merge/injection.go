@@ -29,7 +29,7 @@ func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 		resourcePattern:         regexp.MustCompile(`@Resource(\s*\([^)]*\))?`),
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
 		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
-		autowiredPattern:        regexp.MustCompile(`@Autowired\s*\(\s*"([^"]*)"\s*\)`),
+		autowiredPattern:        regexp.MustCompile(`@Autowired(\s*\([^)]*\))?`),
 		qualifierPattern:        regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
 	}
 }
