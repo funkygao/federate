@@ -16,6 +16,7 @@ import (
 type SpringBeanInjectionManager struct {
 	resourcePattern         *regexp.Regexp
 	resourceWithNamePattern *regexp.Regexp
+	methodResourcePattern   *regexp.Regexp
 	genericTypePattern      *regexp.Regexp
 	autowiredPattern        *regexp.Regexp
 	qualifierPattern        *regexp.Regexp
@@ -29,6 +30,7 @@ func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 	return &SpringBeanInjectionManager{
 		resourcePattern:         regexp.MustCompile(`@Resource(\s*\([^)]*\))?`),
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
+		methodResourcePattern:   regexp.MustCompile(`@Resource\s*(\([^)]*\))?\s*\n\s*public\s+void\s+set(\w+)\s*\(`),
 		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
 		autowiredPattern:        regexp.MustCompile(`@Autowired(\s*\([^)]*\))?`),
 		qualifierPattern:        regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
@@ -233,7 +235,7 @@ func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) (proce
 		}
 		if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
 			if i+1 < len(codeLines) {
-				beanType, _ := m.extractBeanInfo(codeLines[i+1])
+				beanType, _ := m.parseFieldDeclaration(codeLines[i+1])
 				if beanType != "" && !m.genericTypePattern.MatchString(codeLines[i+1]) {
 					beanTypeCount[beanType]++
 					beanLines[beanType] = append(beanLines[beanType], i)
@@ -254,7 +256,22 @@ func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) (proce
 			continue
 		}
 
-		if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
+		if m.methodResourcePattern.MatchString(line) {
+			// 处理方法上的 @Resource
+			matches := m.methodResourcePattern.FindStringSubmatch(line)
+			if len(matches) > 2 {
+				methodName := matches[2]
+				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
+				processedLines = append(processedLines, indent+"@Autowired")
+				processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", methodName))
+				needAutowired = true
+				needQualifier = true
+				// 添加原始方法签名
+				processedLines = append(processedLines, strings.TrimPrefix(line, "@Resource"))
+			} else {
+				processedLines = append(processedLines, line)
+			}
+		} else if m.resourcePattern.MatchString(line) || m.autowiredPattern.MatchString(line) {
 			if i+1 < len(codeLines) && m.genericTypePattern.MatchString(codeLines[i+1]) {
 				// 保持 Map 和 List 的 @Resource 不变
 				processedLines = append(processedLines, line, codeLines[i+1])
@@ -262,7 +279,7 @@ func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) (proce
 			} else if i+1 < len(codeLines) {
 				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
 				nextLine := codeLines[i+1]
-				beanType, fieldName := m.extractBeanInfo(nextLine)
+				beanType, fieldName := m.parseFieldDeclaration(nextLine)
 
 				if m.resourcePattern.MatchString(line) {
 					// 替换 @Resource 为 @Autowired
@@ -292,9 +309,14 @@ func (m *SpringBeanInjectionManager) processCodeLines(codeLines []string) (proce
 	return
 }
 
-func (m *SpringBeanInjectionManager) extractBeanInfo(line string) (beanType string, fieldName string) {
+func (m *SpringBeanInjectionManager) parseFieldDeclaration(line string) (beanType string, fieldName string) {
 	// 移除行首尾的空白字符
 	line = strings.TrimSpace(line)
+
+	// 如果行以 "public void set" 开头，则跳过（这是方法，不是字段）
+	if strings.HasPrefix(strings.TrimSpace(line), "public void set") {
+		return "", ""
+	}
 
 	// 处理泛型
 	genericDepth := 0
@@ -348,21 +370,4 @@ func (m *SpringBeanInjectionManager) extractBeanInfo(line string) (beanType stri
 	}
 
 	return beanType, fieldName
-}
-
-func (m *SpringBeanInjectionManager) isInComment(lines []string, currentIndex int) bool {
-	inMultiLineComment := false
-	for i := 0; i <= currentIndex; i++ {
-		line := strings.TrimSpace(lines[i])
-		if strings.HasPrefix(line, "//") {
-			continue
-		}
-		if strings.HasPrefix(line, "/*") || strings.HasPrefix(line, "/**") {
-			inMultiLineComment = true
-		}
-		if strings.HasSuffix(line, "*/") {
-			inMultiLineComment = false
-		}
-	}
-	return inMultiLineComment
 }

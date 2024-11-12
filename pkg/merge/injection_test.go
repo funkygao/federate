@@ -516,7 +516,7 @@ public class TestClass {
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
-func TestExtractBeanInfo(t *testing.T) {
+func TestParseFieldDeclaration(t *testing.T) {
 	manager := NewSpringBeanInjectionManager()
 
 	testCases := []struct {
@@ -577,7 +577,7 @@ func TestExtractBeanInfo(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			beanType, fieldName := manager.extractBeanInfo(tc.input)
+			beanType, fieldName := manager.parseFieldDeclaration(tc.input)
 			assert.Equal(t, tc.expectedType, beanType, "Bean type mismatch for input: %s", tc.input)
 			assert.Equal(t, tc.expectedField, fieldName, "Field name mismatch for input: %s", tc.input)
 		})
