@@ -32,6 +32,9 @@ fmt:
 test: fmt vet
 	go test ./...
 
+stress:
+	go test ./... -test.count 20 -test.failfast
+
 clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build cpu_*

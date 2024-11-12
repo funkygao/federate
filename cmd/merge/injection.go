@@ -9,7 +9,7 @@ import (
 )
 
 func reconcileBeanInjectionConflicts(m *manifest.Manifest, manager *merge.SpringBeanInjectionManager) {
-	result, err := manager.ReconcileResourceToAutowired(m, dryRunMerge)
+	result, err := manager.Reconcile(m, dryRunMerge)
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
