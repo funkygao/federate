@@ -21,6 +21,8 @@ type ComponentInfo struct {
 	Resources ComponentResourceSpec `yaml:"resources"`
 	Hack      HackSpec              `yaml:"hack"`
 
+	Transform TransformSpec `yaml:"transform"`
+
 	Envs []EnvironmentSpec `yaml:"environments"`
 
 	// BaseDir is used for unit test: change source dir
@@ -98,4 +100,8 @@ func (c *ComponentInfo) JSFEnabled() bool {
 
 func (c *ComponentInfo) DubboEnabled() bool {
 	return len(c.Resources.DubboConsumerXmls) > 0
+}
+
+func (c *ComponentInfo) NeedsTransform() bool {
+	return len(c.Transform.Beans) > 0
 }

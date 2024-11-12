@@ -31,6 +31,10 @@ components:
     modules:
       - com.jdwl.wms:wms-stock-api-provider:1.0.0
       - com.jdwl.wms:wms-stock-work:1.0.0
+    transform:
+      beans:
+        foo: bar
+        egg: baz
     resources:
       baseDir:
         - wms-stock-api-provider/src/main/resources

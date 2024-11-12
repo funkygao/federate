@@ -27,6 +27,12 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, false, manifest.Main.Reconcile.Resources.Property.IsDryRun())
 	assert.Equal(t, int16(8082), manifest.RpmByEnv("on-premise").TomcatPort)
 
+	c := manifest.ComponentByName("wms-stock")
+	assert.Equal(t, "bar", c.Transform.Beans["foo"])
+	assert.Equal(t, "baz", c.Transform.Beans["egg"])
+	assert.Equal(t, true, c.NeedsTransform())
+	assert.Equal(t, false, manifest.ComponentByName("wms-inventory").NeedsTransform())
+
 	if manifest.Main.Name != "demo-starter" {
 		t.Errorf("Expected main name to be 'demo-starter', got '%s'", manifest.Main.Name)
 	}

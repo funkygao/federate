@@ -101,6 +101,10 @@ components:
     springProfile: test
     modules: # 启动包
       - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
+    transform:
+      beans:
+        masterDataSource: stockMasterDataSource
+        slaveDataSource: stockSlaveDataSource
     resources: # 资源文件处理
       baseDir:
         - wms-stock-api-provider/src/main/resources
@@ -127,6 +131,10 @@ components:
     springProfile: test
     modules: # 启动包
       - com.jdwl.wms:wms-inventory-web:1.0.0-SNAPSHOT
+    transform:
+      beans:
+        masterDataSource: inventoryMasterDataSource
+        slaveDataSource: inventorySlaveDataSource
     resources: # 资源文件处理
       baseDir:
         - wms-inventory-web/src/main/resources
