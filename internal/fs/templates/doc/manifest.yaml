@@ -62,6 +62,10 @@ federated:
         dryrun: ${RECONCILE_PROPERTY_DRYRUN:false}
         override: # 对属性值进行人工设定
           app.demo.feature.newFeature.enabled: true
+        raw: # 这些 key 的值不做字符串处理
+          # @Value("#{${strategyCondition.recommendBusinessTypeMap}}")
+          # private Map<String, String> recommendBusinessTypeMap;
+          - strategyCondition.recommendBusinessTypeMap
       singletonBeans: # 这些 bean 只加载1次：资源复用
         - com.jd.jim.cli.ReloadableJimClientFactoryBean
         - com.jdwl.wms.common.redis.jimdb.JimdbClient
