@@ -13,7 +13,7 @@ help:
 
 pull:clean ## Pull submodules to latest remote commits.
 	git submodule update --init --recursive --remote
-	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
+	echo "🍺 Submodules pulled to latest remote commits."
 
 init:checkenv clean
 	echo "☕️ Config all submodules repository for $$ENV environment"
