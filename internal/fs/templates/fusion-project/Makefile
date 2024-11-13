@@ -11,16 +11,17 @@ help:
 
 ##@ Submodule
 
-pull:restore-submodules ## Pull submodules to latest remote commits.
+pull:clean ## Pull submodules to latest remote commits.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
 
-init:
+checkenv:
 	if [ -z "$(ENV)" ]; then \
 		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
 		exit 1; \
 	fi
-	$(MAKE) restore-submodules
+
+init:checkenv clean
 	echo "☕️ Config all submodules repository for $$ENV environment"
 	$(INVENTORY_CMD) -f init-submodules -e $$ENV | while read cmd; do \
 		echo "   Executing: $$cmd"; \
@@ -32,7 +33,7 @@ init:
 diff: ## Display local changes compared with their original state.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
-restore-submodules:
+clean:
 	echo "☕️ Restoring submodules repository ..."
 	for repo in $$($(INVENTORY_CMD) -f repo-list); do \
 		if [ -d "$$repo" ]; then \
@@ -40,9 +41,6 @@ restore-submodules:
 			(cd $$repo && git checkout -q .) || echo "Failed to checkout $$repo"; \
 		fi; \
 	done
-
-clean:restore-submodules
-	rm -rf generated test.log
 
 ##@ Fuse
 
@@ -82,3 +80,13 @@ package:
 
 optimize:
 	federate microservice optimize --yes --verbosity 3
+
+# handy local debug targets: manual updae files and package
+{{- range .Components }}
+
+.PHONY: {{.}}
+{{.}}:checkenv
+	modules=$$($(INVENTORY_CMD) -f maven-modules -r {{.}}); \
+	profile=$$($(INVENTORY_CMD) -f maven-profile -r {{.}} -e $$ENV); \
+	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)
+{{- end }}
