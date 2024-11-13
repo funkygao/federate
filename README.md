@@ -13,7 +13,13 @@ This approach decouples logical boundaries from physical deployment, offering fl
 
 ```bash
 make install
-federate
+```
+
+or
+
+```bash
+brew install funkygao/stable/federate
+federate version upgrade
 ```
 
 ## 核心设计
