@@ -73,13 +73,13 @@ run-local: ## Local debug {{.FusionProjectName}} after configuring hosts.
 inspect: ## Inspect indirect conflict risk before runtime.
 	$(MAKE) -C {{.FusionProjectName}} inspect
 
+optimize:
+	federate microservice optimize --yes --verbosity 3
+
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
 	mvn install -q -T8 -Dmaven.artifact.threads=16
 	echo "   {{.FusionProjectName}} packaged"
-
-optimize:
-	federate microservice optimize --yes --verbosity 3
 
 # handy local debug targets: manual updae files and package
 {{- range .Components }}
@@ -89,4 +89,5 @@ optimize:
 	modules=$$($(INVENTORY_CMD) -f maven-modules -r {{.}}); \
 	profile=$$($(INVENTORY_CMD) -f maven-profile -r {{.}} -e $$ENV); \
 	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)
+	$(MAKE) package
 {{- end }}
