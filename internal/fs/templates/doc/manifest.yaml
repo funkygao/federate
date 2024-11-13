@@ -9,8 +9,11 @@ federated:
   springProfile: test
   groupId: com.jdwl.wms
   dependency:
+    include:
+      - com.jdwl.wms:wms-user-api:1.0.8-SNAPSHOT
     exclude:
       - org.slf4j:slf4j-log4j12 # 排除 SLF4J bindings 冲突
+      - com.jdwl.wms:wms-user-api # 子模块对该 jar 依赖的版本冲突，都干掉
   rpm:
     - env: on-premise
       tomcatPort: 8082
