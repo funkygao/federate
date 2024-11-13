@@ -33,17 +33,24 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 		}
 	}
 
-	// write file
 	data, err := yaml.Marshal(mergedYaml)
 	if err != nil {
 		log.Fatalf("Error marshalling merged config: %v", err)
+	}
+
+	// 对 YAML 数据进行后处理，移除 raw 值周围的单引号
+	yamlString := string(data)
+	for _, rawValue := range cm.m.Main.Reconcile.Resources.Property.Raw {
+		quotedValue := "'" + rawValue + "'"
+		yamlString = strings.Replace(yamlString, quotedValue, rawValue, -1)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(targetFile), 0755); err != nil {
 		log.Fatalf("Error creating directory for merged config: %v", err)
 	}
 
-	if err := os.WriteFile(targetFile, data, 0644); err != nil {
+	// Write file
+	if err := os.WriteFile(targetFile, []byte(yamlString), 0644); err != nil {
 		log.Fatalf("Error writing merged config to %s: %v", targetFile, err)
 	}
 

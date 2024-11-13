@@ -24,6 +24,7 @@ type ResourcesReconcileSpec struct {
 
 type PropertyReconcileSpec struct {
 	Overrides map[string]interface{} `yaml:"override"`
+	Raw       map[string]string      `yaml:"raw"`
 	DryRun    string                 `yaml:"dryrun"`
 }
 
