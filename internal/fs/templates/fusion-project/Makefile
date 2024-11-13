@@ -15,12 +15,6 @@ pull:clean ## Pull submodules to latest remote commits.
 	git submodule update --init --recursive --remote
 	echo "🍺 Submodules pulled to latest remote commits for $$ENV environment."
 
-checkenv:
-	if [ -z "$(ENV)" ]; then \
-		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
-		exit 1; \
-	fi
-
 init:checkenv clean
 	echo "☕️ Config all submodules repository for $$ENV environment"
 	$(INVENTORY_CMD) -f init-submodules -e $$ENV | while read cmd; do \
@@ -33,6 +27,9 @@ init:checkenv clean
 diff: ## Display local changes compared with their original state.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
+stage:
+	git submodule foreach 'if ! git diff --quiet; then git add . && echo "Changes staged"; fi'
+
 clean:
 	echo "☕️ Restoring submodules repository ..."
 	for repo in $$($(INVENTORY_CMD) -f repo-list); do \
@@ -41,6 +38,12 @@ clean:
 			(cd $$repo && git checkout -q .) || echo "Failed to checkout $$repo"; \
 		fi; \
 	done
+
+checkenv:
+	if [ -z "$(ENV)" ]; then \
+		echo "Error: ENV is not set. Please use 'make ENV=<env>'"; \
+		exit 1; \
+	fi
 
 ##@ Fuse
 
