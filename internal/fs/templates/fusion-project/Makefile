@@ -12,8 +12,9 @@ help:
 ##@ Submodule
 
 pull:clean ## Pull submodules to latest remote commits.
+	echo "☕️ Pulling submodules to latest remote commits ..."
 	git submodule update --init --recursive --remote
-	echo "🍺 Submodules pulled to latest remote commits."
+	git diff --quiet --exit-code HEAD || echo "🍺 Submodule hashes have changed. Manual commit required."
 
 init:checkenv clean
 	echo "☕️ Config all submodules repository for $$ENV environment"
