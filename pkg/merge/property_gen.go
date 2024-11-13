@@ -40,9 +40,14 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 
 	// 对 YAML 数据进行后处理，移除 raw 值周围的单引号
 	yamlString := string(data)
-	for _, rawValue := range cm.m.Main.Reconcile.Resources.Property.Raw {
-		quotedValue := "'" + rawValue + "'"
-		yamlString = strings.Replace(yamlString, quotedValue, rawValue, -1)
+	for _, rawKey := range cm.m.Main.Reconcile.Resources.Property.RawKeys {
+		value := mergedYaml[rawKey]
+		if rawValue, ok := value.(string); ok {
+			oldQuotedValue := "'" + rawValue + "'"
+			yamlString = strings.Replace(yamlString, oldQuotedValue, rawValue, -1)
+		} else {
+			log.Printf("Raw key[%s] value is not string, ignored", rawKey)
+		}
 	}
 
 	if err := os.MkdirAll(filepath.Dir(targetFile), 0755); err != nil {
