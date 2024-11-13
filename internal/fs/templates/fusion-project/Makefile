@@ -81,7 +81,7 @@ package:
 	mvn install -q -T8 -Dmaven.artifact.threads=16
 	echo "   {{.FusionProjectName}} packaged"
 
-# handy local debug targets: manual updae files and package
+# handy local debug targets: manual update files then install
 {{- range .Components }}
 
 .PHONY: {{.}}
