@@ -88,6 +88,6 @@ package:
 {{.}}:checkenv
 	modules=$$($(INVENTORY_CMD) -f maven-modules -r {{.}}); \
 	profile=$$($(INVENTORY_CMD) -f maven-profile -r {{.}} -e $$ENV); \
-	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)
+	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -U -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)
 	$(MAKE) package
 {{- end }}
