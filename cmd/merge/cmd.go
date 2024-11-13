@@ -100,12 +100,12 @@ func doMerge(m *manifest.Manifest) {
 				reconcilePropertiesConflicts(m, propertyManager)
 			}},
 		{
-			Name: "Reconciling Spring XML BeanDefinition conflicts",
+			Name: "Reconciling Spring XML BeanDefinition conflicts by Rewriting Java Annotations",
 			Fn: func() {
 				reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
 			}},
 		{
-			Name: "Reconciling Spring Bean Injection conflicts",
+			Name: "Reconciling Spring Bean Injection conflicts by Rewriting Java Annotations",
 			Fn: func() {
 				reconcileBeanInjectionConflicts(m, injectionManager)
 			}},

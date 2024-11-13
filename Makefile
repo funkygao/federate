@@ -35,6 +35,9 @@ test: fmt vet
 stress:
 	go test ./... -test.count 20 -test.failfast
 
+coverage:
+	go test ./... -cover | column -t
+
 clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build cpu_*
