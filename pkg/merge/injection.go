@@ -14,9 +14,6 @@ import (
 
 // 处理 @Resource 的 Bean 注入：基本操作是替换为 @Autowired，如果一个类里同一个类型有多次注入则增加 @Qualifier
 type SpringBeanInjectionManager struct {
-}
-
-type ReconcileResourceToAutowiredResult struct {
 	Updated int
 }
 
@@ -24,20 +21,16 @@ func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
 	return &SpringBeanInjectionManager{}
 }
 
-func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) (ReconcileResourceToAutowiredResult, error) {
-	result := ReconcileResourceToAutowiredResult{}
+func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) error {
 	for _, component := range manifest.Components {
-		updated, err := m.reconcileComponent(component, dryRun)
-		if err != nil {
-			return result, err
+		if err := m.reconcileComponent(component, dryRun); err != nil {
+			return err
 		}
-		result.Updated += updated
 	}
-	return result, nil
+	return nil
 }
 
-func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) (int, error) {
-	updated := 0
+func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) error {
 	err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -61,12 +54,12 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 				if err != nil {
 					return err
 				}
-				updated++
+				m.Updated++
 			}
 		}
 		return nil
 	})
-	return updated, err
+	return err
 }
 
 func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
