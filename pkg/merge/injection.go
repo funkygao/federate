@@ -94,6 +94,7 @@ func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile)
 	return strings.Join(result, "\n")
 }
 
+// TODO 大量代码与 javalines 重复
 func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, codeLines []string) (processedLines []string,
 	needAutowired bool, needQualifier bool) {
 	jc := newJavaLines(codeLines)
