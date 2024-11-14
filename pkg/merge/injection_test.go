@@ -1215,3 +1215,109 @@ func TestGetQualifierNameFromMethod(t *testing.T) {
 		})
 	}
 }
+
+func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	tests := []struct {
+		name           string
+		beanTypeCount  map[string]int
+		beanType       string
+		fieldName      string
+		expectedResult bool
+	}{
+		{
+			name: "Should keep resource - matching pattern with Impl (standard case)",
+			beanTypeCount: map[string]int{
+				"FooService":     2,
+				"fooService":     1,
+				"fooServiceImpl": 1,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooService",
+			expectedResult: true,
+		},
+		{
+			name: "Should keep resource - matching pattern with Impl (all lowercase)",
+			beanTypeCount: map[string]int{
+				"FooService":     2,
+				"fooservice":     1,
+				"fooserviceimpl": 1,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooservice",
+			expectedResult: true,
+		},
+		{
+			name: "Should keep resource - matching pattern with Impl (mixed case)",
+			beanTypeCount: map[string]int{
+				"FooService":     2,
+				"fooService":     1,
+				"fooserviceImpl": 1,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooService",
+			expectedResult: true,
+		},
+		{
+			name: "Should keep resource - matching pattern with Impl (reverse order, mixed case)",
+			beanTypeCount: map[string]int{
+				"FooService":     2,
+				"fooService":     1,
+				"fooserviceImpl": 1,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooserviceImpl",
+			expectedResult: true,
+		},
+		{
+			name: "Should not keep resource - no matching Impl pattern",
+			beanTypeCount: map[string]int{
+				"BarService":        2,
+				"barService":        1,
+				"anotherBarService": 1,
+			},
+			beanType:       "BarService",
+			fieldName:      "barService",
+			expectedResult: false,
+		},
+		{
+			name: "Should not keep resource - single instance",
+			beanTypeCount: map[string]int{
+				"FooService": 1,
+				"fooService": 1,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooService",
+			expectedResult: false,
+		},
+		{
+			name: "Should not keep resource - multiple instances but no Impl pattern",
+			beanTypeCount: map[string]int{
+				"FooService":           3,
+				"fooService":           1,
+				"anotherFooService":    1,
+				"yetAnotherFooService": 1,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooService",
+			expectedResult: false,
+		},
+		{
+			name: "Should not keep resource - bean type not in count map",
+			beanTypeCount: map[string]int{
+				"BarService": 2,
+			},
+			beanType:       "FooService",
+			fieldName:      "fooService",
+			expectedResult: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := manager.shouldKeepResource(tt.beanTypeCount, tt.beanType, tt.fieldName)
+			assert.Equal(t, tt.expectedResult, result, "shouldKeepResource() returned unexpected result for %s", tt.name)
+		})
+	}
+}

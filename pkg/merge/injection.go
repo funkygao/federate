@@ -278,6 +278,13 @@ func (m *SpringBeanInjectionManager) processNonCommentCodeLines(codeLines []stri
 					// 处理字段注入
 					beanType, fieldName := m.parseFieldDeclaration(nextLine)
 
+					if m.shouldKeepResource(beanTypeCount, beanType, fieldName) {
+						// 保持 @Resource 不变
+						processedLines = append(processedLines, line, nextLine)
+						i++
+						continue
+					}
+
 					// 检查是否为 Map, HashMap 或 List 类型
 					if m.genericTypePattern.MatchString(nextLine) {
 						processedLines = append(processedLines, line, nextLine)
@@ -409,4 +416,43 @@ func (m *SpringBeanInjectionManager) parseFieldDeclaration(line string) (beanTyp
 	}
 
 	return beanType, fieldName
+}
+
+// 由于原有Java代码书写不规范，一个接口只有一个实现类，却被注入多次。这时，不修改原有的 Resource
+//
+//	public class Foo {
+//	    @Resource
+//	    private EggService eggService;
+//	    @Resource
+//	    private EggService eggServiceImpl;
+//	    @Resource
+//	    private EggService eggserviceImpl;
+//	}
+func (m *SpringBeanInjectionManager) shouldKeepResource(beanTypeCount map[string]int, beanType string, fieldName string) bool {
+	if beanTypeCount[beanType] <= 1 {
+		return false
+	}
+
+	lowerFieldName := strings.ToLower(fieldName)
+
+	// 检查是否存在匹配的字段名（忽略大小写）
+	for countFieldName := range beanTypeCount {
+		lowerCountFieldName := strings.ToLower(countFieldName)
+		if lowerCountFieldName == lowerFieldName {
+			continue // 跳过自身
+		}
+
+		// 检查是否存在 "Impl" 后缀的变体（忽略大小写）
+		if strings.HasSuffix(lowerCountFieldName, "impl") {
+			if strings.TrimSuffix(lowerCountFieldName, "impl") == strings.TrimSuffix(lowerFieldName, "impl") {
+				return true
+			}
+		} else if strings.HasSuffix(lowerFieldName, "impl") {
+			if strings.TrimSuffix(lowerFieldName, "impl") == lowerCountFieldName {
+				return true
+			}
+		}
+	}
+
+	return false
 }
