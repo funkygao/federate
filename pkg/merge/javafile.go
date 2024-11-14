@@ -12,19 +12,21 @@ type JavaFile struct {
 
 	path    string
 	content string
+
+	cachedLines []string
 }
 
 func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFile {
-	return &JavaFile{
-		c:       c,
-		path:    path,
-		content: content,
-	}
-}
+	// reformat
+	content = strings.ReplaceAll(content, "\r\n", "\n") // 处理 Windows 风格的行尾
+	content = strings.ReplaceAll(content, "\r", "\n")   // 处理旧 Mac 风格的行尾
 
-func (j *JavaFile) format() {
-	j.content = strings.ReplaceAll(j.content, "\r\n", "\n") // 处理 Windows 风格的行尾
-	j.content = strings.ReplaceAll(j.content, "\r", "\n")   // 处理旧 Mac 风格的行尾
+	return &JavaFile{
+		c:           c,
+		path:        path,
+		content:     content,
+		cachedLines: nil,
+	}
 }
 
 func (j *JavaFile) ComponentName() string {
@@ -41,10 +43,29 @@ func (j *JavaFile) FileBaseName() string {
 
 func (j *JavaFile) UpdateContent(content string) {
 	j.content = content
+	// kill cache
+	j.cachedLines = nil
 }
 
 func (j *JavaFile) Content() string {
 	return j.content
+}
+
+func (j *JavaFile) JavaLines() *JavaLines {
+	return newJavaLines(j.lines())
+}
+
+func (j *JavaFile) lines() []string {
+	if j.cachedLines == nil {
+		j.cachedLines = strings.Split(j.content, "\n")
+	}
+	return j.cachedLines
+}
+
+func (jf *JavaFile) HasResourceOrAutowiredInjection() bool {
+	// 可能会匹配到注释中的 "@Resource" 或 "@Autowired"，导致假阳性
+	return P.resourcePattern.MatchString(jf.content) ||
+		!P.autowiredPattern.MatchString(jf.content)
 }
 
 // 根据 manifest 里人为指定的 bean 替换规则进行替换
@@ -68,12 +89,4 @@ func (j *JavaFile) ApplyBeanTransformRule(beanTransformRule map[string]string) (
 		})
 	}
 	return
-}
-
-func (j *JavaFile) JavaLines() *JavaLines {
-	return NewJavaLines(j.lines())
-}
-
-func (j *JavaFile) lines() []string {
-	return strings.Split(j.content, "\n")
 }

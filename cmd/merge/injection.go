@@ -9,13 +9,12 @@ import (
 )
 
 func reconcileBeanInjectionConflicts(m *manifest.Manifest, manager *merge.SpringBeanInjectionManager) {
-	result, err := manager.Reconcile(m, dryRunMerge)
-	if err != nil {
+	if err := manager.Reconcile(m, dryRunMerge); err != nil {
 		log.Fatalf("%v", err)
 	}
 
-	if result.Updated > 0 {
-		log.Printf("Source Code Rewritten, @Resource -> @Autowired: %d", result.Updated)
+	if manager.Updated > 0 {
+		log.Printf("Source Code Rewritten, @Resource -> @Autowired: %d", manager.Updated)
 	}
 	color.Green("🍺 Java code Spring Bean Injection conflicts reconciled")
 }

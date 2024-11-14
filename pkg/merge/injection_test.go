@@ -241,7 +241,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf)
+			result := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 		})
 	}
@@ -318,7 +318,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf)
+			result := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
 	}
@@ -391,7 +391,7 @@ func TestProcessCodeLines(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, needAutowired, needQualifier := manager.processNonCommentCodeLines(nil, tc.input)
+			output, needAutowired, needQualifier := manager.transformInjectionAnnotations(nil, tc.input)
 			assert.Equal(t, tc.expectedOutput, output)
 			assert.Equal(t, tc.expectedAutowired, needAutowired)
 			assert.Equal(t, tc.expectedQualifier, needQualifier)
@@ -516,7 +516,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -579,7 +579,7 @@ func TestParseFieldDeclaration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jc := NewJavaLines(strings.Split(tc.input, "\n"))
+			jc := newJavaLines(strings.Split(tc.input, "\n"))
 			beanType, fieldName := jc.parseFieldDeclaration(tc.input)
 			assert.Equal(t, tc.expectedType, beanType, "Bean type mismatch for input: %s", tc.input)
 			assert.Equal(t, tc.expectedField, fieldName, "Field name mismatch for input: %s", tc.input)
@@ -633,7 +633,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -681,7 +681,7 @@ public class TestClass {
 }
 `
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -721,7 +721,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -976,7 +976,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf)
+			result := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
 		})
 	}
@@ -1061,7 +1061,7 @@ func TestScanBeanTypeCounts(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jc := NewJavaLines(tc.input)
+			jc := newJavaLines(tc.input)
 			result := jc.InjectedBeans()
 			assert.Equal(t, tc.expected, result, tc.name)
 		})
@@ -1103,7 +1103,7 @@ func TestGetBeanTypeFromMethodSignature(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jc := NewJavaLines(strings.Split(tc.input, "\n"))
+			jc := newJavaLines(strings.Split(tc.input, "\n"))
 			result := jc.getBeanTypeFromMethodSignature(tc.input)
 			assert.Equal(t, tc.expected, result, "For input: %s", tc.input)
 		})
@@ -1151,7 +1151,7 @@ func TestGetQualifierNameFromMethod(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jc := NewJavaLines(nil)
+			jc := newJavaLines(nil)
 			result := jc.getQualifierNameFromMethod(tc.resourceLine, tc.methodLine)
 			assert.Equal(t, tc.expected, result, "For resource line: %s, method line: %s", tc.resourceLine, tc.methodLine)
 		})
@@ -1250,7 +1250,7 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 	}
 }
 
-func TestSpringBeanInjectionManager_processNonCommentCodeLines_ChangeOrderDetailRepository(t *testing.T) {
+func TestSpringBeanInjectionManager_transformInjectionAnnotations_ChangeOrderDetailRepository(t *testing.T) {
 	manager := NewSpringBeanInjectionManager()
 
 	content := `
@@ -1266,7 +1266,7 @@ public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApprove
 }`
 
 	jf := NewJavaFile("", nil, content)
-	processedLines, needAutowired, needQualifier := manager.processNonCommentCodeLines(jf, jf.lines())
+	processedLines, needAutowired, needQualifier := manager.transformInjectionAnnotations(jf, jf.lines())
 
 	// 验证结果
 	assert.True(t, needAutowired)

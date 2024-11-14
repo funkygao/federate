@@ -14,30 +14,25 @@ import (
 
 // 处理 @Resource 的 Bean 注入：基本操作是替换为 @Autowired，如果一个类里同一个类型有多次注入则增加 @Qualifier
 type SpringBeanInjectionManager struct {
-}
-
-type ReconcileResourceToAutowiredResult struct {
 	Updated int
 }
 
 func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
-	return &SpringBeanInjectionManager{}
-}
-
-func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) (ReconcileResourceToAutowiredResult, error) {
-	result := ReconcileResourceToAutowiredResult{}
-	for _, component := range manifest.Components {
-		updated, err := m.reconcileComponent(component, dryRun)
-		if err != nil {
-			return result, err
-		}
-		result.Updated += updated
+	return &SpringBeanInjectionManager{
+		Updated: 0,
 	}
-	return result, nil
 }
 
-func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) (int, error) {
-	updated := 0
+func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) error {
+	for _, component := range manifest.Components {
+		if err := m.reconcileComponent(component, dryRun); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) error {
 	err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -52,133 +47,65 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 		}
 
 		javaFile := NewJavaFile(path, &component, string(fileContent))
-		javaFile.format()
 		newfileContent := m.reconcileJavaFile(javaFile)
 
-		if newfileContent != javaFile.Content() { // TODO 不能以此为准了
-			if !dryRun {
-				err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
-				if err != nil {
-					return err
-				}
-				updated++
+		if !dryRun && newfileContent != javaFile.Content() { // TODO 不能以此为准了
+			err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
+			if err != nil {
+				return err
 			}
+
+			m.Updated++
 		}
 		return nil
 	})
-	return updated, err
+	return err
 }
 
 func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
-	// 首先应用 Bean 转换
+	// 首先应用基于人工规则的注入转换
 	fileContent := jf.ApplyBeanTransformRule(jf.c.Transform.Beans)
 
 	jf.UpdateContent(fileContent)
 
 	// 然后应用 @Resource 到 @Autowired 的转换
-	return m.replaceResourceWithAutowired(jf)
+	if !jf.HasResourceOrAutowiredInjection() {
+		return fileContent
+	}
+
+	return m.reconcileInjectionAnnotations(jf)
 }
 
-// replaceResourceWithAutowired 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
+// reconcileInjectionAnnotations 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
-func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(jf *JavaFile) string {
-	fileContent := jf.Content()
-	if !P.resourcePattern.MatchString(fileContent) && !P.autowiredPattern.MatchString(fileContent) {
-		// No changes needed
-		return fileContent
+func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile) string {
+	jl := jf.JavaLines()
+	jl.SeparateSections()
+	if jl.EmptyCode() {
+		return jf.Content()
 	}
 
-	var (
-		packageLine string
-		imports     []string
-		codeLines   []string
+	codeLines, needAutowired, needQualifier := m.transformInjectionAnnotations(jf, jl.codeSectionLines)
+	imports := m.processImports(jl.imports, needAutowired, needQualifier)
 
-		lines              = jf.lines()
-		inMultiLineComment = false
-	)
-
-	// 分离包声明、导入语句和代码，同时处理注释
-	for _, line := range lines {
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" {
-			continue
-		}
-
-		if m.isInComment(line, &inMultiLineComment) {
-			// 完全跳过注释行，不做任何处理
-			continue
-		} else if strings.HasPrefix(trimmedLine, "package ") {
-			packageLine = line
-		} else if strings.HasPrefix(trimmedLine, "import ") {
-			imports = append(imports, line)
-		} else {
-			codeLines = append(codeLines, line)
-		}
-	}
-
-	if len(codeLines) == 0 {
-		// 该文件全是注释
-		return fileContent
-	}
-
-	codeLines, needAutowired, needQualifier := m.processNonCommentCodeLines(jf, codeLines)
-	imports = m.processImports(imports, needAutowired, needQualifier)
-
-	result := []string{packageLine}
+	result := []string{jl.packageLine}
 	result = append(result, imports...)
 	result = append(result, codeLines...)
 	return strings.Join(result, "\n")
 }
 
-func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowired, needQualifier bool) []string {
-	var processedImports []string
-	autowiredImported := false
-	qualifierImported := false
-	resourceImported := false
-
-	for _, imp := range imports {
-		switch {
-		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Autowired"):
-			autowiredImported = true
-		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Qualifier"):
-			qualifierImported = true
-		case strings.Contains(imp, "javax.annotation.Resource"):
-			resourceImported = true
-		}
-		processedImports = append(processedImports, imp)
-	}
-
-	if needAutowired && !autowiredImported {
-		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Autowired;")
-	}
-	if needQualifier && !qualifierImported {
-		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Qualifier;")
-	}
-	if !resourceImported {
-		// Remove Resource import if it's not needed anymore
-		processedImports = removeResourceImport(processedImports)
-	}
-
-	return processedImports
-}
-
-func removeResourceImport(imports []string) []string {
-	var result []string
-	for _, imp := range imports {
-		if !strings.Contains(imp, "javax.annotation.Resource") {
-			result = append(result, imp)
-		}
-	}
-	return result
-}
-
-func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, codeLines []string) (processedLines []string,
+// TODO 大量代码与 javalines 重复
+func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, codeLines []string) (processedLines []string,
 	needAutowired bool, needQualifier bool) {
-	jc := NewJavaLines(codeLines)
+	jc := newJavaLines(codeLines)
 	beans := jc.InjectedBeans()
+	commentTracker := NewCommentTracker()
 
 	for i := 0; i < len(codeLines); i++ {
 		line := codeLines[i]
+		if commentTracker.InComment(line) {
+			continue
+		}
 
 		if P.resourcePattern.MatchString(line) || P.autowiredPattern.MatchString(line) {
 			if i+1 < len(codeLines) {
@@ -249,19 +176,50 @@ func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, co
 	return processedLines, needAutowired, needQualifier
 }
 
-func (m *SpringBeanInjectionManager) isInComment(line string, inMultiLineComment *bool) bool {
-	trimmedLine := strings.TrimSpace(line)
-	if strings.HasPrefix(trimmedLine, "/*") {
-		*inMultiLineComment = true
+func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowired, needQualifier bool) []string {
+	var processedImports []string
+	autowiredImported := false
+	qualifierImported := false
+	resourceImported := false
+
+	for _, imp := range imports {
+		switch {
+		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Autowired"):
+			autowiredImported = true
+		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Qualifier"):
+			qualifierImported = true
+		case strings.Contains(imp, "javax.annotation.Resource"):
+			resourceImported = true
+		}
+		processedImports = append(processedImports, imp)
 	}
-	if strings.HasSuffix(trimmedLine, "*/") {
-		*inMultiLineComment = false
-		return true // 这一行仍然是注释的一部分
+
+	if needAutowired && !autowiredImported {
+		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Autowired;")
 	}
-	return *inMultiLineComment || strings.HasPrefix(trimmedLine, "//")
+	if needQualifier && !qualifierImported {
+		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Qualifier;")
+	}
+	if !resourceImported {
+		// Remove Resource import if it's not needed anymore
+		processedImports = removeResourceImport(processedImports)
+	}
+
+	return processedImports
+}
+
+func removeResourceImport(imports []string) []string {
+	var result []string
+	for _, imp := range imports {
+		if !strings.Contains(imp, "javax.annotation.Resource") {
+			result = append(result, imp)
+		}
+	}
+	return result
 }
 
 // 由于原有Java代码书写不规范，一个接口只有一个实现类，却被注入多次。这时，不修改原有的 Resource
+// 规则：同一类行多次注入，而且 Impl 成对出现，则保持原有注入方式，不替换
 //
 //	public class Foo {
 //	    @Resource
