@@ -85,17 +85,17 @@ type reconcileTaskResult struct {
 
 func (t *reconcileTask) Execute() error {
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, t.createJavaRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createJavaRegex); err != nil {
 		return err
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsXml, t.createXmlRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsXml, P.createXmlRegex); err != nil {
 		return err
 	}
 
 	// 处理 @ConfigurationProperties
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, t.createConfigurationPropertiesRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createConfigurationPropertiesRegex); err != nil {
 		return err
 	}
 
@@ -162,18 +162,6 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 	})
 }
 
-func (t *reconcileTask) createJavaRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
-}
-
-func (t *reconcileTask) createXmlRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
-}
-
-func (t *reconcileTask) createConfigurationPropertiesRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
-}
-
 func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
 	if strings.Contains(match, "@ConfigurationProperties") {
 		return strings.Replace(match, `"`+key+`"`, `"`+newKey+`"`, 1)
@@ -215,8 +203,8 @@ func (t *reconcileTask) updateRequestMappings() error {
 }
 
 func (t *reconcileTask) updateRequestMappingInFile(content, contextPath string) string {
-	return t.cm.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
-		submatches := t.cm.requestMappingRegex.FindStringSubmatch(match)
+	return P.requestMappingRegex.ReplaceAllStringFunc(content, func(match string) string {
+		submatches := P.requestMappingRegex.FindStringSubmatch(match)
 		if len(submatches) == 4 {
 			oldPath := filepath.Clean("/" + strings.TrimPrefix(submatches[2], "/"))
 			if strings.HasPrefix(oldPath, contextPath) {

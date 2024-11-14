@@ -95,17 +95,17 @@ func doMerge(m *manifest.Manifest) {
 				identifyPropertyConflicts(m, propertyManager)
 			}},
 		{
-			Name: "Reconciling Property Conflicts References by rewriting .java/.xml files",
+			Name: "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping",
 			Fn: func() {
 				reconcilePropertiesConflicts(m, propertyManager)
 			}},
 		{
-			Name: "Reconciling Spring XML BeanDefinition conflicts by Rewriting Java Annotations",
+			Name: "Reconciling Spring XML BeanDefinition conflicts by Rewriting XML ref/value-ref/bean/properties-ref",
 			Fn: func() {
 				reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
 			}},
 		{
-			Name: "Reconciling Spring Bean Injection conflicts by Rewriting Java Annotations",
+			Name: "Reconciling Spring Bean Injection conflicts by Rewriting @Resource",
 			Fn: func() {
 				reconcileBeanInjectionConflicts(m, injectionManager)
 			}},

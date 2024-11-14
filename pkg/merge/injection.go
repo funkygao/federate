@@ -281,7 +281,7 @@ func (m *SpringBeanInjectionManager) shouldKeepResource(beanTypeCount map[string
 			continue // 跳过自身
 		}
 
-		// 检查是否存在 "Impl" 后缀的变体（忽略大小写）
+		// 检查是否存在 "Impl" 后缀的变体或去掉 "Impl" 后缀的变体（忽略大小写）
 		if strings.HasSuffix(lowerCountFieldName, "impl") {
 			if strings.TrimSuffix(lowerCountFieldName, "impl") == strings.TrimSuffix(lowerFieldName, "impl") {
 				return true
@@ -289,6 +289,17 @@ func (m *SpringBeanInjectionManager) shouldKeepResource(beanTypeCount map[string
 		} else if strings.HasSuffix(lowerFieldName, "impl") {
 			if strings.TrimSuffix(lowerFieldName, "impl") == lowerCountFieldName {
 				return true
+			}
+		} else {
+			// 检查是否存在带 "Impl" 后缀的字段
+			if _, exists := beanTypeCount[countFieldName+"Impl"]; exists {
+				return true
+			}
+			implLower := strings.ToLower(countFieldName + "Impl")
+			for otherFieldName := range beanTypeCount {
+				if strings.ToLower(otherFieldName) == implLower {
+					return true
+				}
 			}
 		}
 	}

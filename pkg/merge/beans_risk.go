@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sync"
 	"time"
@@ -31,7 +30,6 @@ func (b *XmlBeanManager) showRisk() {
 }
 
 func (b *XmlBeanManager) showGetBeanRisk() error {
-	getBeanExp := regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`)
 	var risks []getBeanRisk
 	var mu sync.Mutex
 	counter := concurrent.NewCounter()
@@ -42,11 +40,10 @@ func (b *XmlBeanManager) showGetBeanRisk() error {
 
 	for _, component := range b.m.Components {
 		executor.AddTask(&getBeanRiskTask{
-			component:  component,
-			getBeanExp: getBeanExp,
-			risks:      &risks,
-			mu:         &mu,
-			counter:    counter,
+			component: component,
+			risks:     &risks,
+			mu:        &mu,
+			counter:   counter,
 		})
 	}
 
@@ -65,11 +62,10 @@ func (b *XmlBeanManager) showGetBeanRisk() error {
 }
 
 type getBeanRiskTask struct {
-	component  manifest.ComponentInfo
-	getBeanExp *regexp.Regexp
-	risks      *[]getBeanRisk
-	mu         *sync.Mutex
-	counter    *concurrent.Counter
+	component manifest.ComponentInfo
+	risks     *[]getBeanRisk
+	mu        *sync.Mutex
+	counter   *concurrent.Counter
 }
 
 func (t *getBeanRiskTask) Execute() error {
@@ -79,7 +75,7 @@ func (t *getBeanRiskTask) Execute() error {
 		}
 		if java.IsJavaMainSource(info, path) {
 			t.counter.Increment()
-			names, err := findGetBeanNames(path, t.getBeanExp)
+			names, err := findGetBeanNames(path)
 			if err != nil {
 				return err
 			}
@@ -95,13 +91,13 @@ func (t *getBeanRiskTask) Execute() error {
 	})
 }
 
-func findGetBeanNames(filePath string, re *regexp.Regexp) ([]string, error) {
+func findGetBeanNames(filePath string) ([]string, error) {
 	var beanNames []string
 	content, err := ioutil.ReadFile(filePath)
 	if err != nil {
 		return nil, err
 	}
-	matches := re.FindAllStringSubmatch(string(content), -1)
+	matches := P.getBeanPattern.FindAllStringSubmatch(string(content), -1)
 	for _, match := range matches {
 		if len(match) > 1 {
 			name := match[1] // 提取参数 name

@@ -1261,6 +1261,28 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 			fieldName:      "fooService",
 			expectedResult: false,
 		},
+		{
+			name: "Should keep resource - matching pattern with and without Impl",
+			beanTypeCount: map[string]int{
+				"ChangeOrderDetailRepository":     2,
+				"changeOrderDetailRepository":     1,
+				"changeOrderDetailRepositoryImpl": 1,
+			},
+			beanType:       "ChangeOrderDetailRepository",
+			fieldName:      "changeOrderDetailRepository",
+			expectedResult: true,
+		},
+		{
+			name: "Should keep resource - matching pattern with and without Impl (reverse check)",
+			beanTypeCount: map[string]int{
+				"ChangeOrderDetailRepository":     2,
+				"changeOrderDetailRepository":     1,
+				"changeOrderDetailRepositoryImpl": 1,
+			},
+			beanType:       "ChangeOrderDetailRepository",
+			fieldName:      "changeOrderDetailRepositoryImpl",
+			expectedResult: true,
+		},
 	}
 
 	for _, tt := range tests {

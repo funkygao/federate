@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"federate/pkg/java"
@@ -21,9 +20,6 @@ var (
 		".yml":        {}, // spring boot
 		".html":       {}, // email templates
 	}
-
-	// 使用不区分大小写的正则表达式来匹配 Spring 配置文件
-	yamlFilePattern = regexp.MustCompile(`(?i)^application(-[a-zA-Z0-9\-]+)?\.(yml)$`)
 )
 
 type ResourceManager struct {

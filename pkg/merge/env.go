@@ -5,14 +5,11 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 )
-
-var systemGetPropertyRegex = regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`)
 
 func ReconcileEnvConflicts(m *manifest.Manifest) {
 	propertyKeys := make(map[string]struct{})
@@ -58,7 +55,7 @@ func findSystemGetPropertyKeys(filePath string) ([]string, error) {
 		return nil, err
 	}
 
-	matches := systemGetPropertyRegex.FindAllSubmatch(content, -1)
+	matches := P.systemGetPropertyRegex.FindAllSubmatch(content, -1)
 
 	keys := make([]string, 0, len(matches))
 	for _, match := range matches {

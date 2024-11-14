@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path/filepath"
 	"reflect"
-	"regexp"
 
 	"federate/pkg/manifest"
 	"federate/pkg/util"
@@ -22,8 +21,7 @@ type PropertyManager struct {
 	reservedYamlKeys map[string]ValueOverride
 	reservedValues   map[string][]ComponentKeyValue
 
-	servletContextPath  map[string]string // {componentName: contextPath}
-	requestMappingRegex *regexp.Regexp
+	servletContextPath map[string]string // {componentName: contextPath}
 }
 
 func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
@@ -42,8 +40,7 @@ func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
 		reservedYamlKeys: reservedKeyHandlers,
 		reservedValues:   make(map[string][]ComponentKeyValue),
 
-		servletContextPath:  make(map[string]string),
-		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
+		servletContextPath: make(map[string]string),
 	}
 }
 
