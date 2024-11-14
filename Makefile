@@ -45,7 +45,7 @@ clean:
 ast:
 	cd pkg/ast && antlr -Dlanguage=Go -o parser Java8Lexer.g4 Java8Parser.g4
 
-install: test ## Check if Go is installed, install if not, then build and install federate.
+install: test embed-javast ## Check if Go is installed, install if not, then build and install federate.
 	if ! command -v go >/dev/null 2>&1; then \
 		echo "Golang is not installed. Attempting to install via Homebrew..."; \
 		if ! command -v brew >/dev/null 2>&1; then \
@@ -161,3 +161,13 @@ flamegraph:profile ## FlameGraph.
 	$(FLAMEGRAPH_DIR)/stackcollapse-go.pl cpu_profile.txt > cpu_profile.folded
 	$(FLAMEGRAPH_DIR)/flamegraph.pl cpu_profile.folded > cpu_flamegraph.svg
 	echo "🍺 Checkout cpu_flamegraph.svg"
+
+# Java AST Parser
+JAVAST_DIR = javast
+JAVAST_JAR= $(JAVAST_DIR)/target/javast.jar
+EMBED_DIR = internal/fs/templates/jar
+MAVEN = mvn
+
+embed-javast:
+	cd $(JAVAST_DIR) && $(MAVEN) clean package -q
+	mv -f $(JAVAST_JAR) $(EMBED_DIR)/
