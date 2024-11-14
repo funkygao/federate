@@ -69,12 +69,12 @@ func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
 	jf.UpdateContent(fileContent)
 
 	// 然后应用 @Resource 到 @Autowired 的转换
-	return m.replaceResourceWithAutowired(jf)
+	return m.reconcileInjectionAnnotations(jf)
 }
 
-// replaceResourceWithAutowired 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
+// reconcileInjectionAnnotations 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
-func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(jf *JavaFile) string {
+func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile) string {
 	fileContent := jf.Content()
 	if !P.resourcePattern.MatchString(fileContent) && !P.autowiredPattern.MatchString(fileContent) {
 		// No changes needed
@@ -110,7 +110,7 @@ func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(jf *JavaFile) 
 	}
 
 	if len(codeLines) == 0 {
-		// 该文件全是注释
+		// The file is empty or contains only comments
 		return fileContent
 	}
 

@@ -241,7 +241,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf)
+			result := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 		})
 	}
@@ -318,7 +318,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf)
+			result := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
 	}
@@ -516,7 +516,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -633,7 +633,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -681,7 +681,7 @@ public class TestClass {
 }
 `
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -721,7 +721,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf)
+	result := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -976,7 +976,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf)
+			result := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
 		})
 	}
