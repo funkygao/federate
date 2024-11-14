@@ -391,7 +391,7 @@ func TestProcessCodeLines(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, needAutowired, needQualifier := manager.processNonCommentCodeLines(nil, tc.input)
+			output, needAutowired, needQualifier := manager.transformInjectionAnnotations(nil, tc.input)
 			assert.Equal(t, tc.expectedOutput, output)
 			assert.Equal(t, tc.expectedAutowired, needAutowired)
 			assert.Equal(t, tc.expectedQualifier, needQualifier)
@@ -1250,7 +1250,7 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 	}
 }
 
-func TestSpringBeanInjectionManager_processNonCommentCodeLines_ChangeOrderDetailRepository(t *testing.T) {
+func TestSpringBeanInjectionManager_transformInjectionAnnotations_ChangeOrderDetailRepository(t *testing.T) {
 	manager := NewSpringBeanInjectionManager()
 
 	content := `
@@ -1266,7 +1266,7 @@ public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApprove
 }`
 
 	jf := NewJavaFile("", nil, content)
-	processedLines, needAutowired, needQualifier := manager.processNonCommentCodeLines(jf, jf.lines())
+	processedLines, needAutowired, needQualifier := manager.transformInjectionAnnotations(jf, jf.lines())
 
 	// 验证结果
 	assert.True(t, needAutowired)

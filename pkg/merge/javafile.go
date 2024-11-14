@@ -62,6 +62,12 @@ func (j *JavaFile) lines() []string {
 	return j.cachedLines
 }
 
+func (jf *JavaFile) HasResourceOrAutowiredInjection() bool {
+	// 可能会匹配到注释中的 "@Resource" 或 "@Autowired"，导致假阳性
+	return P.resourcePattern.MatchString(jf.content) ||
+		!P.autowiredPattern.MatchString(jf.content)
+}
+
 // 根据 manifest 里人为指定的 bean 替换规则进行替换
 // 例如：之前都是 DataSource dataSource，合并后有多个数据源，需要区分它们，人为指定为：
 // fooDataSource, barDataSource
