@@ -15,16 +15,15 @@ type JavaFile struct {
 }
 
 func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFile {
+	// reformat
+	content = strings.ReplaceAll(content, "\r\n", "\n") // 处理 Windows 风格的行尾
+	content = strings.ReplaceAll(content, "\r", "\n")   // 处理旧 Mac 风格的行尾
+
 	return &JavaFile{
 		c:       c,
 		path:    path,
 		content: content,
 	}
-}
-
-func (j *JavaFile) format() {
-	j.content = strings.ReplaceAll(j.content, "\r\n", "\n") // 处理 Windows 风格的行尾
-	j.content = strings.ReplaceAll(j.content, "\r", "\n")   // 处理旧 Mac 风格的行尾
 }
 
 func (j *JavaFile) ComponentName() string {
@@ -45,6 +44,14 @@ func (j *JavaFile) UpdateContent(content string) {
 
 func (j *JavaFile) Content() string {
 	return j.content
+}
+
+func (j *JavaFile) JavaLines() *JavaLines {
+	return NewJavaLines(j.lines())
+}
+
+func (j *JavaFile) lines() []string {
+	return strings.Split(j.content, "\n")
 }
 
 // 根据 manifest 里人为指定的 bean 替换规则进行替换
@@ -68,12 +75,4 @@ func (j *JavaFile) ApplyBeanTransformRule(beanTransformRule map[string]string) (
 		})
 	}
 	return
-}
-
-func (j *JavaFile) JavaLines() *JavaLines {
-	return NewJavaLines(j.lines())
-}
-
-func (j *JavaFile) lines() []string {
-	return strings.Split(j.content, "\n")
 }

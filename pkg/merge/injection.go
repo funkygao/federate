@@ -18,7 +18,9 @@ type SpringBeanInjectionManager struct {
 }
 
 func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
-	return &SpringBeanInjectionManager{}
+	return &SpringBeanInjectionManager{
+		Updated: 0,
+	}
 }
 
 func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) error {
@@ -45,17 +47,15 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 		}
 
 		javaFile := NewJavaFile(path, &component, string(fileContent))
-		javaFile.format()
 		newfileContent := m.reconcileJavaFile(javaFile)
 
-		if newfileContent != javaFile.Content() { // TODO 不能以此为准了
-			if !dryRun {
-				err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
-				if err != nil {
-					return err
-				}
-				m.Updated++
+		if !dryRun && newfileContent != javaFile.Content() { // TODO 不能以此为准了
+			err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
+			if err != nil {
+				return err
 			}
+
+			m.Updated++
 		}
 		return nil
 	})
@@ -63,7 +63,7 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 }
 
 func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
-	// 首先应用 Bean 转换
+	// 首先应用基于人工规则的注入转换
 	fileContent := jf.ApplyBeanTransformRule(jf.c.Transform.Beans)
 
 	jf.UpdateContent(fileContent)
