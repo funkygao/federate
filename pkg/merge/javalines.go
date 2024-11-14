@@ -9,7 +9,7 @@ type JavaLines struct {
 	lines []string
 }
 
-func NewJavaLines(lines []string) *JavaLines {
+func newJavaLines(lines []string) *JavaLines {
 	return &JavaLines{lines: lines}
 }
 

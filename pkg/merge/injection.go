@@ -167,7 +167,7 @@ func removeResourceImport(imports []string) []string {
 
 func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, codeLines []string) (processedLines []string,
 	needAutowired bool, needQualifier bool) {
-	jc := NewJavaLines(codeLines)
+	jc := newJavaLines(codeLines)
 	beans := jc.InjectedBeans()
 
 	for i := 0; i < len(codeLines); i++ {

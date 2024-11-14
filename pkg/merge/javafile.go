@@ -12,6 +12,8 @@ type JavaFile struct {
 
 	path    string
 	content string
+
+	cachedLines []string
 }
 
 func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFile {
@@ -20,9 +22,10 @@ func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFi
 	content = strings.ReplaceAll(content, "\r", "\n")   // 处理旧 Mac 风格的行尾
 
 	return &JavaFile{
-		c:       c,
-		path:    path,
-		content: content,
+		c:           c,
+		path:        path,
+		content:     content,
+		cachedLines: nil,
 	}
 }
 
@@ -40,6 +43,8 @@ func (j *JavaFile) FileBaseName() string {
 
 func (j *JavaFile) UpdateContent(content string) {
 	j.content = content
+	// kill cache
+	j.cachedLines = nil
 }
 
 func (j *JavaFile) Content() string {
@@ -47,11 +52,14 @@ func (j *JavaFile) Content() string {
 }
 
 func (j *JavaFile) JavaLines() *JavaLines {
-	return NewJavaLines(j.lines())
+	return newJavaLines(j.lines())
 }
 
 func (j *JavaFile) lines() []string {
-	return strings.Split(j.content, "\n")
+	if j.cachedLines == nil {
+		j.cachedLines = strings.Split(j.content, "\n")
+	}
+	return j.cachedLines
 }
 
 // 根据 manifest 里人为指定的 bean 替换规则进行替换
