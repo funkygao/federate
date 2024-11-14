@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"strings"
 	"testing"
 
 	"federate/pkg/util"
@@ -239,7 +240,8 @@ public class TestClass {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.replaceResourceWithAutowired(tc.input)
+			jf := NewJavaFile("", nil, tc.input)
+			result := manager.replaceResourceWithAutowired(jf, tc.input)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 		})
 	}
@@ -315,7 +317,8 @@ public class TestClass {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.replaceResourceWithAutowired(tc.input)
+			jf := NewJavaFile("", nil, tc.input)
+			result := manager.replaceResourceWithAutowired(jf, tc.input)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
 	}
@@ -388,7 +391,7 @@ func TestProcessCodeLines(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			output, needAutowired, needQualifier := manager.processNonCommentCodeLines(tc.input)
+			output, needAutowired, needQualifier := manager.processNonCommentCodeLines(nil, tc.input)
 			assert.Equal(t, tc.expectedOutput, output)
 			assert.Equal(t, tc.expectedAutowired, needAutowired)
 			assert.Equal(t, tc.expectedQualifier, needQualifier)
@@ -512,13 +515,12 @@ public class TestClass {
 }
 `
 
-	result := manager.replaceResourceWithAutowired(input)
+	jf := NewJavaFile("", nil, input)
+	result := manager.replaceResourceWithAutowired(jf, input)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
 func TestParseFieldDeclaration(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
 	testCases := []struct {
 		name          string
 		input         string
@@ -577,7 +579,8 @@ func TestParseFieldDeclaration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			beanType, fieldName := manager.parseFieldDeclaration(tc.input)
+			jc := NewJavaLines(strings.Split(tc.input, "\n"))
+			beanType, fieldName := jc.parseFieldDeclaration(tc.input)
 			assert.Equal(t, tc.expectedType, beanType, "Bean type mismatch for input: %s", tc.input)
 			assert.Equal(t, tc.expectedField, fieldName, "Field name mismatch for input: %s", tc.input)
 		})
@@ -629,7 +632,8 @@ public class TestClass {
 }
 `
 
-	result := manager.replaceResourceWithAutowired(input)
+	jf := NewJavaFile("", nil, input)
+	result := manager.replaceResourceWithAutowired(jf, input)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -683,7 +687,8 @@ public class TestClass {
 }
 `
 
-	result := manager.replaceResourceWithAutowired(input)
+	jf := NewJavaFile("", nil, input)
+	result := manager.replaceResourceWithAutowired(jf, input)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -722,13 +727,12 @@ public class TestClass {
 }
 `
 
-	result := manager.replaceResourceWithAutowired(input)
+	jf := NewJavaFile("", nil, input)
+	result := manager.replaceResourceWithAutowired(jf, input)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
 func TestApplyBeanTransforms(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
 	tests := []struct {
 		name           string
 		content        string
@@ -807,62 +811,9 @@ func TestApplyBeanTransforms(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := manager.applyBeanTransforms(tt.content, tt.beanTransforms)
+			jf := NewJavaFile("", nil, tt.content)
+			result := jf.ApplyBeanTransformRule(tt.beanTransforms)
 			assert.Equal(t, tt.expected, result, tt.name)
-		})
-	}
-}
-
-func TestMethodResourcePattern(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
-	testCases := []struct {
-		name     string
-		input    string
-		expected bool
-	}{
-		{
-			name: "Simple @Resource on method",
-			input: `@Resource
-    public void setService(SomeService service) {`,
-			expected: true,
-		},
-		{
-			name: "Resource with name on method",
-			input: `@Resource(name = "customName")
-    public void setService(SomeService service) {`,
-			expected: true,
-		},
-		{
-			name: "Resource with whitespace",
-			input: `  @Resource
-    public void setService(SomeService service) {`,
-			expected: true,
-		},
-		{
-			name: "Resource on field (should not match)",
-			input: `@Resource
-    private SomeService service;`,
-			expected: false,
-		},
-		{
-			name: "Autowired on method (should not match)",
-			input: `@Autowired
-    public void setService(SomeService service) {`,
-			expected: false,
-		},
-		{
-			name: "Resource on non-setter method (should not match)",
-			input: `@Resource
-    public SomeService getService() {`,
-			expected: false,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := manager.methodResourcePattern.MatchString(tc.input)
-			assert.Equal(t, tc.expected, result, "For input: %s", tc.input)
 		})
 	}
 }
@@ -1031,15 +982,14 @@ public class TestClass {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.replaceResourceWithAutowired(tc.input)
+			jf := NewJavaFile("", nil, tc.input)
+			result := manager.replaceResourceWithAutowired(jf, tc.input)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
 		})
 	}
 }
 
 func TestScanBeanTypeCounts(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
 	testCases := []struct {
 		name     string
 		input    []string
@@ -1118,15 +1068,14 @@ func TestScanBeanTypeCounts(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.scanBeanTypeCounts(tc.input)
+			jc := NewJavaLines(tc.input)
+			result := jc.InjectedBeanTypeCounts()
 			assert.Equal(t, tc.expected, result, "For input: %v", tc.input)
 		})
 	}
 }
 
 func TestGetBeanTypeFromMethodSignature(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
 	testCases := []struct {
 		name     string
 		input    string
@@ -1161,15 +1110,14 @@ func TestGetBeanTypeFromMethodSignature(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.getBeanTypeFromMethodSignature(tc.input)
+			jc := NewJavaLines(strings.Split(tc.input, "\n"))
+			result := jc.getBeanTypeFromMethodSignature(tc.input)
 			assert.Equal(t, tc.expected, result, "For input: %s", tc.input)
 		})
 	}
 }
 
 func TestGetQualifierNameFromMethod(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
 	testCases := []struct {
 		name         string
 		resourceLine string
@@ -1210,7 +1158,8 @@ func TestGetQualifierNameFromMethod(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.getQualifierNameFromMethod(tc.resourceLine, tc.methodLine)
+			jc := NewJavaLines(nil)
+			result := jc.getQualifierNameFromMethod(tc.resourceLine, tc.methodLine)
 			assert.Equal(t, tc.expected, result, "For resource line: %s, method line: %s", tc.resourceLine, tc.methodLine)
 		})
 	}
