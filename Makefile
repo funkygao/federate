@@ -134,7 +134,7 @@ docker-test: docker-build
 
 PLATFORMS := linux-amd64 linux-arm64 darwin-amd64 darwin-arm64
 
-release: ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
+release:embed-javast ## Build binaries for darwin-amd64, darwin-arm64, linux-amd64 & linux-arm64.
 	for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
 		-o build/federate-$$platform \
