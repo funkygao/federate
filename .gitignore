@@ -23,6 +23,7 @@ lsp/
 
 prompt.txt
 build/
+internal/fs/templates/jar/
 
 cpu_profile.pb.gz
 cpu_flamegraph.svg
