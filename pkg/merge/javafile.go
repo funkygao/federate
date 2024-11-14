@@ -39,6 +39,10 @@ func (j *JavaFile) FileBaseName() string {
 	return filepath.Base(j.path)
 }
 
+func (j *JavaFile) UpdateContent(content string) {
+	j.content = content
+}
+
 func (j *JavaFile) Content() string {
 	return j.content
 }
@@ -66,6 +70,10 @@ func (j *JavaFile) ApplyBeanTransformRule(beanTransformRule map[string]string) (
 	return
 }
 
-func (j *JavaFile) Lines() *JavaLines {
-	return NewJavaLines(strings.Split(j.content, "\n"))
+func (j *JavaFile) JavaLines() *JavaLines {
+	return NewJavaLines(j.lines())
+}
+
+func (j *JavaFile) lines() []string {
+	return strings.Split(j.content, "\n")
 }

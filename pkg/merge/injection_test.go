@@ -241,7 +241,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf, tc.input)
+			result := manager.replaceResourceWithAutowired(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 		})
 	}
@@ -318,7 +318,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf, tc.input)
+			result := manager.replaceResourceWithAutowired(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
 	}
@@ -516,7 +516,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf, input)
+	result := manager.replaceResourceWithAutowired(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -633,7 +633,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf, input)
+	result := manager.replaceResourceWithAutowired(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -649,13 +649,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class TestClass {
     @Resource
     private SomeService service1;
-
     @Autowired
     private SomeService service2;
-
     @Autowired(required = false)
     private SomeService service3;
-
     @Resource(name = "specificName")
     private SomeService service4;
 }
@@ -672,23 +669,19 @@ public class TestClass {
     @Autowired
     @Qualifier("service1")
     private SomeService service1;
-
     @Autowired
     @Qualifier("service2")
     private SomeService service2;
-
     @Autowired(required = false)
     @Qualifier("service3")
     private SomeService service3;
-
     @Autowired
     @Qualifier("specificName")
     private SomeService service4;
 }
 `
-
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf, input)
+	result := manager.replaceResourceWithAutowired(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -728,7 +721,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.replaceResourceWithAutowired(jf, input)
+	result := manager.replaceResourceWithAutowired(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -983,7 +976,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.replaceResourceWithAutowired(jf, tc.input)
+			result := manager.replaceResourceWithAutowired(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
 		})
 	}
@@ -993,7 +986,7 @@ func TestScanBeanTypeCounts(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    []string
-		expected map[string]int
+		expected map[string][]string
 	}{
 		{
 			name: "Field injections",
@@ -1005,9 +998,9 @@ func TestScanBeanTypeCounts(t *testing.T) {
 				"@Resource",
 				"private OtherService otherService;",
 			},
-			expected: map[string]int{
-				"SomeService":  2,
-				"OtherService": 1,
+			expected: map[string][]string{
+				"SomeService":  []string{"service1", "service2"},
+				"OtherService": []string{"otherService"},
 			},
 		},
 		{
@@ -1023,9 +1016,9 @@ func TestScanBeanTypeCounts(t *testing.T) {
 				"public void setOtherService(OtherService service) {",
 				"}",
 			},
-			expected: map[string]int{
-				"SomeService":  2,
-				"OtherService": 1,
+			expected: map[string][]string{
+				"SomeService":  []string{"service1", "service2"},
+				"OtherService": []string{"otherService"},
 			},
 		},
 		{
@@ -1039,9 +1032,9 @@ func TestScanBeanTypeCounts(t *testing.T) {
 				"@Autowired",
 				"private OtherService otherService;",
 			},
-			expected: map[string]int{
-				"SomeService":  2,
-				"OtherService": 1,
+			expected: map[string][]string{
+				"SomeService":  []string{"service1", "service2"},
+				"OtherService": []string{"otherService"},
 			},
 		},
 		{
@@ -1052,7 +1045,7 @@ func TestScanBeanTypeCounts(t *testing.T) {
 				"@Autowired",
 				"private Map<String, Object> objectMap;",
 			},
-			expected: map[string]int{},
+			expected: map[string][]string{},
 		},
 		{
 			name: "No injections",
@@ -1062,15 +1055,15 @@ func TestScanBeanTypeCounts(t *testing.T) {
 				"    public void doSomething() {}",
 				"}",
 			},
-			expected: map[string]int{},
+			expected: map[string][]string{},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jc := NewJavaLines(tc.input)
-			result := jc.InjectedBeanTypeCounts()
-			assert.Equal(t, tc.expected, result, "For input: %v", tc.input)
+			result := jc.InjectedBeans()
+			assert.Equal(t, tc.expected, result, tc.name)
 		})
 	}
 }
@@ -1170,61 +1163,33 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		beanTypeCount  map[string]int
+		beans          map[string][]string
 		beanType       string
 		fieldName      string
 		expectedResult bool
 	}{
 		{
-			name: "Should keep resource - matching pattern with Impl (standard case)",
-			beanTypeCount: map[string]int{
-				"FooService":     2,
-				"fooService":     1,
-				"fooServiceImpl": 1,
+			name: "Should keep resource - matching pattern with Impl",
+			beans: map[string][]string{
+				"FooService": {"fooService", "fooServiceImpl"},
 			},
 			beanType:       "FooService",
 			fieldName:      "fooService",
 			expectedResult: true,
 		},
 		{
-			name: "Should keep resource - matching pattern with Impl (all lowercase)",
-			beanTypeCount: map[string]int{
-				"FooService":     2,
-				"fooservice":     1,
-				"fooserviceimpl": 1,
+			name: "Should keep resource - matching pattern with Impl (reverse check)",
+			beans: map[string][]string{
+				"FooService": {"fooService", "fooServiceImpl"},
 			},
 			beanType:       "FooService",
-			fieldName:      "fooservice",
-			expectedResult: true,
-		},
-		{
-			name: "Should keep resource - matching pattern with Impl (mixed case)",
-			beanTypeCount: map[string]int{
-				"FooService":     2,
-				"fooService":     1,
-				"fooserviceImpl": 1,
-			},
-			beanType:       "FooService",
-			fieldName:      "fooService",
-			expectedResult: true,
-		},
-		{
-			name: "Should keep resource - matching pattern with Impl (reverse order, mixed case)",
-			beanTypeCount: map[string]int{
-				"FooService":     2,
-				"fooService":     1,
-				"fooserviceImpl": 1,
-			},
-			beanType:       "FooService",
-			fieldName:      "fooserviceImpl",
+			fieldName:      "fooServiceImpl",
 			expectedResult: true,
 		},
 		{
 			name: "Should not keep resource - no matching Impl pattern",
-			beanTypeCount: map[string]int{
-				"BarService":        2,
-				"barService":        1,
-				"anotherBarService": 1,
+			beans: map[string][]string{
+				"BarService": {"barService", "anotherBarService"},
 			},
 			beanType:       "BarService",
 			fieldName:      "barService",
@@ -1232,9 +1197,8 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 		},
 		{
 			name: "Should not keep resource - single instance",
-			beanTypeCount: map[string]int{
-				"FooService": 1,
-				"fooService": 1,
+			beans: map[string][]string{
+				"FooService": {"fooService"},
 			},
 			beanType:       "FooService",
 			fieldName:      "fooService",
@@ -1242,20 +1206,17 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 		},
 		{
 			name: "Should not keep resource - multiple instances but no Impl pattern",
-			beanTypeCount: map[string]int{
-				"FooService":           3,
-				"fooService":           1,
-				"anotherFooService":    1,
-				"yetAnotherFooService": 1,
+			beans: map[string][]string{
+				"FooService": {"fooService", "anotherFooService", "yetAnotherFooService"},
 			},
 			beanType:       "FooService",
 			fieldName:      "fooService",
 			expectedResult: false,
 		},
 		{
-			name: "Should not keep resource - bean type not in count map",
-			beanTypeCount: map[string]int{
-				"BarService": 2,
+			name: "Should not keep resource - bean type not in map",
+			beans: map[string][]string{
+				"BarService": {"barService"},
 			},
 			beanType:       "FooService",
 			fieldName:      "fooService",
@@ -1263,10 +1224,8 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 		},
 		{
 			name: "Should keep resource - matching pattern with and without Impl",
-			beanTypeCount: map[string]int{
-				"ChangeOrderDetailRepository":     2,
-				"changeOrderDetailRepository":     1,
-				"changeOrderDetailRepositoryImpl": 1,
+			beans: map[string][]string{
+				"ChangeOrderDetailRepository": {"changeOrderDetailRepository", "changeOrderDetailRepositoryImpl"},
 			},
 			beanType:       "ChangeOrderDetailRepository",
 			fieldName:      "changeOrderDetailRepository",
@@ -1274,10 +1233,8 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 		},
 		{
 			name: "Should keep resource - matching pattern with and without Impl (reverse check)",
-			beanTypeCount: map[string]int{
-				"ChangeOrderDetailRepository":     2,
-				"changeOrderDetailRepository":     1,
-				"changeOrderDetailRepositoryImpl": 1,
+			beans: map[string][]string{
+				"ChangeOrderDetailRepository": {"changeOrderDetailRepository", "changeOrderDetailRepositoryImpl"},
 			},
 			beanType:       "ChangeOrderDetailRepository",
 			fieldName:      "changeOrderDetailRepositoryImpl",
@@ -1287,8 +1244,45 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := manager.shouldKeepResource(tt.beanTypeCount, tt.beanType, tt.fieldName)
-			assert.Equal(t, tt.expectedResult, result, "shouldKeepResource() returned unexpected result for %s", tt.name)
+			result := manager.shouldKeepResource(tt.beans, tt.beanType, tt.fieldName)
+			assert.Equal(t, tt.expectedResult, result, tt.name)
 		})
 	}
+}
+
+func TestSpringBeanInjectionManager_processNonCommentCodeLines_ChangeOrderDetailRepository(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	content := `
+public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApproveInnerAppService {
+    @Resource
+    private ChangeOrderRepository changeOrderRepository;
+    @Resource
+    private ChangeOrderDetailRepository changeOrderDetailRepositoryImpl;
+    @Resource
+    private ExtChangeReasonService extChangeReasonServiceImpl;
+    @Resource
+    private ChangeOrderDetailRepository changeOrderDetailRepository;
+}`
+
+	jf := NewJavaFile("", nil, content)
+	processedLines, needAutowired, needQualifier := manager.processNonCommentCodeLines(jf, jf.lines())
+
+	// 验证结果
+	assert.True(t, needAutowired)
+	assert.False(t, needQualifier)
+
+	expectedOutput := `
+public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApproveInnerAppService {
+    @Autowired
+    private ChangeOrderRepository changeOrderRepository;
+    @Resource
+    private ChangeOrderDetailRepository changeOrderDetailRepositoryImpl;
+    @Autowired
+    private ExtChangeReasonService extChangeReasonServiceImpl;
+    @Resource
+    private ChangeOrderDetailRepository changeOrderDetailRepository;
+}`
+
+	assert.Equal(t, expectedOutput, strings.Join(processedLines, "\n"))
 }

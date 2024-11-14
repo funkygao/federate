@@ -12,9 +12,12 @@ type pattern struct {
 	resourcePattern         *regexp.Regexp
 	resourceWithNamePattern *regexp.Regexp
 	methodResourcePattern   *regexp.Regexp
-	genericTypePattern      *regexp.Regexp
-	autowiredPattern        *regexp.Regexp
-	qualifierPattern        *regexp.Regexp
+
+	autowiredPattern       *regexp.Regexp
+	methodAutowiredPattern *regexp.Regexp
+	qualifierPattern       *regexp.Regexp
+
+	genericTypePattern *regexp.Regexp
 
 	// @RequestMapping
 	requestMappingRegex *regexp.Regexp
@@ -45,6 +48,7 @@ func init() {
 		methodResourcePattern:   regexp.MustCompile(`@Resource(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
 		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
 		autowiredPattern:        regexp.MustCompile(`@Autowired(\s*\([^)]*\))?`),
+		methodAutowiredPattern:  regexp.MustCompile(`@Autowired(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
 		qualifierPattern:        regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
 
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),

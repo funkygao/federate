@@ -73,13 +73,16 @@ func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
 	// 首先应用 Bean 转换
 	fileContent := jf.ApplyBeanTransformRule(jf.c.Transform.Beans)
 
+	jf.UpdateContent(fileContent)
+
 	// 然后应用 @Resource 到 @Autowired 的转换
-	return m.replaceResourceWithAutowired(jf, fileContent)
+	return m.replaceResourceWithAutowired(jf)
 }
 
 // replaceResourceWithAutowired 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
-func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(jf *JavaFile, fileContent string) string {
+func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(jf *JavaFile) string {
+	fileContent := jf.Content()
 	if !P.resourcePattern.MatchString(fileContent) && !P.autowiredPattern.MatchString(fileContent) {
 		// No changes needed
 		return fileContent
@@ -90,7 +93,7 @@ func (m *SpringBeanInjectionManager) replaceResourceWithAutowired(jf *JavaFile, 
 		imports     []string
 		codeLines   []string
 
-		lines              = strings.Split(fileContent, "\n")
+		lines              = jf.lines()
 		inMultiLineComment = false
 	)
 
@@ -169,9 +172,10 @@ func removeResourceImport(imports []string) []string {
 	return result
 }
 
-func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, codeLines []string) (processedLines []string, needAutowired bool, needQualifier bool) {
+func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, codeLines []string) (processedLines []string,
+	needAutowired bool, needQualifier bool) {
 	jc := NewJavaLines(codeLines)
-	beanTypeCount := jc.InjectedBeanTypeCounts()
+	beans := jc.InjectedBeans()
 
 	for i := 0; i < len(codeLines); i++ {
 		line := codeLines[i]
@@ -192,7 +196,7 @@ func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, co
 						qualifierName = strings.ToLower(beanType[:1]) + beanType[1:]
 					}
 
-					if beanTypeCount[beanType] > 1 || P.resourceWithNamePattern.MatchString(line) {
+					if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
 						processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
 						needQualifier = true
 					}
@@ -203,8 +207,8 @@ func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, co
 					// 处理字段注入
 					beanType, fieldName := jc.parseFieldDeclaration(nextLine)
 
-					if m.shouldKeepResource(beanTypeCount, beanType, fieldName) {
-						log.Printf("[%s] %s Keep @Resource for %s:%s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
+					if m.shouldKeepResource(beans, beanType, fieldName) {
+						log.Printf("[%s] %s Keep @Resource for %s %s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
 						processedLines = append(processedLines, line, nextLine)
 						i++
 						continue
@@ -224,7 +228,7 @@ func (m *SpringBeanInjectionManager) processNonCommentCodeLines(jf *JavaFile, co
 						processedLines = append(processedLines, line)
 					}
 
-					if beanTypeCount[beanType] > 1 || P.resourceWithNamePattern.MatchString(line) {
+					if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
 						qualifierName := fieldName
 						if matches := P.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
 							qualifierName = matches[1]
@@ -267,39 +271,30 @@ func (m *SpringBeanInjectionManager) isInComment(line string, inMultiLineComment
 //	    @Resource
 //	    private EggService eggserviceImpl;
 //	}
-func (m *SpringBeanInjectionManager) shouldKeepResource(beanTypeCount map[string]int, beanType string, fieldName string) bool {
-	if beanTypeCount[beanType] <= 1 {
+func (m *SpringBeanInjectionManager) shouldKeepResource(beans map[string][]string, beanType string, fieldName string) bool {
+	fieldNames, exists := beans[beanType]
+	if !exists || len(fieldNames) <= 1 {
 		return false
 	}
 
 	lowerFieldName := strings.ToLower(fieldName)
+	hasImpl := strings.HasSuffix(lowerFieldName, "impl")
 
-	// 检查是否存在匹配的字段名（忽略大小写）
-	for countFieldName := range beanTypeCount {
-		lowerCountFieldName := strings.ToLower(countFieldName)
-		if lowerCountFieldName == lowerFieldName {
+	for _, otherFieldName := range fieldNames {
+		if otherFieldName == fieldName {
 			continue // 跳过自身
 		}
 
-		// 检查是否存在 "Impl" 后缀的变体或去掉 "Impl" 后缀的变体（忽略大小写）
-		if strings.HasSuffix(lowerCountFieldName, "impl") {
-			if strings.TrimSuffix(lowerCountFieldName, "impl") == strings.TrimSuffix(lowerFieldName, "impl") {
-				return true
-			}
-		} else if strings.HasSuffix(lowerFieldName, "impl") {
-			if strings.TrimSuffix(lowerFieldName, "impl") == lowerCountFieldName {
+		lowerOtherFieldName := strings.ToLower(otherFieldName)
+
+		// 只有当存在配对的 Impl 和非 Impl 字段时，才保留 @Resource
+		if hasImpl {
+			if strings.TrimSuffix(lowerFieldName, "impl") == lowerOtherFieldName {
 				return true
 			}
 		} else {
-			// 检查是否存在带 "Impl" 后缀的字段
-			if _, exists := beanTypeCount[countFieldName+"Impl"]; exists {
+			if lowerFieldName == strings.TrimSuffix(lowerOtherFieldName, "impl") {
 				return true
-			}
-			implLower := strings.ToLower(countFieldName + "Impl")
-			for otherFieldName := range beanTypeCount {
-				if strings.ToLower(otherFieldName) == implLower {
-					return true
-				}
 			}
 		}
 	}

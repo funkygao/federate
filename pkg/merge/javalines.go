@@ -13,32 +13,42 @@ func NewJavaLines(lines []string) *JavaLines {
 	return &JavaLines{lines: lines}
 }
 
-// 扫描各种 bean type 注入次数
-func (jc *JavaLines) InjectedBeanTypeCounts() map[string]int {
-	beanTypeCount := make(map[string]int)
+// 扫描全部注入的 bean
+// beans: key is bean type, value is list of field name
+func (jc *JavaLines) InjectedBeans() (beans map[string][]string) {
+	beans = make(map[string][]string)
 	for i := 0; i < len(jc.lines); i++ {
 		line := jc.lines[i]
+
+		// 通过 @Resource/@Autowired 注入，注入可能在 setter 方法，也可能在字段
 		if P.resourcePattern.MatchString(line) || P.autowiredPattern.MatchString(line) {
 			if i+1 < len(jc.lines) {
 				nextLine := jc.lines[i+1]
-				if P.methodResourcePattern.MatchString(line + "\n" + nextLine) {
-					// 方法注入
-					beanType := jc.getBeanTypeFromMethodSignature(nextLine)
-					if beanType != "" {
-						beanTypeCount[beanType]++
-					}
+				annotatedDeclaration := line + "\n" + nextLine
+
+				var beanType, beanName string
+
+				switch {
+				case P.methodResourcePattern.MatchString(annotatedDeclaration) ||
+					P.methodAutowiredPattern.MatchString(annotatedDeclaration):
+					// 处理方法注入
+					beanType = jc.getBeanTypeFromMethodSignature(nextLine)
+					beanName = jc.getQualifierNameFromMethod(line, nextLine)
+
 					i++ // 跳过下一行
-				} else {
-					// 字段注入
-					beanType, _ := jc.parseFieldDeclaration(nextLine)
-					if beanType != "" && !P.genericTypePattern.MatchString(nextLine) {
-						beanTypeCount[beanType]++
-					}
+
+				default:
+					// 处理字段注入
+					beanType, beanName = jc.parseFieldDeclaration(nextLine)
+				}
+
+				if beanType != "" && beanName != "" && !P.genericTypePattern.MatchString(nextLine) {
+					beans[beanType] = append(beans[beanType], beanName)
 				}
 			}
 		}
 	}
-	return beanTypeCount
+	return
 }
 
 func (jc *JavaLines) getBeanTypeFromMethodSignature(line string) string {
@@ -57,6 +67,10 @@ func (jc *JavaLines) getBeanTypeFromMethodSignature(line string) string {
 	return ""
 }
 
+// @Resource
+// public void setMyService(SomeService service)
+//
+// getQualifierNameFromMethod 返回 myService
 func (jc *JavaLines) getQualifierNameFromMethod(resourceLine, methodLine string) string {
 	// 首先检查是否在 @Resource 中明确指定了 name
 	if matches := P.resourceWithNamePattern.FindStringSubmatch(resourceLine); len(matches) > 1 {
