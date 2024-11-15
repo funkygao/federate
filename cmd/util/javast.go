@@ -9,7 +9,7 @@ import (
 
 var javastCmd = &cobra.Command{
 	Use:   "javast <dir>",
-	Short: "Parse Java AST",
+	Short: "Streaming Java AST Parsing",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		parseJava(args[0])

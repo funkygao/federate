@@ -42,11 +42,11 @@ func init() {
 	// 分组设置
 	microservice.CmdGroup.GroupID = "microservice"
 	plus.CmdGroup.GroupID = "microservice"
-	debug.CmdGroup.GroupID = "microservice"
 	workload.CmdGroup.GroupID = "microservice"
-	image.CmdGroup.GroupID = "microservice"
 
 	chatgpt.CmdGroup.GroupID = "utility"
+	debug.CmdGroup.GroupID = "utility"
+	image.CmdGroup.GroupID = "utility"
 	util.CmdGroup.GroupID = "utility"
 
 	version.CmdGroup.GroupID = "system"
@@ -69,14 +69,12 @@ func init() {
 	)
 
 	// utility
-	rootCmd.AddCommand(chatgpt.CmdGroup, util.CmdGroup)
+	rootCmd.AddCommand(chatgpt.CmdGroup, debug.CmdGroup, image.CmdGroup, util.CmdGroup)
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
-	rootCmd.AddCommand(debug.CmdGroup)
 	rootCmd.AddCommand(workload.CmdGroup)
 	rootCmd.AddCommand(plus.CmdGroup)
-	rootCmd.AddCommand(image.CmdGroup)
 
 	// system
 	rootCmd.AddCommand(version.CmdGroup)
