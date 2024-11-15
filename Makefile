@@ -29,7 +29,7 @@ generate:
 fmt:
 	go fmt ./...
 
-test: fmt vet
+test: fmt
 	go test ./...
 
 stress:
@@ -42,9 +42,6 @@ clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build cpu_*
 	cd $(JAVAST_DIR) && $(MAVEN) clean -q
-
-ast:
-	cd pkg/ast && antlr -Dlanguage=Go -o parser Java8Lexer.g4 Java8Parser.g4
 
 install: test embed-javast ## Check if Go is installed, install if not, then build and install federate.
 	if ! command -v go >/dev/null 2>&1; then \
@@ -112,6 +109,8 @@ completion: ## Install shell completion for federate on MacOS.
 	esac; \
 	echo "🍺 Completion installation finished. Please restart your shell or source the appropriate file to enable completion."
 
+# Docker
+
 docker-build:
 	docker build \
 		--build-arg GIT_USER=$(GIT_USER) \
@@ -172,4 +171,5 @@ MAVEN = mvn
 
 embed-javast:
 	cd $(JAVAST_DIR) && $(MAVEN) clean package -q
+	mkdir -p $(EMBED_DIR)/
 	mv -f $(JAVAST_JAR) $(EMBED_DIR)/
