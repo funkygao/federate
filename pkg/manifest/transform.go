@@ -8,3 +8,12 @@ type TransformSpec struct {
 type AutowiredSpec struct {
 	Excludes []string `yaml:"exclude"`
 }
+
+func (a *AutowiredSpec) ExcludeBeanType(beanType string) bool {
+	for _, excluded := range a.Excludes {
+		if beanType == excluded {
+			return true
+		}
+	}
+	return false
+}

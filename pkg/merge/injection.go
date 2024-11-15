@@ -137,7 +137,7 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 			// 处理字段注入
 			beanType, fieldName := jc.parseFieldDeclaration(nextLine)
 
-			if m.shouldKeepResource(beans, beanType, fieldName) {
+			if m.shouldKeepResource(jf, beans, beanType, fieldName) {
 				log.Printf("[%s] %s Keep @Resource for %s %s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
 				processedLines = append(processedLines, line, nextLine)
 				i++
@@ -231,10 +231,14 @@ func removeResourceImport(imports []string) []string {
 //	    @Resource
 //	    private EggService eggserviceImpl;
 //	}
-func (m *SpringBeanInjectionManager) shouldKeepResource(beans map[string][]string, beanType string, fieldName string) bool {
+func (m *SpringBeanInjectionManager) shouldKeepResource(jf *JavaFile, beans map[string][]string, beanType string, fieldName string) bool {
 	fieldNames, exists := beans[beanType]
 	if !exists || len(fieldNames) <= 1 {
 		return false
+	}
+
+	if jf != nil && jf.c != nil && jf.c.Transform.Autowired.ExcludeBeanType(beanType) {
+		return true
 	}
 
 	lowerFieldName := strings.ToLower(fieldName)
