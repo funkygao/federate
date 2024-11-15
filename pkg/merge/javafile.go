@@ -110,7 +110,7 @@ func (j *JavaFile) shouldKeepResource(beans map[string][]string, beanType string
 	}
 
 	if j.c != nil && j.c.Transform.Autowired.ExcludeBeanType(beanType) {
-		log.Printf("[%s] Bean[%s] will not do Autowired Transform", j.c.Name, beanType)
+		log.Printf("[%s] Bean[%s] Excluded from Autowired Transform", j.c.Name, beanType)
 		return true
 	}
 
