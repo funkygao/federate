@@ -108,8 +108,6 @@ components:
     modules: # 启动包
       - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
     transform:
-      autowired:
-        exclude:
       beans:
         masterDataSource: stockMasterDataSource
         slaveDataSource: stockSlaveDataSource
@@ -141,7 +139,7 @@ components:
       - com.jdwl.wms:wms-inventory-web:1.0.0-SNAPSHOT
     transform:
       autowired:
-        exclude:
+        exclude: # 这种类型的 Bean 不做 @Autowired 处理
           - CountTaskMasterExternalService
       beans:
         masterDataSource: inventoryMasterDataSource
