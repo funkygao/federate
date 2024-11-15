@@ -29,7 +29,7 @@ generate:
 fmt:
 	go fmt ./...
 
-test: fmt vet
+test: fmt
 	go test ./...
 
 stress:

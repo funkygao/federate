@@ -2,8 +2,10 @@ package debug
 
 import (
 	"log"
+	"path/filepath"
 
 	"federate/pkg/manifest"
+	"federate/pkg/spring"
 	"github.com/spf13/cobra"
 )
 
@@ -18,7 +20,15 @@ var beanCmd = &cobra.Command{
 }
 
 func searchBean(m *manifest.Manifest, beanId string) {
-	log.Printf("bean[%s]", beanId)
+	springXmlPath := filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
+	manager := spring.New()
+	ok, path := manager.SearchBean(springXmlPath, beanId)
+	if ok {
+		log.Printf("bean[%s] found in %s", beanId, path)
+	} else {
+		log.Printf("bean[%s] not found", beanId)
+	}
+
 }
 
 func init() {
