@@ -6,4 +6,5 @@ type TransformSpec struct {
 }
 
 type AutowiredSpec struct {
+	Excludes []string `yaml:"exclude"`
 }

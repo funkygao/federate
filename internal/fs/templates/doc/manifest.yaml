@@ -108,6 +108,8 @@ components:
     modules: # 启动包
       - com.jdwl.wms:wms-stock-api-provider:1.0.0-SNAPSHOT
     transform:
+      autowired:
+        exclude:
       beans:
         masterDataSource: stockMasterDataSource
         slaveDataSource: stockSlaveDataSource
@@ -138,6 +140,9 @@ components:
     modules: # 启动包
       - com.jdwl.wms:wms-inventory-web:1.0.0-SNAPSHOT
     transform:
+      autowired:
+        exclude:
+          - CountTaskMasterExternalService
       beans:
         masterDataSource: inventoryMasterDataSource
         slaveDataSource: inventorySlaveDataSource

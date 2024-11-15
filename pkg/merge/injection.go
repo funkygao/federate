@@ -83,10 +83,13 @@ func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile)
 	}
 
 	codeLines, needAutowired, needQualifier := m.transformInjectionAnnotations(jf, jl.codeSectionLines)
-	imports := m.processImports(jl.imports, needAutowired, needQualifier)
+	// 移除 codeLines 开头的空行
+	for len(codeLines) > 0 && strings.TrimSpace(codeLines[0]) == "" {
+		codeLines = codeLines[1:]
+	}
 
 	result := []string{jl.packageLine}
-	result = append(result, imports...)
+	result = append(result, m.processImports(jl.imports, needAutowired, needQualifier)...)
 	result = append(result, codeLines...)
 	return strings.Join(result, "\n"), needAutowired || needQualifier
 }

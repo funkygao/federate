@@ -1303,3 +1303,55 @@ public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApprove
 
 	assert.Equal(t, expectedOutput, strings.Join(processedLines, "\n"))
 }
+
+func TestNoExtraLinesBetweenImportsAndClass(t *testing.T) {
+	manager := NewSpringBeanInjectionManager()
+
+	input := `
+package com.example;
+
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+
+import java.lang.reflect.Method;
+import java.util.*;
+
+import javax.annotation.Resource;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ArrayUtils;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+@Component
+public class TestClass {
+    @Resource
+    private SomeService service;
+}
+`
+
+	expected := `package com.example;
+import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import java.lang.reflect.Method;
+import java.util.*;
+import javax.annotation.Resource;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.MapUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+import org.springframework.beans.factory.annotation.Autowired;
+@Component
+public class TestClass {
+    @Autowired
+    private SomeService service;
+}
+`
+
+	jf := NewJavaFile("", nil, input)
+	result, _ := manager.reconcileInjectionAnnotations(jf)
+	assert.Equal(t, expected, result, "Should not add extra lines between imports and class declaration")
+}

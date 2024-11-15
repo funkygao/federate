@@ -29,7 +29,7 @@ dirty: ## Display local changes summary.
 	git submodule foreach --recursive 'git diff --stat'
 
 diff: ## Display local changes details.
-	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
+	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b --ignore-all-space --ignore-blank-lines'
 
 stage:
 	git submodule foreach 'if ! git diff --quiet; then git add . && echo "Changes staged"; fi'
