@@ -15,6 +15,7 @@ func TestReplaceResourceWithAutowiredModifiedCases(t *testing.T) {
 		name     string
 		input    string
 		expected string
+		dirty    bool
 	}{
 		{
 			name: "Remove Resource import but keep following empty line",
@@ -44,6 +45,7 @@ public class TestClass {
     @Autowired
     private SomeService service;
 }`,
+			dirty: true,
 		},
 
 		{
@@ -67,6 +69,7 @@ public class TestClass {
     @Autowired
     private SomeService service;
 }`,
+			dirty: true,
 		},
 
 		{
@@ -90,6 +93,7 @@ public class TestClass {
     @Autowired
     private SomeService service;
 }`,
+			dirty: true,
 		},
 
 		{
@@ -119,6 +123,7 @@ public class TestClass {
     @PostConstruct
     public void init() {}
 }`,
+			dirty: true,
 		},
 
 		{
@@ -143,6 +148,7 @@ public class TestClass {
     @Autowired
     private SomeService service;
 }`,
+			dirty: true,
 		},
 
 		{
@@ -172,6 +178,7 @@ public class TestClass {
     @Autowired
     private OtherService service2;
 }`,
+			dirty: true,
 		},
 
 		{
@@ -197,6 +204,7 @@ public class TestClass {
     @Qualifier("jmq4.producer")
     private SomeService service;
 }`,
+			dirty: true,
 		},
 
 		{
@@ -235,14 +243,16 @@ public class TestClass {
     @Qualifier("service3")
     private AnotherService service3;
 }`,
+			dirty: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.reconcileInjectionAnnotations(jf)
+			result, dirty := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
+			assert.Equal(t, dirty, tc.dirty, tc.name)
 		})
 	}
 }
@@ -318,7 +328,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.reconcileInjectionAnnotations(jf)
+			result, _ := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
 	}
@@ -516,7 +526,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.reconcileInjectionAnnotations(jf)
+	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -640,7 +650,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.reconcileInjectionAnnotations(jf)
+	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -688,7 +698,7 @@ public class TestClass {
 }
 `
 	jf := NewJavaFile("", nil, input)
-	result := manager.reconcileInjectionAnnotations(jf)
+	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -728,7 +738,7 @@ public class TestClass {
 `
 
 	jf := NewJavaFile("", nil, input)
-	result := manager.reconcileInjectionAnnotations(jf)
+	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
 
@@ -983,7 +993,7 @@ public class TestClass {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jf := NewJavaFile("", nil, tc.input)
-			result := manager.reconcileInjectionAnnotations(jf)
+			result, _ := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
 		})
 	}

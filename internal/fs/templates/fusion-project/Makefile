@@ -25,7 +25,10 @@ init:checkenv clean
 	git submodule update --init --recursive
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
-diff: ## Display local changes compared with their original state.
+dirty: ## Display local changes summary.
+	git submodule foreach --recursive 'git diff --stat'
+
+diff: ## Display local changes details.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
 stage:

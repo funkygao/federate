@@ -46,9 +46,9 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 		}
 
 		javaFile := NewJavaFile(path, &component, string(fileContent))
-		newfileContent := m.reconcileJavaFile(javaFile)
+		newfileContent, dirty := m.reconcileJavaFile(javaFile)
 
-		if !dryRun && newfileContent != javaFile.Content() { // TODO 不能以此为准了
+		if !dryRun && dirty {
 			err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
 			if err != nil {
 				return err
@@ -59,7 +59,7 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 	return err
 }
 
-func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
+func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 	// 首先应用基于人工规则的注入转换
 	fileContent := jf.ApplyBeanTransformRule(jf.c.Transform.Beans)
 
@@ -71,15 +71,15 @@ func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
 
 // reconcileInjectionAnnotations 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
-func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile) string {
+func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile) (string, bool) {
 	if !jf.HasInjectionAnnotation() {
-		return jf.Content()
+		return jf.Content(), false
 	}
 
 	jl := jf.JavaLines()
 	jl.SeparateSections()
 	if jl.EmptyCode() {
-		return jf.Content()
+		return jf.Content(), false
 	}
 
 	codeLines, needAutowired, needQualifier := m.transformInjectionAnnotations(jf, jl.codeSectionLines)
@@ -88,7 +88,7 @@ func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile)
 	result := []string{jl.packageLine}
 	result = append(result, imports...)
 	result = append(result, codeLines...)
-	return strings.Join(result, "\n")
+	return strings.Join(result, "\n"), needAutowired || needQualifier
 }
 
 func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, codeLines []string) (processedLines []string,
