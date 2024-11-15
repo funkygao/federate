@@ -69,7 +69,7 @@ func init() {
 	)
 
 	// utility
-	rootCmd.AddCommand(chatgpt.CmdGroup, debug.CmdGroup, image.CmdGroup, util.CmdGroup)
+	rootCmd.AddCommand(chatgpt.CmdGroup, image.CmdGroup, debug.CmdGroup, util.CmdGroup)
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
