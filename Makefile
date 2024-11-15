@@ -153,7 +153,7 @@ loc: ## Count lines of Go code.
 	for dir in pkg/* cmd/*; do \
 		if [ -d "$$dir" ]; then \
 			loc=$$(cloc $$dir --include-lang=Go --json | jq -r '.Go.code // 0'); \
-			if [ $$loc -gt 100 ]; then \
+			if [ $$loc -gt 200 ]; then \
 				echo "$$dir,$$loc" >> .code_stats.csv; \
 			fi \
 		fi \
