@@ -20,6 +20,7 @@ __pycache__/
 /maven
 *.swp
 *.swo
+.code_stats.csv
 .vscode/
 
 prompt.txt

@@ -149,6 +149,18 @@ PPROF_PORT=9087
 PROFILE_FILE=cpu_profile.pb.gz
 FLAMEGRAPH_DIR=~/github/FlameGraph
 
+loc: ## Count lines of Go code.
+	for dir in pkg/* cmd/*; do \
+		if [ -d "$$dir" ]; then \
+			loc=$$(cloc $$dir --include-lang=Go --json | jq -r '.Go.code // 0'); \
+			if [ $$loc -gt 100 ]; then \
+				echo "$$dir,$$loc" >> .code_stats.csv; \
+			fi \
+		fi \
+	done
+	sort -t',' -k2 -nr .code_stats.csv | column -t -s','
+	rm -f .code_stats.csv
+
 profile:
 	go tool pprof -seconds=$(PROFILE_DURATION) -proto http://localhost:$(PPROF_PORT)/debug/pprof/profile > $(PROFILE_FILE)
 
