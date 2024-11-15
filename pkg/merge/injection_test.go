@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"federate/pkg/manifest"
 	"federate/pkg/util"
 	"github.com/stretchr/testify/assert"
 )
@@ -1410,6 +1411,54 @@ public class KvTool {
 	manager := NewSpringBeanInjectionManager()
 	jf := NewJavaFile("", nil, input)
 	assert.True(t, jf.HasInjectionAnnotation(), "jf.HasInjectionAnnotation()")
+	result, _ := manager.reconcileInjectionAnnotations(jf)
+	assert.Equal(t, expected, result)
+
+}
+
+func TestTransformAutowiredExclude(t *testing.T) {
+	input := `
+package foo;
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Setter
+@Service
+public class FooService implements Foo {
+    @Resource
+    private CountTaskMasterExternalService masterExternalService;
+    @Resource
+    private CountTaskMasterExternalService countTaskMasterExternalService;
+    @Resource
+    private Egg egg;
+}
+`
+
+	expected := `
+package foo;
+import javax.annotation.Resource;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Setter
+@Service
+public class FooService implements Foo {
+    @Resource
+    private CountTaskMasterExternalService masterExternalService;
+    @Resource
+    private CountTaskMasterExternalService countTaskMasterExternalService;
+    @Autowired
+    private Egg egg;
+}
+`
+	manager := NewSpringBeanInjectionManager()
+	jf := NewJavaFile("FooService.java", &manifest.ComponentInfo{
+		Name: "inv",
+		Transform: manifest.TransformSpec{
+			Autowired: manifest.AutowiredSpec{
+				Excludes: []string{"CountTaskMasterExternalService"},
+			},
+		},
+	}, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result)
 
