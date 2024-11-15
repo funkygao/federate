@@ -14,7 +14,7 @@ func reconcileBeanInjectionConflicts(m *manifest.Manifest, manager *merge.Spring
 	}
 
 	if manager.AutowiredN > 0 {
-		log.Printf("Source Code Rewritten, @Resource -> @Autowired: %d, +@Qualifier: %d", manager.AutowiredN, manager.QualifierN)
+		log.Printf("Source Code Rewritten, +@Autowired: %d, +@Qualifier: %d", manager.AutowiredN, manager.QualifierN)
 	}
 	color.Green("🍺 Java code Spring Bean Injection conflicts reconciled")
 }
