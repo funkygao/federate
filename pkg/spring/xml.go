@@ -8,8 +8,13 @@ import (
 	"github.com/beevik/etree"
 )
 
+const (
+	logPrefix       = "%-13s"
+	examiningPrefix = "  %-11s"
+)
+
 func (m *manager) SearchBean(springXmlPath string, beanId string) (bool, string) {
-	log.Printf("Starting search %s from: %s", beanId, springXmlPath)
+	log.Printf(logPrefix+"from: %s", "Starting search", springXmlPath)
 	return m.searchBeanInFile(springXmlPath, beanId, make(map[string]bool))
 }
 
@@ -27,14 +32,14 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 	}
 
 	if len(matches) > 1 || strings.Contains(filePath, "*") {
-		log.Printf("Searching in file: %s", filePath)
+		log.Printf(logPrefix+"%s", "Searching in", filePath)
 	}
 
 	for _, match := range matches {
 		if len(matches) > 1 || strings.Contains(filePath, "*") {
-			log.Printf("   Examining file: %s", match)
+			log.Printf(examiningPrefix+"%s", "Examining", match)
 		} else {
-			log.Printf("Searching in file: %s", match)
+			log.Printf(logPrefix+"%s", "Searching in", match)
 		}
 
 		doc := etree.NewDocument()
@@ -50,7 +55,6 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 			if isBeanElement(elem) {
 				id := getBeanId(elem)
 				if id == beanId {
-					printBeanInfo(elem, match)
 					return true, match
 				}
 			}
@@ -61,7 +65,7 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 			resource := imp.SelectAttrValue("resource", "")
 			if resource != "" {
 				importedPath := filepath.Join(filepath.Dir(match), resource)
-				log.Printf("Following import:  %s", importedPath)
+				log.Printf(logPrefix+"%s", "Following", importedPath)
 				found, foundFile := m.searchBeanInFile(importedPath, beanId, visitedFiles)
 				if found {
 					return true, foundFile
@@ -74,17 +78,19 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 }
 
 func isBeanElement(elem *etree.Element) bool {
-	return elem.Tag == "bean" ||
+	isBean := elem.Tag == "bean" ||
 		strings.HasSuffix(elem.Tag, ":bean") ||
 		elem.Tag == "jmq:producer" ||
 		elem.Tag == "jmq:consumer" ||
 		elem.Tag == "jmq:transport" ||
-		elem.Tag == "util:list" ||
-		elem.Tag == "util:set" ||
-		elem.Tag == "util:map" ||
+		elem.Tag == "map" || // handle <util:map>
+		elem.Tag == "list" || // handle <util:list>
 		elem.Tag == "jsf:consumer" ||
+		elem.Tag == "jsf:provider" ||
 		elem.Tag == "dubbo:reference" ||
 		elem.Tag == "dubbo:service"
+
+	return isBean
 }
 
 func getBeanId(elem *etree.Element) string {
@@ -93,27 +99,4 @@ func getBeanId(elem *etree.Element) string {
 		id = elem.SelectAttrValue("name", "")
 	}
 	return id
-}
-
-func printBeanInfo(elem *etree.Element, filePath string) {
-	log.Printf("Bean details:")
-	log.Printf("File: %s", filePath)
-	log.Printf("Element: %s", elem.Tag)
-	log.Printf("ID: %s", getBeanId(elem))
-	log.Printf("Class: %s", elem.SelectAttrValue("class", "N/A"))
-
-	// Print additional attributes
-	for _, attr := range elem.Attr {
-		if attr.Key != "id" && attr.Key != "name" && attr.Key != "class" {
-			log.Printf("Attribute %s: %s", attr.Key, attr.Value)
-		}
-	}
-
-	// Print child elements (e.g., properties, constructor-args)
-	for _, child := range elem.ChildElements() {
-		log.Printf("Child element: %s", child.Tag)
-		for _, attr := range child.Attr {
-			log.Printf("  %s: %s", attr.Key, attr.Value)
-		}
-	}
 }
