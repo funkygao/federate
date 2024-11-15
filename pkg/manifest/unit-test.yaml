@@ -32,6 +32,9 @@ components:
       - com.jdwl.wms:wms-stock-api-provider:1.0.0
       - com.jdwl.wms:wms-stock-work:1.0.0
     transform:
+      autowired:
+        exclude:
+          - CountTaskMasterExternalService
       beans:
         foo: bar
         egg: baz
