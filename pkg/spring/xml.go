@@ -14,7 +14,7 @@ const (
 )
 
 func (m *manager) SearchBean(springXmlPath string, beanId string) (bool, string) {
-	log.Printf(logPrefix+"from: %s", "Starting search", springXmlPath)
+	log.Printf("Starting from %s", springXmlPath)
 	return m.searchBeanInFile(springXmlPath, beanId, make(map[string]bool))
 }
 
@@ -31,15 +31,9 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 		return false, ""
 	}
 
-	if len(matches) > 1 || strings.Contains(filePath, "*") {
-		log.Printf(logPrefix+"%s", "Searching in", filePath)
-	}
-
 	for _, match := range matches {
 		if len(matches) > 1 || strings.Contains(filePath, "*") {
 			log.Printf(examiningPrefix+"%s", "Examining", match)
-		} else {
-			log.Printf(logPrefix+"%s", "Searching in", match)
 		}
 
 		doc := etree.NewDocument()

@@ -35,7 +35,8 @@ func Execute() {
 }
 
 func init() {
-	log.SetFlags(0) // log.Lshortfile
+	log.SetFlags(0)          // log.Lshortfile
+	log.SetOutput(os.Stdout) // 默认 stderr
 
 	cobra.EnableCommandSorting = false
 
