@@ -22,15 +22,16 @@ func newJavaLines(lines []string) *JavaLines {
 func (jl *JavaLines) SeparateSections() {
 	ct := NewCommentTracker()
 	for _, line := range jl.lines {
-		trimmedLine := strings.TrimSpace(line)
-		if trimmedLine == "" || ct.InComment(line) {
+		if jl.IsEmptyLine(line) || ct.InComment(line) {
+			// 注释、空行保留
+			jl.codeSectionLines = append(jl.codeSectionLines, line)
 			continue
 		}
 
 		switch {
-		case strings.HasPrefix(trimmedLine, "package "):
+		case P.packageRegex.MatchString(line):
 			jl.packageLine = line
-		case strings.HasPrefix(trimmedLine, "import "):
+		case P.importRegex.MatchString(line):
 			jl.imports = append(jl.imports, line)
 		default:
 			jl.codeSectionLines = append(jl.codeSectionLines, line)
@@ -42,15 +43,19 @@ func (jl *JavaLines) EmptyCode() bool {
 	return len(jl.codeSectionLines) == 0
 }
 
+func (jl *JavaLines) IsEmptyLine(line string) bool {
+	return strings.TrimSpace(line) == ""
+}
+
 // 扫描全部注入的 bean
 // beans: key is bean type, value is list of field name
-func (jl *JavaLines) InjectedBeans() (beans map[string][]string) {
+func (jl *JavaLines) ScanInjectedBeans() (beans map[string][]string) {
 	beans = make(map[string][]string)
 	for i := 0; i < len(jl.lines); i++ {
 		line := jl.lines[i]
 
 		// 通过 @Resource/@Autowired 注入，注入可能在 setter 方法，也可能在字段
-		if P.resourcePattern.MatchString(line) || P.autowiredPattern.MatchString(line) {
+		if P.IsInjectionAnnotatedLine(line) {
 			if i+1 < len(jl.lines) {
 				nextLine := jl.lines[i+1]
 				annotatedDeclaration := line + "\n" + nextLine

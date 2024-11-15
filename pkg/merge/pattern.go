@@ -27,6 +27,9 @@ type pattern struct {
 
 	// Xxx.getBean
 	getBeanPattern *regexp.Regexp
+
+	packageRegex *regexp.Regexp
+	importRegex  *regexp.Regexp
 }
 
 func (p *pattern) createJavaRegex(key string) *regexp.Regexp {
@@ -39,6 +42,10 @@ func (p *pattern) createXmlRegex(key string) *regexp.Regexp {
 
 func (p *pattern) createConfigurationPropertiesRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
+}
+
+func (p *pattern) IsInjectionAnnotatedLine(line string) bool {
+	return p.resourcePattern.MatchString(line) || p.autowiredPattern.MatchString(line)
 }
 
 func init() {
@@ -56,5 +63,8 @@ func init() {
 		systemGetPropertyRegex: regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`),
 
 		getBeanPattern: regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`),
+
+		packageRegex: regexp.MustCompile(`^\s*package\s+[\w.]+\s*;?\s*`),
+		importRegex:  regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
 	}
 }

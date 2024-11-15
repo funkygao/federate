@@ -62,7 +62,7 @@ func (j *JavaFile) lines() []string {
 	return j.cachedLines
 }
 
-func (jf *JavaFile) HasResourceOrAutowiredInjection() bool {
+func (jf *JavaFile) HasInjectionAnnotation() bool {
 	// 可能会匹配到注释中的 "@Resource" 或 "@Autowired"，导致假阳性
 	return P.resourcePattern.MatchString(jf.content) ||
 		!P.autowiredPattern.MatchString(jf.content)

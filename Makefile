@@ -21,7 +21,7 @@ help:
 ##@ Build
 
 vet:
-	go list ./... | grep -v "federate/pkg/ast/parser" | xargs go vet
+	go vet ./...
 
 generate:
 	go generate ./...
@@ -41,6 +41,7 @@ coverage:
 clean:
 	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build cpu_*
+	cd $(JAVAST_DIR) && $(MAVEN) clean -q
 
 ast:
 	cd pkg/ast && antlr -Dlanguage=Go -o parser Java8Lexer.g4 Java8Parser.g4
@@ -54,6 +55,7 @@ install: test embed-javast ## Check if Go is installed, install if not, then bui
 		fi; \
 		brew install go; \
 	fi
+	echo "💡 Latest commit: $$(git log -1 --pretty=format:"%h by %an, %ar: %s")"
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
 		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)"; \
 		echo "🍺 Installed to $(HOMEBREW_PREFIX)/bin/federate"; \

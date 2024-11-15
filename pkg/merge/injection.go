@@ -14,13 +14,12 @@ import (
 
 // 处理 @Resource 的 Bean 注入：基本操作是替换为 @Autowired，如果一个类里同一个类型有多次注入则增加 @Qualifier
 type SpringBeanInjectionManager struct {
-	Updated int
+	AutowiredN int
+	QualifierN int
 }
 
 func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
-	return &SpringBeanInjectionManager{
-		Updated: 0,
-	}
+	return &SpringBeanInjectionManager{}
 }
 
 func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) error {
@@ -54,8 +53,6 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 			if err != nil {
 				return err
 			}
-
-			m.Updated++
 		}
 		return nil
 	})
@@ -69,16 +66,16 @@ func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) string {
 	jf.UpdateContent(fileContent)
 
 	// 然后应用 @Resource 到 @Autowired 的转换
-	if !jf.HasResourceOrAutowiredInjection() {
-		return fileContent
-	}
-
 	return m.reconcileInjectionAnnotations(jf)
 }
 
 // reconcileInjectionAnnotations 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
 func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile) string {
+	if !jf.HasInjectionAnnotation() {
+		return jf.Content()
+	}
+
 	jl := jf.JavaLines()
 	jl.SeparateSections()
 	if jl.EmptyCode() {
@@ -94,82 +91,84 @@ func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile)
 	return strings.Join(result, "\n")
 }
 
-// TODO 大量代码与 javalines 重复
 func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, codeLines []string) (processedLines []string,
 	needAutowired bool, needQualifier bool) {
+	// pass 1: scan
 	jc := newJavaLines(codeLines)
-	beans := jc.InjectedBeans()
+	beans := jc.ScanInjectedBeans()
+
 	commentTracker := NewCommentTracker()
 
+	// pass 2: transform code in place
 	for i := 0; i < len(codeLines); i++ {
 		line := codeLines[i]
-		if commentTracker.InComment(line) {
+		if jc.IsEmptyLine(line) || commentTracker.InComment(line) || !P.IsInjectionAnnotatedLine(line) {
+			processedLines = append(processedLines, line)
 			continue
 		}
 
-		if P.resourcePattern.MatchString(line) || P.autowiredPattern.MatchString(line) {
-			if i+1 < len(codeLines) {
-				nextLine := codeLines[i+1]
-				indent := strings.TrimSuffix(line, strings.TrimSpace(line))
+		if i >= len(codeLines)-1 {
+			// EOF
+			return
+		}
 
-				if P.methodResourcePattern.MatchString(line + "\n" + nextLine) {
-					// 处理方法注入
-					beanType := jc.getBeanTypeFromMethodSignature(nextLine)
-					processedLines = append(processedLines, indent+"@Autowired")
-					needAutowired = true
-					qualifierName := jc.getQualifierNameFromMethod(line, nextLine)
-					if qualifierName == "" {
-						// fallback
-						qualifierName = strings.ToLower(beanType[:1]) + beanType[1:]
-					}
+		nextLine := codeLines[i+1]
+		leadingSpace := strings.TrimSuffix(line, strings.TrimSpace(line))
 
-					if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
-						processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
-						needQualifier = true
-					}
-
-					processedLines = append(processedLines, nextLine)
-					i++ // 跳过下一行
-				} else {
-					// 处理字段注入
-					beanType, fieldName := jc.parseFieldDeclaration(nextLine)
-
-					if m.shouldKeepResource(beans, beanType, fieldName) {
-						log.Printf("[%s] %s Keep @Resource for %s %s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
-						processedLines = append(processedLines, line, nextLine)
-						i++
-						continue
-					}
-
-					// 检查是否为 Map, HashMap 或 List 类型
-					if P.genericTypePattern.MatchString(nextLine) {
-						processedLines = append(processedLines, line, nextLine)
-						i++
-						continue
-					}
-
-					if P.resourcePattern.MatchString(line) {
-						processedLines = append(processedLines, indent+"@Autowired")
-						needAutowired = true
-					} else {
-						processedLines = append(processedLines, line)
-					}
-
-					if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
-						qualifierName := fieldName
-						if matches := P.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
-							qualifierName = matches[1]
-						}
-						processedLines = append(processedLines, indent+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
-						needQualifier = true
-					}
-
-					processedLines = append(processedLines, nextLine)
-					i++ // 跳过下一行
-				}
+		if P.methodResourcePattern.MatchString(line + "\n" + nextLine) {
+			// 处理方法注入
+			beanType := jc.getBeanTypeFromMethodSignature(nextLine)
+			processedLines = append(processedLines, leadingSpace+"@Autowired")
+			m.AutowiredN++
+			needAutowired = true
+			qualifierName := jc.getQualifierNameFromMethod(line, nextLine)
+			if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
+				processedLines = append(processedLines, leadingSpace+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
+				m.QualifierN++
+				needQualifier = true
 			}
+
+			processedLines = append(processedLines, nextLine)
+			i++ // 跳过下一行
 		} else {
-			processedLines = append(processedLines, line)
+			// 处理字段注入
+			beanType, fieldName := jc.parseFieldDeclaration(nextLine)
+
+			if m.shouldKeepResource(beans, beanType, fieldName) {
+				log.Printf("[%s] %s Keep @Resource for %s %s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
+				processedLines = append(processedLines, line, nextLine)
+				i++
+				continue
+			}
+
+			// 检查是否为 Map, HashMap 或 List 类型
+			if P.genericTypePattern.MatchString(nextLine) {
+				processedLines = append(processedLines, line, nextLine)
+				i++
+				continue
+			}
+
+			if P.resourcePattern.MatchString(line) {
+				processedLines = append(processedLines, leadingSpace+"@Autowired")
+				m.AutowiredN++
+				needAutowired = true
+			} else {
+				processedLines = append(processedLines, line)
+			}
+
+			if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
+				qualifierName := fieldName
+				if matches := P.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
+					qualifierName = matches[1]
+				}
+				processedLines = append(processedLines, leadingSpace+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
+				m.QualifierN++
+
+				needQualifier = true
+			}
+
+			processedLines = append(processedLines, nextLine)
+			i++ // 跳过下一行
 		}
 	}
 

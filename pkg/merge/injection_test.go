@@ -621,10 +621,17 @@ import javax.annotation.Resource;
 import org.springframework.beans.factory.annotation.Autowired;
 
 public class TestClass {
+    // @Resource
     private SomeService service1;
 
+    /*
+     * @Resource
+     */
     private OtherService service2;
 
+    /**
+     * @Resource
+     */
     private AnotherService service3;
 
     @Autowired
@@ -1062,7 +1069,7 @@ func TestScanBeanTypeCounts(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			jc := newJavaLines(tc.input)
-			result := jc.InjectedBeans()
+			result := jc.ScanInjectedBeans()
 			assert.Equal(t, tc.expected, result, tc.name)
 		})
 	}
