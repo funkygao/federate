@@ -1176,8 +1176,6 @@ func TestGetQualifierNameFromMethod(t *testing.T) {
 }
 
 func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
-
 	tests := []struct {
 		name           string
 		beans          map[string][]string
@@ -1259,9 +1257,10 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 		},
 	}
 
+	jf := NewJavaFile("", nil, "")
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := manager.shouldKeepResource(nil, tt.beans, tt.beanType, tt.fieldName)
+			result := jf.shouldKeepResource(tt.beans, tt.beanType, tt.fieldName)
 			assert.Equal(t, tt.expectedResult, result, tt.name)
 		})
 	}

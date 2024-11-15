@@ -137,7 +137,7 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 			// 处理字段注入
 			beanType, fieldName := jc.parseFieldDeclaration(nextLine)
 
-			if m.shouldKeepResource(jf, beans, beanType, fieldName) {
+			if jf.shouldKeepResource(beans, beanType, fieldName) {
 				log.Printf("[%s] %s Keep @Resource for %s %s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
 				processedLines = append(processedLines, line, nextLine)
 				i++
@@ -218,50 +218,4 @@ func removeResourceImport(imports []string) []string {
 		}
 	}
 	return result
-}
-
-// 由于原有Java代码书写不规范，一个接口只有一个实现类，却被注入多次。这时，不修改原有的 Resource
-// 规则：同一类行多次注入，而且 Impl 成对出现，则保持原有注入方式，不替换
-//
-//	public class Foo {
-//	    @Resource
-//	    private EggService eggService;
-//	    @Resource
-//	    private EggService eggServiceImpl;
-//	    @Resource
-//	    private EggService eggserviceImpl;
-//	}
-func (m *SpringBeanInjectionManager) shouldKeepResource(jf *JavaFile, beans map[string][]string, beanType string, fieldName string) bool {
-	fieldNames, exists := beans[beanType]
-	if !exists || len(fieldNames) <= 1 {
-		return false
-	}
-
-	if jf != nil && jf.c != nil && jf.c.Transform.Autowired.ExcludeBeanType(beanType) {
-		return true
-	}
-
-	lowerFieldName := strings.ToLower(fieldName)
-	hasImpl := strings.HasSuffix(lowerFieldName, "impl")
-
-	for _, otherFieldName := range fieldNames {
-		if otherFieldName == fieldName {
-			continue // 跳过自身
-		}
-
-		lowerOtherFieldName := strings.ToLower(otherFieldName)
-
-		// 只有当存在配对的 Impl 和非 Impl 字段时，才保留 @Resource
-		if hasImpl {
-			if strings.TrimSuffix(lowerFieldName, "impl") == lowerOtherFieldName {
-				return true
-			}
-		} else {
-			if lowerFieldName == strings.TrimSuffix(lowerOtherFieldName, "impl") {
-				return true
-			}
-		}
-	}
-
-	return false
 }
