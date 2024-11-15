@@ -82,40 +82,34 @@ func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile)
 		return jf.Content(), false
 	}
 
-	codeLines, needAutowired, needQualifier := m.transformInjectionAnnotations(jf, jl.codeSectionLines)
-	// 移除 codeLines 开头的空行
-	for len(codeLines) > 0 && strings.TrimSpace(codeLines[0]) == "" {
-		codeLines = codeLines[1:]
-	}
-
-	result := []string{jl.packageLine}
-	result = append(result, m.processImports(jl.imports, needAutowired, needQualifier)...)
-	result = append(result, codeLines...)
+	bodyLines, needAutowired, needQualifier := m.transformInjectionAnnotations(jf, jl.BodyLines())
+	result := m.transformImportIfNec(jl.HeadLines(), needAutowired, needQualifier)
+	result = append(result, bodyLines...)
 	return strings.Join(result, "\n"), needAutowired || needQualifier
 }
 
-func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, codeLines []string) (processedLines []string,
+func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, bodyLines []string) (processedLines []string,
 	needAutowired bool, needQualifier bool) {
 	// pass 1: scan
-	jc := newJavaLines(codeLines)
+	jc := newJavaLines(bodyLines)
 	beans := jc.ScanInjectedBeans()
 
 	commentTracker := NewCommentTracker()
 
 	// pass 2: transform code in place
-	for i := 0; i < len(codeLines); i++ {
-		line := codeLines[i]
+	for i := 0; i < len(bodyLines); i++ {
+		line := bodyLines[i]
 		if jc.IsEmptyLine(line) || commentTracker.InComment(line) || !P.IsInjectionAnnotatedLine(line) {
 			processedLines = append(processedLines, line)
 			continue
 		}
 
-		if i >= len(codeLines)-1 {
+		if i >= len(bodyLines)-1 {
 			// EOF
 			return
 		}
 
-		nextLine := codeLines[i+1]
+		nextLine := bodyLines[i+1]
 		leadingSpace := strings.TrimSuffix(line, strings.TrimSpace(line))
 
 		if P.methodResourcePattern.MatchString(line + "\n" + nextLine) {
@@ -178,44 +172,33 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 	return processedLines, needAutowired, needQualifier
 }
 
-func (m *SpringBeanInjectionManager) processImports(imports []string, needAutowired, needQualifier bool) []string {
-	var processedImports []string
+func (m *SpringBeanInjectionManager) transformImportIfNec(headLines []string, needAutowired, needQualifier bool) []string {
+	var processedHeadLines []string
 	autowiredImported := false
 	qualifierImported := false
-	resourceImported := false
 
-	for _, imp := range imports {
-		switch {
-		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Autowired"):
-			autowiredImported = true
-		case strings.Contains(imp, "org.springframework.beans.factory.annotation.Qualifier"):
-			qualifierImported = true
-		case strings.Contains(imp, "javax.annotation.Resource"):
-			resourceImported = true
+	ct := NewCommentTracker()
+	for _, line := range headLines {
+		processedHeadLines = append(processedHeadLines, line)
+		if ct.InComment(line) {
+			continue
 		}
-		processedImports = append(processedImports, imp)
+
+		switch {
+		case strings.Contains(line, "org.springframework.beans.factory.annotation.Autowired"):
+			autowiredImported = true
+		case strings.Contains(line, "org.springframework.beans.factory.annotation.Qualifier"):
+			qualifierImported = true
+		}
 	}
 
+	// Append imports if neccessary
 	if needAutowired && !autowiredImported {
-		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Autowired;")
+		processedHeadLines = append(processedHeadLines, "import org.springframework.beans.factory.annotation.Autowired;")
 	}
 	if needQualifier && !qualifierImported {
-		processedImports = append(processedImports, "import org.springframework.beans.factory.annotation.Qualifier;")
-	}
-	if !resourceImported {
-		// Remove Resource import if it's not needed anymore
-		processedImports = removeResourceImport(processedImports)
+		processedHeadLines = append(processedHeadLines, "import org.springframework.beans.factory.annotation.Qualifier;")
 	}
 
-	return processedImports
-}
-
-func removeResourceImport(imports []string) []string {
-	var result []string
-	for _, imp := range imports {
-		if !strings.Contains(imp, "javax.annotation.Resource") {
-			result = append(result, imp)
-		}
-	}
-	return result
+	return processedHeadLines
 }

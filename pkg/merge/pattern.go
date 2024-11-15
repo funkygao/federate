@@ -28,8 +28,7 @@ type pattern struct {
 	// Xxx.getBean
 	getBeanPattern *regexp.Regexp
 
-	packageRegex *regexp.Regexp
-	importRegex  *regexp.Regexp
+	importRegex *regexp.Regexp
 }
 
 func (p *pattern) createJavaRegex(key string) *regexp.Regexp {
@@ -64,7 +63,6 @@ func init() {
 
 		getBeanPattern: regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`),
 
-		packageRegex: regexp.MustCompile(`^\s*package\s+[\w.]+\s*;?\s*`),
-		importRegex:  regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
+		importRegex: regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
 	}
 }

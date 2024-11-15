@@ -9,10 +9,9 @@ import (
 
 func TestSeparateSections(t *testing.T) {
 	tests := []struct {
-		name            string
-		input           string
-		expectedPackage string
-		expectedImports []string
+		name           string
+		input          string
+		expectedHeader string
 	}{
 		{
 			name: "Basic separation",
@@ -24,11 +23,10 @@ import java.util.Map;
 
 public class Test {
 }`,
-			expectedPackage: "package com.example;",
-			expectedImports: []string{
-				"import java.util.List;",
-				"import java.util.Map;",
-			},
+			expectedHeader: `package com.example;
+
+import java.util.List;
+import java.util.Map;`,
 		},
 		{
 			name: "With comments containing package and import",
@@ -46,11 +44,15 @@ import java.util.Map;
 public class Test {
     // import java.util.ArrayList;
 }`,
-			expectedPackage: "package com.example;",
-			expectedImports: []string{
-				"import java.util.List;",
-				"import java.util.Map;",
-			},
+			expectedHeader: `// This comment contains package com.fake;
+package com.example;
+
+/* Multi-line comment
+   import java.fake.Class;
+   package com.another.fake; */
+import java.util.List;
+// Another comment with import java.util.FakeClass;
+import java.util.Map;`,
 		},
 	}
 
@@ -60,8 +62,7 @@ public class Test {
 			jl := newJavaLines(lines)
 			jl.SeparateSections()
 
-			assert.Equal(t, tt.expectedPackage, jl.packageLine)
-			assert.Equal(t, tt.expectedImports, jl.imports)
+			assert.Equal(t, tt.expectedHeader, strings.Join(jl.HeadLines(), "\n"))
 		})
 	}
 }

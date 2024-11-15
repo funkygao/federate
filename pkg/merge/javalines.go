@@ -6,58 +6,61 @@ import (
 )
 
 type JavaLines struct {
-	lines []string
+	rawLines []string
 
-	packageLine string
-	imports     []string
+	// package, import
+	headLines []string
 
-	codeSectionLines []string
+	// after import
+	bodyLines []string
 }
 
 func newJavaLines(lines []string) *JavaLines {
-	return &JavaLines{lines: lines}
+	return &JavaLines{rawLines: lines}
 }
 
-// 分离包声明、导入语句和代码，同时处理注释
-func (jl *JavaLines) SeparateSections() {
-	ct := NewCommentTracker()
-	for _, line := range jl.lines {
-		if jl.IsEmptyLine(line) || ct.InComment(line) {
-			// 注释、空行保留
-			jl.codeSectionLines = append(jl.codeSectionLines, line)
-			continue
-		}
+func (jl *JavaLines) HeadLines() []string {
+	return jl.headLines
+}
 
-		switch {
-		case P.packageRegex.MatchString(line):
-			jl.packageLine = line
-		case P.importRegex.MatchString(line):
-			jl.imports = append(jl.imports, line)
-		default:
-			jl.codeSectionLines = append(jl.codeSectionLines, line)
-		}
-	}
+func (jl *JavaLines) BodyLines() []string {
+	return jl.bodyLines
 }
 
 func (jl *JavaLines) EmptyCode() bool {
-	return len(jl.codeSectionLines) == 0
+	return len(jl.bodyLines) == 0
 }
 
 func (jl *JavaLines) IsEmptyLine(line string) bool {
 	return strings.TrimSpace(line) == ""
 }
 
+// 分离包声明、导入语句和代码，同时处理注释
+func (jl *JavaLines) SeparateSections() {
+	lastImportIdx := -1
+	for i, line := range jl.rawLines {
+		if P.importRegex.MatchString(line) {
+			lastImportIdx = i
+		}
+	}
+
+	if lastImportIdx > 0 {
+		jl.headLines = jl.rawLines[:lastImportIdx+1]
+		jl.bodyLines = jl.rawLines[lastImportIdx+1:]
+	}
+}
+
 // 扫描全部注入的 bean
 // beans: key is bean type, value is list of field name
 func (jl *JavaLines) ScanInjectedBeans() (beans map[string][]string) {
 	beans = make(map[string][]string)
-	for i := 0; i < len(jl.lines); i++ {
-		line := jl.lines[i]
+	for i := 0; i < len(jl.rawLines); i++ {
+		line := jl.rawLines[i]
 
 		// 通过 @Resource/@Autowired 注入，注入可能在 setter 方法，也可能在字段
 		if P.IsInjectionAnnotatedLine(line) {
-			if i+1 < len(jl.lines) {
-				nextLine := jl.lines[i+1]
+			if i+1 < len(jl.rawLines) {
+				nextLine := jl.rawLines[i+1]
 				annotatedDeclaration := line + "\n" + nextLine
 
 				var beanType, beanName string

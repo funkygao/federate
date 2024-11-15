@@ -409,7 +409,7 @@ func TestProcessCodeLines(t *testing.T) {
 	}
 }
 
-func TestProcessImports(t *testing.T) {
+func TestTransformImportIfNec(t *testing.T) {
 	manager := NewSpringBeanInjectionManager()
 
 	testCases := []struct {
@@ -463,7 +463,7 @@ func TestProcessImports(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := manager.processImports(tc.imports, tc.needAutowired, tc.needQualifier)
+			result := manager.transformImportIfNec(tc.imports, tc.needAutowired, tc.needQualifier)
 			assert.Equal(t, tc.expectedImports, result)
 		})
 	}
@@ -1307,6 +1307,7 @@ func TestNoExtraLinesBetweenImportsAndClass(t *testing.T) {
 	manager := NewSpringBeanInjectionManager()
 
 	input := `
+// bingo
 package com.example;
 
 import lombok.SneakyThrows;
@@ -1315,8 +1316,10 @@ import lombok.extern.slf4j.Slf4j;
 import java.lang.reflect.Method;
 import java.util.*;
 
+// hello world
 import javax.annotation.Resource;
 
+// import fake
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -1331,18 +1334,28 @@ public class TestClass {
 }
 `
 
-	expected := `package com.example;
+	expected := `
+// bingo
+package com.example;
+
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+
 import java.lang.reflect.Method;
 import java.util.*;
+
+// hello world
 import javax.annotation.Resource;
+
+// import fake
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.MapUtils;
 import org.apache.commons.lang3.ArrayUtils;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import org.springframework.beans.factory.annotation.Autowired;
+
 @Component
 public class TestClass {
     @Autowired
