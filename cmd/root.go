@@ -73,8 +73,8 @@ func init() {
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
-	rootCmd.AddCommand(workload.CmdGroup)
 	rootCmd.AddCommand(plus.CmdGroup)
+	rootCmd.AddCommand(workload.CmdGroup)
 
 	// system
 	rootCmd.AddCommand(version.CmdGroup)
