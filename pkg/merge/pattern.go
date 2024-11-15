@@ -53,11 +53,11 @@ func init() {
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
 		methodResourcePattern:   regexp.MustCompile(`@Resource\b(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
 
-		autowiredPattern:        regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?`),
-		methodAutowiredPattern:  regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
-		qualifierPattern:        regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
+		autowiredPattern:       regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?`),
+		methodAutowiredPattern: regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
+		qualifierPattern:       regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
 
-		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
+		genericTypePattern: regexp.MustCompile(`(Map|List)<.*>`),
 
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
 

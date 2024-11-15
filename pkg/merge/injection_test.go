@@ -1304,7 +1304,6 @@ public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApprove
 }
 
 func TestNoExtraLinesBetweenImportsAndClass(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
 
 	input := `
 // bingo
@@ -1363,7 +1362,55 @@ public class TestClass {
 }
 `
 
+	manager := NewSpringBeanInjectionManager()
 	jf := NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result, "Should not add extra lines between imports and class declaration")
+}
+
+func TestAutowiredAddQualifier(t *testing.T) {
+	input := `
+package foo;
+import com.github.kv.cli.Cluster;
+import org.springframework.beans.factory.annotation.Autowired;
+
+@Component
+public class KvTool {
+    /**
+     * 通用连接池
+     */
+    @Autowired(required = false)
+    private Cluster commonClient;
+
+    @Autowired(required = false)
+    private Cluster myClient;
+}
+`
+
+	expected := `
+package foo;
+import com.github.kv.cli.Cluster;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+
+@Component
+public class KvTool {
+    /**
+     * 通用连接池
+     */
+    @Autowired(required = false)
+    @Qualifier("commonClient")
+    private Cluster commonClient;
+
+    @Autowired(required = false)
+    @Qualifier("myClient")
+    private Cluster myClient;
+}
+`
+	manager := NewSpringBeanInjectionManager()
+	jf := NewJavaFile("", nil, input)
+	assert.True(t, jf.HasInjectionAnnotation(), "jf.HasInjectionAnnotation()")
+	result, _ := manager.reconcileInjectionAnnotations(jf)
+	assert.Equal(t, expected, result)
+
 }
