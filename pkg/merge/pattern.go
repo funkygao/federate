@@ -49,13 +49,15 @@ func (p *pattern) IsInjectionAnnotatedLine(line string) bool {
 
 func init() {
 	P = pattern{
-		resourcePattern:         regexp.MustCompile(`@Resource(\s*\([^)]*\))?`),
+		resourcePattern:         regexp.MustCompile(`@Resource\b(\s*\([^)]*\))?`),
 		resourceWithNamePattern: regexp.MustCompile(`@Resource\s*\(\s*name\s*=\s*"([^"]*)"\s*\)`),
-		methodResourcePattern:   regexp.MustCompile(`@Resource(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
-		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
-		autowiredPattern:        regexp.MustCompile(`@Autowired(\s*\([^)]*\))?`),
-		methodAutowiredPattern:  regexp.MustCompile(`@Autowired(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
+		methodResourcePattern:   regexp.MustCompile(`@Resource\b(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
+
+		autowiredPattern:        regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?`),
+		methodAutowiredPattern:  regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
 		qualifierPattern:        regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
+
+		genericTypePattern:      regexp.MustCompile(`(Map|List)<.*>`),
 
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
 

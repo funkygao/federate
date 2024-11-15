@@ -86,3 +86,15 @@ func TestImportRegex(t *testing.T) {
 		assert.False(P.importRegex.MatchString(imp), "Should be an invalid import statement: %s", imp)
 	}
 }
+
+func TestIsInjectionAnnotatedLine(t *testing.T) {
+	assert.False(t, P.IsInjectionAnnotatedLine(`public class`))
+	assert.False(t, P.IsInjectionAnnotatedLine(`package foo;`))
+
+	assert.True(t, P.IsInjectionAnnotatedLine(`@Autowired`))
+	assert.True(t, P.IsInjectionAnnotatedLine(`@Autowired(required = false)`))
+	assert.False(t, P.IsInjectionAnnotatedLine(`@Autowiredx(required = false)`), `@Autowiredx(required = false)`)
+	assert.True(t, P.IsInjectionAnnotatedLine(`@Resource`))
+	assert.True(t, P.IsInjectionAnnotatedLine(`@Resource(name ="foo")`))
+	assert.False(t, P.IsInjectionAnnotatedLine(`@ResourceMapper(name ="foo")`), `@ResourceMapper(name ="foo")`)
+}
