@@ -42,7 +42,7 @@ func (d *javastDriver) Invoke(command, jsonArgs string) error {
 	if err != nil {
 		log.Printf("Error: %s", stderr.String())
 	}
-	out := stdout.String()
+	out := strings.TrimSpace(stdout.String())
 	if out != "" {
 		log.Println(out)
 	}
