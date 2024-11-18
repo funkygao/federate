@@ -12,5 +12,5 @@ func transformServiceValue(m *merge.ServiceManager) {
 		log.Fatalf("%v", err)
 
 	}
-	color.Green("🍺 Java @Service transformed")
+	color.Green("🍺 Java @Service and corresponding spring.xml ref transformed")
 }

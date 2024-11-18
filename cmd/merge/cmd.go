@@ -71,11 +71,6 @@ func doMerge(m *manifest.Manifest) {
 				InstrumentPomForFederatePackaging(m) // 代码插桩
 			}},
 		{
-			Name: "Transforming Java @Service value",
-			Fn: func() {
-				transformServiceValue(serviceManager)
-			}},
-		{
 			Name: "Reconciling ENV variables conflicts",
 			Fn: func() {
 				reconcileEnvConflicts(m)
@@ -119,6 +114,11 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Generating Federated Spring Bootstrap XML",
 			Fn: func() {
 				generateSpringBootstrapXML(m)
+			}},
+		{
+			Name: "Transforming Java @Service value",
+			Fn: func() {
+				transformServiceValue(serviceManager)
 			}},
 	}
 
