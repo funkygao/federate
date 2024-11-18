@@ -22,12 +22,13 @@ var beanCmd = &cobra.Command{
 func searchBean(m *manifest.Manifest, beanId string) {
 	springXmlPath := filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
 	manager := spring.New()
-	ok, path := manager.SearchBean(springXmlPath, beanId)
-	if ok {
-		color.Green("bean[%s] found in %s", beanId, path)
-	} else {
-		color.Red("bean[%s] not found", beanId)
+	for _, bean := range manager.ListBeans(springXmlPath, spring.SearchByID) {
+		if bean.Identifier == beanId {
+			color.Green("bean[%s] found in %s", beanId, bean.FileName)
+			return
+		}
 	}
+	color.Red("bean[%s] not found", beanId)
 
 }
 

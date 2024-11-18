@@ -13,28 +13,30 @@ const (
 	examiningPrefix = "  %-11s"
 )
 
-func (m *manager) SearchBean(springXmlPath string, beanId string) (found bool, path string) {
+func (m *manager) ListBeans(springXmlPath string, searchType SearchType) []BeanInfo {
 	log.Printf("Starting from %s", springXmlPath)
-	found, path = m.searchBeanInFile(springXmlPath, beanId, make(map[string]bool))
+	beanInfos := m.listBeansInFile(springXmlPath, searchType, make(map[string]bool))
+
 	if m.showUnregistered && len(m.unregisteredTags) > 0 {
 		for tag := range m.unregisteredTags {
 			log.Printf("Unregisted tag: %s", tag)
 		}
 	}
-	return
+	return beanInfos
 }
 
-func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles map[string]bool) (bool, string) {
+func (m *manager) listBeansInFile(filePath string, searchType SearchType, visitedFiles map[string]bool) []BeanInfo {
 	if visitedFiles[filePath] {
-		return false, ""
+		return nil
 	}
 	visitedFiles[filePath] = true
 
-	// Handle wildcard in file path
+	var beanInfos []BeanInfo
+
 	matches, err := filepath.Glob(filePath)
 	if err != nil {
 		log.Printf("Error expanding wildcard in path %s: %v", filePath, err)
-		return false, ""
+		return nil
 	}
 
 	for _, match := range matches {
@@ -50,11 +52,19 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 
 		root := doc.Root()
 
-		// Search for bean definitions
+		// Search for bean definitions or refs
 		for _, elem := range root.FindElements(".//*") {
-			if m.isBeanElement(elem) {
-				if id := getBeanId(elem); id == beanId {
-					return true, match
+			switch searchType {
+			case SearchByID:
+				if m.isBeanElement(elem) {
+					if id := getBeanId(elem); id != "" {
+						beanInfos = append(beanInfos, BeanInfo{Identifier: id, FileName: match})
+					}
+				}
+
+			case SearchByRef:
+				if ref := getRefValue(elem); ref != "" {
+					beanInfos = append(beanInfos, BeanInfo{Identifier: ref, FileName: match})
 				}
 			}
 		}
@@ -65,15 +75,22 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 			if resource != "" {
 				importedPath := filepath.Join(filepath.Dir(match), resource)
 				log.Printf(logPrefix+"%s", "Following", importedPath)
-				found, foundFile := m.searchBeanInFile(importedPath, beanId, visitedFiles)
-				if found {
-					return true, foundFile
-				}
+				beanInfos = append(beanInfos, m.listBeansInFile(importedPath, searchType, visitedFiles)...)
 			}
 		}
 	}
 
-	return false, ""
+	return beanInfos
+}
+
+func getRefValue(elem *etree.Element) string {
+	if ref := elem.SelectAttrValue("ref", ""); ref != "" {
+		return ref
+	}
+	if elem.Tag == "ref" {
+		return elem.SelectAttrValue("bean", "")
+	}
+	return ""
 }
 
 func (m *manager) isBeanElement(elem *etree.Element) bool {

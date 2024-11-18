@@ -1,7 +1,23 @@
 package spring
 
+type SearchType int
+
+const (
+	SearchByID SearchType = iota
+	SearchByRef
+)
+
+// BeanInfo 结构体用于存储 bean 的信息
+type BeanInfo struct {
+	// Identifier 可能是 bean 的 ID/name（当 Type 为 SearchByID 时），
+	// 或者是 ref 值（当 Type 为 SearchByRef 时）
+	Identifier string
+
+	FileName string
+}
+
 type SpringManager interface {
-	SearchBean(springXmlPath string, beanId string) (found bool, file string)
+	ListBeans(springXmlPath string, searchType SearchType) []BeanInfo
 }
 
 type manager struct {
