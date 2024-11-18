@@ -35,6 +35,8 @@ components:
       autowired:
         exclude:
           - CountTaskMasterExternalService
+      service:
+        com.foo.FooService: myFooService
       beans:
         foo: bar
         egg: baz

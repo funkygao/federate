@@ -18,6 +18,8 @@ type BeanInfo struct {
 
 type SpringManager interface {
 	ListBeans(springXmlPath string, searchType SearchType) []BeanInfo
+
+	ChangeBeans(springXmlPath string, searchType SearchType, updateMap map[string]string) error
 }
 
 type manager struct {

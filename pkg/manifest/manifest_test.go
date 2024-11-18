@@ -34,10 +34,14 @@ func TestLoad(t *testing.T) {
 	c := manifest.ComponentByName("wms-stock")
 	assert.Equal(t, "bar", c.Transform.Beans["foo"])
 	assert.Equal(t, "baz", c.Transform.Beans["egg"])
+	assert.Equal(t, "myFooService", c.Transform.Services["com.foo.FooService"])
 	assert.Equal(t, true, c.NeedsTransform())
 	assert.Equal(t, false, manifest.ComponentByName("wms-inventory").NeedsTransform())
 	assert.Equal(t, 1, len(c.Transform.Autowired.Excludes))
 	assert.Equal(t, true, c.Transform.Autowired.ExcludeBeanType("CountTaskMasterExternalService"))
+
+	refMap := c.Transform.ServiceBeanRefMap()
+	assert.Equal(t, "myFooService", refMap["fooService"])
 
 	if manifest.Main.Name != "demo-starter" {
 		t.Errorf("Expected main name to be 'demo-starter', got '%s'", manifest.Main.Name)
