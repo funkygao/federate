@@ -23,7 +23,7 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 	}
 
 	for _, match := range matches {
-		if len(matches) > 1 || strings.Contains(filePath, "*") {
+		if m.verbose && (len(matches) > 1 || strings.Contains(filePath, "*")) {
 			log.Printf(examiningPrefix+"%s", "Examining", match)
 		}
 
@@ -73,7 +73,9 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 			resource := imp.SelectAttrValue("resource", "")
 			if resource != "" {
 				importedPath := filepath.Join(filepath.Dir(match), resource)
-				log.Printf(logPrefix+"%s", "Following", importedPath)
+				if m.verbose {
+					log.Printf(logPrefix+"%s", "Following", importedPath)
+				}
 				if err := m.processBeansInFile(importedPath, searchType, visitedFiles, processor); err != nil {
 					return err
 				}

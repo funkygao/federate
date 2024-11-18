@@ -2,6 +2,7 @@ package spring
 
 import (
 	"log"
+	"strings"
 
 	"github.com/beevik/etree"
 )
@@ -9,11 +10,7 @@ import (
 const (
 	logPrefix       = "%-13s"
 	examiningPrefix = "  %-11s"
-)
 
-type SearchType int
-
-const (
 	SearchByID SearchType = iota
 	SearchByRef
 )
@@ -27,21 +24,37 @@ type BeanInfo struct {
 	FileName string
 }
 
+type UpdateMap map[string]map[string]string // componentName:oldRef:newRef
+
+func (um UpdateMap) RuleByFileName(fileName string) map[string]string {
+	for componentName := range um {
+		if strings.Contains(fileName, "/"+componentName+"/") {
+			return um[componentName]
+		}
+	}
+	return nil
+}
+
+type SearchType int
+
 type SpringManager interface {
 	ListBeans(springXmlPath string, searchType SearchType) []BeanInfo
 
-	ChangeBeans(springXmlPath string, searchType SearchType, updateMap map[string]string) error
+	ChangeBeans(springXmlPath string, searchType SearchType, updateMap UpdateMap) error
 }
 
 type manager struct {
+	verbose bool
+
 	beanFullTags map[string]struct{}
 
 	showUnregistered bool
 	unregisteredTags map[string]struct{}
 }
 
-func New() SpringManager {
+func New(verbose bool) SpringManager {
 	return &manager{
+		verbose: verbose,
 		beanFullTags: map[string]struct{}{
 			"bean":               struct{}{},
 			"util:map":           struct{}{},
@@ -80,17 +93,22 @@ func (m *manager) ListBeans(springXmlPath string, searchType SearchType) []BeanI
 	return beanInfos
 }
 
-func (m *manager) ChangeBeans(springXmlPath string, searchType SearchType, updateMap map[string]string) error {
+func (m *manager) ChangeBeans(springXmlPath string, searchType SearchType, updateMap UpdateMap) error {
+	if searchType != SearchByRef {
+		// do nothing
+		return nil
+	}
+
 	processor := func(elem *etree.Element, beanInfo BeanInfo) (bool, error) {
-		if newValue, ok := updateMap[beanInfo.Identifier]; ok {
-			switch searchType {
-			case SearchByRef:
+		updates := updateMap.RuleByFileName(beanInfo.FileName)
+		if updates != nil {
+			if newValue, ok := updates[beanInfo.Identifier]; ok {
 				if elem.SelectAttr("ref") != nil {
 					elem.RemoveAttr("ref")
 					elem.CreateAttr("ref", newValue)
+					return true, nil
 				}
 			}
-			return true, nil
 		}
 		return false, nil
 	}

@@ -22,7 +22,7 @@ var refCmd = &cobra.Command{
 }
 
 func listRef(m *manifest.Manifest) {
-	manager := spring.New()
+	manager := spring.New(true)
 	springXmlPath := filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
 	refs := make(map[string]map[string]struct{})
 
