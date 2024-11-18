@@ -55,6 +55,8 @@ checkenv:
 fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
 	federate microservice fusion-start
 
+fusion-rebuild:fusion-start package
+
 consolidate: ## Initialize submodules, generate and pacakge the federated system.
 	$(MAKE) init
 	echo
