@@ -1,4 +1,4 @@
-package io.github.federate;
+package io.github.federate.visitor;
 
 import java.util.List;
 

@@ -1,5 +1,7 @@
 package io.github.federate;
 
+import io.github.federate.visitor.*;
+
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ParserConfiguration;
@@ -18,7 +20,7 @@ public class App {
     public static void main(String[] args) {
         if (args.length < 2) {
             System.err.println("Usage: java -jar javast.jar <command> <directory_path>");
-            System.err.println("Available commands: parse, analyze-methods, analyze-classes");
+            System.err.println("Available commands: analyze-methods, replace-value");
             System.exit(1);
         }
 
@@ -38,13 +40,16 @@ public class App {
             ParserConfiguration config = new ParserConfiguration();
             config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
             StaticJavaParser.setConfiguration(config);
+            FileVisitor visitor = createVisitor(command, args);
 
             for (Path javaFile : javaFiles) {
                 try {
                     CompilationUnit cu = StaticJavaParser.parse(javaFile);
-                    JavaFileVisitor visitor = createVisitor(command);
-                    visitor.visit(cu, null);
-                    results.add(new ParserResult(rootPath.relativize(javaFile).toString(), visitor.getClasses(), visitor.getMethods()));
+                    visitor.visit(cu, javaFile);
+                    ParserResult result = visitor.getResult(rootPath, javaFile);
+                    if (result != null) {
+                        results.add(result);
+                    }
                 } catch (IOException e) {
                     System.err.println("Error parsing file " + javaFile + ": " + e.getMessage());
                 }
@@ -54,10 +59,11 @@ public class App {
             System.exit(1);
         }
 
-        Gson gson = new Gson();
-        String jsonResult = gson.toJson(results);
-        // stdout is golang's stdin
-        System.out.println(jsonResult);
+        if (!results.isEmpty()) {
+            Gson gson = new Gson();
+            String jsonResult = gson.toJson(results);
+            System.out.println(jsonResult); // stdout is golang invoker's stdin
+        }
     }
 
     private static boolean isTestFile(Path path) {
@@ -66,10 +72,16 @@ public class App {
                || pathStr.endsWith("Test.java");
     }
 
-    private static JavaFileVisitor createVisitor(String command) {
+    private static FileVisitor createVisitor(String command, String[] args) {
         switch (command) {
-            case "parse":
-                return new JavaFileVisitor();
+            case "analyze-methods":
+                return new ClassAndMethodAnalysisVisitor();
+            case "replace-value":
+                if (args.length < 4) {
+                    System.err.println("replace-value command requires old_value and new_value arguments");
+                    System.exit(1);
+                }
+                return new ValueAnnotationVisitor(args[2], args[3]);
             default:
                 System.err.println("Unknown command: " + command);
                 System.exit(1);
