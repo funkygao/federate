@@ -14,13 +14,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class App {
     public static void main(String[] args) {
         if (args.length < 2) {
             System.err.println("Usage: java -jar javast.jar <command> <directory_path>");
-            System.err.println("Available commands: analyze-methods, replace-value");
             System.exit(1);
         }
 
@@ -74,18 +74,27 @@ public class App {
 
     private static FileVisitor createVisitor(String command, String[] args) {
         switch (command) {
-            case "analyze-methods":
-                return new ClassAndMethodAnalysisVisitor();
             case "replace-value":
+                // @Value
                 if (args.length < 4) {
                     System.err.println("replace-value command requires old_value and new_value arguments");
                     System.exit(1);
                 }
                 return new ValueAnnotationVisitor(args[2], args[3]);
+
+            case "replace-service":
+                // @Service
+                if (args.length < 3) {
+                    System.err.println("replace-service command requires a JSON string of old and new values");
+                    System.exit(1);
+                }
+                Map<String, String> serviceMap = new Gson().fromJson(args[2], Map.class);
+                return new ServiceAnnotationVisitor(serviceMap);
+
             default:
                 System.err.println("Unknown command: " + command);
                 System.exit(1);
-                return null; // This line will never be reached
+                return null;
         }
     }
 }

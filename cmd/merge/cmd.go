@@ -57,6 +57,7 @@ func doMerge(m *manifest.Manifest) {
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
+	serviceManager := merge.NewServiceManager(m)
 
 	steps := []step.Step{
 		{
@@ -68,6 +69,11 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Instrumentation of spring-boot-maven-plugin",
 			Fn: func() {
 				InstrumentPomForFederatePackaging(m) // 代码插桩
+			}},
+		{
+			Name: "Transforming Java @Service value",
+			Fn: func() {
+				transformServiceValue(serviceManager)
 			}},
 		{
 			Name: "Reconciling ENV variables conflicts",

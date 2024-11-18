@@ -3,6 +3,7 @@ package manifest
 type TransformSpec struct {
 	Beans     map[string]string `yaml:"beans"`
 	Autowired AutowiredSpec     `yaml:"autowired"`
+	Services  map[string]string `yaml:"service"`
 }
 
 type AutowiredSpec struct {
