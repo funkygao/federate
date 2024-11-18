@@ -50,7 +50,7 @@ federated:
     rpc:
       provider: # 抑制暴露哪些服务
       consumer: # 远程RPC调用拉回到JVM内
-        ignoreRules:
+        ignoreRules: # 合并 federated-<type>-consumer.xml 时跳过哪些 bean
           - package: com.jdwl.wms.stock.api
             except:
               - com.jdwl.wms.stock.api.external.OutboundOrderQueryService
@@ -141,9 +141,11 @@ components:
       autowired:
         exclude: # 这种类型的 Bean 不做 @Autowired 处理
           - CountTaskMasterExternalService
-      beans:
+      beans: # 为对应的 Bean Injection 增加 @Qualifier
         masterDataSource: inventoryMasterDataSource
         slaveDataSource: inventorySlaveDataSource
+      service: # 修改对应类的 @Service value 值
+        com.jdwl.wms.inventory.common.app.service.external.MasterAppServiceImpl: inventoryMasterAppServiceImpl
     resources: # 资源文件处理
       baseDir:
         - wms-inventory-web/src/main/resources

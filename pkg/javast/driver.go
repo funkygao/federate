@@ -1,7 +1,7 @@
 package javast
 
 import (
-	"encoding/json"
+	"bytes"
 	"log"
 	"os"
 	"os/exec"
@@ -9,30 +9,44 @@ import (
 	"strings"
 
 	"federate/internal/fs"
+	"federate/pkg/manifest"
 )
 
-func RecursiveParse(command, rootDir string) ([]map[string]interface{}, error) {
+type JavastDriver interface {
+	Invoke(command string, jsonArgs string) error
+}
+
+type javastDriver struct {
+	c manifest.ComponentInfo
+}
+
+func NewJavastDriver(c manifest.ComponentInfo) JavastDriver {
+	return &javastDriver{c: c}
+}
+
+func (d *javastDriver) Invoke(command, jsonArgs string) error {
 	tempDir, jarPath, err := prepareJavastJar()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer os.RemoveAll(tempDir)
 
-	cmd := exec.Command("java", "-jar", jarPath, command, rootDir)
-	log.Printf("%s", strings.Join(cmd.Args, " "))
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
-	}
+	cmd := exec.Command("java", "-jar", jarPath, command, d.c.RootDir(), jsonArgs)
+	log.Printf("[%s] Executing: %s", d.c.Name, strings.Join(cmd.Args, " "))
 
-	// stdout is jar execution output
-	var results []map[string]interface{}
-	err = json.Unmarshal(output, &results)
-	if err != nil {
-		return nil, err
-	}
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
 
-	return results, nil
+	err = cmd.Run()
+	if err != nil {
+		log.Printf("Error: %s", stderr.String())
+	}
+	out := stdout.String()
+	if out != "" {
+		log.Println(out)
+	}
+	return err
 }
 
 func prepareJavastJar() (string, string, error) {
