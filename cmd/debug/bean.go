@@ -1,11 +1,11 @@
 package debug
 
 import (
-	"log"
 	"path/filepath"
 
 	"federate/pkg/manifest"
 	"federate/pkg/spring"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -24,9 +24,9 @@ func searchBean(m *manifest.Manifest, beanId string) {
 	manager := spring.New()
 	ok, path := manager.SearchBean(springXmlPath, beanId)
 	if ok {
-		log.Printf("bean[%s] found in %s", beanId, path)
+		color.Green("bean[%s] found in %s", beanId, path)
 	} else {
-		log.Printf("bean[%s] not found", beanId)
+		color.Red("bean[%s] not found", beanId)
 	}
 
 }

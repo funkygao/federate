@@ -12,5 +12,5 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(ygrepCmd, tlaplusCmd, github.CmdGroup, tfidfCmd, inventoryCmd, javastCmd, allCmd)
+	CmdGroup.AddCommand(tlaplusCmd, github.CmdGroup, tfidfCmd, inventoryCmd, javastCmd, allCmd)
 }

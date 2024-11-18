@@ -13,9 +13,15 @@ const (
 	examiningPrefix = "  %-11s"
 )
 
-func (m *manager) SearchBean(springXmlPath string, beanId string) (bool, string) {
+func (m *manager) SearchBean(springXmlPath string, beanId string) (found bool, path string) {
 	log.Printf("Starting from %s", springXmlPath)
-	return m.searchBeanInFile(springXmlPath, beanId, make(map[string]bool))
+	found, path = m.searchBeanInFile(springXmlPath, beanId, make(map[string]bool))
+	if m.showUnregistered && len(m.unregisteredTags) > 0 {
+		for tag := range m.unregisteredTags {
+			log.Printf("Unregisted tag: %s", tag)
+		}
+	}
+	return
 }
 
 func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles map[string]bool) (bool, string) {
@@ -46,15 +52,14 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 
 		// Search for bean definitions
 		for _, elem := range root.FindElements(".//*") {
-			if isBeanElement(elem) {
-				id := getBeanId(elem)
-				if id == beanId {
+			if m.isBeanElement(elem) {
+				if id := getBeanId(elem); id == beanId {
 					return true, match
 				}
 			}
 		}
 
-		// Search in imported files
+		// Recursively search in imported files
 		for _, imp := range root.FindElements("//import") {
 			resource := imp.SelectAttrValue("resource", "")
 			if resource != "" {
@@ -71,20 +76,20 @@ func (m *manager) searchBeanInFile(filePath string, beanId string, visitedFiles 
 	return false, ""
 }
 
-func isBeanElement(elem *etree.Element) bool {
-	isBean := elem.Tag == "bean" ||
-		strings.HasSuffix(elem.Tag, ":bean") ||
-		elem.Tag == "jmq:producer" ||
-		elem.Tag == "jmq:consumer" ||
-		elem.Tag == "jmq:transport" ||
-		elem.Tag == "map" || // handle <util:map>
-		elem.Tag == "list" || // handle <util:list>
-		elem.Tag == "jsf:consumer" ||
-		elem.Tag == "jsf:provider" ||
-		elem.Tag == "dubbo:reference" ||
-		elem.Tag == "dubbo:service"
+func (m *manager) isBeanElement(elem *etree.Element) bool {
+	var fullTag string
+	if elem.Space == "" {
+		// <bean>
+		fullTag = elem.Tag
+	} else {
+		fullTag = elem.Space + ":" + elem.Tag
+	}
 
-	return isBean
+	_, present := m.beanFullTags[fullTag]
+	if !present {
+		m.unregisteredTags[fullTag] = struct{}{}
+	}
+	return present
 }
 
 func getBeanId(elem *etree.Element) string {

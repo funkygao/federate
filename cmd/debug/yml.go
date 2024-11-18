@@ -1,4 +1,4 @@
-package util
+package debug
 
 import (
 	"fmt"
@@ -13,13 +13,13 @@ import (
 
 var wordRegexp bool
 
-var ygrepCmd = &cobra.Command{
-	Use:   "ygrep <key> [dir]",
+var ymlCmd = &cobra.Command{
+	Use:   "yml <key> [dir]",
 	Short: "Search for a specified key in YAML files within a directory",
-	Long: `The ygrep command searches for a specified key in YAML files within a specified directory recursively.
+	Long: `The yml command searches for a specified key in YAML files within a specified directory recursively.
 
 Example usage:
-  federate ygrep spring.profiles.active [dir]`,
+  federate debug yml spring.profiles.active [dir]`,
 	Args: cobra.RangeArgs(1, 2),
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
@@ -130,5 +130,5 @@ func convertMap(input map[interface{}]interface{}) map[string]interface{} {
 }
 
 func init() {
-	ygrepCmd.Flags().BoolVarP(&wordRegexp, "word-regexp", "w", false, "Only match whole words")
+	ymlCmd.Flags().BoolVarP(&wordRegexp, "word-regexp", "w", false, "Only match whole words")
 }
