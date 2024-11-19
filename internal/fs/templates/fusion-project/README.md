@@ -8,6 +8,7 @@
 federate microservice scaffold   # 生成整个项目脚手架
 make fusion-start                # 生成 fusion-starter 项目脚手架
 make consolidate ENV=<env>       # 针对目标环境进行合并编译打包
+make explore                     # 检查需要手工修复的冲突项
 ```
 
 ## 行云部署
