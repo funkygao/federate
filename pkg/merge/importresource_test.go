@@ -40,7 +40,7 @@ func TestProcessImportResource(t *testing.T) {
 		{
 			`@ImportResource(locations = {"classpath:strategy-config.xml"})`,
 			"myComponent",
-			`@ImportResource("classpath:federated/myComponent/strategy-config.xml")`,
+			`@ImportResource(locations = {"classpath:federated/myComponent/strategy-config.xml"})`,
 		},
 		{
 			`@ImportResource('classpath:strategy-config.xml')`,
@@ -53,6 +53,6 @@ func TestProcessImportResource(t *testing.T) {
 	for _, tc := range testCases {
 		output, changed := manager.processImportResource(tc.input, tc.componentName)
 		assert.True(t, changed, "Expected the input to be changed")
-		assert.Equal(t, tc.expectedOutput, output, "The processed output does not match the expected output")
+		assert.Equal(t, tc.expectedOutput, output, tc.input)
 	}
 }

@@ -103,6 +103,9 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 // 目前还不支持多行场景
 func (m *ImportResourceManager) processImportResource(line, componentName string) (string, bool) {
 	return P.importResourcePattern.ReplaceAllStringFunc(line, func(match string) string {
+		// 检查是否使用了 locations 属性
+		hasLocations := strings.Contains(match, "locations")
+
 		// 提取所有资源路径
 		resourcePaths := regexp.MustCompile(`"([^"]+)"|'([^']+)'`).FindAllStringSubmatch(match, -1)
 
@@ -126,7 +129,7 @@ func (m *ImportResourceManager) processImportResource(line, componentName string
 		}
 
 		// 重构 @ImportResource 注解
-		if len(newPaths) == 1 {
+		if len(newPaths) == 1 && !hasLocations {
 			return fmt.Sprintf(`@ImportResource(%s)`, newPaths[0])
 		} else {
 			return fmt.Sprintf(`@ImportResource(locations = {%s})`, strings.Join(newPaths, ", "))
