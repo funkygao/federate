@@ -43,6 +43,11 @@ func TestProcessImportResource(t *testing.T) {
 			`@ImportResource(locations = {"classpath:federated/myComponent/strategy-config.xml"})`,
 		},
 		{
+			`@ImportResource(locations = "classpath:strategy-config.xml")`,
+			"myComponent",
+			`@ImportResource(locations = {"classpath:federated/myComponent/strategy-config.xml"})`,
+		},
+		{
 			`@ImportResource('classpath:strategy-config.xml')`,
 			"myComponent",
 			`@ImportResource("classpath:federated/myComponent/strategy-config.xml")`,
