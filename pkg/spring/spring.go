@@ -28,7 +28,7 @@ func (um UpdateMap) RuleByFileName(fileName string) map[string]string {
 type SpringManager interface {
 	ListBeans(springXmlPath string, query Query) []BeanInfo
 
-	ChangeBeans(springXmlPath string, query Query, updateMap UpdateMap) error
+	UpdateBeans(springXmlPath string, query Query, updateMap UpdateMap) error
 }
 
 type manager struct {
@@ -55,7 +55,7 @@ func (m *manager) ListBeans(springXmlPath string, query Query) []BeanInfo {
 	return beanInfos
 }
 
-func (m *manager) ChangeBeans(springXmlPath string, query Query, updateMap UpdateMap) error {
+func (m *manager) UpdateBeans(springXmlPath string, query Query, updateMap UpdateMap) error {
 	processor := func(elem *etree.Element, beanInfo BeanInfo) (bool, error) {
 		updates := updateMap.RuleByFileName(beanInfo.FileName)
 		if updates != nil {
