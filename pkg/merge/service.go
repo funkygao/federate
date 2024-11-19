@@ -8,7 +8,7 @@ import (
 	"federate/pkg/spring"
 )
 
-// 处理 @Service 的 Bean 创建
+// 处理 @Service/@Component 的 Bean 创建
 type ServiceManager struct {
 	m *manifest.Manifest
 }
@@ -21,6 +21,7 @@ func (m *ServiceManager) Reconcile() error {
 	// pass 1: 通过 javast 修改源代码
 	refTransformMap := make(map[string]map[string]string)
 	for _, c := range m.m.Components {
+		// call java
 		if err := javast.TransformService(c); err != nil {
 			return err
 		}

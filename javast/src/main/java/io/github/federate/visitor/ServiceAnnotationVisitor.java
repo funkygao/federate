@@ -13,13 +13,15 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Arrays;
+import java.util.List;
 
 public class ServiceAnnotationVisitor extends ModifierVisitor<Void> implements FileVisitor {
     private final Map<String, String> serviceMap;
     private boolean modified = false;
     private String currentPackage;
     private String currentClassName;
+    private static final List<String> SUPPORTED_ANNOTATIONS = Arrays.asList("Service", "Component");
 
     public ServiceAnnotationVisitor(Map<String, String> serviceMap) {
         this.serviceMap = serviceMap;
@@ -41,31 +43,28 @@ public class ServiceAnnotationVisitor extends ModifierVisitor<Void> implements F
 
     @Override
     public Visitable visit(SingleMemberAnnotationExpr n, Void arg) {
-        if (n.getNameAsString().equals("Service") && currentClassName != null) {
-            if (n.getMemberValue() instanceof StringLiteralExpr) {
-                StringLiteralExpr value = (StringLiteralExpr) n.getMemberValue();
-                String fqcn = getFQCN();
-                String newValue = serviceMap.get(fqcn);
-                if (newValue != null) {
-                    modified = true;
-                    return new SingleMemberAnnotationExpr(n.getName(), new StringLiteralExpr(newValue));
-                }
-            }
-        }
-        return super.visit(n, arg);
+        return handleAnnotation(n);
     }
 
     @Override
     public Visitable visit(MarkerAnnotationExpr n, Void arg) {
-        if (n.getNameAsString().equals("Service") && currentClassName != null) {
+        return handleAnnotation(n);
+    }
+
+    private Visitable handleAnnotation(AnnotationExpr n) {
+        if (SUPPORTED_ANNOTATIONS.contains(n.getNameAsString()) && currentClassName != null) {
             String fqcn = getFQCN();
-            if (serviceMap.containsKey(fqcn)) {
-                String newValue = serviceMap.get(fqcn);
+            String newValue = serviceMap.get(fqcn);
+            if (newValue != null) {
+                String oldValue = (n instanceof SingleMemberAnnotationExpr)
+                    ? ((SingleMemberAnnotationExpr) n).getMemberValue().toString()
+                    : "<empty>";
                 modified = true;
+                System.out.println("Modifying " + n.getNameAsString() + " for " + fqcn + ": " + oldValue + " -> " + newValue);
                 return new SingleMemberAnnotationExpr(n.getName(), new StringLiteralExpr(newValue));
             }
         }
-        return super.visit(n, arg);
+        return n;
     }
 
     private String getFQCN() {
@@ -78,7 +77,6 @@ public class ServiceAnnotationVisitor extends ModifierVisitor<Void> implements F
         CompilationUnit modifiedCu = (CompilationUnit) cu.accept(this, null);
         if (modified) {
             Files.write(filePath, modifiedCu.toString().getBytes());
-            System.out.println("Updated: " + filePath);
         }
     }
 
