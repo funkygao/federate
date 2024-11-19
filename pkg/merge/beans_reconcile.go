@@ -10,6 +10,7 @@ import (
 	"federate/pkg/federated"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/util"
 	"github.com/beevik/etree"
 )
 
@@ -145,8 +146,7 @@ func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifica
 	for _, bean := range beans {
 		if beanId := bean.SelectAttrValue("id", ""); beanId != "" {
 			if newId, ok := modificationPlan[beanId]; ok {
-				bean.RemoveAttr("id")
-				bean.CreateAttr("id", newId)
+				util.UpdateXmlElement(bean, "id", newId)
 				modifiedCount++
 			}
 		}
@@ -210,8 +210,7 @@ func (b *XmlBeanManager) updateBeanRefsInElement(element *etree.Element, modific
 	for _, attr := range refAttributes {
 		if ref := element.SelectAttrValue(attr, ""); ref != "" {
 			if newRef, ok := modificationPlan[ref]; ok {
-				element.RemoveAttr(attr)
-				element.CreateAttr(attr, newRef)
+				util.UpdateXmlElement(element, attr, newRef)
 				modifiedCount++
 			}
 		}

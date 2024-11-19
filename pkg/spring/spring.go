@@ -4,6 +4,7 @@ import (
 	"log"
 	"strings"
 
+	"federate/pkg/util"
 	"github.com/beevik/etree"
 )
 
@@ -102,9 +103,7 @@ func (m *manager) ChangeBeans(springXmlPath string, searchType SearchType, updat
 		updates := updateMap.RuleByFileName(beanInfo.FileName)
 		if updates != nil {
 			if newValue, ok := updates[beanInfo.Identifier]; ok {
-				if elem.SelectAttr("ref") != nil {
-					elem.RemoveAttr("ref")
-					elem.CreateAttr("ref", newValue)
+				if util.UpdateXmlElement(elem, "ref", newValue) {
 					return true, nil
 				}
 			}
