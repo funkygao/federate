@@ -2,7 +2,6 @@ package debug
 
 import (
 	"log"
-	"path/filepath"
 	"sort"
 
 	"federate/pkg/manifest"
@@ -23,10 +22,9 @@ var refCmd = &cobra.Command{
 
 func listRef(m *manifest.Manifest) {
 	manager := spring.New(true)
-	springXmlPath := filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
 	refs := make(map[string]map[string]struct{})
 
-	for _, bean := range manager.ListBeans(springXmlPath, spring.SearchByRef) {
+	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.SearchByRef) {
 		if _, exists := refs[bean.Identifier]; !exists {
 			refs[bean.Identifier] = make(map[string]struct{})
 		}

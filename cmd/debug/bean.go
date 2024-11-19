@@ -1,8 +1,6 @@
 package debug
 
 import (
-	"path/filepath"
-
 	"federate/pkg/manifest"
 	"federate/pkg/spring"
 	"github.com/fatih/color"
@@ -20,9 +18,8 @@ var beanCmd = &cobra.Command{
 }
 
 func searchBean(m *manifest.Manifest, beanId string) {
-	springXmlPath := filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
 	manager := spring.New(true)
-	for _, bean := range manager.ListBeans(springXmlPath, spring.SearchByID) {
+	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.SearchByID) {
 		if bean.Identifier == beanId {
 			color.Green("bean[%s] found in %s", beanId, bean.FileName)
 			return

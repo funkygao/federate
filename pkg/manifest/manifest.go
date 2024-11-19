@@ -57,6 +57,10 @@ func (m *Manifest) RpmByEnv(env string) *RpmSpec {
 	return &RpmSpec{}
 }
 
+func (m *Manifest) SpringXmlPath() string {
+	return filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
+}
+
 func (m *Manifest) PropertyOverridden(key string) (val interface{}, present bool) {
 	val, present = m.Main.Reconcile.Resources.Property.Overrides[key]
 	return

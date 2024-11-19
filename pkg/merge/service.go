@@ -2,7 +2,6 @@ package merge
 
 import (
 	"log"
-	"path/filepath"
 
 	"federate/pkg/javast"
 	"federate/pkg/manifest"
@@ -40,7 +39,6 @@ func (m *ServiceManager) Reconcile() error {
 		}
 	}
 
-	springXmlPath := filepath.Join(m.m.TargetResourceDir(), "federated/spring.xml")
 	springMgr := spring.New(false)
-	return springMgr.ChangeBeans(springXmlPath, spring.SearchByRef, refTransformMap)
+	return springMgr.ChangeBeans(m.m.SpringXmlPath(), spring.SearchByRef, refTransformMap)
 }
