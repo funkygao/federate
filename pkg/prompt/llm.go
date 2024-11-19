@@ -85,7 +85,6 @@ func (pg *PromptGenerator) echoMentions(line string) {
 func (pg *PromptGenerator) echoFileInput(path string) {
 	content, err := readFileContent(strings.TrimSpace(path))
 	if err != nil {
-		log.Printf("%s %v", path, err)
 		return
 	}
 
@@ -129,22 +128,19 @@ func (pg *PromptGenerator) executeShellCommand(input string) {
 
 func (pg *PromptGenerator) processLineWithMention(line string) {
 	matches := mentionRegex.FindAllStringSubmatch(line, -1)
-	validLine := true
 
+	validMention := false
 	for _, match := range matches {
 		path := match[1]
 		if isDir(path) {
-			if !pg.processDirInput(path) {
-				validLine = false
-			}
+			validMention = pg.processDirInput(path)
 		} else {
-			if !pg.processFileInput(path) {
-				validLine = false
-			}
+			validMention = pg.processFileInput(path)
 		}
 	}
 
-	if validLine {
+	if !validMention {
+		// 用户 copy & paste 了包含 @ 的内容，而这部分内容并不希望 mention file/dir
 		pg.buffer.WriteString(line)
 		pg.buffer.WriteString("\n")
 	}
@@ -153,13 +149,11 @@ func (pg *PromptGenerator) processLineWithMention(line string) {
 func (pg *PromptGenerator) processDirInput(path string) bool {
 	dir := strings.TrimSpace(path)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		log.Printf("skipped %v", err)
 		return false
 	}
 
 	content, err := readDirContentWithStructure(dir)
 	if err != nil {
-		log.Printf("%s %v", dir, err)
 		return false
 	}
 
@@ -170,13 +164,11 @@ func (pg *PromptGenerator) processDirInput(path string) bool {
 func (pg *PromptGenerator) processFileInput(path string) bool {
 	file := strings.TrimSpace(path)
 	if _, err := os.Stat(file); os.IsNotExist(err) {
-		log.Printf("skipped %v", err)
 		return false
 	}
 
 	content, err := readFileContent(file)
 	if err != nil {
-		log.Printf("%s %v", file, err)
 		return false
 	}
 	pg.buffer.WriteString(fmt.Sprintf("File: %s\nContent:\n```\n%s\n```\n\n", file, content))
