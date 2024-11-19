@@ -122,6 +122,14 @@ func doMerge(m *manifest.Manifest) {
 				transformServiceValue(serviceManager)
 			}},
 		{
+			Name: "Transforming Java @ImportResource value",
+			Fn: func() {
+				importResourceManager := merge.NewImportResourceManager()
+				if err := importResourceManager.Reconcile(m); err != nil {
+					log.Fatalf("%v", err)
+				}
+			}},
+		{
 			Name: "Reconciling RPC alias/group naming conflicts by Rewriting XML",
 			Fn: func() {
 				reconcileRpcAliasConflict(rpcAliasManager)
