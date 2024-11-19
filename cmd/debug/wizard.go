@@ -12,7 +12,7 @@ var autoYes bool
 
 var wizardCmd = &cobra.Command{
 	Use:   "wizard",
-	Short: "Step by step guide for resolving conflicts",
+	Short: "Step by step guide for detecting potential conflicts",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
 		runWizard(m)

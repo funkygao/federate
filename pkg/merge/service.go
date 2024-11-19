@@ -43,5 +43,5 @@ func (m *ServiceManager) Reconcile() error {
 
 	// pass 2: 修改相应的 xml ref
 	springMgr := spring.New(false)
-	return springMgr.ChangeBeans(m.m.SpringXmlPath(), spring.SearchByRef, refTransformMap)
+	return springMgr.ChangeBeans(m.m.SpringXmlPath(), spring.QueryRef(), refTransformMap)
 }
