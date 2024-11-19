@@ -18,6 +18,7 @@ func NewServiceManager(m *manifest.Manifest) *ServiceManager {
 }
 
 func (m *ServiceManager) Reconcile() error {
+	// pass 1: 通过 javast 修改源代码
 	refTransformMap := make(map[string]map[string]string)
 	for _, c := range m.m.Components {
 		if err := javast.TransformService(c); err != nil {
@@ -39,6 +40,7 @@ func (m *ServiceManager) Reconcile() error {
 		}
 	}
 
+	// pass 2: 修改相应的 xml ref
 	springMgr := spring.New(false)
 	return springMgr.ChangeBeans(m.m.SpringXmlPath(), spring.SearchByRef, refTransformMap)
 }
