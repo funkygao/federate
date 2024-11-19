@@ -41,12 +41,12 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 			switch searchType {
 			case SearchByID:
 				if m.isBeanElement(elem) {
-					if id := getBeanId(elem); id != "" {
+					if id := m.getBeanId(elem); id != "" {
 						beanInfo = BeanInfo{Identifier: id, FileName: match}
 					}
 				}
 			case SearchByRef:
-				if ref := getRefValue(elem); ref != "" {
+				if ref := m.getRefValue(elem); ref != "" {
 					beanInfo = BeanInfo{Identifier: ref, FileName: match}
 				}
 			}
@@ -69,31 +69,24 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 		}
 
 		// Recursively process imported files
-		for _, imp := range root.FindElements("//import") {
-			resource := imp.SelectAttrValue("resource", "")
-			if resource != "" {
-				importedPath := filepath.Join(filepath.Dir(match), resource)
+		for _, importElem := range root.FindElements("//import") {
+			resourceAttr := importElem.SelectAttrValue("resource", "")
+			resourceAttr = strings.TrimPrefix(resourceAttr, "classpath:") // 移除 resource 属性中的 classpath: 前缀
+			if resourceAttr != "" {
+				importedPath := filepath.Join(filepath.Dir(match), resourceAttr)
 				if m.verbose {
 					log.Printf(logPrefix+"%s", "Following", importedPath)
 				}
 				if err := m.processBeansInFile(importedPath, searchType, visitedFiles, processor); err != nil {
 					return err
 				}
+			} else {
+				log.Printf("Invalid import: %s", importElem.SelectAttrValue("resource", ""))
 			}
 		}
 	}
 
 	return nil
-}
-
-func getRefValue(elem *etree.Element) string {
-	if ref := elem.SelectAttrValue("ref", ""); ref != "" {
-		return ref
-	}
-	if elem.Tag == "ref" {
-		return elem.SelectAttrValue("bean", "")
-	}
-	return ""
 }
 
 func (m *manager) isBeanElement(elem *etree.Element) bool {
@@ -112,10 +105,20 @@ func (m *manager) isBeanElement(elem *etree.Element) bool {
 	return present
 }
 
-func getBeanId(elem *etree.Element) string {
+func (m *manager) getBeanId(elem *etree.Element) string {
 	id := elem.SelectAttrValue("id", "")
 	if id == "" {
 		id = elem.SelectAttrValue("name", "")
 	}
 	return id
+}
+
+func (m *manager) getRefValue(elem *etree.Element) string {
+	if ref := elem.SelectAttrValue("ref", ""); ref != "" {
+		return ref
+	}
+	if elem.Tag == "ref" {
+		return elem.SelectAttrValue("bean", "")
+	}
+	return ""
 }

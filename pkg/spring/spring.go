@@ -7,6 +7,8 @@ import (
 	"github.com/beevik/etree"
 )
 
+type SearchType int
+
 const (
 	logPrefix       = "%-13s"
 	examiningPrefix = "  %-11s"
@@ -15,7 +17,6 @@ const (
 	SearchByRef
 )
 
-// BeanInfo 结构体用于存储 bean 的信息
 type BeanInfo struct {
 	// Identifier 可能是 bean 的 ID/name（当 Type 为 SearchByID 时），
 	// 或者是 ref 值（当 Type 为 SearchByRef 时）
@@ -34,8 +35,6 @@ func (um UpdateMap) RuleByFileName(fileName string) map[string]string {
 	}
 	return nil
 }
-
-type SearchType int
 
 type SpringManager interface {
 	ListBeans(springXmlPath string, searchType SearchType) []BeanInfo

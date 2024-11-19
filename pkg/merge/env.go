@@ -11,6 +11,7 @@ import (
 	"federate/pkg/manifest"
 )
 
+// TODO xml 也可能引用环境变量
 func ReconcileEnvConflicts(m *manifest.Manifest) {
 	propertyKeys := make(map[string]struct{})
 
