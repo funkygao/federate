@@ -16,12 +16,11 @@ var refCmd = &cobra.Command{
 	Short: "List bean ref values from federated/spring.xml",
 	Run: func(cmd *cobra.Command, args []string) {
 		m := manifest.Load()
-		listRef(m)
+		listRef(m, spring.New(true))
 	},
 }
 
-func listRef(m *manifest.Manifest) {
-	manager := spring.New(true)
+func listRef(m *manifest.Manifest, manager spring.SpringManager) {
 	refs := make(map[string]map[string]struct{})
 
 	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.SearchByRef) {
@@ -50,11 +49,10 @@ func listRef(m *manifest.Manifest) {
 		}
 		sort.Strings(files) // 对文件名进行排序
 
-		log.Printf("Ref: %s\n", ref)
+		log.Printf("Ref: %s", ref)
 		for _, file := range files {
-			log.Printf("  - %s\n", file)
+			log.Printf("  - %s", file)
 		}
-		log.Println() // 在每个 ref 之后添加一个空行，以提高可读性
 	}
 }
 

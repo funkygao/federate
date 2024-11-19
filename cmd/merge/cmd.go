@@ -58,6 +58,7 @@ func doMerge(m *manifest.Manifest) {
 	resourceManager := merge.NewResourceManager()
 	injectionManager := merge.NewSpringBeanInjectionManager()
 	serviceManager := merge.NewServiceManager(m)
+	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
 
 	steps := []step.Step{
 		{
@@ -119,6 +120,11 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Transforming Java @Service value",
 			Fn: func() {
 				transformServiceValue(serviceManager)
+			}},
+		{
+			Name: "Reconciling RPC alias/group naming conflicts by Rewriting XML",
+			Fn: func() {
+				reconcileRpcAliasConflict(rpcAliasManager)
 			}},
 	}
 

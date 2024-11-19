@@ -117,7 +117,9 @@ func (cm *PropertyManager) applyReservedPropertyRules() {
 		}
 	}
 
-	log.Printf("Reserved keys processed:")
-	header := []string{"Reserved Key", "Value"}
-	tablerender.DisplayTable(header, cellData, false, -1)
+	if !cm.silent {
+		log.Printf("Reserved keys processed:")
+		header := []string{"Reserved Key", "Value"}
+		tablerender.DisplayTable(header, cellData, false, -1)
+	}
 }

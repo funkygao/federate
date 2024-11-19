@@ -42,13 +42,20 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 			case SearchByID:
 				if m.isBeanElement(elem) {
 					if id := m.getBeanId(elem); id != "" {
-						beanInfo = BeanInfo{Identifier: id, FileName: match}
+						beanInfo = BeanInfo{Bean: elem, Identifier: id, FileName: match}
 					}
 				}
+
 			case SearchByRef:
 				if ref := m.getRefValue(elem); ref != "" {
-					beanInfo = BeanInfo{Identifier: ref, FileName: match}
+					beanInfo = BeanInfo{Bean: elem, Identifier: ref, FileName: match}
 				}
+
+			case SearchByAlias:
+				if alias := m.getAliasValue(elem); alias != "" {
+					beanInfo = BeanInfo{Bean: elem, Identifier: alias, FileName: match}
+				}
+
 			}
 
 			if beanInfo.Identifier != "" {
@@ -114,11 +121,57 @@ func (m *manager) getBeanId(elem *etree.Element) string {
 }
 
 func (m *manager) getRefValue(elem *etree.Element) string {
-	if ref := elem.SelectAttrValue("ref", ""); ref != "" {
-		return ref
+	refAttributes := []string{"ref", "value-ref", "bean", "properties-ref"}
+	for _, attr := range refAttributes {
+		if ref := elem.SelectAttrValue(attr, ""); ref != "" {
+			return ref
+		}
 	}
+
 	if elem.Tag == "ref" {
+		// <bean id="xx" class="xx">
+		//   <property name="tasks">
+		//     <list>
+		//       <<ref bean="bar1"/>
+		//       <<ref bean="bar2"/>
 		return elem.SelectAttrValue("bean", "")
 	}
 	return ""
+}
+
+func (m *manager) getAliasValue(elem *etree.Element) string {
+	if elem.Tag != "provider" && elem.Tag != "service" {
+		// jsf:provider
+		// dubbo:service
+		return ""
+	}
+
+	if alias := elem.SelectAttrValue("alias", ""); alias != "" {
+		return alias
+	}
+	if alias := elem.SelectAttrValue("group", ""); alias != "" {
+		return alias
+	}
+	return ""
+}
+
+func (m *manager) getValueByQuery(elem *etree.Element, q Query) (value string, found bool) {
+	for _, attr := range q.attributes {
+		if val := elem.SelectAttrValue(attr, ""); val != "" {
+			return val, true
+		}
+	}
+
+	for tag, attrs := range q.tags {
+		if elem.Tag == tag {
+			for _, attr := range attrs {
+				if val := elem.SelectAttrValue(attr, ""); val != "" {
+					return val, true
+				}
+			}
+		}
+	}
+
+	// not found
+	return "", false
 }

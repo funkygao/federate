@@ -29,7 +29,9 @@ func (cm *PropertyManager) registerProperty(component manifest.ComponentInfo, ke
 		if existingProp, exists := cm.resolvedProperties[component.Name][key]; exists {
 			// 如果现有值不为空且新值是引用或为空，保留现有值
 			if existingProp.Value != nil && (value == nil || (reflect.TypeOf(value).Kind() == reflect.String && strings.Contains(value.(string), "${"))) {
-				log.Printf("[%s] Keeping existing value for %s: %v (new value was: %v)", component.Name, key, existingProp.Value, value)
+				if !cm.silent {
+					log.Printf("[%s] Keeping existing value for %s: %v (new value was: %v)", component.Name, key, existingProp.Value, value)
+				}
 				return
 			}
 		}
@@ -51,7 +53,9 @@ func (cm *PropertyManager) resolveConflict(componentName string, key Key, value 
 	if strings.Contains(newOriginalString, "${") {
 		// 更新 OriginalString 中的引用 ${foo} => ${component1.foo}
 		newOriginalString = cm.updateReferencesInString(originalSource.OriginalString, componentName)
-		log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalSource.OriginalString, newOriginalString)
+		if !cm.silent {
+			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalSource.OriginalString, newOriginalString)
+		}
 	}
 
 	// Update the resolvedProperties with the prefixed key, for .properties && .yml

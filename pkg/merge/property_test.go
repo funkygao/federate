@@ -230,6 +230,15 @@ func TestAnalyzeAllPropertySources(t *testing.T) {
 	// 检查原始的冲突键是否被删除
 	assert.Contains(t, resolvedProps["a"], "datasource.mysql.url")
 	assert.Contains(t, resolvedProps["b"], "datasource.mysql.url")
+
+	// Resolve
+	assert.Equal(t, "10", pm.Resolve("a.mysql.maximumPoolSize"))
+	assert.Equal(t, "foo", pm.Resolve("a.key"))
+
+	// ResolveLine
+	assert.Equal(t, "hello 10", pm.ResolveLine("hello 10"))
+	assert.Equal(t, "hello 10", pm.ResolveLine("hello ${a.mysql.maximumPoolSize}"))
+	assert.Equal(t, "hello 10 and 20", pm.ResolveLine("hello ${a.mysql.maximumPoolSize} and ${b.mysql.maximumPoolSize}"))
 }
 
 func TestGenerateMergedYamlFile(t *testing.T) {

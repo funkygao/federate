@@ -19,7 +19,9 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 	}
 	defer file.Close()
 
-	log.Printf("[%s] Processing %s", component.Name, filePath)
+	if !cm.silent {
+		log.Printf("[%s] Processing %s", component.Name, filePath)
+	}
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -50,7 +52,9 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		return err
 	}
 
-	log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
+	if !cm.silent {
+		log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
+	}
 
 	dataStr := string(data)
 	// handling @spring.profiles.active@
@@ -74,7 +78,9 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		if includeProfiles, ok := includes.(string); ok {
 			for _, includeProfile := range strings.Split(includeProfiles, ",") {
 				includeProfile = strings.TrimSpace(includeProfile)
-				log.Printf("[%s:%s] Detected spring.profiles.include: %s", component.Name, springProfile, includeProfile)
+				if !cm.silent {
+					log.Printf("[%s:%s] Detected spring.profiles.include: %s", component.Name, springProfile, includeProfile)
+				}
 				if includeProfile != "" {
 					cm.analyzeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+includeProfile+".yml"), includeProfile, component)
 				}

@@ -16,9 +16,12 @@ const (
 
 	SearchByID SearchType = iota
 	SearchByRef
+	SearchByAlias
 )
 
 type BeanInfo struct {
+	Bean *etree.Element
+
 	// Identifier 可能是 bean 的 ID/name（当 Type 为 SearchByID 时），
 	// 或者是 ref 值（当 Type 为 SearchByRef 时）
 	Identifier string
@@ -81,7 +84,9 @@ func (m *manager) ListBeans(springXmlPath string, searchType SearchType) []BeanI
 	log.Printf("Starting from %s", springXmlPath)
 	var beanInfos []BeanInfo
 	processor := func(elem *etree.Element, beanInfo BeanInfo) (bool, error) {
-		beanInfos = append(beanInfos, beanInfo)
+		if strings.TrimSpace(beanInfo.Identifier) != "" {
+			beanInfos = append(beanInfos, beanInfo)
+		}
 		return false, nil
 	}
 
