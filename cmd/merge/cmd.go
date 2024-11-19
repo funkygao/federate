@@ -124,8 +124,8 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Transforming Java @ImportResource value",
 			Fn: func() {
-				importResourceManager := merge.NewImportResourceManager()
-				if err := importResourceManager.Reconcile(m); err != nil {
+				importResourceManager := merge.NewImportResourceManager(m)
+				if err := importResourceManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 				}
 			}},

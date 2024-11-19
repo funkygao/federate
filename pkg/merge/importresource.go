@@ -9,21 +9,24 @@ import (
 	"regexp"
 	"strings"
 
+	"federate/pkg/diff"
 	"federate/pkg/federated"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 )
 
 type ImportResourceManager struct {
+	m *manifest.Manifest
+
 	ImportResourceCount int
 }
 
-func NewImportResourceManager() *ImportResourceManager {
-	return &ImportResourceManager{}
+func NewImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
+	return &ImportResourceManager{m: m}
 }
 
-func (m *ImportResourceManager) Reconcile(manifest *manifest.Manifest) error {
-	for _, component := range manifest.Components {
+func (m *ImportResourceManager) Reconcile() error {
+	for _, component := range m.m.Components {
 		if err := m.reconcileComponent(component); err != nil {
 			return err
 		}
@@ -45,10 +48,19 @@ func (m *ImportResourceManager) reconcileComponent(component manifest.ComponentI
 			return err
 		}
 
-		javaFile := NewJavaFile(path, &component, string(fileContent))
+		if m.m != nil && m.m.Main.MainClass.ExcludeJavaFile(info.Name()) {
+			log.Printf("[%s] Excluded %s", component.Name, info.Name())
+			return nil
+		}
+
+		oldFileConent := string(fileContent)
+		javaFile := NewJavaFile(path, &component, oldFileConent)
 		newFileContent, dirty := m.reconcileJavaFile(javaFile)
 
 		if dirty {
+			log.Printf("[%s] %s Updated:", component.Name, info.Name())
+			diff.RenderUnifiedDiff(oldFileConent, newFileContent)
+
 			err = ioutil.WriteFile(path, []byte(newFileContent), info.Mode())
 			if err != nil {
 				return err
@@ -76,7 +88,7 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 				lines[i] = newLine
 				dirty = true
 				m.ImportResourceCount++
-				log.Printf("[%s] %s %s => %s", componentName, jf.FileBaseName(), line, newLine)
+				//log.Printf("[%s] %s %s => %s", componentName, jf.FileBaseName(), line, newLine)
 			}
 		}
 	}
@@ -88,6 +100,7 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 	return "", false
 }
 
+// 目前还不支持多行场景
 func (m *ImportResourceManager) processImportResource(line, componentName string) (string, bool) {
 	return P.importResourcePattern.ReplaceAllStringFunc(line, func(match string) string {
 		// 提取所有资源路径

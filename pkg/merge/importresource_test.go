@@ -7,8 +7,6 @@ import (
 )
 
 func TestProcessImportResource(t *testing.T) {
-	manager := NewImportResourceManager()
-
 	testCases := []struct {
 		input          string
 		componentName  string
@@ -51,6 +49,7 @@ func TestProcessImportResource(t *testing.T) {
 		},
 	}
 
+	manager := NewImportResourceManager(nil)
 	for _, tc := range testCases {
 		output, changed := manager.processImportResource(tc.input, tc.componentName)
 		assert.True(t, changed, "Expected the input to be changed")

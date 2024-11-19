@@ -1,6 +1,9 @@
 package manifest
 
 import (
+	"path/filepath"
+	"strings"
+
 	"federate/pkg/java"
 )
 
@@ -41,10 +44,32 @@ type RuntimeSpec struct {
 }
 
 type MainClassSpec struct {
-	Name          string        `yaml:"class"`
-	ComponentScan ComponentScan `yaml:"componentScan"`
-	Imports       []string      `yaml:"import"`
-	Excludes      []string      `yaml:"exclude"`
+	Name          string            `yaml:"class"`
+	ComponentScan ComponentScanSpec `yaml:"componentScan"`
+	Imports       []string          `yaml:"import"`
+	Excludes      []string          `yaml:"exclude"`
+}
+
+func (m *MainClassSpec) ExcludeJavaFile(javaFile string) bool {
+	// 获取文件名（不包含路径）
+	baseFilename := filepath.Base(javaFile)
+
+	// 检查文件扩展名是否为 .java
+	if !strings.HasSuffix(baseFilename, ".java") {
+		return false
+	}
+
+	// 移除 .java 扩展名
+	className := strings.TrimSuffix(baseFilename, ".java")
+
+	// 检查类名是否在排除列表中
+	for _, excludedType := range m.ComponentScan.ExcludedTypes {
+		if strings.HasSuffix(excludedType, className) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (m *MainSystem) FederatedRuntimePackage() string {
@@ -64,7 +89,7 @@ func (m *MainSystem) HasFeature(feature string) bool {
 	return false
 }
 
-type ComponentScan struct {
+type ComponentScanSpec struct {
 	BasePackages  []string `yaml:"basePackages"`
 	ExcludedTypes []string `yaml:"excludedTypes"`
 }
