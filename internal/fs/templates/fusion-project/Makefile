@@ -80,7 +80,7 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 run-local: ## Local debug {{.FusionProjectName}} after configuring hosts.
 	$(MAKE) -C {{.FusionProjectName}} run-local
 
-suspect: ## Step by step guide detecting potential conflicts.
+explore: ## Step by step guide detecting potential conflicts.
 	$(FEDERATE_CMD) debug wizard
 
 inspect: ## Inspect indirect conflict risk before runtime.
