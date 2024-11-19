@@ -84,3 +84,9 @@ federate microservice scaffold -h
 
 - manifest.components.springProfile 需要为不同环境配置
 - FederatedMybatisConfig
+- spring xml converge
+   - pkg/merge/rpc_consumer.go
+   - pkg/merge/beans_load.go
+   - pkg/merge/beans_reconcile.go
+   - cmd/merge/pom.go
+   - cmd/microservice/snap/pom.go
