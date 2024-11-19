@@ -23,11 +23,11 @@ var refCmd = &cobra.Command{
 func listRef(m *manifest.Manifest, manager spring.SpringManager) {
 	refs := make(map[string]map[string]struct{})
 
-	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.SearchByRef) {
-		if _, exists := refs[bean.Identifier]; !exists {
-			refs[bean.Identifier] = make(map[string]struct{})
+	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.QueryRef()) {
+		if _, exists := refs[bean.Value]; !exists {
+			refs[bean.Value] = make(map[string]struct{})
 		}
-		refs[bean.Identifier][bean.FileName] = struct{}{}
+		refs[bean.Value][bean.FileName] = struct{}{}
 	}
 
 	// 获取所有的 ref 值并排序

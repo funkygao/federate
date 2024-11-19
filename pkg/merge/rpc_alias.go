@@ -23,14 +23,14 @@ func NewRpcAliasManager(pm *PropertyManager) *RpcAliasManager {
 func (m *RpcAliasManager) Reconcile() error {
 	// pass 1: search the conflicting alias/group
 	springMgr := spring.New(false)
-	beans := springMgr.ListBeans(m.m.SpringXmlPath(), spring.SearchByAlias)
+	beans := springMgr.ListBeans(m.m.SpringXmlPath(), spring.QueryRpcAlias())
 
 	aliasMap := make(map[string][]string)
 	for _, b := range beans {
 		iface := b.Bean.SelectAttrValue("interface", "")
-		alias := m.pm.ResolveLine(b.Identifier)
-		if alias != b.Identifier {
-			alias = fmt.Sprintf("%60s  %s", alias, b.Identifier)
+		alias := m.pm.ResolveLine(b.Value)
+		if alias != b.Value {
+			alias = fmt.Sprintf("%60s  %s", alias, b.Value)
 		}
 		if iface != "" {
 			if aliasMap[iface] == nil {

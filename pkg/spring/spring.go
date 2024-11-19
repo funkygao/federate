@@ -8,24 +8,9 @@ import (
 	"github.com/beevik/etree"
 )
 
-type SearchType int
-
-const (
-	logPrefix       = "%-13s"
-	examiningPrefix = "  %-11s"
-
-	SearchByID SearchType = iota
-	SearchByRef
-	SearchByAlias
-)
-
 type BeanInfo struct {
-	Bean *etree.Element
-
-	// Identifier 可能是 bean 的 ID/name（当 Type 为 SearchByID 时），
-	// 或者是 ref 值（当 Type 为 SearchByRef 时）
-	Identifier string
-
+	Bean     *etree.Element
+	Value    string
 	FileName string
 }
 
@@ -41,56 +26,28 @@ func (um UpdateMap) RuleByFileName(fileName string) map[string]string {
 }
 
 type SpringManager interface {
-	ListBeans(springXmlPath string, searchType SearchType) []BeanInfo
+	ListBeans(springXmlPath string, query Query) []BeanInfo
 
-	ChangeBeans(springXmlPath string, searchType SearchType, updateMap UpdateMap) error
+	ChangeBeans(springXmlPath string, query Query, updateMap UpdateMap) error
 }
 
 type manager struct {
 	verbose bool
-
-	beanFullTags map[string]struct{}
-
-	showUnregistered bool
-	unregisteredTags map[string]struct{}
 }
 
 func New(verbose bool) SpringManager {
-	return &manager{
-		verbose: verbose,
-		beanFullTags: map[string]struct{}{
-			"bean":               struct{}{},
-			"util:map":           struct{}{},
-			"util:list":          struct{}{},
-			"laf-config:manager": struct{}{},
-			"jmq:producer":       struct{}{},
-			"jmq:consumer":       struct{}{},
-			"jmq:transport":      struct{}{},
-			"jsf:consumer":       struct{}{},
-			"jsf:consumerGroup":  struct{}{},
-			"jsf:provider":       struct{}{},
-			"jsf:filter":         struct{}{},
-			"jsf:server":         struct{}{},
-			"jsf:registry":       struct{}{},
-			"dubbo:reference":    struct{}{},
-			"dubbo:service":      struct{}{},
-		},
-		showUnregistered: false,
-		unregisteredTags: make(map[string]struct{}),
-	}
+	return &manager{verbose: verbose}
 }
 
-func (m *manager) ListBeans(springXmlPath string, searchType SearchType) []BeanInfo {
+func (m *manager) ListBeans(springXmlPath string, query Query) []BeanInfo {
 	log.Printf("Starting from %s", springXmlPath)
 	var beanInfos []BeanInfo
 	processor := func(elem *etree.Element, beanInfo BeanInfo) (bool, error) {
-		if strings.TrimSpace(beanInfo.Identifier) != "" {
-			beanInfos = append(beanInfos, beanInfo)
-		}
+		beanInfos = append(beanInfos, beanInfo)
 		return false, nil
 	}
 
-	err := m.processBeansInFile(springXmlPath, searchType, make(map[string]bool), processor)
+	err := m.processBeansInFile(springXmlPath, query, make(map[string]bool), processor)
 	if err != nil {
 		log.Printf("Error processing beans: %v", err)
 	}
@@ -98,16 +55,11 @@ func (m *manager) ListBeans(springXmlPath string, searchType SearchType) []BeanI
 	return beanInfos
 }
 
-func (m *manager) ChangeBeans(springXmlPath string, searchType SearchType, updateMap UpdateMap) error {
-	if searchType != SearchByRef {
-		// do nothing
-		return nil
-	}
-
+func (m *manager) ChangeBeans(springXmlPath string, query Query, updateMap UpdateMap) error {
 	processor := func(elem *etree.Element, beanInfo BeanInfo) (bool, error) {
 		updates := updateMap.RuleByFileName(beanInfo.FileName)
 		if updates != nil {
-			if newValue, ok := updates[beanInfo.Identifier]; ok {
+			if newValue, ok := updates[beanInfo.Value]; ok {
 				if util.UpdateXmlElement(elem, "ref", newValue) {
 					return true, nil
 				}
@@ -116,5 +68,5 @@ func (m *manager) ChangeBeans(springXmlPath string, searchType SearchType, updat
 		return false, nil
 	}
 
-	return m.processBeansInFile(springXmlPath, searchType, make(map[string]bool), processor)
+	return m.processBeansInFile(springXmlPath, query, make(map[string]bool), processor)
 }

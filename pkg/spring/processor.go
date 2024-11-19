@@ -9,9 +9,13 @@ import (
 	"github.com/beevik/etree"
 )
 
-type BeanProcessor func(elem *etree.Element, beanInfo BeanInfo) (bool, error)
+const (
+	logPrefix       = "%-13s"
+	examiningPrefix = "  %-11s"
+)
 
-func (m *manager) processBeansInFile(filePath string, searchType SearchType, visitedFiles map[string]bool, processor BeanProcessor) error {
+func (m *manager) processBeansInFile(filePath string, query Query, visitedFiles map[string]bool,
+	processor func(elem *etree.Element, beanInfo BeanInfo) (bool, error)) error {
 	if visitedFiles[filePath] {
 		return nil
 	}
@@ -35,30 +39,25 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 		root := doc.Root()
 		changed := false
 
-		// Process bean definitions or refs
 		for _, elem := range root.FindElements(".//*") {
-			var beanInfo BeanInfo
-			switch searchType {
-			case SearchByID:
-				if m.isBeanElement(elem) {
-					if id := m.getBeanId(elem); id != "" {
-						beanInfo = BeanInfo{Bean: elem, Identifier: id, FileName: match}
+			var (
+				beanInfo  BeanInfo
+				beanFound = false
+			)
+
+			if query.predicate == nil || query.predicate(elem) {
+				if value, found := m.getValueByQuery(elem, query); found {
+					beanFound = true
+					beanInfo = BeanInfo{
+						Bean:     elem,
+						Value:    value,
+						FileName: match,
 					}
 				}
-
-			case SearchByRef:
-				if ref := m.getRefValue(elem); ref != "" {
-					beanInfo = BeanInfo{Bean: elem, Identifier: ref, FileName: match}
-				}
-
-			case SearchByAlias:
-				if alias := m.getAliasValue(elem); alias != "" {
-					beanInfo = BeanInfo{Bean: elem, Identifier: alias, FileName: match}
-				}
-
 			}
 
-			if beanInfo.Identifier != "" {
+			if beanFound {
+				// 找到该bean信息，才交给 processor 处理
 				elemChanged, err := processor(elem, beanInfo)
 				if err != nil {
 					return err
@@ -84,7 +83,7 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 				if m.verbose {
 					log.Printf(logPrefix+"%s", "Following", importedPath)
 				}
-				if err := m.processBeansInFile(importedPath, searchType, visitedFiles, processor); err != nil {
+				if err := m.processBeansInFile(importedPath, query, visitedFiles, processor); err != nil {
 					return err
 				}
 			} else {
@@ -96,69 +95,13 @@ func (m *manager) processBeansInFile(filePath string, searchType SearchType, vis
 	return nil
 }
 
-func (m *manager) isBeanElement(elem *etree.Element) bool {
-	var fullTag string
-	if elem.Space == "" {
-		// <bean>
-		fullTag = elem.Tag
-	} else {
-		fullTag = elem.Space + ":" + elem.Tag
-	}
-
-	_, present := m.beanFullTags[fullTag]
-	if !present {
-		m.unregisteredTags[fullTag] = struct{}{}
-	}
-	return present
-}
-
-func (m *manager) getBeanId(elem *etree.Element) string {
-	id := elem.SelectAttrValue("id", "")
-	if id == "" {
-		id = elem.SelectAttrValue("name", "")
-	}
-	return id
-}
-
-func (m *manager) getRefValue(elem *etree.Element) string {
-	refAttributes := []string{"ref", "value-ref", "bean", "properties-ref"}
-	for _, attr := range refAttributes {
-		if ref := elem.SelectAttrValue(attr, ""); ref != "" {
-			return ref
-		}
-	}
-
-	if elem.Tag == "ref" {
-		// <bean id="xx" class="xx">
-		//   <property name="tasks">
-		//     <list>
-		//       <<ref bean="bar1"/>
-		//       <<ref bean="bar2"/>
-		return elem.SelectAttrValue("bean", "")
-	}
-	return ""
-}
-
-func (m *manager) getAliasValue(elem *etree.Element) string {
-	if elem.Tag != "provider" && elem.Tag != "service" {
-		// jsf:provider
-		// dubbo:service
-		return ""
-	}
-
-	if alias := elem.SelectAttrValue("alias", ""); alias != "" {
-		return alias
-	}
-	if alias := elem.SelectAttrValue("group", ""); alias != "" {
-		return alias
-	}
-	return ""
-}
-
 func (m *manager) getValueByQuery(elem *etree.Element, q Query) (value string, found bool) {
 	for _, attr := range q.attributes {
 		if val := elem.SelectAttrValue(attr, ""); val != "" {
-			return val, true
+			if q.queryString == "" || val == q.queryString {
+				// 如果 queryString 为空，我们不进行精确匹配，而是返回第一个非空值
+				return val, true
+			}
 		}
 	}
 
@@ -166,7 +109,9 @@ func (m *manager) getValueByQuery(elem *etree.Element, q Query) (value string, f
 		if elem.Tag == tag {
 			for _, attr := range attrs {
 				if val := elem.SelectAttrValue(attr, ""); val != "" {
-					return val, true
+					if q.queryString == "" || val == q.queryString {
+						return val, true
+					}
 				}
 			}
 		}

@@ -19,8 +19,8 @@ var beanCmd = &cobra.Command{
 
 func searchBean(m *manifest.Manifest, beanId string) {
 	manager := spring.New(true)
-	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.SearchByID) {
-		if bean.Identifier == beanId {
+	for _, bean := range manager.ListBeans(m.SpringXmlPath(), spring.QueryBeanID(beanId)) {
+		if bean.Value == beanId {
 			color.Green("bean[%s] found in %s", beanId, bean.FileName)
 			return
 		}
