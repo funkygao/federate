@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"federate/pkg/federated"
@@ -69,11 +70,34 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 			continue
 		}
 
-		matches := P.importResourcePattern.FindStringSubmatch(line)
-		if len(matches) > 0 {
-			resourcePath := matches[1]
+		if strings.HasPrefix(line, "@ImportResource") {
+			newLine, changed := m.processImportResource(line, componentName)
+			if changed {
+				lines[i] = newLine
+				dirty = true
+				m.ImportResourceCount++
+				log.Printf("[%s] %s %s => %s", componentName, jf.FileBaseName(), line, newLine)
+			}
+		}
+	}
+
+	if dirty {
+		return strings.Join(lines, "\n"), true
+	}
+
+	return "", false
+}
+
+func (m *ImportResourceManager) processImportResource(line, componentName string) (string, bool) {
+	return P.importResourcePattern.ReplaceAllStringFunc(line, func(match string) string {
+		// 提取所有资源路径
+		resourcePaths := regexp.MustCompile(`"([^"]+)"|'([^']+)'`).FindAllStringSubmatch(match, -1)
+
+		newPaths := make([]string, 0, len(resourcePaths))
+		for _, path := range resourcePaths {
+			resourcePath := path[1]
 			if resourcePath == "" {
-				resourcePath = matches[2] // 如果使用单引号
+				resourcePath = path[2] // 如果使用单引号
 			}
 
 			// 检查是否以 "classpath:" 开头
@@ -84,23 +108,15 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 			}
 
 			// 构造新的资源路径
-			newResourcePath := fmt.Sprintf("%s%s/%s/%s", prefix, federated.FederatedDir, componentName, resourcePath)
-
-			// 替换原有的 ImportResource 注解
-			newLine := P.importResourcePattern.ReplaceAllString(line, fmt.Sprintf(`@ImportResource("%s")`, newResourcePath))
-			log.Printf("[%s] %s %s => %s", componentName, jf.FileBaseName(), line, newLine)
-
-			if newLine != line {
-				lines[i] = newLine
-				dirty = true
-				m.ImportResourceCount++
-			}
+			newResourcePath := fmt.Sprintf(`"%s%s/%s/%s"`, prefix, federated.FederatedDir, componentName, resourcePath)
+			newPaths = append(newPaths, newResourcePath)
 		}
-	}
 
-	if dirty {
-		return strings.Join(lines, "\n"), true
-	}
-
-	return "", false
+		// 重构 @ImportResource 注解
+		if len(newPaths) == 1 {
+			return fmt.Sprintf(`@ImportResource(%s)`, newPaths[0])
+		} else {
+			return fmt.Sprintf(`@ImportResource(locations = {%s})`, strings.Join(newPaths, ", "))
+		}
+	}), true
 }
