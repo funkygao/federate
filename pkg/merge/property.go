@@ -14,6 +14,7 @@ import (
 type PropertyManager struct {
 	m      *manifest.Manifest
 	silent bool
+	debug  bool
 
 	resolvedProperties   map[string]map[string]PropertySource // 合并 YAML 和 Properties
 	unresolvedProperties map[string]map[string]PropertySource // 无法解析的引用
@@ -49,6 +50,11 @@ func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
 
 		placeholderRe: regexp.MustCompile(`\$\{([^}]+)\}`),
 	}
+}
+
+func (cm *PropertyManager) Debug() *PropertyManager {
+	cm.debug = true
+	return cm
 }
 
 func (cm *PropertyManager) Silent() *PropertyManager {

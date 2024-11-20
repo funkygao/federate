@@ -17,8 +17,7 @@ var GoCmd = &cobra.Command{
 // 这里的内容可能经常变：通过运行来调试 federate 代码
 func debugFederate(m *manifest.Manifest) {
 	propertyManager := merge.NewPropertyManager(m)
-	propertyManager.Silent()
-	propertyManager.Analyze()
+	propertyManager.Silent().Debug().Analyze()
 }
 
 func init() {
