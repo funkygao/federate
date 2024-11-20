@@ -89,7 +89,7 @@ fusion-starter:
     excludedBeanPatterns:
       - com.foo.bar.Clazz
       - com.foo.baz
-  exitOnStartupFailure: true # fail fast on ApplicationFailedEvent，避免假死
+  exitOnApplicationFailedEvent: true
   inspect: # 运行前自检
     addon: # 客户扩展开发的插件 FQCN，实现接口：RiskDetector
       #- com.foo.Bar
