@@ -24,7 +24,7 @@ func identifyPropertyConflicts(m *manifest.Manifest, manager *merge.PropertyMana
 }
 
 func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
-	result, err := manager.ReconcileConflicts(dryRunMerge)
+	result, err := manager.Reconcile(dryRunMerge)
 	if err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}

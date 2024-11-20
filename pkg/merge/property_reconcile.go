@@ -23,24 +23,26 @@ type PropertySourcesReconcileReport struct {
 }
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
-func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourcesReconcileReport, err error) {
+func (cm *PropertyManager) Reconcile(dryRun bool) (result PropertySourcesReconcileReport, err error) {
+	// pass 1: 识别冲突
 	conflicts := cm.IdentifyAllConflicts()
 	if len(conflicts) == 0 {
 		return
 	}
 
-	// Group keys by component
-	conflictingKeysOfComponents := make(map[string][]string)
+	// pass 2:
+	conflictingKeysOfComponents := make(map[string][]string) // Group keys by component
 	for key, components := range conflicts {
 		for componentName, value := range components {
 			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
-			cm.resolveConflict(componentName, Key(key), value)
+			cm.updateResolvedProperties(componentName, Key(key), value)
 		}
 	}
 
+	// pass 3: 创建并发任务对 Component 源代码进行插桩改写
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
-	executor.SetName("Overwrite Java/XML conflicted property references & RequestMapping")
+	executor.SetName("Overwrite Java/XML conflicted property references & @RequestMapping & @ConfigurationProperties")
 	for componentName, keys := range conflictingKeysOfComponents {
 		executor.AddTask(&reconcileTask{
 			cm:                 cm,
@@ -65,6 +67,57 @@ func (cm *PropertyManager) ReconcileConflicts(dryRun bool) (result PropertySourc
 	}
 
 	return
+}
+
+func (pm *PropertyManager) updateResolvedProperties(componentName string, key Key, value interface{}) {
+	strKey := string(key)
+	originalSource := pm.resolvedProperties[componentName][strKey]
+
+	// 已经占位符替换的，要恢复占位符
+	newOriginalString := originalSource.OriginalString
+	if strings.Contains(newOriginalString, "${") {
+		// 更新 OriginalString 中的引用 ${foo} => ${component1.foo}
+		newOriginalString = pm.updateReferencesInString(originalSource.OriginalString, componentName)
+		if !pm.silent {
+			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalSource.OriginalString, newOriginalString)
+		}
+	}
+
+	// 修改 resolvedProperties，写盘使用
+	if integralKey := pm.getConfigurationPropertiesPrefix(strKey); integralKey != "" {
+		pm.handleConfigurationProperties(componentName, integralKey)
+	} else {
+		pm.handleRegularProperty(componentName, key, value, newOriginalString, originalSource)
+	}
+}
+
+func (pm *PropertyManager) handleConfigurationProperties(componentName, configPropPrefix string) {
+	// key 是 ConfigurationProperties 的一部分，为所有相关的 key 添加命名空间
+	for subKey := range pm.resolvedProperties[componentName] {
+		if strings.HasPrefix(subKey, configPropPrefix) {
+			nsKey := Key(subKey).WithNamespace(componentName)
+			pm.resolvedProperties[componentName][nsKey] = PropertySource{
+				Value:          pm.resolvedProperties[componentName][subKey].Value,
+				OriginalString: pm.resolvedProperties[componentName][subKey].OriginalString,
+				FilePath:       pm.resolvedProperties[componentName][subKey].FilePath,
+			}
+		}
+	}
+}
+
+func (pm *PropertyManager) handleRegularProperty(componentName string, key Key, value interface{}, newOriginalString string, originalSource PropertySource) {
+	nsKey := key.WithNamespace(componentName)
+	pm.resolvedProperties[componentName][nsKey] = PropertySource{
+		Value:          value,
+		OriginalString: newOriginalString,
+		FilePath:       originalSource.FilePath,
+	}
+}
+
+func (cm *PropertyManager) updateReferencesInString(s, componentName string) string {
+	return os.Expand(s, func(key string) string {
+		return "${" + componentName + "." + key + "}"
+	})
 }
 
 type reconcileTask struct {

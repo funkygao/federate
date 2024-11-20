@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"federate/pkg/ds"
 	"federate/pkg/manifest"
 	"gopkg.in/yaml.v2"
 )
@@ -68,12 +67,6 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 
 	flatConfig := make(map[string]interface{})
 	cm.flattenYamlMap(config, "", flatConfig)
-	if cm.debug {
-		sm := ds.NewSortedMap(flatConfig)
-		for _, key := range sm.Keys() {
-			log.Printf("[%s] %s %v", component.Name, key, flatConfig[key])
-		}
-	}
 
 	// 捕获属性引用
 	for key, value := range flatConfig {

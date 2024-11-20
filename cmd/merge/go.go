@@ -18,6 +18,8 @@ var GoCmd = &cobra.Command{
 func debugFederate(m *manifest.Manifest) {
 	propertyManager := merge.NewPropertyManager(m)
 	propertyManager.Silent().Debug().Analyze()
+	//propertyManager.IdentifyYamlFileConflicts()
+	showYamlConflicts(m, propertyManager)
 }
 
 func init() {

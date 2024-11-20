@@ -2,6 +2,7 @@ package merge
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -138,6 +139,9 @@ func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]int
 
 func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource) bool) map[string]map[string]interface{} {
 	conflicts := make(map[string]map[string]interface{})
+	configPropConflicts := make(map[string]bool)
+
+	// 第一遍：识别所有冲突和 ConfigurationProperties 冲突
 	for key := range pm.getAllUniqueKeys() {
 		componentValues := make(map[string]interface{})
 		var firstValue interface{}
@@ -156,9 +160,47 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 
 		if isConflict && len(componentValues) > 1 {
 			conflicts[key] = componentValues
+
+			// 检查是否是 ConfigurationProperties 的一部分
+			if integralKey := pm.getConfigurationPropertiesPrefix(key); integralKey != "" {
+				log.Printf("@ConfigurationProperties(%s) key[%s] encounters conflict values", integralKey, key)
+				configPropConflicts[integralKey] = true
+			}
 		}
 	}
+
+	// 第二遍：将所有 ConfigurationProperties 相关的键标记为冲突
+	for key := range pm.getAllUniqueKeys() {
+		for integralKey := range configPropConflicts {
+			if strings.HasPrefix(key, integralKey) {
+				componentValues := make(map[string]interface{})
+				for component, props := range pm.resolvedProperties {
+					if propSource, exists := props[key]; exists {
+						componentValues[component] = propSource.Value
+					}
+				}
+				if len(componentValues) > 0 {
+					conflicts[key] = componentValues
+				}
+				break
+			}
+		}
+	}
+
 	return conflicts
+}
+
+func (pm *PropertyManager) getConfigurationPropertiesPrefix(key string) string {
+	if pm.m == nil {
+		return ""
+	}
+
+	for _, prefix := range pm.m.Main.Reconcile.Resources.Property.ConfigurationPropertiesKeys {
+		if strings.HasPrefix(key, prefix) {
+			return prefix
+		}
+	}
+	return ""
 }
 
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {

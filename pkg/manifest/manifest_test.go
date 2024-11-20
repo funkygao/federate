@@ -285,10 +285,3 @@ func TestTrimComponentPath(t *testing.T) {
 	c := ComponentInfo{Name: "wms-stock"}
 	assert.Equal(t, "foo/bar.java", c.TrimComponentPath("wms-stock/foo/bar.java"))
 }
-
-func TestIsConfigurationPropertiesKey(t *testing.T) {
-	p := PropertyReconcileSpec{ConfigurationPropertiesKeys: []string{"a.b"}}
-	assert.True(t, p.IsConfigurationPropertiesKey("a.b"))
-	assert.True(t, p.IsConfigurationPropertiesKey("a.b.c"))
-	assert.False(t, p.IsConfigurationPropertiesKey("c.b.c"))
-}

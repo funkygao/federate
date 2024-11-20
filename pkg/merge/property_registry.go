@@ -3,7 +3,6 @@ package merge
 import (
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 	"strings"
 
@@ -43,35 +42,4 @@ func (cm *PropertyManager) registerProperty(component manifest.ComponentInfo, ke
 			FilePath:       filePath,
 		}
 	}
-}
-
-func (cm *PropertyManager) resolveConflict(componentName string, key Key, value interface{}) {
-	strKey := string(key)
-	originalSource := cm.resolvedProperties[componentName][strKey]
-
-	newOriginalString := originalSource.OriginalString
-	if strings.Contains(newOriginalString, "${") {
-		// 更新 OriginalString 中的引用 ${foo} => ${component1.foo}
-		newOriginalString = cm.updateReferencesInString(originalSource.OriginalString, componentName)
-		if !cm.silent {
-			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalSource.OriginalString, newOriginalString)
-		}
-	}
-
-	// Update the resolvedProperties with the prefixed key, for .properties && .yml
-	nsKey := key.WithNamespace(componentName)
-	cm.resolvedProperties[componentName][nsKey] = PropertySource{
-		Value:          value,
-		OriginalString: newOriginalString,
-		FilePath:       originalSource.FilePath,
-	}
-
-	// 原有的key删除可能会造成间接依赖的jar里引用找不到：use property.override
-	//delete(cm.resolvedProperties[componentName], strKey)
-}
-
-func (cm *PropertyManager) updateReferencesInString(s, componentName string) string {
-	return os.Expand(s, func(key string) string {
-		return "${" + componentName + "." + key + "}"
-	})
 }
