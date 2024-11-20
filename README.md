@@ -84,17 +84,13 @@ federate microservice scaffold -h
 
 ### Instrumentation
 
+### Instrumentation
+
 | Target | Instrumentation |
 |--------|-----------------|
-| Java Source Code | - Replace `@Resource` with `@Autowired`
-- Modify `@RequestMapping`, `@Service`, `@Component`
-- Transform `@Value` and `System.getProperty()`
-- Adjust `getBeanPattern`
-- Modify `@ImportResource` |
+| Java Source Code | - Replace `@Resource` with `@Autowired`<br>- Modify `@RequestMapping`, `@Service`, `@Component`<br>- Transform `@Value` and `System.getProperty()`<br>- Adjust `getBeanPattern`<br>- Modify `@ImportResource` |
 | pom.xml | - Disable `spring-boot-maven-plugin` to enable post-`mvn install` usage |
-| Resource Files | - Merge RPC consumer configurations
-- Allow user-specified imports |
-
+| Resource Files | - Merge RPC consumer configurations<br>- Allow user-specified imports |
 
 ## TODO
 
