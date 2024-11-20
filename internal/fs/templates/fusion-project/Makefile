@@ -61,7 +61,7 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 	$(MAKE) init
 	echo
 	echo "☕️ Consolidating the federated project ..."
-	federate microservice consolidate --yes --silent=false
+	$(call measure_time, federate microservice consolidate --yes --silent=false)
 	echo
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
@@ -69,12 +69,12 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $$ENV); \
 			modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
 			echo "   Installing $$repo with profile:$$profile on modules:$$modules"; \
-			(cd $$repo && mvn clean install -q -U -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
+			$(call measure_time, (cd $$repo && mvn clean install -q -U -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)) || exit 1; \
 		done; \
 	else \
 		echo "☕️ Skipped Components Installation"; \
 	fi
-	$(MAKE) package
+	$(call measure_time, $(MAKE) package)
 	echo "🍺 {{.FusionProjectName}} consolidated and packaged!"
 
 run-local: ## Local debug {{.FusionProjectName}} after configuring hosts.
@@ -104,3 +104,10 @@ package:
 	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)
 	$(MAKE) package
 {{- end }}
+
+measure_time = \
+	start=$$(date +%s); \
+	$\$1; \
+	end=$$(date +%s); \
+	runtime=$$((end-start)); \
+	echo "⏱️  Time taken: $$runtime seconds"
