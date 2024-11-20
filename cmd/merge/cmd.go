@@ -164,10 +164,9 @@ func doMerge(m *manifest.Manifest) {
 				}
 			}},
 		{
-			Name: "Reconciling RPC alias/group naming conflicts by Rewriting XML",
+			Name: "Detecting RPC Provider alias/group conflicts by Rewriting XML",
 			Fn: func() {
 				rpcAliasManager.Reconcile()
-				color.Green("🍺 RPC alias/group conflicts reconciled")
 			}},
 	}
 
