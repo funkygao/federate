@@ -78,11 +78,15 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		if includeProfiles, ok := includes.(string); ok {
 			for _, includeProfile := range strings.Split(includeProfiles, ",") {
 				includeProfile = strings.TrimSpace(includeProfile)
-				if !cm.silent {
-					log.Printf("[%s:%s] Detected spring.profiles.include: %s", component.Name, springProfile, includeProfile)
-				}
 				if includeProfile != "" {
-					cm.analyzeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+includeProfile+".yml"), includeProfile, component)
+					// includeProfile is comma seperated
+					for _, profile := range strings.Split(includeProfile, ",") {
+						trimmedProfile := strings.TrimSpace(profile)
+						if !cm.silent {
+							log.Printf("[%s:%s] Following spring.profiles.include: %s", component.Name, springProfile, trimmedProfile)
+						}
+						cm.analyzeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+trimmedProfile+".yml"), includeProfile, component)
+					}
 				}
 			}
 		}
