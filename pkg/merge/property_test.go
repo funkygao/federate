@@ -157,12 +157,12 @@ func TestPropertySource(t *testing.T) {
 	assert.Equal(t, true, ps.IsProperties())
 }
 
-func TestAnalyzeAllPropertySources(t *testing.T) {
+func TestAnalyze(t *testing.T) {
 	tempDir := t.TempDir()
 	m := prepareTestManifest(t, tempDir)
 
 	pm := NewPropertyManager(m)
-	require.NoError(t, pm.AnalyzeAllPropertySources())
+	require.NoError(t, pm.Analyze())
 	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvedProperties, "", "  ")
 	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
 	unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.unresolvedProperties, "", "  ")
@@ -246,7 +246,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 	m := prepareTestManifest(t, tempDir)
 
 	pm := NewPropertyManager(m)
-	require.NoError(t, pm.AnalyzeAllPropertySources())
+	require.NoError(t, pm.Analyze())
 
 	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
 	pm.GenerateMergedYamlFile(mergedYamlPath)

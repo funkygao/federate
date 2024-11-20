@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"federate/pkg/ds"
 	"federate/pkg/manifest"
 	"gopkg.in/yaml.v2"
 )
@@ -19,7 +20,7 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 	}
 	defer file.Close()
 
-	if !cm.silent {
+	if !cm.silent || cm.debug {
 		log.Printf("[%s] Processing %s", component.Name, filePath)
 	}
 
@@ -52,7 +53,7 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		return err
 	}
 
-	if !cm.silent {
+	if !cm.silent || cm.debug {
 		log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
 	}
 
@@ -67,6 +68,12 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 
 	flatConfig := make(map[string]interface{})
 	cm.flattenYamlMap(config, "", flatConfig)
+	if cm.debug {
+		sm := ds.NewSortedMap(flatConfig)
+		for _, key := range sm.Keys() {
+			log.Printf("[%s] %s %v", component.Name, key, flatConfig[key])
+		}
+	}
 
 	// 捕获属性引用
 	for key, value := range flatConfig {
@@ -78,11 +85,15 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 		if includeProfiles, ok := includes.(string); ok {
 			for _, includeProfile := range strings.Split(includeProfiles, ",") {
 				includeProfile = strings.TrimSpace(includeProfile)
-				if !cm.silent {
-					log.Printf("[%s:%s] Detected spring.profiles.include: %s", component.Name, springProfile, includeProfile)
-				}
 				if includeProfile != "" {
-					cm.analyzeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+includeProfile+".yml"), includeProfile, component)
+					// includeProfile is comma seperated
+					for _, profile := range strings.Split(includeProfile, ",") {
+						trimmedProfile := strings.TrimSpace(profile)
+						if !cm.silent {
+							log.Printf("[%s:%s] Following spring.profiles.include: %s", component.Name, springProfile, trimmedProfile)
+						}
+						cm.analyzeYamlFile(filepath.Join(filepath.Dir(filePath), "application-"+trimmedProfile+".yml"), includeProfile, component)
+					}
 				}
 			}
 		}
