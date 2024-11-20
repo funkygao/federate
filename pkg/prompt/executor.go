@@ -11,9 +11,9 @@ func executor(input string) {
 
 	switch {
 	case input == "go":
-		promptGenerator.GenerateHighQualityPrompt(true)
-	case input == "gon":
 		promptGenerator.GenerateHighQualityPrompt(false)
+	case input == "goh":
+		promptGenerator.GenerateHighQualityPrompt(true)
 	case strings.HasPrefix(input, "!"):
 		promptGenerator.executeShellCommand(input)
 	default:

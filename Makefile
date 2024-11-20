@@ -142,14 +142,14 @@ release:embed-javast ## Build binaries for darwin-amd64, darwin-arm64, linux-amd
 		-ldflags "$(LDFLAGS)"; \
 	done
 
-##@ Diagnose
+# Diagnose
 
 PROFILE_DURATION=30
 PPROF_PORT=9087
 PROFILE_FILE=cpu_profile.pb.gz
 FLAMEGRAPH_DIR=~/github/FlameGraph
 
-loc: ## Count lines of Go code.
+loc:
 	for dir in pkg/* cmd/*; do \
 		if [ -d "$$dir" ]; then \
 			loc=$$(cloc $$dir --include-lang=Go --json | jq -r '.Go.code // 0'); \
@@ -164,11 +164,11 @@ loc: ## Count lines of Go code.
 profile:
 	go tool pprof -seconds=$(PROFILE_DURATION) -proto http://localhost:$(PPROF_PORT)/debug/pprof/profile > $(PROFILE_FILE)
 
-pprof:profile ## Visualization and analysis of profiling data.
+pprof:profile
 	go install github.com/google/pprof@latest
 	pprof -http=:8080 $(PROFILE_FILE)
 
-flamegraph:profile ## FlameGraph.
+flamegraph:profile
 	echo "git clone https://github.com/brendangregg/FlameGraph.git"
 	go tool pprof -raw -output=cpu_profile.txt $(PROFILE_FILE)
 	$(FLAMEGRAPH_DIR)/stackcollapse-go.pl cpu_profile.txt > cpu_profile.folded
