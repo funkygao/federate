@@ -9,7 +9,6 @@ import (
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/util"
-	"github.com/fatih/color"
 )
 
 func scaffoldTargetSystem(m *manifest.Manifest) {
@@ -21,8 +20,6 @@ func scaffoldTargetSystem(m *manifest.Manifest) {
 	generatePackageXml(m)
 	generateStartStopScripts(m)
 	copyTaint(m)
-
-	color.Green("🍺 Scaffold generated for the federated system: %s", m.Main.Name)
 }
 
 func generatePomFile(m *manifest.Manifest) {

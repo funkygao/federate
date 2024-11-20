@@ -39,7 +39,6 @@ func doCreate(m *manifest.Manifest) {
 
 	// 让WMS6.0代码安装后可以被依赖
 	log.Println("Instrumenting submodule pom.xml for JAR dependency ...")
-	merge.EchoBeer = false
 	merge.InstrumentPomForFederatePackaging(m)
 
 	color.Green("🍺 Congrat, %s scaffolded!", m.Main.Name)

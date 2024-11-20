@@ -21,7 +21,6 @@ func identifyPropertyConflicts(m *manifest.Manifest, manager *merge.PropertyMana
 	}
 	showPropertiesConflicts(m, manager)
 	showYamlConflicts(m, manager)
-	color.Green("🍺 Property conflicts identified")
 }
 
 func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {

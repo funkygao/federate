@@ -8,11 +8,6 @@ import (
 	"federate/pkg/manifest"
 	"federate/pkg/util"
 	"github.com/beevik/etree"
-	"github.com/fatih/color"
-)
-
-var (
-	EchoBeer = true
 )
 
 func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
@@ -31,9 +26,6 @@ func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
 				log.Fatalf("%s: %v", pomPath, err)
 			}
 		}
-	}
-	if EchoBeer {
-		color.Green("🍺 pom.xml Instrumented for federate packaging")
 	}
 }
 

@@ -79,7 +79,6 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Reconciling ENV variables conflicts",
 			Fn: func() {
 				merge.ReconcileEnvConflicts(m)
-				color.Green("🍺 ENV variables conflicts reconciled")
 			}},
 		{
 			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
@@ -92,8 +91,6 @@ func doMerge(m *manifest.Manifest) {
 				if err := resourceManager.RecursiveFederatedCopyResources(m); err != nil {
 					log.Fatalf("Error copying resources: %v", err)
 				}
-
-				color.Green("🍺 Resources recursively federated copied")
 			}},
 		{
 			Name: "Flat-Copying Resources: reconcile.resources.copy",
@@ -101,7 +98,6 @@ func doMerge(m *manifest.Manifest) {
 				if err := resourceManager.RecursiveFlatCopyResources(m); err != nil {
 					log.Fatalf("Error merging reconcile.flatCopyResources: %v", err)
 				}
-				color.Green("🍺 Resources recursively flat copied")
 			}},
 		{
 			Name: "Analyze All Property and Identify Conflicts",
@@ -119,7 +115,6 @@ func doMerge(m *manifest.Manifest) {
 				xmlBeanManager.ReconcileTargetConflicts(dryRunMerge)
 				plan := xmlBeanManager.ReconcilePlan()
 				log.Printf("Found bean id conflicts: %d", plan.ConflictCount())
-				color.Green("🍺 Spring XML Beans conflicts reconciled")
 			}},
 		{
 			Name: "Reconciling Spring Bean Injection conflicts by Rewriting @Resource",
@@ -131,7 +126,6 @@ func doMerge(m *manifest.Manifest) {
 				if injectionManager.AutowiredN > 0 {
 					log.Printf("Source Code Rewritten, +@Autowired: %d, +@Qualifier: %d", injectionManager.AutowiredN, injectionManager.QualifierN)
 				}
-				color.Green("🍺 Java code Spring Bean Injection conflicts reconciled")
 			}},
 		{
 			Name: "Generating Federated Spring Bootstrap XML",
@@ -153,7 +147,6 @@ func doMerge(m *manifest.Manifest) {
 					log.Fatalf("%v", err)
 
 				}
-				color.Green("🍺 Java @Service and corresponding spring.xml ref transformed")
 			}},
 		{
 			Name: "Transforming Java @ImportResource value",
