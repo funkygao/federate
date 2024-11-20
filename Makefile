@@ -52,7 +52,7 @@ install: test embed-javast ## Check if Go is installed, install if not, then bui
 		fi; \
 		brew install go; \
 	fi
-	echo "💡 Latest commit: $$(git log -1 --pretty=format:"%h by %an, %ar: %s")"
+	#echo "💡 Latest commit: $$(git log -1 --pretty=format:"%h by %an, %ar: %s")"
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
 		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)"; \
 		echo "🍺 Installed to $(HOMEBREW_PREFIX)/bin/federate"; \

@@ -80,19 +80,21 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 run-local: ## Local debug {{.FusionProjectName}} after configuring hosts.
 	$(MAKE) -C {{.FusionProjectName}} run-local
 
-discover: ## Step by step guide for detecting potential conflicts.
-	$(FEDERATE_CMD) debug wizard
-
-inspect: ## Inspect indirect conflict risk before runtime.
-	$(MAKE) -C {{.FusionProjectName}} inspect
-
-optimize:
-	federate microservice optimize --yes --verbosity 3
-
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
 	mvn install -q -T8 -Dmaven.artifact.threads=16
 	echo "   {{.FusionProjectName}} packaged"
+
+##@ Explore
+
+discover: ## Step by step guide for detecting potential conflicts.
+	$(FEDERATE_CMD) debug wizard
+
+inspect: ## Inspect indirect conflict risk before deployment.
+	$(MAKE) -C {{.FusionProjectName}} inspect
+
+optimize:
+	federate microservice optimize --yes --verbosity 3
 
 # handy local debug targets: manual update submodule files then install, ready for 'make run-local'
 {{- range .Components }}
