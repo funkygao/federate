@@ -2,8 +2,9 @@
 SHELL := /bin/bash
 .SILENT:
 
+MANIFEST_FILE ?= manifest.yaml
 FEDERATE_CMD ?= federate
-INVENTORY_CMD := $(FEDERATE_CMD) util inventory
+INVENTORY_CMD := $(FEDERATE_CMD) util inventory -i $(MANIFEST_FILE)
 ENV ?=
 
 help: 
@@ -53,7 +54,7 @@ checkenv:
 ##@ Fuse: fusion-start -> consolidate -> run -> jdos
 
 fusion-start: ## Scaffold the fusion-starter module.
-	federate microservice fusion-start
+	$(FEDERATE_CMD) microservice fusion-start -i $(MANIFEST_FILE)
 
 rebuild-starter:fusion-start package
 
@@ -61,7 +62,7 @@ consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 	$(MAKE) init
 	echo
 	echo "☕️ Consolidating the federated project ..."
-	$(call measure_time, federate microservice consolidate --yes --silent=false)
+	$(call measure_time, $(FEDERATE_CMD) microservice consolidate --yes --silent=false -i $(MANIFEST_FILE))
 	echo
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
@@ -81,7 +82,7 @@ run: ## Debug {{.FusionProjectName}} locally.
 	$(MAKE) -C {{.FusionProjectName}} run
 
 jdos: ## Generate CI/CD help for JDOS 3.0.
-	$(FEDERATE_CMD) microservice jdos
+	$(FEDERATE_CMD) microservice jdos -i $(MANIFEST_FILE)
 
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
@@ -91,13 +92,13 @@ package:
 ##@ Explore: Post-Fuse Phase
 
 discover: ## Step-by-step guide for detecting potential conflicts.
-	$(FEDERATE_CMD) debug wizard
+	$(FEDERATE_CMD) debug wizard -i $(MANIFEST_FILE)
 
 inspect: ## Inspect indirect conflict risk before deployment.
 	$(MAKE) -C {{.FusionProjectName}} inspect
 
 optimize: ## Identify potential opportunities for optimization.
-	federate microservice optimize --yes --verbosity 3
+	$(FEDERATE_CMD) microservice optimize --yes --verbosity 3 -i $(MANIFEST_FILE)
 
 # handy local debug targets: manual update submodule files then install, ready for 'make run'
 {{- range .Components }}
