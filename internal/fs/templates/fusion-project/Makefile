@@ -105,9 +105,10 @@ package:
 	$(MAKE) package
 {{- end }}
 
-measure_time = \
+define measure_time
 	start=$$(date +%s); \
 	$\$1; \
 	end=$$(date +%s); \
 	runtime=$$((end-start)); \
 	echo "⏱️  Time taken: $$runtime seconds"
+endef
