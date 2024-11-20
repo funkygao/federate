@@ -1,7 +1,6 @@
 package merge
 
 import (
-	"fmt"
 	"log"
 	"sort"
 
@@ -30,7 +29,7 @@ func (m *RpcAliasManager) Reconcile() error {
 		iface := b.Bean.SelectAttrValue("interface", "")
 		alias := m.pm.ResolveLine(b.Value)
 		if alias != b.Value {
-			alias = fmt.Sprintf("%60s  %s", alias, b.Value)
+			alias = alias + ":  " + b.Value
 		}
 		if iface != "" {
 			if aliasMap[iface] == nil {
