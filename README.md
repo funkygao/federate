@@ -9,7 +9,7 @@ Microservices architecture, despite its advantages in scalability, flexibility, 
 
 This approach decouples logical boundaries from physical deployment, offering flexibility while maintaining microservice architecture benefits. The result is a system combining microservice agility with consolidated architecture efficiency.
 
-## Quickstart: Install and Run **federate**
+## Quickstart
 
 ```bash
 make install
@@ -22,9 +22,9 @@ brew install funkygao/stable/federate
 federate version upgrade
 ```
 
-## 核心设计
+## Under the hood
 
-### 概念模型
+### Conceptual Model
 
 ```
                         ┌──────────────────────────────────┐
@@ -80,13 +80,22 @@ This powerful feature streamlines the development process by creating a standard
 federate microservice scaffold -h
 ```
 
+### Instrumentation
+
+### Instrumentation
+
+| Target | Instrumentation |
+|--------|-----------------|
+| Java Source Code | - Replace `@Resource` with `@Autowired`
+- Modify `@RequestMapping`, `@Service`, `@Component`
+- Transform `@Value` and `System.getProperty()`
+- Adjust `getBeanPattern`
+- Modify `@ImportResource` |
+| pom.xml | - Disable `spring-boot-maven-plugin` to enable post-`mvn install` usage |
+| Resource Files | - Merge RPC consumer configurations
+- Allow user-specified imports |
+
+
 ## TODO
 
 - manifest.components.springProfile 需要为不同环境配置
-- FederatedMybatisConfig
-- spring xml converge
-   - pkg/merge/rpc_consumer.go
-   - pkg/merge/beans_load.go
-   - pkg/merge/beans_reconcile.go
-   - cmd/merge/pom.go
-   - cmd/microservice/snap/pom.go
