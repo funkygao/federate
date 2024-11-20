@@ -50,7 +50,7 @@ func init() {
 	debug.CmdGroup.GroupID = "utility"
 	image.CmdGroup.GroupID = "utility"
 	util.CmdGroup.GroupID = "utility"
-	merge.TestCmd.GroupID = "utility"
+	merge.GoCmd.GroupID = "utility"
 
 	version.CmdGroup.GroupID = "system"
 	rootCmd.SetHelpCommandGroupID("system")
@@ -72,7 +72,7 @@ func init() {
 	)
 
 	// utility
-	rootCmd.AddCommand(chatgpt.CmdGroup, image.CmdGroup, debug.CmdGroup, util.CmdGroup, merge.TestCmd)
+	rootCmd.AddCommand(chatgpt.CmdGroup, image.CmdGroup, debug.CmdGroup, util.CmdGroup, merge.GoCmd)
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
