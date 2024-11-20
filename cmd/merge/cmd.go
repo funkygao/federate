@@ -3,7 +3,11 @@ package merge
 import (
 	"io"
 	"log"
+	"os"
+	"path/filepath"
 
+	"federate/internal/fs"
+	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
 	"federate/pkg/step"
@@ -74,7 +78,8 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Reconciling ENV variables conflicts",
 			Fn: func() {
-				reconcileEnvConflicts(m)
+				merge.ReconcileEnvConflicts(m)
+				color.Green("🍺 ENV variables conflicts reconciled")
 			}},
 		{
 			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
@@ -84,12 +89,19 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Federated-Copying Resources",
 			Fn: func() {
-				recursiveFederatedCopyResources(m, resourceManager)
+				if err := resourceManager.RecursiveFederatedCopyResources(m); err != nil {
+					log.Fatalf("Error copying resources: %v", err)
+				}
+
+				color.Green("🍺 Resources recursively federated copied")
 			}},
 		{
 			Name: "Flat-Copying Resources: reconcile.resources.copy",
 			Fn: func() {
-				recursiveFlatCopyResources(m, resourceManager)
+				if err := resourceManager.RecursiveFlatCopyResources(m); err != nil {
+					log.Fatalf("Error merging reconcile.flatCopyResources: %v", err)
+				}
+				color.Green("🍺 Resources recursively flat copied")
 			}},
 		{
 			Name: "Analyze All Property and Identify Conflicts",
@@ -104,22 +116,44 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Reconciling Spring XML BeanDefinition conflicts by Rewriting XML ref/value-ref/bean/properties-ref",
 			Fn: func() {
-				reconcileTargetXmlBeanConflicts(m, xmlBeanManager)
+				xmlBeanManager.ReconcileTargetConflicts(dryRunMerge)
+				plan := xmlBeanManager.ReconcilePlan()
+				log.Printf("Found bean id conflicts: %d", plan.ConflictCount())
+				color.Green("🍺 Spring XML Beans conflicts reconciled")
 			}},
 		{
 			Name: "Reconciling Spring Bean Injection conflicts by Rewriting @Resource",
 			Fn: func() {
-				reconcileBeanInjectionConflicts(m, injectionManager)
+				if err := injectionManager.Reconcile(m, dryRunMerge); err != nil {
+					log.Fatalf("%v", err)
+				}
+
+				if injectionManager.AutowiredN > 0 {
+					log.Printf("Source Code Rewritten, +@Autowired: %d, +@Qualifier: %d", injectionManager.AutowiredN, injectionManager.QualifierN)
+				}
+				color.Green("🍺 Java code Spring Bean Injection conflicts reconciled")
 			}},
 		{
 			Name: "Generating Federated Spring Bootstrap XML",
 			Fn: func() {
-				generateSpringBootstrapXML(m)
+				targetDir := federated.GeneratedResourceBaseDir(m.Main.Name)
+				if err := os.MkdirAll(targetDir, 0755); err != nil {
+					log.Fatalf("Error creating directory: %v", err)
+				}
+
+				targetFile := filepath.Join(targetDir, targetSpringXml)
+				fs.GenerateFileFromTmpl("templates/spring.xml", targetFile, m)
+
+				color.Green("🍺 Generated %s", targetFile)
 			}},
 		{
 			Name: "Transforming Java @Service value",
 			Fn: func() {
-				transformServiceValue(serviceManager)
+				if err := serviceManager.Reconcile(); err != nil {
+					log.Fatalf("%v", err)
+
+				}
+				color.Green("🍺 Java @Service and corresponding spring.xml ref transformed")
 			}},
 		{
 			Name: "Transforming Java @ImportResource value",
@@ -132,7 +166,8 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Reconciling RPC alias/group naming conflicts by Rewriting XML",
 			Fn: func() {
-				reconcileRpcAliasConflict(rpcAliasManager)
+				rpcAliasManager.Reconcile()
+				color.Green("🍺 RPC alias/group conflicts reconciled")
 			}},
 	}
 

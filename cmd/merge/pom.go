@@ -11,6 +11,10 @@ import (
 	"github.com/fatih/color"
 )
 
+var (
+	EchoBeer = true
+)
+
 func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
 	for _, c := range m.Components {
 		rootPom := filepath.Join(c.RootDir(), "pom.xml")
