@@ -112,8 +112,11 @@ optimize: ## Identify potential opportunities for optimization.
 
 define measure_time
 	start=$$(date +%s); \
+	set -e; \
 	$\$1; \
+	status=$?; \
 	end=$$(date +%s); \
 	runtime=$$((end-start)); \
-	echo "⏱️  Time taken: $$runtime seconds"
+	echo "⏱️  Time taken: $$runtime seconds"; \
+	exit $$status
 endef
