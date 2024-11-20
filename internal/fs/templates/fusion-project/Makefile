@@ -9,9 +9,9 @@ ENV ?=
 help: 
 	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
-##@ Submodule
+##@ Submodule: Synchronize submodules and inspect local changes
 
-pull:clean ## Pull submodules up to latest remote commits.
+pull:clean ## Pull submodules to latest remote commits.
 	echo "☕️ Pulling submodules to latest remote commits ..."
 	git submodule update --init --recursive --remote
 	git diff --quiet --exit-code HEAD || echo "🍺 Submodule hashes have changed. Manual commit required."
@@ -25,10 +25,10 @@ init:checkenv clean
 	git submodule update --init --recursive
 	echo "🍺 Submodules synchronized for $$ENV environment."
 
-dirty: ## Display local changes summary.
+dirty: ## Display a summary of local changes.
 	git submodule foreach --recursive 'git diff --stat'
 
-diff: ## Display local changes details.
+diff: ## Display detailed local changes.
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b --ignore-all-space --ignore-blank-lines'
 
 stage:
@@ -50,14 +50,14 @@ checkenv:
 		exit 1; \
 	fi
 
-##@ Fuse
+##@ Fuse: fusion-start -> consolidate -> run -> jdos
 
-fusion-start: ## Scaffold {{.FusionStarter}}: the fusion-starter module.
+fusion-start: ## Scaffold the fusion-starter module.
 	federate microservice fusion-start
 
 rebuild-starter:fusion-start package
 
-consolidate: ## Initialize submodules, generate and pacakge the federated system.
+consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 	$(MAKE) init
 	echo
 	echo "☕️ Consolidating the federated project ..."
@@ -77,26 +77,29 @@ consolidate: ## Initialize submodules, generate and pacakge the federated system
 	$(call measure_time, $(MAKE) package)
 	echo "🍺 {{.FusionProjectName}} consolidated and packaged!"
 
-run-local: ## Local debug {{.FusionProjectName}} after configuring hosts.
-	$(MAKE) -C {{.FusionProjectName}} run-local
+run: ## Debug {{.FusionProjectName}} locally.
+	$(MAKE) -C {{.FusionProjectName}} run
+
+jdos: ## Generate CI/CD help for JDOS 3.0.
+	$(FEDERATE_CMD) microservice jdos
 
 package:
 	echo "☕️ Building {{.FusionProjectName}} ..."
 	mvn install -q -T8 -Dmaven.artifact.threads=16
 	echo "   {{.FusionProjectName}} packaged"
 
-##@ Explore
+##@ Explore: Post-Fuse Phase
 
-discover: ## Step by step guide for detecting potential conflicts.
+discover: ## Step-by-step guide for detecting potential conflicts.
 	$(FEDERATE_CMD) debug wizard
 
 inspect: ## Inspect indirect conflict risk before deployment.
 	$(MAKE) -C {{.FusionProjectName}} inspect
 
-optimize:
+optimize: ## Identify potential opportunities for optimization.
 	federate microservice optimize --yes --verbosity 3
 
-# handy local debug targets: manual update submodule files then install, ready for 'make run-local'
+# handy local debug targets: manual update submodule files then install, ready for 'make run'
 {{- range .Components }}
 
 .PHONY: {{.}}

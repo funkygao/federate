@@ -55,7 +55,6 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	generateFile("gitignore", ".gitignore", data)
 	// Add .gitattributes to skip merging specific files
 	generateFile("gitattributes", ".gitattributes", data)
-	generateFile("README.md", "README.md", data)
 
 	// create starter dir
 	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {

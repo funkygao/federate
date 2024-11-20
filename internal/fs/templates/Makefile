@@ -17,7 +17,7 @@ check_package_dir:
 		exit 1; \
 	fi
 
-run-local:check_package_dir ## Local debug {{.AppName}} after configuring hosts.
+run:check_package_dir ## Debug {{.AppName}} locally after configuring hosts.
 	echo "☕️ Starting {{.AppName}} ..."
 	env {{.Env}} java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
