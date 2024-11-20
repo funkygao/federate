@@ -94,7 +94,6 @@ func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, c
 				rm.resourceFileNames[relPath] = make(map[string]struct{})
 			}
 			rm.resourceFileNames[relPath][component.Name] = struct{}{}
-			//log.Printf("[%s:%s] Copying %s", component.Name, component.SpringProfile, info.Name())
 			return util.CopyFile(path, targetPath)
 		}
 		return nil
