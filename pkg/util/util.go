@@ -70,3 +70,17 @@ func IsDir(path string) bool {
 	fileInfo, _ := os.Stat(path)
 	return fileInfo.IsDir()
 }
+
+func UniqueStrings(input []string) []string {
+	uniqueMap := make(map[string]bool)
+	var result []string
+
+	for _, str := range input {
+		if _, exists := uniqueMap[str]; !exists {
+			uniqueMap[str] = true
+			result = append(result, str)
+		}
+	}
+
+	return result
+}

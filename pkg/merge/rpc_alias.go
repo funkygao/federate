@@ -6,6 +6,7 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/spring"
+	"federate/pkg/util"
 )
 
 // 处理 JSF/Dubbo provider alias/group 冲突
@@ -27,29 +28,34 @@ func (m *RpcAliasManager) Reconcile() error {
 	aliasMap := make(map[string][]string)
 	for _, b := range beans {
 		iface := b.Bean.SelectAttrValue("interface", "")
-		alias := m.pm.ResolveLine(b.Value)
-		if alias != b.Value {
-			alias = alias + ":  " + b.Value
-		}
 		if iface != "" {
 			if aliasMap[iface] == nil {
 				aliasMap[iface] = make([]string, 0)
 			}
 
+			alias := m.pm.ResolveLine(b.Value)
 			aliasMap[iface] = append(aliasMap[iface], alias)
 		}
 	}
 
+	conflicted := false
 	for iface, aliases := range aliasMap {
-		// sort aliases
-		sort.Strings(aliases)
+		if len(aliases) > 1 && len(util.UniqueStrings(aliases)) != len(aliases) {
+			conflicted = true
 
-		if len(aliases) > 1 {
+			// sort aliases
+			sort.Strings(aliases)
+
 			log.Printf("Interface: %s", iface)
 			for _, alias := range aliases {
 				log.Printf("  - %s", alias)
 			}
 		}
+	}
+
+	if !conflicted {
+		log.Printf("RPC Provider alias found no conflicts!")
+		return nil
 	}
 
 	// pass 2: fix the conflicts
