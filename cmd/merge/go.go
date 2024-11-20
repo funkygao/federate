@@ -18,7 +18,7 @@ var GoCmd = &cobra.Command{
 func debugFederate(m *manifest.Manifest) {
 	propertyManager := merge.NewPropertyManager(m)
 	propertyManager.Silent()
-	propertyManager.AnalyzeAllPropertySources()
+	propertyManager.Analyze()
 }
 
 func init() {

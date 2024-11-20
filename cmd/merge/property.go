@@ -16,7 +16,7 @@ import (
 )
 
 func identifyPropertyConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
-	if err := manager.AnalyzeAllPropertySources(); err != nil {
+	if err := manager.Analyze(); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 	showPropertiesConflicts(m, manager)

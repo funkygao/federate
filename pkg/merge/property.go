@@ -56,7 +56,8 @@ func (cm *PropertyManager) Silent() *PropertyManager {
 	return cm
 }
 
-func (cm *PropertyManager) AnalyzeAllPropertySources() error {
+// 分析 .yml & .properties
+func (cm *PropertyManager) Analyze() error {
 	for _, component := range cm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
