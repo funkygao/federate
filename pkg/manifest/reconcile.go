@@ -1,6 +1,8 @@
 package manifest
 
 import (
+	"strings"
+
 	"federate/pkg/util"
 )
 
@@ -31,6 +33,16 @@ type PropertyReconcileSpec struct {
 
 func (ps *PropertyReconcileSpec) IsDryRun() bool {
 	return ps.DryRun == "true"
+}
+
+func (ps *PropertyReconcileSpec) IsConfigurationPropertiesKey(key string) bool {
+	for _, integralKey := range ps.ConfigurationPropertiesKeys {
+		if strings.HasPrefix(key, integralKey) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (s *ReconcileSpec) ExcludeBeanClass(class string) bool {

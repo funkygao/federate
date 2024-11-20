@@ -161,17 +161,6 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 	return conflicts
 }
 
-// 检查是否是 integral key 的一部分
-func (pm *PropertyManager) isConfigurationProperties(key string) bool {
-	for _, integralKey := range pm.m.Main.Reconcile.Resources.Property.ConfigurationPropertiesKeys {
-		if strings.HasPrefix(key, integralKey) {
-			return true
-		}
-	}
-
-	return false
-}
-
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	keys := make(map[string]struct{})
 	for _, props := range pm.resolvedProperties {
