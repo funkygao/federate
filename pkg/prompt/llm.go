@@ -91,23 +91,13 @@ func (pg *PromptGenerator) echoFileInput(path string) {
 	fmt.Println(content)
 }
 
-func (pg *PromptGenerator) executeShellCommand(input string) {
-	var cmd *exec.Cmd
-	var outputToPrompt bool
-
+func (pg *PromptGenerator) executeShellCommand(command string, outputToPrompt bool) {
 	shell := os.Getenv("SHELL")
 	if shell == "" {
 		shell = "/bin/bash" // 默认使用 bash
 	}
 
-	if strings.HasPrefix(input, "!!") {
-		cmd = exec.Command(shell, "-c", input[2:])
-		outputToPrompt = false
-	} else {
-		cmd = exec.Command(shell, "-c", input[1:])
-		outputToPrompt = true
-	}
-
+	cmd := exec.Command(shell, "-c", command)
 	var out bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &out
@@ -122,7 +112,7 @@ func (pg *PromptGenerator) executeShellCommand(input string) {
 	fmt.Print(output)
 
 	if outputToPrompt {
-		promptGenerator.AddInput(fmt.Sprintf("Shell command: %s\nOutput:\n%s", input[1:], output))
+		promptGenerator.AddInput(fmt.Sprintf("Shell command: %s\nOutput:\n%s", command, output))
 	}
 }
 
@@ -221,8 +211,8 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt(useTemplate bool) {
 
 	tokenCount := CountTokensInK(finalContent)
 	if Dump {
-		fmt.Printf("生成的高质量 ChatGPT prompt 已保存到 %s，并已复制到剪贴板，约 %.2fK tokens\n", promptFile, tokenCount)
+		fmt.Printf("ChatGPT Prompt 已保存到 %s，并已复制到剪贴板，约 %.2fK tokens\n", promptFile, tokenCount)
 	} else {
-		fmt.Printf("生成的高质量 ChatGPT prompt ，已复制到剪贴板，约 %.2fK tokens\n", tokenCount)
+		fmt.Printf("ChatGPT Prompt 已复制到剪贴板，约 %.2fK tokens\n", tokenCount)
 	}
 }
