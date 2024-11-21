@@ -38,7 +38,7 @@ func NewXmlBeanManager(m *manifest.Manifest) *XmlBeanManager {
 	return &XmlBeanManager{
 		m:         m,
 		beanIdMap: make(map[string][]BeanIdInfo),
-		plan:      NewReconcilePlan(m),
+		plan:      newReconcilePlan(m),
 		sameComponentFunc: func(componentName string, i BeanIdInfo) bool {
 			return componentName == i.ComponentName
 		},

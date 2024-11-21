@@ -88,7 +88,7 @@ federate microservice scaffold -h
 | Resource Files | - Merge RPC Consumer Configurations<br>- Detect RPC Provider alias conflicts<br>- Allow user-specified imports<br>- Resolve Bean Conflicts |
 | Property Files | - Segregate conflicting keys |
 | pom.xml | - Disable `spring-boot-maven-plugin` to enable post-`mvn install` usage |
-| Generate Files | - Makefile<br>- fusion-starter runtime<br>- Java AST Manipulate Project<br>- Fusion Maven Project |
+| Code Generator | - Makefile<br>- fusion-starter runtime<br>- Java AST Manipulate Project<br>- Fusion Maven Project |
 
 ## TODO
 
