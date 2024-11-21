@@ -13,11 +13,11 @@ type ServiceManager struct {
 	m *manifest.Manifest
 }
 
-func NewServiceManager(m *manifest.Manifest) *ServiceManager {
+func NewServiceManager(m *manifest.Manifest) Reconciler {
 	return &ServiceManager{m: m}
 }
 
-func (m *ServiceManager) Reconcile() error {
+func (m *ServiceManager) Reconcile(dryRun bool) error {
 	// pass 1: 通过 javast 修改源代码
 	refTransformMap := make(map[string]map[string]string)
 	for _, c := range m.m.Components {

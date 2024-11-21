@@ -54,6 +54,10 @@ func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
 	}
 }
 
+func (cm *PropertyManager) M() *manifest.Manifest {
+	return cm.m
+}
+
 func (cm *PropertyManager) Debug() *PropertyManager {
 	cm.debug = true
 	return cm

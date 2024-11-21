@@ -53,15 +53,17 @@ func doMerge(m *manifest.Manifest) {
 	rpcTypes := []string{merge.RpcJsf, merge.RpcDubbo}
 	var rpcConsumerManagers []*merge.RpcConsumerManager
 	for _, rpc := range rpcTypes {
-		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(rpc))
+		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(m, rpc))
 	}
 
 	propertyManager := merge.NewPropertyManager(m)
 	xmlBeanManager := merge.NewXmlBeanManager(m)
-	resourceManager := merge.NewResourceManager()
-	injectionManager := merge.NewSpringBeanInjectionManager()
+	resourceManager := merge.NewResourceManager(m)
+	envManager := merge.NewEnvManager(m)
+	injectionManager := merge.NewSpringBeanInjectionManager(m)
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
+	fusionStarterManager := merge.NewFusionStarterManager(m)
 
 	steps := []step.Step{
 		{
@@ -77,48 +79,50 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Reconciling ENV variables conflicts",
 			Fn: func() {
-				merge.ReconcileEnvConflicts(m)
+				if err := envManager.Reconcile(dryRunMerge); err != nil {
+					log.Fatalf("%v", err)
+				}
 			}},
 		{
 			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
 			Fn: func() {
-				mergeRpcConsumerXml(m, rpcConsumerManagers)
+				mergeRpcConsumerXml(rpcConsumerManagers)
 			}},
 		{
 			Name: "Federated-Copying Resources",
 			Fn: func() {
-				if err := resourceManager.RecursiveFederatedCopyResources(m); err != nil {
+				if err := resourceManager.RecursiveFederatedCopyResources(); err != nil {
 					log.Fatalf("Error copying resources: %v", err)
 				}
 			}},
 		{
 			Name: "Flat-Copying Resources: reconcile.resources.copy",
 			Fn: func() {
-				if err := resourceManager.RecursiveFlatCopyResources(m); err != nil {
+				if err := resourceManager.RecursiveFlatCopyResources(); err != nil {
 					log.Fatalf("Error merging reconcile.flatCopyResources: %v", err)
 				}
 			}},
 		{
 			Name: "Analyze All Property and Identify Conflicts",
 			Fn: func() {
-				identifyPropertyConflicts(m, propertyManager)
+				identifyPropertyConflicts(propertyManager)
 			}},
 		{
 			Name: "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping",
 			Fn: func() {
-				reconcilePropertiesConflicts(m, propertyManager)
+				reconcilePropertiesConflicts(propertyManager)
 			}},
 		{
 			Name: "Reconciling Spring XML BeanDefinition conflicts by Rewriting XML ref/value-ref/bean/properties-ref",
 			Fn: func() {
-				xmlBeanManager.ReconcileTargetConflicts(dryRunMerge)
+				xmlBeanManager.Reconcile(dryRunMerge)
 				plan := xmlBeanManager.ReconcilePlan()
 				log.Printf("Found bean id conflicts: %d", plan.ConflictCount())
 			}},
 		{
 			Name: "Reconciling Spring Bean Injection conflicts by Rewriting @Resource",
 			Fn: func() {
-				if err := injectionManager.Reconcile(m, dryRunMerge); err != nil {
+				if err := injectionManager.Reconcile(dryRunMerge); err != nil {
 					log.Fatalf("%v", err)
 				}
 
@@ -142,7 +146,7 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Transforming Java @Service value",
 			Fn: func() {
-				if err := serviceManager.Reconcile(); err != nil {
+				if err := serviceManager.Reconcile(dryRunMerge); err != nil {
 					log.Fatalf("%v", err)
 
 				}
@@ -151,14 +155,19 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Transforming Java @ImportResource value",
 			Fn: func() {
 				importResourceManager := merge.NewImportResourceManager(m)
-				if err := importResourceManager.Reconcile(); err != nil {
+				if err := importResourceManager.Reconcile(dryRunMerge); err != nil {
 					log.Fatalf("%v", err)
 				}
 			}},
 		{
 			Name: "Detecting RPC Provider alias/group conflicts by Rewriting XML",
 			Fn: func() {
-				rpcAliasManager.Reconcile()
+				rpcAliasManager.Reconcile(dryRunMerge)
+			}},
+		{
+			Name: "Display Conflict Summary guiding you fix fusion-starter",
+			Fn: func() {
+				fusionStarterManager.Reconcile(dryRunMerge)
 			}},
 	}
 

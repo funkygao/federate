@@ -19,7 +19,7 @@ func debugFederate(m *manifest.Manifest) {
 	propertyManager := merge.NewPropertyManager(m)
 	propertyManager.Silent().Debug().Analyze()
 	//propertyManager.IdentifyYamlFileConflicts()
-	showYamlConflicts(m, propertyManager)
+	showYamlConflicts(propertyManager)
 }
 
 func init() {

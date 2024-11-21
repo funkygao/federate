@@ -16,11 +16,11 @@ type RpcAliasManager struct {
 	pm *PropertyManager
 }
 
-func NewRpcAliasManager(pm *PropertyManager) *RpcAliasManager {
+func NewRpcAliasManager(pm *PropertyManager) Reconciler {
 	return &RpcAliasManager{pm: pm, m: pm.m}
 }
 
-func (m *RpcAliasManager) Reconcile() error {
+func (m *RpcAliasManager) Reconcile(dryRun bool) error {
 	// pass 1: search the conflicting alias/group
 	springMgr := spring.New(false)
 	beans := springMgr.ListBeans(m.m.SpringXmlPath(), spring.QueryRpcAlias())

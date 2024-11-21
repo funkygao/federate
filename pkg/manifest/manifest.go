@@ -29,6 +29,10 @@ func (m *Manifest) StarterBaseDir() string {
 	return federated.StarterBaseDir(m.Main.Name)
 }
 
+func (m *Manifest) StarterBaseSrcDir() string {
+	return filepath.Join(federated.StarterBaseDir(m.Main.Name), "src", "main", "java")
+}
+
 func (m *Manifest) TargetBaseDir() string {
 	return m.Main.Name
 }

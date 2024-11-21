@@ -34,7 +34,7 @@ func runWizard(m *manifest.Manifest) {
 			Name: "Detect one RPC Interface with multiple alias/group",
 			Fn: func() {
 				propertyManager.Silent().Analyze()
-				rpcAliasManager.Reconcile()
+				rpcAliasManager.Reconcile(false)
 			},
 		},
 	}

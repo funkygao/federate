@@ -79,7 +79,7 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 			for _, includeProfile := range strings.Split(includeProfiles, ",") {
 				includeProfile = strings.TrimSpace(includeProfile)
 				if includeProfile != "" {
-					// includeProfile is comma seperated
+					// includeProfile is comma separated
 					for _, profile := range strings.Split(includeProfile, ",") {
 						trimmedProfile := strings.TrimSpace(profile)
 						if !cm.silent {

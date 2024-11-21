@@ -54,7 +54,7 @@ func TestProcessImportResource(t *testing.T) {
 		},
 	}
 
-	manager := NewImportResourceManager(nil)
+	manager := newImportResourceManager(nil)
 	for _, tc := range testCases {
 		output, changed := manager.processImportResource(tc.input, tc.componentName)
 		assert.True(t, changed, "Expected the input to be changed")
