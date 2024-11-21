@@ -5,9 +5,7 @@ const (
 	federatedJSFConsumerXmlFn   = "federated-jsf-consumer.xml"
 
 	metaInf = "META-INF/"
-)
 
-const (
 	RpcJsf   = "JSF"
 	RpcDubbo = "Dubbo"
 )
