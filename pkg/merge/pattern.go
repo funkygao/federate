@@ -19,30 +19,11 @@ type pattern struct {
 
 	genericTypePattern *regexp.Regexp
 
-	// @RequestMapping
-	requestMappingRegex *regexp.Regexp
-
 	// System.getProperty
 	systemGetPropertyRegex *regexp.Regexp
 
-	// Xxx.getBean
-	getBeanPattern *regexp.Regexp
-
-	importRegex *regexp.Regexp
-
+	importRegex           *regexp.Regexp
 	importResourcePattern *regexp.Regexp
-}
-
-func (p *pattern) createJavaRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
-}
-
-func (p *pattern) createXmlRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
-}
-
-func (p *pattern) createConfigurationPropertiesRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
 }
 
 func (p *pattern) IsInjectionAnnotatedLine(line string) bool {
@@ -61,11 +42,7 @@ func init() {
 
 		genericTypePattern: regexp.MustCompile(`(Map|List)<.*>`),
 
-		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
-
 		systemGetPropertyRegex: regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`),
-
-		getBeanPattern: regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`),
 
 		importRegex:           regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
 		importResourcePattern: regexp.MustCompile(`@ImportResource\s*\(\s*(locations\s*=\s*)?\{?\s*("([^"]+)"|'([^']+)')\s*(,\s*("([^"]+)"|'([^']+)')\s*)*\}?\s*\)`),

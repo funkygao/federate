@@ -73,6 +73,7 @@ func TestFindSystemGetPropertyKeys(t *testing.T) {
 		},
 	}
 
+	manager := newEnvManager(nil)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// 创建临时目录
@@ -91,7 +92,7 @@ func TestFindSystemGetPropertyKeys(t *testing.T) {
 			}
 
 			// 运行测试函数
-			got, err := findSystemGetPropertyKeys(tmpfile.Name())
+			got, err := manager.findSystemGetPropertyKeys(tmpfile.Name())
 			if err != nil {
 				t.Fatalf("findSystemGetPropertyKeys returned an error: %v", err)
 			}

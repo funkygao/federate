@@ -8,37 +8,36 @@ import (
 	"sort"
 
 	"federate/pkg/federated"
-	"federate/pkg/manifest"
-	"federate/pkg/merge"
+	"federate/pkg/merge/property"
 	"federate/pkg/tablerender"
 	"federate/pkg/util"
 	"github.com/fatih/color"
 )
 
-func identifyPropertyConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
+func identifyPropertyConflicts(manager *property.PropertyManager) {
 	if err := manager.Analyze(); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
-	showPropertiesConflicts(m, manager)
-	showYamlConflicts(m, manager)
+	showPropertiesConflicts(manager)
+	showYamlConflicts(manager)
 }
 
-func reconcilePropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
-	result, err := manager.ReconcileConflicts(dryRunMerge)
+func reconcilePropertiesConflicts(manager *property.PropertyManager) {
+	result, err := manager.Reconcile(dryRunMerge)
 	if err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
 
-	pn := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "application.properties")
+	pn := filepath.Join(federated.GeneratedResourceBaseDir(manager.M().Main.Name), "application.properties")
 	manager.GenerateMergedPropertiesFile(pn)
-	an := filepath.Join(federated.GeneratedResourceBaseDir(m.Main.Name), "application.yml")
+	an := filepath.Join(federated.GeneratedResourceBaseDir(manager.M().Main.Name), "application.yml")
 	manager.GenerateMergedYamlFile(an)
 	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
 		result.RequestMapping, result.KeyPrefixed, result.ConfigurationProperties)
 	color.Green("🍺 Reconciled property conflicts: %s, %s", an, pn)
 }
 
-func showPropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
+func showPropertiesConflicts(manager *property.PropertyManager) {
 	conflictKeys := manager.IdentifyPropertiesFileConflicts()
 	if len(conflictKeys) == 0 {
 		log.Printf("Bingo! .properties files found no conflicts")
@@ -53,7 +52,7 @@ func showPropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManage
 	sort.Strings(keys)
 
 	header := []string{"Conflicting Key"}
-	for _, component := range m.Components {
+	for _, component := range manager.M().Components {
 		header = append(header, component.Name)
 	}
 
@@ -72,7 +71,7 @@ func showPropertiesConflicts(m *manifest.Manifest, manager *merge.PropertyManage
 	tablerender.DisplayTable(header, rows, false, 0)
 
 }
-func showYamlConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
+func showYamlConflicts(manager *property.PropertyManager) {
 	conflictKeys := manager.IdentifyYamlFileConflicts()
 	if len(conflictKeys) == 0 {
 		log.Printf("application.yml files found no conflicts, bingo!")
@@ -87,7 +86,7 @@ func showYamlConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
 	sort.Strings(keys)
 
 	header := []string{"Conflicting Key"}
-	for _, component := range m.Components {
+	for _, component := range manager.M().Components {
 		header = append(header, component.Name)
 	}
 	var rows [][]string
@@ -104,5 +103,4 @@ func showYamlConflicts(m *manifest.Manifest, manager *merge.PropertyManager) {
 		rows = append(rows, row)
 	}
 	tablerender.DisplayTable(header, rows, false, 0)
-
 }

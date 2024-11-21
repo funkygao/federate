@@ -23,6 +23,8 @@ var (
 )
 
 type ResourceManager struct {
+	m *manifest.Manifest
+
 	ExtensionCount    map[string]int
 	metaInfCount      int
 	FilePaths         map[string]string
@@ -30,12 +32,13 @@ type ResourceManager struct {
 	resourceFileNames map[string]map[string]struct{}
 }
 
-func NewResourceManager() *ResourceManager {
+func NewResourceManager(m *manifest.Manifest) *ResourceManager {
 	ExtensionCount := make(map[string]int)
 	for ext := range resourceExtensions {
 		ExtensionCount[ext] = 0
 	}
 	return &ResourceManager{
+		m:                 m,
 		ExtensionCount:    ExtensionCount,
 		FilePaths:         make(map[string]string),
 		totalFileCount:    make(map[string]int),
@@ -44,8 +47,8 @@ func NewResourceManager() *ResourceManager {
 }
 
 // RecursiveFederatedCopyResources copy component resource files to target system src/main/resources/federated/{component}
-func (rm *ResourceManager) RecursiveFederatedCopyResources(m *manifest.Manifest) error {
-	for _, component := range m.Components {
+func (rm *ResourceManager) RecursiveFederatedCopyResources() error {
+	for _, component := range rm.m.Components {
 		for _, baseDir := range component.Resources.BaseDirs {
 			sourceDir := component.SrcDir(baseDir)
 			targetDir := component.TargetResourceDir()
@@ -55,7 +58,7 @@ func (rm *ResourceManager) RecursiveFederatedCopyResources(m *manifest.Manifest)
 			}
 
 			log.Printf("[%s:%s] Federated Copying %s -> %s", component.Name, component.SpringProfile, sourceDir, targetDir)
-			if err := rm.federatedCopyResources(sourceDir, targetDir, component, m); err != nil {
+			if err := rm.federatedCopyResources(sourceDir, targetDir, component); err != nil {
 				log.Fatalf("Error copying resources for component %s: %v", component.Name, err)
 			}
 		}
@@ -63,12 +66,12 @@ func (rm *ResourceManager) RecursiveFederatedCopyResources(m *manifest.Manifest)
 	return nil
 }
 
-func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, component manifest.ComponentInfo, m *manifest.Manifest) error {
+func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, component manifest.ComponentInfo) error {
 	err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if ignored := m.IgnoreResourceSrcFile(info, component); ignored {
+		if ignored := rm.m.IgnoreResourceSrcFile(info, component); ignored {
 			log.Printf("[%s:%s] Skipped components.resources.ignore: %s", component.Name, component.SpringProfile, info.Name())
 			return nil
 		}
@@ -105,11 +108,11 @@ func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, c
 }
 
 // RecursiveFlatCopyResources copy specified resource files to target system src/main/resources
-func (rm *ResourceManager) RecursiveFlatCopyResources(m *manifest.Manifest) error {
+func (rm *ResourceManager) RecursiveFlatCopyResources() error {
 	copiedFiles := make(map[string]struct{}) // key is target filename
-	targetDir := m.TargetResourceDir()
-	for _, pattern := range m.Main.Reconcile.Resources.FlatCopy {
-		for _, component := range m.Components {
+	targetDir := rm.m.TargetResourceDir()
+	for _, pattern := range rm.m.Main.Reconcile.Resources.FlatCopy {
+		for _, component := range rm.m.Components {
 			for _, baseDir := range component.Resources.BaseDirs {
 				sourceDir := component.SrcDir(baseDir)
 				err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {

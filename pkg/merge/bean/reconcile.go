@@ -1,4 +1,4 @@
-package merge
+package bean
 
 import (
 	"fmt"
@@ -14,8 +14,8 @@ import (
 	"github.com/beevik/etree"
 )
 
-// ReconcileTargetConflicts 解决 bean id 冲突：此时资源文件都已经拷贝到目标目录
-func (b *XmlBeanManager) ReconcileTargetConflicts(dryRun bool) {
+// 解决 bean id 冲突：此时资源文件都已经拷贝到目标目录
+func (b *XmlBeanManager) Reconcile(dryRun bool) error {
 	b.loadBeans()
 	b.makeReconcilePlan()
 
@@ -25,11 +25,12 @@ func (b *XmlBeanManager) ReconcileTargetConflicts(dryRun bool) {
 
 	if dryRun {
 		log.Printf("[Dry Run] Would update %d xml files", len(b.plan.beanIdModificationFiles))
-		return
+		return nil
 	}
 
 	b.executeReconcilePlan()
 	b.showRisk()
+	return nil
 }
 
 func (b *XmlBeanManager) executeReconcilePlan() {

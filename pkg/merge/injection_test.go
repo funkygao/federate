@@ -10,7 +10,7 @@ import (
 )
 
 func TestReplaceResourceWithAutowiredModifiedCases(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	testCases := []struct {
 		name     string
@@ -259,7 +259,7 @@ public class TestClass {
 }
 
 func TestReplaceResourceWithAutowiredNotChanged(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	testCases := []struct {
 		name  string
@@ -336,7 +336,7 @@ public class TestClass {
 }
 
 func TestProcessCodeLines(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	testCases := []struct {
 		name              string
@@ -411,7 +411,7 @@ func TestProcessCodeLines(t *testing.T) {
 }
 
 func TestTransformImportIfNec(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	testCases := []struct {
 		name            string
@@ -471,7 +471,7 @@ func TestTransformImportIfNec(t *testing.T) {
 }
 
 func TestReplaceResourceWithAutowiredForMultipleInstances(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	input := `
 package com.example;
@@ -599,7 +599,7 @@ func TestParseFieldDeclaration(t *testing.T) {
 }
 
 func TestReplaceResourceWithAutowiredComments(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	input := `
 package com.example;
@@ -656,7 +656,7 @@ public class TestClass {
 }
 
 func TestReplaceResourceWithAutowiredSpecialCases(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	input := `
 package com.example;
@@ -704,7 +704,7 @@ public class TestClass {
 }
 
 func TestReplaceResourceWithAutowiredImports(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	input := `
 package com.example;
@@ -830,7 +830,7 @@ func TestApplyBeanTransforms(t *testing.T) {
 }
 
 func TestReplaceResourceWithAutowiredOnMethods(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	testCases := []struct {
 		name     string
@@ -1268,7 +1268,7 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 }
 
 func TestSpringBeanInjectionManager_transformInjectionAnnotations_ChangeOrderDetailRepository(t *testing.T) {
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 
 	content := `
 public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApproveInnerAppService {
@@ -1363,7 +1363,7 @@ public class TestClass {
 }
 `
 
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 	jf := NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result, "Should not add extra lines between imports and class declaration")
@@ -1408,7 +1408,7 @@ public class KvTool {
     private Cluster myClient;
 }
 `
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 	jf := NewJavaFile("", nil, input)
 	assert.True(t, jf.HasInjectionAnnotation(), "jf.HasInjectionAnnotation()")
 	result, _ := manager.reconcileInjectionAnnotations(jf)
@@ -1450,7 +1450,7 @@ public class FooService implements Foo {
     private Egg egg;
 }
 `
-	manager := NewSpringBeanInjectionManager()
+	manager := NewSpringBeanInjectionManager(nil)
 	jf := NewJavaFile("FooService.java", &manifest.ComponentInfo{
 		Name: "inv",
 		Transform: manifest.TransformSpec{

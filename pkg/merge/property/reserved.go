@@ -1,4 +1,4 @@
-package merge
+package property
 
 import (
 	"fmt"
@@ -81,13 +81,6 @@ var reservedKeyHandlers = map[string]ValueOverride{
 
 func (m *PropertyManager) recordServletContextPath(c manifest.ComponentInfo, contextPath string) {
 	m.servletContextPath[c.Name] = contextPath
-}
-
-func (cm *PropertyManager) registerReservedProperty(key string, component manifest.ComponentInfo, value interface{}) {
-	if _, exists := cm.reservedValues[key]; !exists {
-		cm.reservedValues[key] = []ComponentKeyValue{}
-	}
-	cm.reservedValues[key] = append(cm.reservedValues[key], ComponentKeyValue{Component: component, Value: value})
 }
 
 func (cm *PropertyManager) applyReservedPropertyRules() {

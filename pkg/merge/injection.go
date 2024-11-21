@@ -14,16 +14,18 @@ import (
 
 // 处理 @Resource 的 Bean 注入：基本操作是替换为 @Autowired，如果一个类里同一个类型有多次注入则增加 @Qualifier
 type SpringBeanInjectionManager struct {
+	m *manifest.Manifest
+
 	AutowiredN int
 	QualifierN int
 }
 
-func NewSpringBeanInjectionManager() *SpringBeanInjectionManager {
-	return &SpringBeanInjectionManager{}
+func NewSpringBeanInjectionManager(m *manifest.Manifest) *SpringBeanInjectionManager {
+	return &SpringBeanInjectionManager{m: m}
 }
 
-func (m *SpringBeanInjectionManager) Reconcile(manifest *manifest.Manifest, dryRun bool) error {
-	for _, component := range manifest.Components {
+func (m *SpringBeanInjectionManager) Reconcile(dryRun bool) error {
+	for _, component := range m.m.Components {
 		if err := m.reconcileComponent(component, dryRun); err != nil {
 			return err
 		}

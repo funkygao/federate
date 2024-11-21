@@ -1,55 +1,48 @@
-package merge
+package property
 
 import (
 	"fmt"
-	"path/filepath"
+	"log"
 	"reflect"
-	"regexp"
 	"strings"
 
 	"federate/pkg/manifest"
-	"federate/pkg/util"
+	"federate/pkg/merge/conflict"
 )
 
 type PropertyManager struct {
-	m      *manifest.Manifest
+	m  *manifest.Manifest
+	cc conflict.Collector
+
 	silent bool
 	debug  bool
 
 	resolvedProperties   map[string]map[string]PropertySource // 合并 YAML 和 Properties
 	unresolvedProperties map[string]map[string]PropertySource // 无法解析的引用
 
-	// 属性文件的扩展名有哪些被支持
-	propertySourceExts map[string]struct{}
-
 	reservedYamlKeys map[string]ValueOverride
 	reservedValues   map[string][]ComponentKeyValue
 
 	servletContextPath map[string]string // {componentName: contextPath}
-
-	placeholderRe *regexp.Regexp
 }
 
-func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
+func NewManager(m *manifest.Manifest) *PropertyManager {
 	return &PropertyManager{
-		m: m,
+		m:  m,
+		cc: conflict.NewManager(),
 
 		resolvedProperties:   make(map[string]map[string]PropertySource),
 		unresolvedProperties: make(map[string]map[string]PropertySource),
-
-		propertySourceExts: map[string]struct{}{
-			".properties": {},
-			".yml":        {},
-			".yaml":       {},
-		},
 
 		reservedYamlKeys: reservedKeyHandlers,
 		reservedValues:   make(map[string][]ComponentKeyValue),
 
 		servletContextPath: make(map[string]string),
-
-		placeholderRe: regexp.MustCompile(`\$\{([^}]+)\}`),
 	}
+}
+
+func (cm *PropertyManager) M() *manifest.Manifest {
+	return cm.m
 }
 
 func (cm *PropertyManager) Debug() *PropertyManager {
@@ -60,62 +53,6 @@ func (cm *PropertyManager) Debug() *PropertyManager {
 func (cm *PropertyManager) Silent() *PropertyManager {
 	cm.silent = true
 	return cm
-}
-
-// 分析 .yml & .properties
-func (cm *PropertyManager) Analyze() error {
-	for _, component := range cm.m.Components {
-		for _, baseDir := range component.Resources.BaseDirs {
-			sourceDir := component.SrcDir(baseDir)
-
-			// 分析 application.yml 和 application-{profile}.yml
-			yamlFiles := []string{"application.yml"}
-			if component.SpringProfile != "" {
-				yamlFiles = append(yamlFiles, "application-"+component.SpringProfile+".yml")
-			}
-			for _, f := range yamlFiles {
-				filePath := filepath.Join(sourceDir, f)
-				if !util.FileExists(filePath) {
-					continue
-				}
-				if err := cm.analyzeYamlFile(filePath, component.SpringProfile, component); err != nil {
-					return err
-				}
-			}
-
-			// 分析其他属性文件，基本上就是 .properties
-			for _, propertySource := range component.Resources.PropertySources {
-				filePath := filepath.Join(sourceDir, propertySource)
-				if !util.FileExists(filePath) {
-					continue
-				}
-				ext := filepath.Ext(propertySource)
-				if _, present := cm.propertySourceExts[ext]; !present {
-					return fmt.Errorf("Invalid property source: %s", propertySource)
-				}
-
-				switch ext {
-				case ".yml", ".yaml":
-					if err := cm.analyzeYamlFile(filePath, component.SpringProfile, component); err != nil {
-						return err
-					}
-				case ".properties":
-					if err := cm.analyzePropertiesFile(filePath, component); err != nil {
-						return err
-					}
-				default:
-					return fmt.Errorf("Unsupported file type: %s", filePath)
-				}
-			}
-		}
-	}
-
-	// 解析所有引用
-	cm.resolveAllReferences()
-
-	// 应用保留key处理规则
-	cm.applyReservedPropertyRules()
-	return nil
 }
 
 // 合并 YAML 和 Properties 的冲突
@@ -137,6 +74,9 @@ func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]int
 
 func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource) bool) map[string]map[string]interface{} {
 	conflicts := make(map[string]map[string]interface{})
+	configPropConflicts := make(map[string]bool)
+
+	// 第一遍：识别所有冲突和 ConfigurationProperties 冲突
 	for key := range pm.getAllUniqueKeys() {
 		componentValues := make(map[string]interface{})
 		var firstValue interface{}
@@ -155,9 +95,47 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 
 		if isConflict && len(componentValues) > 1 {
 			conflicts[key] = componentValues
+
+			// 检查是否是 ConfigurationProperties 的一部分
+			if integralKey := pm.getConfigurationPropertiesPrefix(key); integralKey != "" {
+				log.Printf("@ConfigurationProperties(%s) key[%s] encounters conflict values", integralKey, key)
+				configPropConflicts[integralKey] = true
+			}
 		}
 	}
+
+	// 第二遍：将所有 ConfigurationProperties 相关的键标记为冲突
+	for key := range pm.getAllUniqueKeys() {
+		for integralKey := range configPropConflicts {
+			if strings.HasPrefix(key, integralKey) {
+				componentValues := make(map[string]interface{})
+				for component, props := range pm.resolvedProperties {
+					if propSource, exists := props[key]; exists {
+						componentValues[component] = propSource.Value
+					}
+				}
+				if len(componentValues) > 0 {
+					conflicts[key] = componentValues
+				}
+				break
+			}
+		}
+	}
+
 	return conflicts
+}
+
+func (pm *PropertyManager) getConfigurationPropertiesPrefix(key string) string {
+	if pm.m == nil {
+		return ""
+	}
+
+	for _, prefix := range pm.m.Main.Reconcile.Resources.Property.ConfigurationPropertiesKeys {
+		if strings.HasPrefix(key, prefix) {
+			return prefix
+		}
+	}
+	return ""
 }
 
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
@@ -184,7 +162,7 @@ func (pm *PropertyManager) Resolve(key string) interface{} {
 // 如果没有占位符，则返回原 line
 func (pm *PropertyManager) ResolveLine(line string) string {
 	// 使用正则表达式找到所有的占位符
-	matches := pm.placeholderRe.FindAllStringSubmatchIndex(line, -1)
+	matches := P.placeholderRegex.FindAllStringSubmatchIndex(line, -1)
 
 	// 如果没有匹配项，直接返回原始行
 	if len(matches) == 0 {

@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"federate/pkg/manifest"
+	"federate/pkg/merge/property"
 	"federate/pkg/spring"
 	"federate/pkg/util"
 )
@@ -13,14 +14,14 @@ import (
 // 对于同一个 interface，它只能有1个alias/group
 type RpcAliasManager struct {
 	m  *manifest.Manifest
-	pm *PropertyManager
+	pm *property.PropertyManager
 }
 
-func NewRpcAliasManager(pm *PropertyManager) *RpcAliasManager {
-	return &RpcAliasManager{pm: pm, m: pm.m}
+func NewRpcAliasManager(pm *property.PropertyManager) Reconciler {
+	return &RpcAliasManager{pm: pm, m: pm.M()}
 }
 
-func (m *RpcAliasManager) Reconcile() error {
+func (m *RpcAliasManager) Reconcile(dryRun bool) error {
 	// pass 1: search the conflicting alias/group
 	springMgr := spring.New(false)
 	beans := springMgr.ListBeans(m.m.SpringXmlPath(), spring.QueryRpcAlias())
@@ -56,6 +57,8 @@ func (m *RpcAliasManager) Reconcile() error {
 	if !conflicted {
 		log.Printf("RPC Provider alias found no conflicts!")
 		return nil
+	} else if FailFast {
+		log.Fatal("You need to solve RPC Provider Alias Conflict before proceeding!")
 	}
 
 	// pass 2: fix the conflicts

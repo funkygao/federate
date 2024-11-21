@@ -1,4 +1,4 @@
-package merge
+package bean
 
 import (
 	"fmt"
@@ -28,7 +28,7 @@ type BeanIdConflictDetail struct {
 	NewBeanId string // 新的 bean id
 }
 
-func NewReconcilePlan(m *manifest.Manifest) ReconcilePlan {
+func newReconcilePlan(m *manifest.Manifest) ReconcilePlan {
 	return ReconcilePlan{
 		beanIdModificationFiles: make(map[string]map[string]string),
 		redundantClasses:        make(map[string]map[string]struct{}),

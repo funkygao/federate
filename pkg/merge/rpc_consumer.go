@@ -13,6 +13,8 @@ import (
 )
 
 type RpcConsumerManager struct {
+	m *manifest.Manifest
+
 	ScannedBeansCount   int
 	GeneratedBeansCount int
 	IgnoredInterfaceN   int
@@ -27,8 +29,9 @@ type RpcConsumerManager struct {
 	rpcType string
 }
 
-func NewRpcConsumerManager(rpcType string) *RpcConsumerManager {
+func NewRpcConsumerManager(m *manifest.Manifest, rpcType string) *RpcConsumerManager {
 	return &RpcConsumerManager{
+		m:                       m,
 		IntraComponentConflicts: make(map[string][]string),
 		interfaceToComponent:    make(map[string]string),
 		globalReferenceMap:      make(map[string]*etree.Element),
@@ -59,13 +62,13 @@ func (dm *RpcConsumerManager) Reset() {
 	dm.globalReferenceMap = make(map[string]*etree.Element)
 }
 
-func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest) error {
-	if dm.rpcType == RpcDubbo && !m.DubboEnabled() {
+func (dm *RpcConsumerManager) Reconcile(dryRun bool) error {
+	if dm.rpcType == RpcDubbo && !dm.m.DubboEnabled() {
 		return nil
 	}
 
 	writeFile := false
-	for _, component := range m.Components {
+	for _, component := range dm.m.Components {
 		componentConflicts := make(map[string]bool)
 
 		var xmlPatterns []string
@@ -101,7 +104,7 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest) error 
 
 				for _, filePath := range matches {
 					log.Printf("[%s:%s] Processing %s", dm.rpcType, component.Name, filepath.Base(filePath))
-					if err := dm.processXmlFile(m, filePath, component, componentConflicts); err != nil {
+					if err := dm.processXmlFile(filePath, component, componentConflicts); err != nil {
 						return fmt.Errorf("error processing file %s: %v", filePath, err)
 					}
 				}
@@ -113,16 +116,16 @@ func (dm *RpcConsumerManager) MergeConsumerXmlFiles(m *manifest.Manifest) error 
 		return nil
 	}
 
-	return dm.writeMergedXmlToFile(federated.GeneratedResourceBaseDir(m.Main.Name))
+	return dm.writeMergedXmlToFile(federated.GeneratedResourceBaseDir(dm.m.Main.Name))
 }
 
-func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool) error {
+func (dm *RpcConsumerManager) processXmlFile(filePath string, component manifest.ComponentInfo, componentConflicts map[string]bool) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(filePath); err != nil {
 		return err
 	}
 
-	if err := m.State.AddMergeSource(filePath, component); err != nil {
+	if err := dm.m.State.AddMergeSource(filePath, component); err != nil {
 		return err
 	}
 
@@ -134,27 +137,27 @@ func (dm *RpcConsumerManager) processXmlFile(m *manifest.Manifest, filePath stri
 		importPath := filepath.Join(filepath.Dir(filePath), resourceAttr)
 		log.Printf("[%s:%s] Processing %s import: %s", dm.rpcType, component.Name, filepath.Base(filePath), filepath.Base(importPath))
 
-		if err := dm.processXmlFile(m, importPath, component, componentConflicts); err != nil {
+		if err := dm.processXmlFile(importPath, component, componentConflicts); err != nil {
 			return err
 		}
 	}
 
 	// Merge references from the current xml file
 	for _, tag := range dm.referenceXmlTags() {
-		dm.mergeReferences(doc.FindElements(tag), m, component, componentConflicts)
+		dm.mergeReferences(doc.FindElements(tag), component, componentConflicts)
 	}
 
 	return nil
 }
 
-func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, m *manifest.Manifest, component manifest.ComponentInfo, componentConflicts map[string]bool) {
+func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, component manifest.ComponentInfo, componentConflicts map[string]bool) {
 	for _, reference := range references {
 		dm.ScannedBeansCount++
 		interfaceName := reference.SelectAttrValue("interface", "")
 		if interfaceName == "" {
 			continue
 		}
-		if m.Main.Reconcile.Rpc.Consumer.IgnoreInterface(interfaceName) {
+		if dm.m.Main.Reconcile.Rpc.Consumer.IgnoreInterface(interfaceName) {
 			log.Printf("[%s:%s] Ignore rpc consumer: %s", dm.rpcType, component.Name, interfaceName)
 			dm.IgnoredInterfaceN++
 			continue

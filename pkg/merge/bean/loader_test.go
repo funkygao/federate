@@ -1,4 +1,4 @@
-package merge
+package bean
 
 import (
 	"io/ioutil"

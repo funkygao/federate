@@ -21,11 +21,15 @@ type ImportResourceManager struct {
 	ImportResourceCount int
 }
 
-func NewImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
+func NewImportResourceManager(m *manifest.Manifest) Reconciler {
+	return newImportResourceManager(m)
+}
+
+func newImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
 	return &ImportResourceManager{m: m}
 }
 
-func (m *ImportResourceManager) Reconcile() error {
+func (m *ImportResourceManager) Reconcile(dryRun bool) error {
 	for _, component := range m.m.Components {
 		if err := m.reconcileComponent(component); err != nil {
 			return err

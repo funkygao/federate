@@ -1,4 +1,4 @@
-package merge
+package property
 
 import (
 	"encoding/json"
@@ -94,7 +94,7 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 		},
 	}
 
-	task := reconcileTask{cm: NewPropertyManager(nil)}
+	task := reconcileTask{cm: NewManager(nil)}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
@@ -138,7 +138,7 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 		},
 	}
 
-	task := reconcileTask{cm: NewPropertyManager(nil)}
+	task := reconcileTask{cm: NewManager(nil)}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
@@ -161,7 +161,7 @@ func TestAnalyze(t *testing.T) {
 	tempDir := t.TempDir()
 	m := prepareTestManifest(t, tempDir)
 
-	pm := NewPropertyManager(m)
+	pm := NewManager(m)
 	require.NoError(t, pm.Analyze())
 	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvedProperties, "", "  ")
 	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
@@ -201,7 +201,7 @@ func TestAnalyze(t *testing.T) {
 	assert.Equal(t, "com.mysql.jdbc.Driver", pm.resolvedProperties["a"]["wms.datasource.driverClassName"].Value)
 
 	// 调和冲突
-	_, err := pm.ReconcileConflicts(true) // 使用 dryRun 模式
+	_, err := pm.Reconcile(true) // 使用 dryRun 模式
 	require.NoError(t, err)
 	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.resolvedProperties, "", "  ")
 	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
@@ -245,7 +245,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 	tempDir := t.TempDir()
 	m := prepareTestManifest(t, tempDir)
 
-	pm := NewPropertyManager(m)
+	pm := NewManager(m)
 	require.NoError(t, pm.Analyze())
 
 	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
@@ -359,5 +359,56 @@ wms:
 				},
 			},
 		},
+	}
+}
+
+func TestUpdateReferencesInString(t *testing.T) {
+	testCases := []struct {
+		name           string
+		input          string
+		componentName  string
+		expectedOutput string
+	}{
+		{
+			name:           "Simple replacement",
+			input:          "Hello ${name}",
+			componentName:  "user",
+			expectedOutput: "Hello ${user.name}",
+		},
+		{
+			name:           "Multiple replacements",
+			input:          "Hello ${firstName} ${lastName}",
+			componentName:  "person",
+			expectedOutput: "Hello ${person.firstName} ${person.lastName}",
+		},
+		{
+			name:           "No replacements needed",
+			input:          "Hello World",
+			componentName:  "greeting",
+			expectedOutput: "Hello World",
+		},
+		{
+			name:           "Empty string",
+			input:          "",
+			componentName:  "empty",
+			expectedOutput: "",
+		},
+		{
+			name:           "Only placeholders",
+			input:          "${a}${b}${c}",
+			componentName:  "test",
+			expectedOutput: "${test.a}${test.b}${test.c}",
+		},
+	}
+
+	pm := &PropertyManager{}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := pm.updateReferencesInString(tc.input, tc.componentName)
+			if result != tc.expectedOutput {
+				t.Errorf("Expected %q, but got %q", tc.expectedOutput, result)
+			}
+		})
 	}
 }
