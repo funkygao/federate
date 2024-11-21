@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
 
 	"federate/pkg/tablerender"
 )
@@ -18,17 +17,15 @@ func (cm *PropertyManager) resolveAllReferences() {
 		changed = false
 		iteration++
 
-		for component, props := range cm.resolvedProperties {
-			for key, propSource := range props {
-				if strValue, ok := propSource.Value.(string); ok && strings.Contains(strValue, "${") {
-					newValue := cm.resolvePropertyReference(component, strValue)
-					if newValue != strValue {
-						cm.resolvedProperties[component][key] = PropertySource{
-							Value:          newValue,
-							OriginalString: propSource.OriginalString,
-							FilePath:       propSource.FilePath,
-						}
+		for component, props := range cm.resolvableEntries {
+			for key, existingEntry := range props {
+				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
+					newValue := cm.resolvePropertyReference(component, rawRef)
+					if newValue != rawRef {
+						cm.updatePropertyEntry(component, key, existingEntry, newValue)
 						changed = true
+					} else {
+						// 相互引用，此轮还无法解析
 					}
 				}
 			}
@@ -37,23 +34,14 @@ func (cm *PropertyManager) resolveAllReferences() {
 
 	// 删除所有未解析的引用并输出警告
 	var unresolved [][]string
-	for component, props := range cm.resolvedProperties {
-		for key, propSource := range props {
-			if strValue, ok := propSource.Value.(string); ok {
-				if strings.Contains(strValue, "${") {
-					if _, present := cm.unresolvedProperties[component]; !present {
-						cm.unresolvedProperties[component] = make(map[string]PropertySource)
-					}
-					unresolved = append(unresolved, []string{component, key, strValue, fmt.Sprintf("%v", propSource.IsYAML())})
-					cm.unresolvedProperties[component][key] = propSource
-					delete(cm.resolvedProperties[component], key)
+	for component, props := range cm.resolvableEntries {
+		for key, existingEntry := range props {
+			if strValue := existingEntry.StringValue(); strValue != "" {
+				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
+					cm.registerUnsolvableProperty(component, existingEntry, key)
+					unresolved = append(unresolved, []string{component, key, strValue, fmt.Sprintf("%v", existingEntry.IsYAML())})
 				} else {
-					// 确保值不包含 ${}
-					cm.resolvedProperties[component][key] = PropertySource{
-						Value:          strings.ReplaceAll(strValue, "${", ""),
-						OriginalString: propSource.OriginalString,
-						FilePath:       propSource.FilePath,
-					}
+					cm.updatePropertyEntry(component, key, existingEntry, strValue)
 				}
 			}
 		}
@@ -69,12 +57,12 @@ func (cm *PropertyManager) resolveAllReferences() {
 func (cm *PropertyManager) resolvePropertyReference(component, value string) interface{} {
 	return os.Expand(value, func(key string) string {
 		// 首先在当前组件中查找，包括 YAML 和 Properties 文件
-		if propSource, ok := cm.resolvedProperties[component][key]; ok {
+		if propSource, ok := cm.resolvableEntries[component][key]; ok {
 			return fmt.Sprintf("%v", propSource.Value) // TODO
 		}
 
 		// 如果在当前组件中找不到，则在所有其他组件中查找
-		for otherComponent, props := range cm.resolvedProperties {
+		for otherComponent, props := range cm.resolvableEntries {
 			if otherComponent != component {
 				if propSource, ok := props[key]; ok {
 					return fmt.Sprintf("%v", propSource.Value)

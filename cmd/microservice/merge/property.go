@@ -23,10 +23,11 @@ func identifyPropertyConflicts(manager *property.PropertyManager) {
 }
 
 func reconcilePropertiesConflicts(manager *property.PropertyManager) {
-	result, err := manager.Reconcile(dryRunMerge)
-	if err != nil {
+	if err := manager.Reconcile(dryRunMerge); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
+
+	result := manager.Result()
 
 	pn := filepath.Join(federated.GeneratedResourceBaseDir(manager.M().Main.Name), "application.properties")
 	manager.GenerateMergedPropertiesFile(pn)

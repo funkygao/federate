@@ -18,21 +18,20 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 
 	// Merge all resolved properties，按照 component 顺序
 	for _, component := range cm.m.Components {
-		componentProps := cm.resolvedProperties[component.Name]
-		for key, propSource := range componentProps {
-			if propSource.IsYAML() && !processedKeys[key] {
-				if strings.Contains(propSource.OriginalString, "${") {
-					// 如果包含引用，使用 OriginalString
-					mergedYaml[key] = propSource.OriginalString
+		for key, entry := range cm.resolvableEntries[component.Name] {
+			if entry.IsYAML() && !processedKeys[key] {
+				if entry.WasReference() {
+					mergedYaml[key] = entry.RawString
 				} else {
 					// 否则使用解析后的值
-					mergedYaml[key] = propSource.Value
+					mergedYaml[key] = entry.Value
 				}
 				processedKeys[key] = true
 			}
 		}
 	}
 
+	// 序列化
 	data, err := yaml.Marshal(mergedYaml)
 	if err != nil {
 		log.Fatalf("Error marshalling merged config: %v", err)
@@ -69,10 +68,11 @@ func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
 	processedKeys := make(map[string]bool)
 
 	// Merge all resolved properties
-	for _, componentProps := range cm.resolvedProperties {
-		for key, propSource := range componentProps {
-			if propSource.IsProperties() && !processedKeys[key] {
-				builder.WriteString(fmt.Sprintf("%s=%v\n", key, propSource.Value))
+	for _, entries := range cm.resolvableEntries {
+		for key, entry := range entries {
+			if entry.IsProperties() && !processedKeys[key] {
+				// TODO not use RawString?
+				builder.WriteString(fmt.Sprintf("%s=%v\n", key, entry.Value))
 				processedKeys[key] = true
 			}
 		}

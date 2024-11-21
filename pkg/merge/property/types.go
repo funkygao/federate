@@ -11,22 +11,45 @@ func (k Key) WithNamespace(ns string) string {
 	return ns + "." + string(k)
 }
 
-type PropertySource struct {
-	Value          interface{}
-	OriginalString string
-	FilePath       string
+type PropertyEntry struct {
+	// 最新值：如果引用，它被替换为解析后的值
+	Value interface{}
+
+	// 最原始值
+	RawString string
+
+	FilePath string
 }
 
-func (ps *PropertySource) IsYAML() bool {
-	ext := ps.fileExt()
+func (e *PropertyEntry) IsYAML() bool {
+	ext := e.fileExt()
 	return ext == ".yaml" || ext == ".yml"
 }
 
-func (ps *PropertySource) fileExt() string {
-	return strings.ToLower(filepath.Ext(ps.FilePath))
+func (e *PropertyEntry) fileExt() string {
+	return strings.ToLower(filepath.Ext(e.FilePath))
 }
 
-func (ps *PropertySource) IsProperties() bool {
-	ext := ps.fileExt()
+func (e *PropertyEntry) IsProperties() bool {
+	ext := e.fileExt()
 	return ext == ".properties"
+}
+
+func (e *PropertyEntry) WasReference() bool {
+	return strings.Contains(e.RawString, "${")
+}
+
+func (e *PropertyEntry) StringValue() string {
+	if s, ok := e.Value.(string); ok {
+		return s
+	}
+	return ""
+}
+
+func (e *PropertyEntry) RawReferenceValue() string {
+	strValue := e.StringValue()
+	if strValue == "" || !strings.Contains(strValue, "${") {
+		return ""
+	}
+	return strValue
 }

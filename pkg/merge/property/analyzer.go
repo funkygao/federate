@@ -10,13 +10,16 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/util"
+
 	"gopkg.in/yaml.v2"
 )
 
 // 分析 .yml & .properties
 func (cm *PropertyManager) Analyze() error {
 	for _, component := range cm.m.Components {
-		cm.analyzeComponent(component)
+		if err := cm.analyzeComponent(component); err != nil {
+			return err
+		}
 	}
 
 	// 解析所有引用
@@ -41,6 +44,7 @@ func (cm *PropertyManager) analyzeComponent(component manifest.ComponentInfo) er
 			if !util.FileExists(filePath) {
 				continue
 			}
+
 			if err := cm.analyzeYamlFile(filePath, component.SpringProfile, component); err != nil {
 				return err
 			}
@@ -98,7 +102,7 @@ func (cm *PropertyManager) analyzePropertiesFile(filePath string, component mani
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 
-			cm.registerProperty(component, key, value, filePath)
+			cm.registerNewProperty(component, key, value, filePath)
 		}
 	}
 
@@ -131,9 +135,9 @@ func (cm *PropertyManager) analyzeYamlFile(filePath string, springProfile string
 	flatConfig := make(map[string]interface{})
 	cm.flattenYamlMap(config, "", flatConfig)
 
-	// 捕获属性引用
+	// 注册
 	for key, value := range flatConfig {
-		cm.registerProperty(component, key, value, filePath)
+		cm.registerNewProperty(component, key, value, filePath)
 	}
 
 	// 处理 spring.profiles.include

@@ -10,6 +10,7 @@ import (
 	"federate/pkg/merge/conflict"
 )
 
+// 合并 YAML, properties 文件
 type PropertyManager struct {
 	m  *manifest.Manifest
 	cc conflict.Collector
@@ -17,13 +18,15 @@ type PropertyManager struct {
 	silent bool
 	debug  bool
 
-	resolvedProperties   map[string]map[string]PropertySource // 合并 YAML 和 Properties
-	unresolvedProperties map[string]map[string]PropertySource // 无法解析的引用
+	resolvableEntries   map[string]map[string]PropertyEntry // 合并 YAML 和 Properties
+	unresolvableEntries map[string]map[string]PropertyEntry // 无法解析的引用
 
-	reservedYamlKeys map[string]ValueOverride
-	reservedValues   map[string][]ComponentKeyValue
+	reservedKeyHandlers map[string]ValueOverride
+	reservedProperties  map[string][]ComponentKeyValue
 
 	servletContextPath map[string]string // {componentName: contextPath}
+
+	result ReconcileReport
 }
 
 func NewManager(m *manifest.Manifest) *PropertyManager {
@@ -31,11 +34,11 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 		m:  m,
 		cc: conflict.NewManager(),
 
-		resolvedProperties:   make(map[string]map[string]PropertySource),
-		unresolvedProperties: make(map[string]map[string]PropertySource),
+		resolvableEntries:   make(map[string]map[string]PropertyEntry),
+		unresolvableEntries: make(map[string]map[string]PropertyEntry),
 
-		reservedYamlKeys: reservedKeyHandlers,
-		reservedValues:   make(map[string][]ComponentKeyValue),
+		reservedKeyHandlers: reservedKeyHandlers,
+		reservedProperties:  make(map[string][]ComponentKeyValue),
 
 		servletContextPath: make(map[string]string),
 	}
@@ -55,24 +58,28 @@ func (cm *PropertyManager) Silent() *PropertyManager {
 	return cm
 }
 
-// 合并 YAML 和 Properties 的冲突
-func (pm *PropertyManager) IdentifyAllConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(nil)
+func (cm *PropertyManager) Result() ReconcileReport {
+	return cm.result
 }
 
 func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(func(ps *PropertySource) bool {
+	return pm.identifyConflicts(func(ps *PropertyEntry) bool {
 		return ps.IsProperties()
 	})
 }
 
 func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
-	return pm.identifyConflicts(func(ps *PropertySource) bool {
+	return pm.identifyConflicts(func(ps *PropertyEntry) bool {
 		return ps.IsYAML()
 	})
 }
 
-func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource) bool) map[string]map[string]interface{} {
+// 合并 YAML 和 Properties 的冲突
+func (pm *PropertyManager) identifyAllConflicts() map[string]map[string]interface{} {
+	return pm.identifyConflicts(nil)
+}
+
+func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry) bool) map[string]map[string]interface{} {
 	conflicts := make(map[string]map[string]interface{})
 	configPropConflicts := make(map[string]bool)
 
@@ -82,12 +89,12 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 		var firstValue interface{}
 		isConflict := false
 
-		for component, props := range pm.resolvedProperties {
-			if propSource, exists := props[key]; exists && (fileTypeFilter == nil || fileTypeFilter(&propSource)) {
-				componentValues[component] = propSource.Value
+		for component, entries := range pm.resolvableEntries {
+			if entry, exists := entries[key]; exists && (fileTypeFilter == nil || fileTypeFilter(&entry)) {
+				componentValues[component] = entry.Value
 				if firstValue == nil {
-					firstValue = propSource.Value
-				} else if !reflect.DeepEqual(firstValue, propSource.Value) {
+					firstValue = entry.Value
+				} else if !reflect.DeepEqual(firstValue, entry.Value) {
 					isConflict = true
 				}
 			}
@@ -109,9 +116,9 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertySource
 		for integralKey := range configPropConflicts {
 			if strings.HasPrefix(key, integralKey) {
 				componentValues := make(map[string]interface{})
-				for component, props := range pm.resolvedProperties {
-					if propSource, exists := props[key]; exists {
-						componentValues[component] = propSource.Value
+				for component, entries := range pm.resolvableEntries {
+					if entry, exists := entries[key]; exists {
+						componentValues[component] = entry.Value
 					}
 				}
 				if len(componentValues) > 0 {
@@ -140,8 +147,8 @@ func (pm *PropertyManager) getConfigurationPropertiesPrefix(key string) string {
 
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	keys := make(map[string]struct{})
-	for _, props := range pm.resolvedProperties {
-		for key := range props {
+	for _, entries := range pm.resolvableEntries {
+		for key := range entries {
 			keys[key] = struct{}{}
 		}
 	}
@@ -149,9 +156,9 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 }
 
 func (pm *PropertyManager) Resolve(key string) interface{} {
-	for _, props := range pm.resolvedProperties {
-		if val, ok := props[key]; ok {
-			return val.Value
+	for _, entries := range pm.resolvableEntries {
+		if entry, ok := entries[key]; ok {
+			return entry.Value
 		}
 	}
 

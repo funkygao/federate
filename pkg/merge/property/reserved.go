@@ -7,6 +7,7 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
+
 	"github.com/fatih/color"
 )
 
@@ -25,7 +26,7 @@ func M(values []ComponentKeyValue) *manifest.MainSystem {
 }
 
 func (cm *PropertyManager) isReservedProperty(key string) bool {
-	_, exists := cm.reservedYamlKeys[key]
+	_, exists := cm.reservedKeyHandlers[key]
 	return exists
 }
 
@@ -85,16 +86,16 @@ func (m *PropertyManager) recordServletContextPath(c manifest.ComponentInfo, con
 
 func (cm *PropertyManager) applyReservedPropertyRules() {
 	var cellData [][]string
-	for key, values := range cm.reservedValues {
-		if handler, exists := cm.reservedYamlKeys[key]; exists {
+	for key, values := range cm.reservedProperties {
+		if handler, exists := cm.reservedKeyHandlers[key]; exists {
 			if cm.m.Main.Reconcile.PropertySettled(key) {
 				color.Yellow("key:%s reserved, but used directive: propertySettled, skipped", key)
 				continue
 			}
 
 			if value := handler(cm, values); value != nil {
-				for _, componentProps := range cm.resolvedProperties {
-					componentProps[key] = PropertySource{
+				for _, componentProps := range cm.resolvableEntries {
+					componentProps[key] = PropertyEntry{
 						Value:    value,
 						FilePath: "reserved.yml",
 					}
@@ -102,7 +103,7 @@ func (cm *PropertyManager) applyReservedPropertyRules() {
 
 				cellData = append(cellData, []string{key, fmt.Sprintf("%v", value)})
 			} else {
-				for _, componentProps := range cm.resolvedProperties {
+				for _, componentProps := range cm.resolvableEntries {
 					delete(componentProps, key)
 				}
 				cellData = append(cellData, []string{key, color.New(color.FgRed).Add(color.CrossedOut).Sprintf("deleted")})

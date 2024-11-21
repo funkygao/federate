@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"federate/pkg/manifest"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -147,8 +148,8 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 	}
 }
 
-func TestPropertySource(t *testing.T) {
-	ps := PropertySource{FilePath: "foo.yaml"}
+func TestPropertyEntry(t *testing.T) {
+	ps := PropertyEntry{FilePath: "foo.yaml"}
 	assert.Equal(t, true, ps.IsYAML())
 	assert.Equal(t, false, ps.IsProperties())
 	ps.FilePath = "a/b/bar.properties"
@@ -163,18 +164,18 @@ func TestAnalyze(t *testing.T) {
 
 	pm := NewManager(m)
 	require.NoError(t, pm.Analyze())
-	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvedProperties, "", "  ")
+	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvableEntries, "", "  ")
 	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
-	unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.unresolvedProperties, "", "  ")
+	unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.unresolvableEntries, "", "  ")
 	t.Logf("Unresovled properties:\n%s", string(unresolvedPropertiesJSON))
 
-	conflicts := pm.IdentifyAllConflicts()
+	conflicts := pm.identifyAllConflicts()
 	conflictsJSON, _ := json.MarshalIndent(conflicts, "", "  ")
 	t.Logf("Conflicts:\n%s", string(conflictsJSON))
 
 	// 验证无法解析的keys
-	assert.Equal(t, "${non.exist}", pm.unresolvedProperties["b"]["wms.datasource.unresolved"].Value)
-	assert.Equal(t, 1, len(pm.unresolvedProperties["b"]))
+	assert.Equal(t, "${non.exist}", pm.unresolvableEntries["b"]["wms.datasource.unresolved"].Value)
+	assert.Equal(t, 1, len(pm.unresolvableEntries["b"]))
 
 	// 验证冲突检测
 	assert.Contains(t, conflicts, "datasource.mysql.url")
@@ -186,28 +187,28 @@ func TestAnalyze(t *testing.T) {
 	assert.NotContains(t, conflicts, "mysql.driver")
 
 	// 验证引用解析
-	assert.Equal(t, 1234, pm.resolvedProperties["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
-	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"].Value)
-	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvedProperties["a"]["datasource.mysql.url"].Value)
-	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.resolvedProperties["b"]["datasource.mysql.url"].Value)
-	assert.Equal(t, "jdbc:mysql://1.1.1.9", pm.resolvedProperties["a"]["wms.reverse.datasource.ds0-master.jdbcUrl"].Value)
+	assert.Equal(t, 1234, pm.resolvableEntries["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvableEntries["a"]["datasource.mysql.url"].Value)
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvableEntries["a"]["datasource.mysql.url"].Value)
+	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.resolvableEntries["b"]["datasource.mysql.url"].Value)
+	assert.Equal(t, "jdbc:mysql://1.1.1.9", pm.resolvableEntries["a"]["wms.reverse.datasource.ds0-master.jdbcUrl"].Value)
 
 	assert.Equal(t, "jdbc:mysql://1.1.1.1", conflicts["datasource.mysql.url"]["a"])
 	assert.Equal(t, "jdbc:mysql://1.1.1.8", conflicts["datasource.mysql.url"]["b"])
 
 	// 不冲突
-	assert.Equal(t, "foo", pm.resolvedProperties["a"]["a.key"].Value)
-	assert.Equal(t, "0", pm.resolvedProperties["b"]["b.key"].Value)
-	assert.Equal(t, "com.mysql.jdbc.Driver", pm.resolvedProperties["a"]["wms.datasource.driverClassName"].Value)
+	assert.Equal(t, "foo", pm.resolvableEntries["a"]["a.key"].Value)
+	assert.Equal(t, "0", pm.resolvableEntries["b"]["b.key"].Value)
+	assert.Equal(t, "com.mysql.jdbc.Driver", pm.resolvableEntries["a"]["wms.datasource.driverClassName"].Value)
 
 	// 调和冲突
-	_, err := pm.Reconcile(true) // 使用 dryRun 模式
+	err := pm.Reconcile(true) // 使用 dryRun 模式
 	require.NoError(t, err)
-	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.resolvedProperties, "", "  ")
+	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.resolvableEntries, "", "  ")
 	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
 
 	// 检查解决后的属性
-	resolvedProps := pm.resolvedProperties
+	resolvedProps := pm.resolvableEntries
 
 	// 检查 datasource.mysql.url 是否被正确前缀化
 	assert.Contains(t, resolvedProps["a"], "a.datasource.mysql.url")
@@ -219,7 +220,7 @@ func TestAnalyze(t *testing.T) {
 	assert.Contains(t, resolvedProps["a"], "a.mysql.maximumPoolSize")
 	assert.Contains(t, resolvedProps["b"], "b.mysql.maximumPoolSize")
 	// 该值仍引用
-	assert.Equal(t, "${a.mysql.maximumPoolSize}", resolvedProps["a"]["a.wms.datasource.maximumPoolSize"].OriginalString)
+	assert.Equal(t, "${a.mysql.maximumPoolSize}", resolvedProps["a"]["a.wms.datasource.maximumPoolSize"].RawString)
 	assert.Equal(t, "10", resolvedProps["a"]["a.mysql.maximumPoolSize"].Value)
 	assert.Equal(t, "20", resolvedProps["b"]["b.mysql.maximumPoolSize"].Value)
 
