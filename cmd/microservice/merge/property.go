@@ -8,13 +8,13 @@ import (
 	"sort"
 
 	"federate/pkg/federated"
-	"federate/pkg/merge"
+	"federate/pkg/merge/property"
 	"federate/pkg/tablerender"
 	"federate/pkg/util"
 	"github.com/fatih/color"
 )
 
-func identifyPropertyConflicts(manager *merge.PropertyManager) {
+func identifyPropertyConflicts(manager *property.PropertyManager) {
 	if err := manager.Analyze(); err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
 	}
@@ -22,7 +22,7 @@ func identifyPropertyConflicts(manager *merge.PropertyManager) {
 	showYamlConflicts(manager)
 }
 
-func reconcilePropertiesConflicts(manager *merge.PropertyManager) {
+func reconcilePropertiesConflicts(manager *property.PropertyManager) {
 	result, err := manager.Reconcile(dryRunMerge)
 	if err != nil {
 		log.Fatalf("%v, Error type: %s", err, reflect.TypeOf(err))
@@ -37,7 +37,7 @@ func reconcilePropertiesConflicts(manager *merge.PropertyManager) {
 	color.Green("🍺 Reconciled property conflicts: %s, %s", an, pn)
 }
 
-func showPropertiesConflicts(manager *merge.PropertyManager) {
+func showPropertiesConflicts(manager *property.PropertyManager) {
 	conflictKeys := manager.IdentifyPropertiesFileConflicts()
 	if len(conflictKeys) == 0 {
 		log.Printf("Bingo! .properties files found no conflicts")
@@ -71,7 +71,7 @@ func showPropertiesConflicts(manager *merge.PropertyManager) {
 	tablerender.DisplayTable(header, rows, false, 0)
 
 }
-func showYamlConflicts(manager *merge.PropertyManager) {
+func showYamlConflicts(manager *property.PropertyManager) {
 	conflictKeys := manager.IdentifyYamlFileConflicts()
 	if len(conflictKeys) == 0 {
 		log.Printf("application.yml files found no conflicts, bingo!")

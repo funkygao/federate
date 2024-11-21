@@ -1,4 +1,4 @@
-package merge
+package property
 
 import (
 	"encoding/json"
@@ -94,7 +94,7 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 		},
 	}
 
-	task := reconcileTask{cm: NewPropertyManager(nil)}
+	task := reconcileTask{cm: NewManager(nil)}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
@@ -138,7 +138,7 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 		},
 	}
 
-	task := reconcileTask{cm: NewPropertyManager(nil)}
+	task := reconcileTask{cm: NewManager(nil)}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
@@ -161,7 +161,7 @@ func TestAnalyze(t *testing.T) {
 	tempDir := t.TempDir()
 	m := prepareTestManifest(t, tempDir)
 
-	pm := NewPropertyManager(m)
+	pm := NewManager(m)
 	require.NoError(t, pm.Analyze())
 	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvedProperties, "", "  ")
 	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
@@ -245,7 +245,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 	tempDir := t.TempDir()
 	m := prepareTestManifest(t, tempDir)
 
-	pm := NewPropertyManager(m)
+	pm := NewManager(m)
 	require.NoError(t, pm.Analyze())
 
 	mergedYamlPath := filepath.Join(tempDir, "merged.yml")

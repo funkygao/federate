@@ -1,4 +1,4 @@
-package merge
+package property
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ type PropertyManager struct {
 	placeholderRe *regexp.Regexp
 }
 
-func NewPropertyManager(m *manifest.Manifest) *PropertyManager {
+func NewManager(m *manifest.Manifest) *PropertyManager {
 	return &PropertyManager{
 		m: m,
 

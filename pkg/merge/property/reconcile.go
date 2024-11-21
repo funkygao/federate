@@ -1,4 +1,4 @@
-package merge
+package property
 
 import (
 	"io/ioutil"

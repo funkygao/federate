@@ -2,7 +2,7 @@ package merge
 
 import (
 	"federate/pkg/manifest"
-	"federate/pkg/merge"
+	"federate/pkg/merge/property"
 	"github.com/spf13/cobra"
 )
 
@@ -16,7 +16,7 @@ var GoCmd = &cobra.Command{
 
 // 这里的内容可能经常变：通过运行来调试 federate 代码
 func debugFederate(m *manifest.Manifest) {
-	propertyManager := merge.NewPropertyManager(m)
+	propertyManager := property.NewManager(m)
 	propertyManager.Silent().Debug().Analyze()
 	//propertyManager.IdentifyYamlFileConflicts()
 	showYamlConflicts(propertyManager)

@@ -10,6 +10,7 @@ import (
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
+	"federate/pkg/merge/property"
 	"federate/pkg/step"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ func doMerge(m *manifest.Manifest) {
 		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(m, rpc))
 	}
 
-	propertyManager := merge.NewPropertyManager(m)
+	propertyManager := property.NewManager(m)
 	xmlBeanManager := merge.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager(m)
 	envManager := merge.NewEnvManager(m)

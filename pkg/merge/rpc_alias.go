@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"federate/pkg/manifest"
+	"federate/pkg/merge/property"
 	"federate/pkg/spring"
 	"federate/pkg/util"
 )
@@ -13,11 +14,11 @@ import (
 // 对于同一个 interface，它只能有1个alias/group
 type RpcAliasManager struct {
 	m  *manifest.Manifest
-	pm *PropertyManager
+	pm *property.PropertyManager
 }
 
-func NewRpcAliasManager(pm *PropertyManager) Reconciler {
-	return &RpcAliasManager{pm: pm, m: pm.m}
+func NewRpcAliasManager(pm *property.PropertyManager) Reconciler {
+	return &RpcAliasManager{pm: pm, m: pm.M()}
 }
 
 func (m *RpcAliasManager) Reconcile(dryRun bool) error {

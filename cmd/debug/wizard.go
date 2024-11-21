@@ -3,6 +3,7 @@ package debug
 import (
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
+	"federate/pkg/merge/property"
 	"federate/pkg/spring"
 	"federate/pkg/step"
 	"github.com/spf13/cobra"
@@ -20,7 +21,7 @@ var wizardCmd = &cobra.Command{
 }
 
 func runWizard(m *manifest.Manifest) {
-	propertyManager := merge.NewPropertyManager(m)
+	propertyManager := property.NewManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
 
 	steps := []step.Step{
