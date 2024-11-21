@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"federate/cmd/merge"
+	"federate/cmd/microservice/merge"
 	"federate/internal/fs"
 	"federate/pkg/git"
 	"federate/pkg/java"

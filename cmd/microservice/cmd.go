@@ -2,7 +2,7 @@ package microservice
 
 import (
 	"federate/cmd/explain"
-	"federate/cmd/merge"
+	"federate/cmd/microservice/merge"
 	"federate/cmd/microservice/optimize"
 	"github.com/spf13/cobra"
 )
