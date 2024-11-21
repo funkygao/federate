@@ -3,7 +3,6 @@ package property
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"federate/pkg/tablerender"
 )
@@ -17,12 +16,12 @@ func (cm *PropertyManager) resolveAllReferences() {
 		changed = false
 		iteration++
 
-		for component, props := range cm.resolvableEntries {
-			for key, existingEntry := range props {
+		for component, entries := range cm.r.GetAllResolvableEntries() {
+			for key, existingEntry := range entries {
 				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
-					newValue := cm.resolvePropertyReference(component, rawRef)
+					newValue := cm.r.ResolvePropertyReference(component, rawRef)
 					if newValue != rawRef {
-						cm.updatePropertyEntry(component, key, existingEntry, newValue)
+						cm.r.UpdateProperty(component, key, existingEntry, newValue)
 						changed = true
 					} else {
 						// 相互引用，此轮还无法解析
@@ -34,14 +33,14 @@ func (cm *PropertyManager) resolveAllReferences() {
 
 	// 删除所有未解析的引用并输出警告
 	var unresolved [][]string
-	for component, props := range cm.resolvableEntries {
-		for key, existingEntry := range props {
+	for component, entries := range cm.r.GetAllResolvableEntries() {
+		for key, existingEntry := range entries {
 			if strValue := existingEntry.StringValue(); strValue != "" {
 				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
-					cm.registerUnsolvableProperty(component, existingEntry, key)
+					cm.r.MarkAsUnresolvable(component, existingEntry, key)
 					unresolved = append(unresolved, []string{component, key, strValue, fmt.Sprintf("%v", existingEntry.IsYAML())})
 				} else {
-					cm.updatePropertyEntry(component, key, existingEntry, strValue)
+					cm.r.UpdateProperty(component, key, existingEntry, strValue)
 				}
 			}
 		}
@@ -52,25 +51,4 @@ func (cm *PropertyManager) resolveAllReferences() {
 		log.Printf("Found %d unresolved references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
 		tablerender.DisplayTable(header, unresolved, false, -1)
 	}
-}
-
-func (cm *PropertyManager) resolvePropertyReference(component, value string) interface{} {
-	return os.Expand(value, func(key string) string {
-		// 首先在当前组件中查找，包括 YAML 和 Properties 文件
-		if propSource, ok := cm.resolvableEntries[component][key]; ok {
-			return fmt.Sprintf("%v", propSource.Value) // TODO
-		}
-
-		// 如果在当前组件中找不到，则在所有其他组件中查找
-		for otherComponent, props := range cm.resolvableEntries {
-			if otherComponent != component {
-				if propSource, ok := props[key]; ok {
-					return fmt.Sprintf("%v", propSource.Value)
-				}
-			}
-		}
-
-		// 如果找不到引用的值，返回原始占位符
-		return "${" + key + "}"
-	})
 }

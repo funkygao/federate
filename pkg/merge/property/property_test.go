@@ -164,9 +164,9 @@ func TestAnalyze(t *testing.T) {
 
 	pm := NewManager(m)
 	require.NoError(t, pm.Analyze())
-	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.resolvableEntries, "", "  ")
+	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
 	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
-	unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.unresolvableEntries, "", "  ")
+	unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.unresolvableEntries, "", "  ")
 	t.Logf("Unresovled properties:\n%s", string(unresolvedPropertiesJSON))
 
 	conflicts := pm.identifyAllConflicts()
@@ -174,8 +174,8 @@ func TestAnalyze(t *testing.T) {
 	t.Logf("Conflicts:\n%s", string(conflictsJSON))
 
 	// 验证无法解析的keys
-	assert.Equal(t, "${non.exist}", pm.unresolvableEntries["b"]["wms.datasource.unresolved"].Value)
-	assert.Equal(t, 1, len(pm.unresolvableEntries["b"]))
+	assert.Equal(t, "${non.exist}", pm.r.unresolvableEntries["b"]["wms.datasource.unresolved"].Value)
+	assert.Equal(t, 1, len(pm.r.unresolvableEntries["b"]))
 
 	// 验证冲突检测
 	assert.Contains(t, conflicts, "datasource.mysql.url")
@@ -187,28 +187,28 @@ func TestAnalyze(t *testing.T) {
 	assert.NotContains(t, conflicts, "mysql.driver")
 
 	// 验证引用解析
-	assert.Equal(t, 1234, pm.resolvableEntries["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
-	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvableEntries["a"]["datasource.mysql.url"].Value)
-	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.resolvableEntries["a"]["datasource.mysql.url"].Value)
-	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.resolvableEntries["b"]["datasource.mysql.url"].Value)
-	assert.Equal(t, "jdbc:mysql://1.1.1.9", pm.resolvableEntries["a"]["wms.reverse.datasource.ds0-master.jdbcUrl"].Value)
+	assert.Equal(t, 1234, pm.r.resolvableEntries["a"]["schedule.token"].Value) // 自己引用自己，只是properties引用yaml
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.r.resolvableEntries["a"]["datasource.mysql.url"].Value)
+	assert.Equal(t, "jdbc:mysql://1.1.1.1", pm.r.resolvableEntries["a"]["datasource.mysql.url"].Value)
+	assert.Equal(t, "jdbc:mysql://1.1.1.8", pm.r.resolvableEntries["b"]["datasource.mysql.url"].Value)
+	assert.Equal(t, "jdbc:mysql://1.1.1.9", pm.r.resolvableEntries["a"]["wms.reverse.datasource.ds0-master.jdbcUrl"].Value)
 
 	assert.Equal(t, "jdbc:mysql://1.1.1.1", conflicts["datasource.mysql.url"]["a"])
 	assert.Equal(t, "jdbc:mysql://1.1.1.8", conflicts["datasource.mysql.url"]["b"])
 
 	// 不冲突
-	assert.Equal(t, "foo", pm.resolvableEntries["a"]["a.key"].Value)
-	assert.Equal(t, "0", pm.resolvableEntries["b"]["b.key"].Value)
-	assert.Equal(t, "com.mysql.jdbc.Driver", pm.resolvableEntries["a"]["wms.datasource.driverClassName"].Value)
+	assert.Equal(t, "foo", pm.r.resolvableEntries["a"]["a.key"].Value)
+	assert.Equal(t, "0", pm.r.resolvableEntries["b"]["b.key"].Value)
+	assert.Equal(t, "com.mysql.jdbc.Driver", pm.r.resolvableEntries["a"]["wms.datasource.driverClassName"].Value)
 
 	// 调和冲突
 	err := pm.Reconcile(true) // 使用 dryRun 模式
 	require.NoError(t, err)
-	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.resolvableEntries, "", "  ")
+	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
 	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
 
 	// 检查解决后的属性
-	resolvedProps := pm.resolvableEntries
+	resolvedProps := pm.r.resolvableEntries
 
 	// 检查 datasource.mysql.url 是否被正确前缀化
 	assert.Contains(t, resolvedProps["a"], "a.datasource.mysql.url")
@@ -406,7 +406,7 @@ func TestUpdateReferencesInString(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			result := pm.updateReferencesInString(tc.input, tc.componentName)
+			result := pm.namespacePropertyPlaceholders(tc.input, tc.componentName)
 			if result != tc.expectedOutput {
 				t.Errorf("Expected %q, but got %q", tc.expectedOutput, result)
 			}

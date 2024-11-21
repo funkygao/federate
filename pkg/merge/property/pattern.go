@@ -14,8 +14,7 @@ type pattern struct {
 	// 属性的引用：${xxx}
 	placeholderRegex *regexp.Regexp
 
-	// 属性文件的扩展名有哪些被支持: the rule
-	supportedFileExtensions map[string]struct{}
+	parsers map[string]PropertyParser // key is filename ext
 }
 
 func (p *pattern) createJavaRegex(key string) *regexp.Regexp {
@@ -30,19 +29,19 @@ func (p *pattern) createConfigurationPropertiesRegex(key string) *regexp.Regexp 
 	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
 }
 
-func (p *pattern) isFileExtSupported(ext string) bool {
-	_, ok := p.supportedFileExtensions[ext]
-	return ok
+func (p *pattern) ParserByFileExt(ext string) (parser PropertyParser, supported bool) {
+	parser, supported = p.parsers[ext]
+	return
 }
 
 func init() {
 	P = pattern{
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
 		placeholderRegex:    regexp.MustCompile(`\$\{([^}]+)\}`),
-		supportedFileExtensions: map[string]struct{}{
-			".properties": {},
-			".yml":        {},
-			".yaml":       {},
+		parsers: map[string]PropertyParser{
+			".yml":        &yamlParser{},
+			".yaml":       &yamlParser{},
+			".properties": &propertiesParser{},
 		},
 	}
 }

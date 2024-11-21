@@ -18,8 +18,8 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) {
 
 	// Merge all resolved properties，按照 component 顺序
 	for _, component := range cm.m.Components {
-		for key, entry := range cm.resolvableEntries[component.Name] {
-			if entry.IsYAML() && !processedKeys[key] {
+		for key, entry := range cm.r.ComponentYamlEntries(component) {
+			if !processedKeys[key] {
 				if entry.WasReference() {
 					mergedYaml[key] = entry.RawString
 				} else {
@@ -67,10 +67,9 @@ func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) {
 	// 使用一个 set 来跟踪已处理的 key
 	processedKeys := make(map[string]bool)
 
-	// Merge all resolved properties
-	for _, entries := range cm.resolvableEntries {
-		for key, entry := range entries {
-			if entry.IsProperties() && !processedKeys[key] {
+	for _, component := range cm.m.Components {
+		for key, entry := range cm.r.ComponentPropertiesEntries(component) {
+			if !processedKeys[key] {
 				// TODO not use RawString?
 				builder.WriteString(fmt.Sprintf("%s=%v\n", key, entry.Value))
 				processedKeys[key] = true

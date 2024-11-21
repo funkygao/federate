@@ -3,129 +3,215 @@ package property
 import (
 	"fmt"
 	"log"
+	"os"
 	"reflect"
 	"strings"
 
 	"federate/pkg/manifest"
 )
 
-func (pm *PropertyManager) registerReservedProperty(key string, component manifest.ComponentInfo, value interface{}) {
-	if _, exists := pm.reservedProperties[key]; !exists {
-		pm.reservedProperties[key] = []ComponentKeyValue{}
-	}
-	pm.reservedProperties[key] = append(pm.reservedProperties[key], ComponentKeyValue{Component: component, Value: value})
+type registry struct {
+	manifest *manifest.Manifest
+	silent   bool
+
+	resolvableEntries   map[string]map[string]PropertyEntry
+	unresolvableEntries map[string]map[string]PropertyEntry
+
+	reservedPropertyValues map[string][]ComponentPropertyValue
 }
 
-func (pm *PropertyManager) registerNewProperty(component manifest.ComponentInfo, key string, value interface{}, filePath string) {
-	if pm.resolvableEntries[component.Name] == nil {
-		pm.resolvableEntries[component.Name] = make(map[string]PropertyEntry)
+func newRegistry(m *manifest.Manifest, silent bool) *registry {
+	return &registry{
+		resolvableEntries:      make(map[string]map[string]PropertyEntry),
+		unresolvableEntries:    make(map[string]map[string]PropertyEntry),
+		reservedPropertyValues: make(map[string][]ComponentPropertyValue),
+		manifest:               m,
+		silent:                 silent,
+	}
+}
+
+// AddProperty adds a property to the registry
+func (r *registry) AddProperty(component manifest.ComponentInfo, key string, value interface{}, filePath string) {
+	if r.resolvableEntries[component.Name] == nil {
+		r.resolvableEntries[component.Name] = make(map[string]PropertyEntry)
 	}
 
-	// 保留字
-	if pm.isReservedProperty(key) {
-		pm.registerReservedProperty(key, component, value)
+	if r.isReservedProperty(key) {
+		r.addReservedProperty(key, component, value)
 		return
 	}
 
-	// 用户手工指定值
-	if val, overridden := pm.m.PropertyOverridden(key); overridden {
-		pm.resolvableEntries[component.Name][key] = PropertyEntry{
+	if val, overridden := r.manifest.PropertyOverridden(key); overridden {
+		r.resolvableEntries[component.Name][key] = PropertyEntry{
 			Value:    val,
-			FilePath: fakeFile, // yaml可以还原数据类型，而properties的值只能是string，因此这些key都放到yaml
+			FilePath: fakeFile,
 		}
 		return
 	}
 
-	existingEntry, exists := pm.getComponentProperty(component, key)
-	if exists && pm.shouldKeepExistingValue(existingEntry, value) {
-		if !pm.silent {
+	existingEntry, exists := r.getComponentProperty(component, key)
+	if exists && r.shouldKeepExistingValue(existingEntry, value) {
+		if !r.silent {
 			log.Printf("[%s] Keep existing value for %s: %v (new value was: %v)", component.Name, key, existingEntry.Value, value)
 		}
 		return
 	}
 
-	// 注册新值
-	pm.resolvableEntries[component.Name][key] = PropertyEntry{
+	r.resolvableEntries[component.Name][key] = PropertyEntry{
 		Value:     value,
 		RawString: fmt.Sprintf("%v", value),
 		FilePath:  filePath,
 	}
 }
 
-// newValue 是解析后的值
-func (pm *PropertyManager) updatePropertyEntry(componentName string, key string, existingEntry PropertyEntry, newValue interface{}) {
-	pm.resolvableEntries[componentName][key] = PropertyEntry{
+// UpdateProperty updates an existing property in the registry
+func (r *registry) UpdateProperty(componentName string, key string, existingEntry PropertyEntry, newValue interface{}) {
+	r.resolvableEntries[componentName][key] = PropertyEntry{
 		Value:     newValue,
 		RawString: existingEntry.RawString,
 		FilePath:  existingEntry.FilePath,
 	}
 }
 
-func (pm *PropertyManager) registerUnsolvableProperty(componentName string, existingEntry PropertyEntry, key string) {
-	if _, present := pm.unresolvableEntries[componentName]; !present {
-		pm.unresolvableEntries[componentName] = make(map[string]PropertyEntry)
+// MarkAsUnresolvable marks a property as unresolvable and removes it from resolvable entries
+func (r *registry) MarkAsUnresolvable(componentName string, existingEntry PropertyEntry, key string) {
+	if _, present := r.unresolvableEntries[componentName]; !present {
+		r.unresolvableEntries[componentName] = make(map[string]PropertyEntry)
 	}
 
-	pm.unresolvableEntries[componentName][key] = existingEntry
-
-	// 从可解析里删除
-	delete(pm.resolvableEntries[componentName], key)
+	r.unresolvableEntries[componentName][key] = existingEntry
+	delete(r.resolvableEntries[componentName], key)
 }
 
-func (pm *PropertyManager) getComponentProperty(component manifest.ComponentInfo, key string) (*PropertyEntry, bool) {
-	if pm.resolvableEntries[component.Name] == nil {
+// GetAllResolvableEntries returns all resolvable entries
+func (r *registry) GetAllResolvableEntries() map[string]map[string]PropertyEntry {
+	return r.resolvableEntries
+}
+
+// getComponentProperty retrieves a property entry for a component
+func (r *registry) getComponentProperty(component manifest.ComponentInfo, key string) (*PropertyEntry, bool) {
+	if r.resolvableEntries[component.Name] == nil {
 		return nil, false
 	}
 
-	existingEntry, exists := pm.resolvableEntries[component.Name][key]
+	existingEntry, exists := r.resolvableEntries[component.Name][key]
 	return &existingEntry, exists
 }
 
-func (pm *PropertyManager) shouldKeepExistingValue(existing *PropertyEntry, newValue interface{}) bool {
+func (r *registry) ComponentYamlEntries(component manifest.ComponentInfo) map[string]PropertyEntry {
+	result := make(map[string]PropertyEntry)
+	for key, entry := range r.resolvableEntries[component.Name] {
+		if entry.IsYAML() {
+			result[key] = entry
+		}
+	}
+	return result
+}
+
+func (r *registry) ComponentPropertiesEntries(component manifest.ComponentInfo) map[string]PropertyEntry {
+	result := make(map[string]PropertyEntry)
+	for key, entry := range r.resolvableEntries[component.Name] {
+		if entry.IsProperties() {
+			result[key] = entry
+		}
+	}
+	return result
+}
+
+// GetReservedPropertyValues returns the reserved property values
+func (r *registry) GetReservedPropertyValues() map[string][]ComponentPropertyValue {
+	return r.reservedPropertyValues
+}
+
+func (r *registry) ResolvePropertyReference(component, value string) interface{} {
+	return os.Expand(value, func(key string) string {
+		// 首先在当前组件中查找，包括 YAML 和 Properties 文件
+		if entry, ok := r.resolvableEntries[component][key]; ok {
+			return fmt.Sprintf("%v", entry.Value)
+		}
+
+		// 如果在当前组件中找不到，则在所有其他组件中查找
+		for thatComponent, entries := range r.resolvableEntries {
+			if thatComponent != component {
+				if entry, ok := entries[key]; ok {
+					return fmt.Sprintf("%v", entry.Value)
+				}
+			}
+		}
+
+		// 如果找不到引用的值，返回原始占位符
+		return "${" + key + "}"
+	})
+}
+
+func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue interface{}) bool {
 	return existing.Value != nil && (newValue == nil || (reflect.TypeOf(newValue).Kind() == reflect.String && strings.Contains(newValue.(string), "${")))
 }
 
-func (pm *PropertyManager) updateResolvedProperties(componentName string, key Key, value interface{}) {
+func (r *registry) NamespaceProperty(componentName string, key Key, value interface{}) {
 	strKey := string(key)
-	originalSource := pm.resolvableEntries[componentName][strKey]
+	originalEntry := r.resolvableEntries[componentName][strKey]
 
-	// 已经占位符替换的，要恢复占位符
-	newOriginalString := originalSource.RawString
-	if strings.Contains(newOriginalString, "${") {
-		// 更新 OriginalString 中的引用 ${foo} => ${component1.foo}
-		newOriginalString = pm.updateReferencesInString(originalSource.RawString, componentName)
-		if !pm.silent {
-			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalSource.RawString, newOriginalString)
+	newRawString := originalEntry.RawString
+	if strings.Contains(newRawString, "${") {
+		newRawString = r.updateReferencesInString(originalEntry.RawString, componentName)
+		if !r.silent {
+			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalEntry.RawString, newRawString)
 		}
 	}
 
-	// 修改 resolvedProperties，写盘使用
-	if integralKey := pm.getConfigurationPropertiesPrefix(strKey); integralKey != "" {
-		pm.handleConfigurationProperties(componentName, integralKey)
+	if integralKey := r.getConfigurationPropertiesPrefix(strKey); integralKey != "" {
+		r.namespaceConfigurationProperties(componentName, integralKey)
 	} else {
-		pm.handleRegularProperty(componentName, key, value, newOriginalString, originalSource)
+		r.namespaceRegularProperty(componentName, key, value, newRawString, originalEntry)
 	}
 }
 
-func (pm *PropertyManager) handleConfigurationProperties(componentName, configPropPrefix string) {
-	// key 是 ConfigurationProperties 的一部分，为所有相关的 key 添加命名空间
-	for subKey := range pm.resolvableEntries[componentName] {
+func (r *registry) namespaceConfigurationProperties(componentName, configPropPrefix string) {
+	for subKey := range r.resolvableEntries[componentName] {
 		if strings.HasPrefix(subKey, configPropPrefix) {
 			nsKey := Key(subKey).WithNamespace(componentName)
-			pm.resolvableEntries[componentName][nsKey] = PropertyEntry{
-				Value:     pm.resolvableEntries[componentName][subKey].Value,
-				RawString: pm.resolvableEntries[componentName][subKey].RawString,
-				FilePath:  pm.resolvableEntries[componentName][subKey].FilePath,
+			r.resolvableEntries[componentName][nsKey] = PropertyEntry{
+				Value:     r.resolvableEntries[componentName][subKey].Value,
+				RawString: r.resolvableEntries[componentName][subKey].RawString,
+				FilePath:  r.resolvableEntries[componentName][subKey].FilePath,
 			}
 		}
 	}
 }
 
-func (pm *PropertyManager) handleRegularProperty(componentName string, key Key, value interface{}, newOriginalString string, originalEntry PropertyEntry) {
+func (r *registry) namespaceRegularProperty(componentName string, key Key, value interface{}, newOriginalString string, originalEntry PropertyEntry) {
 	nsKey := key.WithNamespace(componentName)
-	pm.resolvableEntries[componentName][nsKey] = PropertyEntry{
+	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 		Value:     value,
 		RawString: newOriginalString,
 		FilePath:  originalEntry.FilePath,
 	}
+}
+
+func (r *registry) updateReferencesInString(s, componentName string) string {
+	return os.Expand(s, func(key string) string {
+		return "${" + componentName + "." + key + "}"
+	})
+}
+
+func (r *registry) isReservedProperty(key string) bool {
+	_, exists := reservedKeyHandlers[key]
+	return exists
+}
+
+func (r *registry) addReservedProperty(key string, component manifest.ComponentInfo, value interface{}) {
+	if _, exists := r.reservedPropertyValues[key]; !exists {
+		r.reservedPropertyValues[key] = []ComponentPropertyValue{}
+	}
+	r.reservedPropertyValues[key] = append(r.reservedPropertyValues[key], ComponentPropertyValue{Component: component, Value: value})
+}
+
+func (r *registry) getConfigurationPropertiesPrefix(key string) string {
+	for _, prefix := range r.manifest.Main.Reconcile.Resources.Property.ConfigurationPropertiesKeys {
+		if strings.HasPrefix(key, prefix) {
+			return prefix
+		}
+	}
+	return ""
 }

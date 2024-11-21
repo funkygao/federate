@@ -27,7 +27,7 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 		for componentName, value := range components {
 			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
-			cm.updateResolvedProperties(componentName, Key(key), value)
+			cm.r.NamespaceProperty(componentName, Key(key), value)
 		}
 	}
 
@@ -60,7 +60,7 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 	return
 }
 
-func (cm *PropertyManager) updateReferencesInString(s, componentName string) string {
+func (cm *PropertyManager) namespacePropertyPlaceholders(s, componentName string) string {
 	return os.Expand(s, func(key string) string {
 		return "${" + componentName + "." + key + "}"
 	})

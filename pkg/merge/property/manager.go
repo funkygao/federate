@@ -14,15 +14,10 @@ import (
 type PropertyManager struct {
 	m  *manifest.Manifest
 	cc conflict.Collector
+	r  *registry
 
 	silent bool
 	debug  bool
-
-	resolvableEntries   map[string]map[string]PropertyEntry // 合并 YAML 和 Properties
-	unresolvableEntries map[string]map[string]PropertyEntry // 无法解析的引用
-
-	reservedKeyHandlers map[string]ValueOverride
-	reservedProperties  map[string][]ComponentKeyValue
 
 	servletContextPath map[string]string // {componentName: contextPath}
 
@@ -31,15 +26,9 @@ type PropertyManager struct {
 
 func NewManager(m *manifest.Manifest) *PropertyManager {
 	return &PropertyManager{
-		m:  m,
-		cc: conflict.NewManager(),
-
-		resolvableEntries:   make(map[string]map[string]PropertyEntry),
-		unresolvableEntries: make(map[string]map[string]PropertyEntry),
-
-		reservedKeyHandlers: reservedKeyHandlers,
-		reservedProperties:  make(map[string][]ComponentKeyValue),
-
+		m:                  m,
+		cc:                 conflict.NewManager(),
+		r:                  newRegistry(m, false),
 		servletContextPath: make(map[string]string),
 	}
 }
@@ -55,6 +44,7 @@ func (cm *PropertyManager) Debug() *PropertyManager {
 
 func (cm *PropertyManager) Silent() *PropertyManager {
 	cm.silent = true
+	cm.r.silent = true
 	return cm
 }
 
@@ -89,7 +79,7 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry)
 		var firstValue interface{}
 		isConflict := false
 
-		for component, entries := range pm.resolvableEntries {
+		for component, entries := range pm.r.resolvableEntries {
 			if entry, exists := entries[key]; exists && (fileTypeFilter == nil || fileTypeFilter(&entry)) {
 				componentValues[component] = entry.Value
 				if firstValue == nil {
@@ -116,7 +106,7 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry)
 		for integralKey := range configPropConflicts {
 			if strings.HasPrefix(key, integralKey) {
 				componentValues := make(map[string]interface{})
-				for component, entries := range pm.resolvableEntries {
+				for component, entries := range pm.r.resolvableEntries {
 					if entry, exists := entries[key]; exists {
 						componentValues[component] = entry.Value
 					}
@@ -147,7 +137,7 @@ func (pm *PropertyManager) getConfigurationPropertiesPrefix(key string) string {
 
 func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	keys := make(map[string]struct{})
-	for _, entries := range pm.resolvableEntries {
+	for _, entries := range pm.r.resolvableEntries {
 		for key := range entries {
 			keys[key] = struct{}{}
 		}
@@ -156,7 +146,7 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 }
 
 func (pm *PropertyManager) Resolve(key string) interface{} {
-	for _, entries := range pm.resolvableEntries {
+	for _, entries := range pm.r.resolvableEntries {
 		if entry, ok := entries[key]; ok {
 			return entry.Value
 		}
