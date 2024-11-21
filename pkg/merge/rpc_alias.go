@@ -56,6 +56,8 @@ func (m *RpcAliasManager) Reconcile() error {
 	if !conflicted {
 		log.Printf("RPC Provider alias found no conflicts!")
 		return nil
+	} else if FailFast {
+		log.Fatal("You need to solve RPC Provider Alias Conflict before proceeding!")
 	}
 
 	// pass 2: fix the conflicts
