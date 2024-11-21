@@ -10,6 +10,7 @@ import (
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
+	"federate/pkg/merge/bean"
 	"federate/pkg/merge/property"
 	"federate/pkg/step"
 	"github.com/fatih/color"
@@ -58,7 +59,7 @@ func doMerge(m *manifest.Manifest) {
 	}
 
 	propertyManager := property.NewManager(m)
-	xmlBeanManager := merge.NewXmlBeanManager(m)
+	xmlBeanManager := bean.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager(m)
 	envManager := merge.NewEnvManager(m)
 	injectionManager := merge.NewSpringBeanInjectionManager(m)

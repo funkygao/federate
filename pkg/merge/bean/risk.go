@@ -1,4 +1,4 @@
-package merge
+package bean
 
 import (
 	"io/ioutil"
@@ -97,7 +97,7 @@ func findGetBeanNames(filePath string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	matches := P.getBeanPattern.FindAllStringSubmatch(string(content), -1)
+	matches := getBeanPattern.FindAllStringSubmatch(string(content), -1)
 	for _, match := range matches {
 		if len(match) > 1 {
 			name := match[1] // 提取参数 name

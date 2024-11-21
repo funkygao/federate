@@ -22,11 +22,7 @@ type pattern struct {
 	// System.getProperty
 	systemGetPropertyRegex *regexp.Regexp
 
-	// Xxx.getBean
-	getBeanPattern *regexp.Regexp
-
-	importRegex *regexp.Regexp
-
+	importRegex           *regexp.Regexp
 	importResourcePattern *regexp.Regexp
 }
 
@@ -47,8 +43,6 @@ func init() {
 		genericTypePattern: regexp.MustCompile(`(Map|List)<.*>`),
 
 		systemGetPropertyRegex: regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`),
-
-		getBeanPattern: regexp.MustCompile(`\bgetBean\s*\(\s*"([^"]+)"\s*\)`),
 
 		importRegex:           regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
 		importResourcePattern: regexp.MustCompile(`@ImportResource\s*\(\s*(locations\s*=\s*)?\{?\s*("([^"]+)"|'([^']+)')\s*(,\s*("([^"]+)"|'([^']+)')\s*)*\}?\s*\)`),
