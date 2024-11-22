@@ -1,4 +1,4 @@
-package merge
+package code
 
 import (
 	"strings"
@@ -59,7 +59,7 @@ import java.util.Map;`,
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			lines := strings.Split(strings.TrimSpace(tt.input), "\n")
-			jl := newJavaLines(lines)
+			jl := NewJavaLines(lines)
 			jl.SeparateSections()
 
 			assert.Equal(t, tt.expectedHeader, strings.Join(jl.HeadLines(), "\n"))

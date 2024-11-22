@@ -32,17 +32,17 @@ type reconcileTaskResult struct {
 
 func (t *reconcileTask) Execute() error {
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createJavaRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, createJavaRegex); err != nil {
 		return err
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsXml, P.createXmlRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsXml, createXmlRegex); err != nil {
 		return err
 	}
 
 	// 处理 @ConfigurationProperties
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createConfigurationPropertiesRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, createConfigurationPropertiesRegex); err != nil {
 		return err
 	}
 

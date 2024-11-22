@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"federate/pkg/code"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 )
@@ -47,7 +48,7 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 			return err
 		}
 
-		javaFile := NewJavaFile(path, &component, string(fileContent))
+		javaFile := code.NewJavaFile(path, &component, string(fileContent))
 		newfileContent, dirty := m.reconcileJavaFile(javaFile)
 
 		if !dryRun && dirty {
@@ -61,9 +62,9 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 	return err
 }
 
-func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
+func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *code.JavaFile) (string, bool) {
 	// 首先应用基于人工规则的注入转换
-	fileContent := jf.ApplyBeanTransformRule(jf.c.Transform.Beans)
+	fileContent := jf.ApplyBeanTransformRule()
 
 	jf.UpdateContent(fileContent)
 
@@ -73,7 +74,7 @@ func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *JavaFile) (string, bo
 
 // reconcileInjectionAnnotations 自动处理 Java 源代码，将 @Resource 注解替换为 @Autowired，
 // 并在必要时添加 @Qualifier 注解。此方法还管理相关的导入语句。
-func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile) (string, bool) {
+func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *code.JavaFile) (string, bool) {
 	if !jf.HasInjectionAnnotation() {
 		return jf.Content(), false
 	}
@@ -90,18 +91,18 @@ func (m *SpringBeanInjectionManager) reconcileInjectionAnnotations(jf *JavaFile)
 	return strings.Join(result, "\n"), needAutowired || needQualifier
 }
 
-func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile, bodyLines []string) (processedLines []string,
+func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *code.JavaFile, bodyLines []string) (processedLines []string,
 	needAutowired bool, needQualifier bool) {
 	// pass 1: scan
-	jc := newJavaLines(bodyLines)
-	beans := jc.ScanInjectedBeans()
+	jl := code.NewJavaLines(bodyLines)
+	beans := jl.ScanInjectedBeans()
 
-	commentTracker := NewCommentTracker()
+	commentTracker := code.NewCommentTracker()
 
 	// pass 2: transform code in place
 	for i := 0; i < len(bodyLines); i++ {
 		line := bodyLines[i]
-		if jc.IsEmptyLine(line) || commentTracker.InComment(line) || !P.IsInjectionAnnotatedLine(line) {
+		if jl.IsEmptyLine(line) || commentTracker.InComment(line) || !code.IsInjectionAnnotatedLine(line) {
 			processedLines = append(processedLines, line)
 			continue
 		}
@@ -114,14 +115,14 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 		nextLine := bodyLines[i+1]
 		leadingSpace := strings.TrimSuffix(line, strings.TrimSpace(line))
 
-		if P.methodResourcePattern.MatchString(line + "\n" + nextLine) {
+		if code.IsMethodResourceAnnotatedLines(line + "\n" + nextLine) {
 			// 处理方法注入
-			beanType := jc.getBeanTypeFromMethodSignature(nextLine)
+			beanType := jl.GetBeanTypeFromMethodSignature(nextLine)
 			processedLines = append(processedLines, leadingSpace+"@Autowired")
 			m.AutowiredN++
 			needAutowired = true
-			qualifierName := jc.getQualifierNameFromMethod(line, nextLine)
-			if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
+			qualifierName := jl.GetQualifierNameFromMethod(line, nextLine)
+			if len(beans[beanType]) > 1 || code.IsResourceAnnotatedWithNameLine(line) {
 				processedLines = append(processedLines, leadingSpace+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
 				m.QualifierN++
 				needQualifier = true
@@ -131,9 +132,9 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 			i++ // 跳过下一行
 		} else {
 			// 处理字段注入
-			beanType, fieldName := jc.parseFieldDeclaration(nextLine)
+			beanType, fieldName := jl.ParseFieldDeclaration(nextLine)
 
-			if jf.shouldKeepResource(beans, beanType, fieldName) {
+			if jf.ShouldKeepResource(beans, beanType, fieldName) {
 				log.Printf("[%s] %s Keep @Resource for %s %s", jf.ComponentName(), jf.FileBaseName(), beanType, fieldName)
 				processedLines = append(processedLines, line, nextLine)
 				i++
@@ -141,13 +142,13 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 			}
 
 			// 检查是否为 Map, HashMap 或 List 类型
-			if P.genericTypePattern.MatchString(nextLine) {
+			if code.IsCollectionTypeLine(nextLine) {
 				processedLines = append(processedLines, line, nextLine)
 				i++
 				continue
 			}
 
-			if P.resourcePattern.MatchString(line) {
+			if code.IsResourceAnnotatedLine(line) {
 				processedLines = append(processedLines, leadingSpace+"@Autowired")
 				m.AutowiredN++
 				needAutowired = true
@@ -155,10 +156,10 @@ func (m *SpringBeanInjectionManager) transformInjectionAnnotations(jf *JavaFile,
 				processedLines = append(processedLines, line)
 			}
 
-			if len(beans[beanType]) > 1 || P.resourceWithNamePattern.MatchString(line) {
+			if len(beans[beanType]) > 1 || code.IsResourceAnnotatedWithNameLine(line) {
 				qualifierName := fieldName
-				if matches := P.resourceWithNamePattern.FindStringSubmatch(line); len(matches) > 1 {
-					qualifierName = matches[1]
+				if name := code.GetResourceAnnotationName(line); name != "" {
+					qualifierName = name
 				}
 				processedLines = append(processedLines, leadingSpace+fmt.Sprintf("@Qualifier(\"%s\")", qualifierName))
 				m.QualifierN++
@@ -179,7 +180,7 @@ func (m *SpringBeanInjectionManager) transformImportIfNec(headLines []string, ne
 	autowiredImported := false
 	qualifierImported := false
 
-	ct := NewCommentTracker()
+	ct := code.NewCommentTracker()
 	for _, line := range headLines {
 		processedHeadLines = append(processedHeadLines, line)
 		if ct.InComment(line) {

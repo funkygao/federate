@@ -1,6 +1,7 @@
 package property
 
 import (
+	"path/filepath"
 	"regexp"
 )
 
@@ -17,20 +18,20 @@ type pattern struct {
 	parsers map[string]PropertyParser // key is filename ext
 }
 
-func (p *pattern) createJavaRegex(key string) *regexp.Regexp {
+func createJavaRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
 }
 
-func (p *pattern) createXmlRegex(key string) *regexp.Regexp {
+func createXmlRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 
-func (p *pattern) createConfigurationPropertiesRegex(key string) *regexp.Regexp {
+func createConfigurationPropertiesRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
 }
 
-func (p *pattern) ParserByFileExt(ext string) (parser PropertyParser, supported bool) {
-	parser, supported = p.parsers[ext]
+func ParserByFile(file string) (parser PropertyParser, supported bool) {
+	parser, supported = P.parsers[filepath.Ext(file)]
 	return
 }
 

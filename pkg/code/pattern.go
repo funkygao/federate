@@ -1,4 +1,4 @@
-package merge
+package code
 
 import (
 	"regexp"
@@ -8,26 +8,35 @@ import (
 var P pattern
 
 type pattern struct {
-	// @Resource @Autowired @Qualifier
-	resourcePattern         *regexp.Regexp
+	// @Resource
+	resourcePattern *regexp.Regexp
+
+	// @Resource(name = "foo")
 	resourceWithNamePattern *regexp.Regexp
-	methodResourcePattern   *regexp.Regexp
 
-	autowiredPattern       *regexp.Regexp
+	// @Resource
+	// public void setFoo(Foo foo) {
+	methodResourcePattern *regexp.Regexp
+
+	// @Autowired
+	autowiredPattern *regexp.Regexp
+
+	// @Autowired
+	// public void setFoo(Foo foo) {
 	methodAutowiredPattern *regexp.Regexp
-	qualifierPattern       *regexp.Regexp
 
-	genericTypePattern *regexp.Regexp
+	// @Qualifier
+	qualifierPattern *regexp.Regexp
+
+	// private Map Hash List beans;
+	collectionTypePattern *regexp.Regexp
 
 	// System.getProperty
-	systemGetPropertyRegex *regexp.Regexp
+	SystemGetPropertyRegex *regexp.Regexp
 
-	importRegex           *regexp.Regexp
-	importResourcePattern *regexp.Regexp
-}
+	importRegex *regexp.Regexp
 
-func (p *pattern) IsInjectionAnnotatedLine(line string) bool {
-	return p.resourcePattern.MatchString(line) || p.autowiredPattern.MatchString(line)
+	ImportResourcePattern *regexp.Regexp
 }
 
 func init() {
@@ -40,11 +49,11 @@ func init() {
 		methodAutowiredPattern: regexp.MustCompile(`@Autowired\b(\s*\([^)]*\))?\s*\n\s*public\s+void\s+(set\w+)\s*\(`),
 		qualifierPattern:       regexp.MustCompile(`@Qualifier\s*\(\s*"([^"]*)"\s*\)`),
 
-		genericTypePattern: regexp.MustCompile(`(Map|List)<.*>`),
+		collectionTypePattern: regexp.MustCompile(`(Map|List)<.*>`),
 
-		systemGetPropertyRegex: regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`),
+		SystemGetPropertyRegex: regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`),
 
 		importRegex:           regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
-		importResourcePattern: regexp.MustCompile(`@ImportResource\s*\(\s*(locations\s*=\s*)?\{?\s*("([^"]+)"|'([^']+)')\s*(,\s*("([^"]+)"|'([^']+)')\s*)*\}?\s*\)`),
+		ImportResourcePattern: regexp.MustCompile(`@ImportResource\s*\(\s*(locations\s*=\s*)?\{?\s*("([^"]+)"|'([^']+)')\s*(,\s*("([^"]+)"|'([^']+)')\s*)*\}?\s*\)`),
 	}
 }

@@ -1,4 +1,4 @@
-package merge
+package code
 
 import (
 	"strings"
@@ -15,7 +15,7 @@ type JavaLines struct {
 	bodyLines []string
 }
 
-func newJavaLines(lines []string) *JavaLines {
+func NewJavaLines(lines []string) *JavaLines {
 	return &JavaLines{rawLines: lines}
 }
 
@@ -39,7 +39,7 @@ func (jl *JavaLines) IsEmptyLine(line string) bool {
 func (jl *JavaLines) SeparateSections() {
 	lastImportIdx := -1
 	for i, line := range jl.rawLines {
-		if P.importRegex.MatchString(line) {
+		if IsImportStatement(line) {
 			lastImportIdx = i
 		}
 	}
@@ -54,11 +54,12 @@ func (jl *JavaLines) SeparateSections() {
 // beans: key is bean type, value is list of field name
 func (jl *JavaLines) ScanInjectedBeans() (beans map[string][]string) {
 	beans = make(map[string][]string)
+
 	for i := 0; i < len(jl.rawLines); i++ {
 		line := jl.rawLines[i]
 
 		// 通过 @Resource/@Autowired 注入，注入可能在 setter 方法，也可能在字段
-		if P.IsInjectionAnnotatedLine(line) {
+		if IsInjectionAnnotatedLine(line) {
 			if i+1 < len(jl.rawLines) {
 				nextLine := jl.rawLines[i+1]
 				annotatedDeclaration := line + "\n" + nextLine
@@ -66,20 +67,20 @@ func (jl *JavaLines) ScanInjectedBeans() (beans map[string][]string) {
 				var beanType, beanName string
 
 				switch {
-				case P.methodResourcePattern.MatchString(annotatedDeclaration) ||
-					P.methodAutowiredPattern.MatchString(annotatedDeclaration):
+				case IsMethodResourceAnnotatedLines(annotatedDeclaration) ||
+					IsMethodAutowiredAnnotatedLines(annotatedDeclaration):
 					// 处理方法注入
-					beanType = jl.getBeanTypeFromMethodSignature(nextLine)
-					beanName = jl.getQualifierNameFromMethod(line, nextLine)
+					beanType = jl.GetBeanTypeFromMethodSignature(nextLine)
+					beanName = jl.GetQualifierNameFromMethod(line, nextLine)
 
 					i++ // 跳过下一行
 
 				default:
 					// 处理字段注入
-					beanType, beanName = jl.parseFieldDeclaration(nextLine)
+					beanType, beanName = jl.ParseFieldDeclaration(nextLine)
 				}
 
-				if beanType != "" && beanName != "" && !P.genericTypePattern.MatchString(nextLine) {
+				if beanType != "" && beanName != "" && !IsCollectionTypeLine(nextLine) {
 					beans[beanType] = append(beans[beanType], beanName)
 				}
 			}
@@ -88,7 +89,7 @@ func (jl *JavaLines) ScanInjectedBeans() (beans map[string][]string) {
 	return
 }
 
-func (jl *JavaLines) getBeanTypeFromMethodSignature(line string) string {
+func (jl *JavaLines) GetBeanTypeFromMethodSignature(line string) string {
 	// 从方法签名中提取参数类型
 	// 例如：从 "public void setService(SomeService service)" 提取 "SomeService"
 	parts := strings.Split(strings.TrimSpace(line), "(")
@@ -108,10 +109,10 @@ func (jl *JavaLines) getBeanTypeFromMethodSignature(line string) string {
 // public void setMyService(SomeService service)
 //
 // getQualifierNameFromMethod 返回 myService
-func (jl *JavaLines) getQualifierNameFromMethod(resourceLine, methodLine string) string {
+func (jl *JavaLines) GetQualifierNameFromMethod(resourceLine, methodLine string) string {
 	// 首先检查是否在 @Resource 中明确指定了 name
-	if matches := P.resourceWithNamePattern.FindStringSubmatch(resourceLine); len(matches) > 1 {
-		return matches[1]
+	if name := GetResourceAnnotationName(resourceLine); name != "" {
+		return name
 	}
 
 	// 如果没有明确指定 name，则从 setter 方法名中提取
@@ -131,7 +132,7 @@ func (jl *JavaLines) getQualifierNameFromMethod(resourceLine, methodLine string)
 	return "" // 如果无法提取到合适的名称，返回空字符串
 }
 
-func (jl *JavaLines) parseFieldDeclaration(line string) (beanType string, fieldName string) {
+func (jl *JavaLines) ParseFieldDeclaration(line string) (beanType string, fieldName string) {
 	// 移除行首尾的空白字符
 	line = strings.TrimSpace(line)
 

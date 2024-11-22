@@ -66,6 +66,7 @@ func doMerge(m *manifest.Manifest) {
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
 	fusionStarterManager := merge.NewFusionStarterManager(m)
+	trxManager := merge.NewTrxManager(m)
 
 	steps := []step.Step{
 		{
@@ -165,6 +166,11 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Detecting RPC Provider alias/group conflicts by Rewriting XML",
 			Fn: func() {
 				rpcAliasManager.Reconcile(dryRunMerge)
+			}},
+		{
+			Name: "Transforming @Transactional to support multiple PlatformTransactionManager",
+			Fn: func() {
+				trxManager.Reconcile(dryRunMerge)
 			}},
 		{
 			Name: "Display Conflict Summary guiding you fix fusion-starter",
