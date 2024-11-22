@@ -30,9 +30,18 @@ func reconcilePropertiesConflicts(manager *property.PropertyManager) {
 	result := manager.Result()
 
 	pn := filepath.Join(federated.GeneratedResourceBaseDir(manager.M().Main.Name), "application.properties")
-	manager.GenerateMergedPropertiesFile(pn)
+	if err := manager.GenerateMergedPropertiesFile(pn); err != nil {
+		log.Fatalf("%v", err)
+	} else {
+		log.Printf("Generated %s", pn)
+	}
+
 	an := filepath.Join(federated.GeneratedResourceBaseDir(manager.M().Main.Name), "application.yml")
-	manager.GenerateMergedYamlFile(an)
+	if err := manager.GenerateMergedYamlFile(an); err != nil {
+		log.Fatalf("%v", err)
+	} else {
+		log.Printf("Generated %s", pn)
+	}
 	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
 		result.RequestMapping, result.KeyPrefixed, result.ConfigurationProperties)
 	color.Green("🍺 Reconciled property conflicts: %s, %s", an, pn)

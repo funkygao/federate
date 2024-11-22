@@ -44,7 +44,7 @@ func (cm *PropertyManager) analyzeComponent(component manifest.ComponentInfo) er
 				continue
 			}
 
-			parser, supported := P.ParserByFileExt(filepath.Ext(propertyFile))
+			parser, supported := ParserByFile(propertyFile)
 			if !supported {
 				return fmt.Errorf("unsupported file type: %s", filePath)
 			}
