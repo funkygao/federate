@@ -20,15 +20,13 @@ import java.util.stream.Collectors;
 public class App {
     public static void main(String[] args) {
         if (args.length < 2) {
-            System.err.println("Usage: java -jar javast.jar <command> <directory_path>");
+            System.err.println("Usage: java -jar javast.jar <command> <directory_path> [arg]");
             System.exit(1);
         }
 
         String command = args[0];
         String directoryPath = args[1];
         Path rootPath = Paths.get(directoryPath);
-
-        List<ParserResult> results = new ArrayList<>();
 
         try {
             List<Path> javaFiles = Files.walk(rootPath)
@@ -46,10 +44,6 @@ public class App {
                 try {
                     CompilationUnit cu = StaticJavaParser.parse(javaFile);
                     visitor.visit(cu, javaFile);
-                    ParserResult result = visitor.getResult(rootPath, javaFile);
-                    if (result != null) {
-                        results.add(result);
-                    }
                 } catch (IOException e) {
                     System.err.println("Error parsing file " + javaFile + ": " + e.getMessage());
                 }
@@ -57,12 +51,6 @@ public class App {
         } catch (IOException e) {
             System.err.println("Error walking through directory: " + e.getMessage());
             System.exit(1);
-        }
-
-        if (!results.isEmpty()) {
-            Gson gson = new Gson();
-            String jsonResult = gson.toJson(results);
-            System.out.println(jsonResult); // stdout is golang invoker's stdin
         }
     }
 
@@ -73,20 +61,30 @@ public class App {
     }
 
     private static FileVisitor createVisitor(String command, String[] args) {
+        // args: [command, dir, ...]
         switch (command) {
             case "replace-service":
                 // @Service
-                if (args.length < 3) {
-                    System.err.println("replace-service command requires a JSON string of old and new values");
-                    System.exit(1);
-                }
+                validateArgsLength(args, 3, "replace-service command requires a JSON string of old and new values");
                 Map<String, String> serviceMap = new Gson().fromJson(args[2], Map.class);
                 return new ServiceAnnotationTransformer(serviceMap);
+
+            case "inject-transaction-manager":
+                // @Transactional, TransactionTemplate
+                validateArgsLength(args, 3, "inject-transaction-manager command requires the transaction manager name");
+                return new TransactionManagerInjector(args[2]);
 
             default:
                 System.err.println("Unknown command: " + command);
                 System.exit(1);
                 return null;
+        }
+    }
+
+    private static void validateArgsLength(String[] args, int expectedLength, String errorMessage) {
+        if (args.length < expectedLength) {
+            System.err.println(errorMessage);
+            System.exit(1);
         }
     }
 }

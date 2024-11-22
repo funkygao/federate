@@ -1,44 +1,19 @@
 package io.github.federate.visitor;
 
-import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.expr.AnnotationExpr;
-import com.github.javaparser.ast.expr.MarkerAnnotationExpr;
-import com.github.javaparser.ast.expr.SingleMemberAnnotationExpr;
-import com.github.javaparser.ast.expr.StringLiteralExpr;
-import com.github.javaparser.ast.visitor.ModifierVisitor;
+import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.Visitable;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
-public class ServiceAnnotationTransformer extends ModifierVisitor<Void> implements FileVisitor {
+// 修改 @Service, @Component 的 value
+public class ServiceAnnotationTransformer extends BaseCodeModifier {
     private final Map<String, String> serviceMap;
-    private boolean modified = false;
-    private String currentPackage;
-    private String currentClassName;
     private static final List<String> SUPPORTED_ANNOTATIONS = Arrays.asList("Service", "Component");
 
     public ServiceAnnotationTransformer(Map<String, String> serviceMap) {
         this.serviceMap = serviceMap;
-    }
-
-    @Override
-    public Visitable visit(CompilationUnit cu, Void arg) {
-        currentPackage = cu.getPackageDeclaration().map(pd -> pd.getName().asString()).orElse("");
-        return super.visit(cu, arg);
-    }
-
-    @Override
-    public Visitable visit(ClassOrInterfaceDeclaration n, Void arg) {
-        currentClassName = n.getNameAsString();
-        Visitable result = super.visit(n, arg);
-        currentClassName = null; // Reset after visiting the class
-        return result;
     }
 
     @Override
@@ -65,24 +40,6 @@ public class ServiceAnnotationTransformer extends ModifierVisitor<Void> implemen
             }
         }
         return n;
-    }
-
-    private String getFQCN() {
-        return currentPackage.isEmpty() ? currentClassName : currentPackage + "." + currentClassName;
-    }
-
-    @Override
-    public void visit(CompilationUnit cu, Path filePath) throws IOException {
-        modified = false; // Reset the flag for each file
-        CompilationUnit modifiedCu = (CompilationUnit) cu.accept(this, null);
-        if (modified) {
-            Files.write(filePath, modifiedCu.toString().getBytes());
-        }
-    }
-
-    @Override
-    public ParserResult getResult(Path rootPath, Path filePath) {
-        return null; // This visitor doesn't produce a ParserResult
     }
 }
 

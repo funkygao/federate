@@ -147,7 +147,7 @@ func doMerge(m *manifest.Manifest) {
 				color.Green("🍺 Generated %s", targetFile)
 			}},
 		{
-			Name: "Transforming Java @Service value",
+			Name: "Transforming Java @Service/@Component value",
 			Fn: func() {
 				if err := serviceManager.Reconcile(dryRunMerge); err != nil {
 					log.Fatalf("%v", err)
