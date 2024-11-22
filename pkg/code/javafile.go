@@ -1,4 +1,4 @@
-package merge
+package code
 
 import (
 	"log"
@@ -53,10 +53,10 @@ func (j *JavaFile) Content() string {
 }
 
 func (j *JavaFile) JavaLines() *JavaLines {
-	return newJavaLines(j.lines())
+	return NewJavaLines(j.RawLines())
 }
 
-func (j *JavaFile) lines() []string {
+func (j *JavaFile) RawLines() []string {
 	if j.cachedLines == nil {
 		j.cachedLines = strings.Split(j.content, "\n")
 	}
@@ -65,14 +65,17 @@ func (j *JavaFile) lines() []string {
 
 func (jf *JavaFile) HasInjectionAnnotation() bool {
 	// 可能会匹配到注释中的 "@Resource" 或 "@Autowired"，导致假阳性
-	return P.resourcePattern.MatchString(jf.content) ||
-		P.autowiredPattern.MatchString(jf.content)
+	return IsInjectionAnnotatedLine(jf.content)
 }
 
 // 根据 manifest 里人为指定的 bean 替换规则进行替换
 // 例如：之前都是 DataSource dataSource，合并后有多个数据源，需要区分它们，人为指定为：
 // fooDataSource, barDataSource
-func (j *JavaFile) ApplyBeanTransformRule(beanTransformRule map[string]string) (fileContent string) {
+func (j *JavaFile) ApplyBeanTransformRule() (fileContent string) {
+	return j.applyBeanTransformRule(j.c.Transform.Beans)
+}
+
+func (j *JavaFile) applyBeanTransformRule(beanTransformRule map[string]string) (fileContent string) {
 	fileContent = j.content
 
 	for oldBean, newBean := range beanTransformRule {
@@ -103,7 +106,7 @@ func (j *JavaFile) ApplyBeanTransformRule(beanTransformRule map[string]string) (
 //	    @Resource
 //	    private EggService eggserviceImpl;
 //	}
-func (j *JavaFile) shouldKeepResource(beans map[string][]string, beanType string, fieldName string) bool {
+func (j *JavaFile) ShouldKeepResource(beans map[string][]string, beanType string, fieldName string) bool {
 	fieldNames, exists := beans[beanType]
 	if !exists || len(fieldNames) <= 1 {
 		return false

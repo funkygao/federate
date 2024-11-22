@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"federate/pkg/code"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 )
@@ -69,7 +70,7 @@ func (e *envManager) findSystemGetPropertyKeys(filePath string) ([]string, error
 		return nil, err
 	}
 
-	matches := P.systemGetPropertyRegex.FindAllSubmatch(content, -1)
+	matches := code.P.SystemGetPropertyRegex.FindAllSubmatch(content, -1)
 
 	keys := make([]string, 0, len(matches))
 	for _, match := range matches {

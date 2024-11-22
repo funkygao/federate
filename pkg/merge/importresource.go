@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"federate/pkg/code"
 	"federate/pkg/diff"
 	"federate/pkg/federated"
 	"federate/pkg/java"
@@ -58,7 +59,7 @@ func (m *ImportResourceManager) reconcileComponent(component manifest.ComponentI
 		}
 
 		oldFileConent := string(fileContent)
-		javaFile := NewJavaFile(path, &component, oldFileConent)
+		javaFile := code.NewJavaFile(path, &component, oldFileConent)
 		newFileContent, dirty := m.reconcileJavaFile(javaFile)
 
 		if dirty {
@@ -75,10 +76,10 @@ func (m *ImportResourceManager) reconcileComponent(component manifest.ComponentI
 	return err
 }
 
-func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
+func (m *ImportResourceManager) reconcileJavaFile(jf *code.JavaFile) (string, bool) {
 	componentName := jf.ComponentName()
-	commentTracker := NewCommentTracker()
-	lines := jf.lines()
+	commentTracker := code.NewCommentTracker()
+	lines := jf.RawLines()
 	dirty := false
 
 	for i, line := range lines {
@@ -106,7 +107,7 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *JavaFile) (string, bool) {
 
 // 目前还不支持多行场景
 func (m *ImportResourceManager) processImportResource(line, componentName string) (string, bool) {
-	return P.importResourcePattern.ReplaceAllStringFunc(line, func(match string) string {
+	return code.P.ImportResourcePattern.ReplaceAllStringFunc(line, func(match string) string {
 		// 检查是否使用了 locations 属性
 		hasLocations := strings.Contains(match, "locations")
 

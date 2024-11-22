@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"federate/pkg/code"
 	"federate/pkg/manifest"
 	"federate/pkg/util"
 	"github.com/stretchr/testify/assert"
@@ -250,7 +251,7 @@ public class TestClass {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jf := NewJavaFile("", nil, tc.input)
+			jf := code.NewJavaFile("", nil, tc.input)
 			result, dirty := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 			assert.Equal(t, dirty, tc.dirty, tc.name)
@@ -328,7 +329,7 @@ public class TestClass {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jf := NewJavaFile("", nil, tc.input)
+			jf := code.NewJavaFile("", nil, tc.input)
 			result, _ := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
@@ -526,7 +527,7 @@ public class TestClass {
 }
 `
 
-	jf := NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -590,8 +591,8 @@ func TestParseFieldDeclaration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jc := newJavaLines(strings.Split(tc.input, "\n"))
-			beanType, fieldName := jc.parseFieldDeclaration(tc.input)
+			jl := code.NewJavaLines(strings.Split(tc.input, "\n"))
+			beanType, fieldName := jl.ParseFieldDeclaration(tc.input)
 			assert.Equal(t, tc.expectedType, beanType, "Bean type mismatch for input: %s", tc.input)
 			assert.Equal(t, tc.expectedField, fieldName, "Field name mismatch for input: %s", tc.input)
 		})
@@ -650,7 +651,7 @@ public class TestClass {
 }
 `
 
-	jf := NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -698,7 +699,7 @@ public class TestClass {
     private SomeService service4;
 }
 `
-	jf := NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -738,95 +739,9 @@ public class TestClass {
 }
 `
 
-	jf := NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
-}
-
-func TestApplyBeanTransforms(t *testing.T) {
-	tests := []struct {
-		name           string
-		content        string
-		beanTransforms map[string]string
-		expected       string
-	}{
-		{
-			name: "Autowired annotation",
-			content: `
-                @Autowired("oldBean")
-                private SomeType someField;
-            `,
-			beanTransforms: map[string]string{"oldBean": "newBean"},
-			expected: `
-                @Autowired("newBean")
-                private SomeType someField;
-            `,
-		},
-		{
-			name: "Qualifier annotation",
-			content: `
-                @Autowired
-                @Qualifier("oldBean")
-                private SomeType someField;
-            `,
-			beanTransforms: map[string]string{"oldBean": "newBean"},
-			expected: `
-                @Autowired
-                @Qualifier("newBean")
-                private SomeType someField;
-            `,
-		},
-		{
-			name: "Resource annotation",
-			content: `
-                @Resource(name = "oldBean")
-                private SomeType someField;
-            `,
-			beanTransforms: map[string]string{"oldBean": "newBean"},
-			expected: `
-                @Resource(name = "newBean")
-                private SomeType someField;
-            `,
-		},
-		{
-			name: "Multiple transformations",
-			content: `
-                @Autowired("oldBean1")
-                private SomeType field1;
-
-                @Qualifier("oldBean2")
-                @Autowired
-                private SomeType field2;
-
-                @Resource(name = "oldBean3")
-                private SomeType field3;
-            `,
-			beanTransforms: map[string]string{
-				"oldBean1": "newBean1",
-				"oldBean2": "newBean2",
-				"oldBean3": "newBean3",
-			},
-			expected: `
-                @Autowired("newBean1")
-                private SomeType field1;
-
-                @Qualifier("newBean2")
-                @Autowired
-                private SomeType field2;
-
-                @Resource(name = "newBean3")
-                private SomeType field3;
-            `,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			jf := NewJavaFile("", nil, tt.content)
-			result := jf.ApplyBeanTransformRule(tt.beanTransforms)
-			assert.Equal(t, tt.expected, result, tt.name)
-		})
-	}
 }
 
 func TestReplaceResourceWithAutowiredOnMethods(t *testing.T) {
@@ -993,276 +908,9 @@ public class TestClass {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jf := NewJavaFile("", nil, tc.input)
+			jf := code.NewJavaFile("", nil, tc.input)
 			result, _ := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
-		})
-	}
-}
-
-func TestScanBeanTypeCounts(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    []string
-		expected map[string][]string
-	}{
-		{
-			name: "Field injections",
-			input: []string{
-				"@Resource",
-				"private SomeService service1;",
-				"@Autowired",
-				"private SomeService service2;",
-				"@Resource",
-				"private OtherService otherService;",
-			},
-			expected: map[string][]string{
-				"SomeService":  []string{"service1", "service2"},
-				"OtherService": []string{"otherService"},
-			},
-		},
-		{
-			name: "Method injections",
-			input: []string{
-				"@Resource",
-				"public void setService1(SomeService service) {",
-				"}",
-				"@Resource",
-				"public void setService2(SomeService service) {",
-				"}",
-				"@Resource",
-				"public void setOtherService(OtherService service) {",
-				"}",
-			},
-			expected: map[string][]string{
-				"SomeService":  []string{"service1", "service2"},
-				"OtherService": []string{"otherService"},
-			},
-		},
-		{
-			name: "Mixed field and method injections",
-			input: []string{
-				"@Resource",
-				"private SomeService service1;",
-				"@Resource",
-				"public void setService2(SomeService service) {",
-				"}",
-				"@Autowired",
-				"private OtherService otherService;",
-			},
-			expected: map[string][]string{
-				"SomeService":  []string{"service1", "service2"},
-				"OtherService": []string{"otherService"},
-			},
-		},
-		{
-			name: "Generic types",
-			input: []string{
-				"@Resource",
-				"private List<String> stringList;",
-				"@Autowired",
-				"private Map<String, Object> objectMap;",
-			},
-			expected: map[string][]string{},
-		},
-		{
-			name: "No injections",
-			input: []string{
-				"public class TestClass {",
-				"    private SomeService service;",
-				"    public void doSomething() {}",
-				"}",
-			},
-			expected: map[string][]string{},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			jc := newJavaLines(tc.input)
-			result := jc.ScanInjectedBeans()
-			assert.Equal(t, tc.expected, result, tc.name)
-		})
-	}
-}
-
-func TestGetBeanTypeFromMethodSignature(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "Standard setter method",
-			input:    "public void setService(SomeService service) {",
-			expected: "SomeService",
-		},
-		{
-			name:     "Setter method with generic type",
-			input:    "public void setList(List<String> list) {",
-			expected: "List<String>",
-		},
-		{
-			name:     "Setter method with multiple parameters",
-			input:    "public void setComplexService(SomeService service, int value) {",
-			expected: "SomeService",
-		},
-		{
-			name:     "Non-setter method",
-			input:    "public SomeService getService() {",
-			expected: "",
-		},
-		{
-			name:     "Method with no parameters",
-			input:    "public void doSomething() {",
-			expected: "",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			jc := newJavaLines(strings.Split(tc.input, "\n"))
-			result := jc.getBeanTypeFromMethodSignature(tc.input)
-			assert.Equal(t, tc.expected, result, "For input: %s", tc.input)
-		})
-	}
-}
-
-func TestGetQualifierNameFromMethod(t *testing.T) {
-	testCases := []struct {
-		name         string
-		resourceLine string
-		methodLine   string
-		expected     string
-	}{
-		{
-			name:         "Resource with explicit name",
-			resourceLine: "@Resource(name = \"customName\")",
-			methodLine:   "public void setService(SomeService service) {",
-			expected:     "customName",
-		},
-		{
-			name:         "Resource without name, standard setter",
-			resourceLine: "@Resource",
-			methodLine:   "public void setService(SomeService service) {",
-			expected:     "service",
-		},
-		{
-			name:         "Resource without name, capitalized setter",
-			resourceLine: "@Resource",
-			methodLine:   "public void setMyService(SomeService service) {",
-			expected:     "myService",
-		},
-		{
-			name:         "Resource without name, non-standard setter",
-			resourceLine: "@Resource",
-			methodLine:   "public void setupService(SomeService service) {",
-			expected:     "",
-		},
-		{
-			name:         "No Resource annotation",
-			resourceLine: "",
-			methodLine:   "public void setService(SomeService service) {",
-			expected:     "service",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			jc := newJavaLines(nil)
-			result := jc.getQualifierNameFromMethod(tc.resourceLine, tc.methodLine)
-			assert.Equal(t, tc.expected, result, "For resource line: %s, method line: %s", tc.resourceLine, tc.methodLine)
-		})
-	}
-}
-
-func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
-	tests := []struct {
-		name           string
-		beans          map[string][]string
-		beanType       string
-		fieldName      string
-		expectedResult bool
-	}{
-		{
-			name: "Should keep resource - matching pattern with Impl",
-			beans: map[string][]string{
-				"FooService": {"fooService", "fooServiceImpl"},
-			},
-			beanType:       "FooService",
-			fieldName:      "fooService",
-			expectedResult: true,
-		},
-		{
-			name: "Should keep resource - matching pattern with Impl (reverse check)",
-			beans: map[string][]string{
-				"FooService": {"fooService", "fooServiceImpl"},
-			},
-			beanType:       "FooService",
-			fieldName:      "fooServiceImpl",
-			expectedResult: true,
-		},
-		{
-			name: "Should not keep resource - no matching Impl pattern",
-			beans: map[string][]string{
-				"BarService": {"barService", "anotherBarService"},
-			},
-			beanType:       "BarService",
-			fieldName:      "barService",
-			expectedResult: false,
-		},
-		{
-			name: "Should not keep resource - single instance",
-			beans: map[string][]string{
-				"FooService": {"fooService"},
-			},
-			beanType:       "FooService",
-			fieldName:      "fooService",
-			expectedResult: false,
-		},
-		{
-			name: "Should not keep resource - multiple instances but no Impl pattern",
-			beans: map[string][]string{
-				"FooService": {"fooService", "anotherFooService", "yetAnotherFooService"},
-			},
-			beanType:       "FooService",
-			fieldName:      "fooService",
-			expectedResult: false,
-		},
-		{
-			name: "Should not keep resource - bean type not in map",
-			beans: map[string][]string{
-				"BarService": {"barService"},
-			},
-			beanType:       "FooService",
-			fieldName:      "fooService",
-			expectedResult: false,
-		},
-		{
-			name: "Should keep resource - matching pattern with and without Impl",
-			beans: map[string][]string{
-				"ChangeOrderDetailRepository": {"changeOrderDetailRepository", "changeOrderDetailRepositoryImpl"},
-			},
-			beanType:       "ChangeOrderDetailRepository",
-			fieldName:      "changeOrderDetailRepository",
-			expectedResult: true,
-		},
-		{
-			name: "Should keep resource - matching pattern with and without Impl (reverse check)",
-			beans: map[string][]string{
-				"ChangeOrderDetailRepository": {"changeOrderDetailRepository", "changeOrderDetailRepositoryImpl"},
-			},
-			beanType:       "ChangeOrderDetailRepository",
-			fieldName:      "changeOrderDetailRepositoryImpl",
-			expectedResult: true,
-		},
-	}
-
-	jf := NewJavaFile("", nil, "")
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := jf.shouldKeepResource(tt.beans, tt.beanType, tt.fieldName)
-			assert.Equal(t, tt.expectedResult, result, tt.name)
 		})
 	}
 }
@@ -1282,8 +930,8 @@ public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApprove
     private ChangeOrderDetailRepository changeOrderDetailRepository;
 }`
 
-	jf := NewJavaFile("", nil, content)
-	processedLines, needAutowired, needQualifier := manager.transformInjectionAnnotations(jf, jf.lines())
+	jf := code.NewJavaFile("", nil, content)
+	processedLines, needAutowired, needQualifier := manager.transformInjectionAnnotations(jf, jf.RawLines())
 
 	// 验证结果
 	assert.True(t, needAutowired)
@@ -1364,7 +1012,7 @@ public class TestClass {
 `
 
 	manager := NewSpringBeanInjectionManager(nil)
-	jf := NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, input)
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result, "Should not add extra lines between imports and class declaration")
 }
@@ -1409,7 +1057,7 @@ public class KvTool {
 }
 `
 	manager := NewSpringBeanInjectionManager(nil)
-	jf := NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, input)
 	assert.True(t, jf.HasInjectionAnnotation(), "jf.HasInjectionAnnotation()")
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result)
@@ -1451,7 +1099,7 @@ public class FooService implements Foo {
 }
 `
 	manager := NewSpringBeanInjectionManager(nil)
-	jf := NewJavaFile("FooService.java", &manifest.ComponentInfo{
+	jf := code.NewJavaFile("FooService.java", &manifest.ComponentInfo{
 		Name: "inv",
 		Transform: manifest.TransformSpec{
 			Autowired: manifest.AutowiredSpec{
