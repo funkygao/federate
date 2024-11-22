@@ -74,14 +74,6 @@ public class App {
 
     private static FileVisitor createVisitor(String command, String[] args) {
         switch (command) {
-            case "replace-value":
-                // @Value
-                if (args.length < 4) {
-                    System.err.println("replace-value command requires old_value and new_value arguments");
-                    System.exit(1);
-                }
-                return new ValueAnnotationVisitor(args[2], args[3]);
-
             case "replace-service":
                 // @Service
                 if (args.length < 3) {
@@ -89,7 +81,7 @@ public class App {
                     System.exit(1);
                 }
                 Map<String, String> serviceMap = new Gson().fromJson(args[2], Map.class);
-                return new ServiceAnnotationVisitor(serviceMap);
+                return new ServiceAnnotationTransformer(serviceMap);
 
             default:
                 System.err.println("Unknown command: " + command);

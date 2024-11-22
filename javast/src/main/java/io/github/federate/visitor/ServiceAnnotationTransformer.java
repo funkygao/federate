@@ -16,14 +16,14 @@ import java.util.Map;
 import java.util.Arrays;
 import java.util.List;
 
-public class ServiceAnnotationVisitor extends ModifierVisitor<Void> implements FileVisitor {
+public class ServiceAnnotationTransformer extends ModifierVisitor<Void> implements FileVisitor {
     private final Map<String, String> serviceMap;
     private boolean modified = false;
     private String currentPackage;
     private String currentClassName;
     private static final List<String> SUPPORTED_ANNOTATIONS = Arrays.asList("Service", "Component");
 
-    public ServiceAnnotationVisitor(Map<String, String> serviceMap) {
+    public ServiceAnnotationTransformer(Map<String, String> serviceMap) {
         this.serviceMap = serviceMap;
     }
 
