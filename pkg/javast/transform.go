@@ -21,3 +21,12 @@ func TransformService(component manifest.ComponentInfo) error {
 	d := NewJavastDriver(component)
 	return d.Invoke("replace-service", string(jsonArgs))
 }
+
+func InjectTransactionManager(component manifest.ComponentInfo) error {
+	if component.Transform.TxManager == "" {
+		return nil
+	}
+
+	d := NewJavastDriver(component)
+	return d.Invoke("inject-transaction-manager", component.Transform.TxManager)
+}

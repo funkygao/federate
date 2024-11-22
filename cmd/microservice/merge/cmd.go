@@ -8,6 +8,7 @@ import (
 
 	"federate/internal/fs"
 	"federate/pkg/federated"
+	"federate/pkg/javast"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
 	"federate/pkg/merge/bean"
@@ -66,7 +67,6 @@ func doMerge(m *manifest.Manifest) {
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
 	fusionStarterManager := merge.NewFusionStarterManager(m)
-	trxManager := merge.NewTrxManager(m)
 
 	steps := []step.Step{
 		{
@@ -147,7 +147,7 @@ func doMerge(m *manifest.Manifest) {
 				color.Green("🍺 Generated %s", targetFile)
 			}},
 		{
-			Name: "Transforming Java @Service value",
+			Name: "Transforming Java @Service/@Component value",
 			Fn: func() {
 				if err := serviceManager.Reconcile(dryRunMerge); err != nil {
 					log.Fatalf("%v", err)
@@ -170,7 +170,11 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Transforming @Transactional to support multiple PlatformTransactionManager",
 			Fn: func() {
-				trxManager.Reconcile(dryRunMerge)
+				for _, c := range m.Components {
+					if err := javast.InjectTransactionManager(c); err != nil {
+						log.Fatalf("%v", err)
+					}
+				}
 			}},
 		{
 			Name: "Display Conflict Summary guiding you fix fusion-starter",

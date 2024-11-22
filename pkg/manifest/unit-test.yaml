@@ -4,7 +4,7 @@ federated:
   name: demo-starter
   groupId: ${GROUP_ID:com.goog}
   springBootApplication:
-    class: com.jdwl.wms.DemoDeepFusionApplication
+    mainClass: com.jdwl.wms.DemoDeepFusionApplication
   dependency:
     include:
       - com.jdwl.wms:wms-stock-api-provider:1.0.0

@@ -7,7 +7,5 @@ import java.nio.file.Path;
 
 public interface FileVisitor {
     void visit(CompilationUnit cu, Path filePath) throws IOException;
-
-    ParserResult getResult(Path rootPath, Path filePath);
 }
 
