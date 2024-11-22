@@ -10,6 +10,7 @@ type TransformSpec struct {
 	Beans     map[string]string `yaml:"beans"`
 	Autowired AutowiredSpec     `yaml:"autowired"`
 	Services  map[string]string `yaml:"service"`
+	TxManager string            `yaml:"txManager"`
 }
 
 type AutowiredSpec struct {
