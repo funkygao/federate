@@ -44,7 +44,7 @@ type RuntimeSpec struct {
 }
 
 type MainClassSpec struct {
-	Name          string            `yaml:"class"`
+	Name          string            `yaml:"mainClass"`
 	ComponentScan ComponentScanSpec `yaml:"componentScan"`
 	Imports       []string          `yaml:"import"`
 	Excludes      []string          `yaml:"exclude"`

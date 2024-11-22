@@ -19,7 +19,7 @@ federated:
       jvmSize: large # medium, small
       JAVA_OPTS: "-Xms2048m -Xmx2048m -XX:MaxPermSize=256m"
   springBootApplication:
-    class: com.jdwl.wms.fusion.WmsStockInventory
+    mainClass: com.jdwl.wms.fusion.WmsStockInventory
     exclude: # @SpringBootApplication#exclude
        - org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
     import:  # @Import
