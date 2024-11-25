@@ -3,13 +3,12 @@ package merge
 import (
 	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"federate/pkg/code"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/merge/transformer"
 )
 
 type envManager struct {
@@ -29,27 +28,21 @@ func (e *envManager) Reconcile(dryRun bool) error {
 	propertyKeys := make(map[string]struct{})
 
 	for _, component := range e.m.Components {
-		err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if java.IsJavaMainSource(info, path) {
-				keys, err := e.findSystemGetPropertyKeys(path)
-				if err != nil {
-					log.Printf("Error processing file %s: %v", path, err)
-					return nil
-				}
-				for _, key := range keys {
-					propertyKeys[key] = struct{}{}
-				}
-			}
-
-			return nil
-		})
-
+		paths, err := java.ListJavaMainSourceFiles(component.RootDir())
 		if err != nil {
 			log.Printf("Error walking the path %s: %v", component.RootDir(), err)
+			continue
+		}
+
+		for _, path := range paths {
+			keys, err := e.findSystemGetPropertyKeys(path)
+			if err != nil {
+				log.Printf("Error processing file %s: %v", path, err)
+				return nil
+			}
+			for _, key := range keys {
+				propertyKeys[key] = struct{}{}
+			}
 		}
 	}
 
@@ -57,6 +50,7 @@ func (e *envManager) Reconcile(dryRun bool) error {
 		log.Println("System.getProperty keys found:")
 		for key := range propertyKeys {
 			log.Printf("  - %s", key)
+			transformer.Get().RegisterEnvKey(key)
 		}
 	} else {
 		log.Println("System.getProperty is OK")

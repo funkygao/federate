@@ -28,7 +28,7 @@ abstract class BaseCodeModifier extends ModifierVisitor<Void> implements FileVis
         if (modified) {
             // Write file
             Files.write(filePath, modifiedCu.toString().getBytes());
-            System.out.println("Modified file: " + filePath);
+            System.out.println("Updated: " + filePath);
         }
     }
 
