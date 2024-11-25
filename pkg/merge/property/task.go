@@ -11,23 +11,17 @@ import (
 	"federate/pkg/diff"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/merge/transformer"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 type reconcileTask struct {
-	cm *PropertyManager
-
-	component          *manifest.ComponentInfo
+	c                  *manifest.ComponentInfo
 	keys               []string
 	dryRun             bool
 	servletContextPath string
-	result             reconcileTaskResult
-}
 
-type reconcileTaskResult struct {
-	keyPrefixed             int
-	requestMapping          int
-	configurationProperties int
+	result ReconcileReport
 }
 
 func (t *reconcileTask) Execute() error {
@@ -62,49 +56,51 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		keyRegexes[i] = createRegex(key)
 	}
 
-	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(t.c.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if fileFilter(info, path) {
-			content, err := ioutil.ReadFile(path)
+		if !fileFilter(info, path) {
+			return nil
+		}
+
+		content, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		oldContent := string(content)
+		var newContent string
+		changed := false
+
+		for i, regex := range keyRegexes {
+			matches := regex.FindAllStringSubmatchIndex(oldContent, -1)
+			if len(matches) > 0 {
+				changed = true
+				newContent = regex.ReplaceAllStringFunc(oldContent, func(match string) string {
+					newKey := Key(t.keys[i]).WithNamespace(t.c.Name)
+					replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
+					dmp := diffmatchpatch.New()
+					diffs := dmp.DiffMain(match, replaced, false)
+					log.Printf("%s", dmp.DiffPrettyText(diffs))
+					return replaced
+				})
+				if strings.Contains(regex.String(), "@ConfigurationProperties") {
+					t.result.ConfigurationProperties++
+				} else {
+					t.result.KeyPrefixed++
+				}
+			}
+		}
+
+		if changed && !t.dryRun {
+			err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 			if err != nil {
 				return err
 			}
-
-			oldContent := string(content)
-			newContent := oldContent
-			changed := false
-
-			for i, regex := range keyRegexes {
-				matches := regex.FindAllStringSubmatchIndex(newContent, -1)
-				if len(matches) > 0 {
-					changed = true
-					newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-						newKey := Key(t.keys[i]).WithNamespace(t.component.Name)
-						replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
-						dmp := diffmatchpatch.New()
-						diffs := dmp.DiffMain(match, replaced, false)
-						log.Printf("%s", dmp.DiffPrettyText(diffs))
-						return replaced
-					})
-					t.result.keyPrefixed++
-					if strings.Contains(regex.String(), "@ConfigurationProperties") {
-						t.result.configurationProperties++
-					} else {
-						t.result.keyPrefixed++
-					}
-				}
-			}
-
-			if changed && !t.dryRun {
-				err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
-				if err != nil {
-					return err
-				}
-				log.Printf("↖ %s", path)
-			}
+			log.Printf("↖ %s", path)
 		}
+
 		return nil
 	})
 }
@@ -118,7 +114,7 @@ func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
 
 func (t *reconcileTask) updateRequestMappings() error {
 	contextPath := filepath.Clean("/" + strings.Trim(t.servletContextPath, "/"))
-	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
+	return filepath.Walk(t.c.RootDir(), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -132,6 +128,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 			oldContent := string(content)
 			newContent := t.updateRequestMappingInFile(oldContent, contextPath)
 			if newContent != oldContent {
+				transformer.Get().TransformRequestMapping(t.c.Name, "", contextPath)
 				if !t.dryRun {
 					diff.RenderUnifiedDiff(oldContent, newContent)
 
@@ -140,7 +137,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 						return err
 					}
 					log.Printf("↖ %s", path)
-					t.result.requestMapping++
+					t.result.RequestMapping++
 				}
 			}
 		}

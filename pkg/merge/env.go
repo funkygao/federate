@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"strings"
 
 	"federate/pkg/code"
@@ -31,8 +30,6 @@ func newEnvManager(m *manifest.Manifest, propManager *property.PropertyManager) 
 
 // TODO xml 也可能引用环境变量
 func (e *envManager) Reconcile(dryRun bool) error {
-	envKeys := make(map[string]struct{})
-
 	for _, component := range e.m.Components {
 		// java 源代码里的环境变量引用
 		paths, err := java.ListJavaMainSourceFiles(component.RootDir())
@@ -47,8 +44,9 @@ func (e *envManager) Reconcile(dryRun bool) error {
 				log.Printf("Error processing file %s: %v", path, err)
 				return nil
 			}
+
 			for _, key := range keys {
-				envKeys[key] = struct{}{}
+				transformer.Get().RegisterEnvKey(component.Name, key)
 			}
 		}
 
@@ -66,21 +64,13 @@ func (e *envManager) Reconcile(dryRun bool) error {
 					log.Printf("Error processings %s: %v", xmlPath, err)
 					continue
 				}
-
 				for _, key := range keys {
-					envKeys[key] = struct{}{}
+					transformer.Get().RegisterEnvKey(component.Name, key)
 				}
 			}
 		}
 	}
 
-	if len(envKeys) > 0 {
-		for key := range envKeys {
-			transformer.Get().RegisterEnvKey(key)
-		}
-	} else {
-		log.Println("System.getProperty is OK")
-	}
 	return nil
 }
 
@@ -145,7 +135,7 @@ func (e *envManager) searchElementForEnvRefs(c manifest.ComponentInfo, filePath 
 	if elem.Text() != "" {
 		matches := code.P.XmlEnvRef.FindAllStringSubmatch(elem.Text(), -1)
 		for _, match := range matches {
-            // 属性管理器里没有定义的才是环境变量
+			// 属性管理器里没有定义的才是环境变量
 			if len(match) > 1 && (e.p == nil || !e.p.ContainsKey(c, match[1])) {
 				*keys = append(*keys, match[1])
 			}

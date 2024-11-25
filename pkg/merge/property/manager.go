@@ -9,6 +9,12 @@ import (
 	"federate/pkg/manifest"
 )
 
+type ReconcileReport struct {
+	KeyPrefixed             int
+	RequestMapping          int
+	ConfigurationProperties int
+}
+
 // 合并 YAML, properties 文件
 type PropertyManager struct {
 	m *manifest.Manifest
@@ -23,11 +29,13 @@ type PropertyManager struct {
 }
 
 func NewManager(m *manifest.Manifest) *PropertyManager {
-	return &PropertyManager{
+	pm := &PropertyManager{
 		m:                  m,
 		r:                  newRegistry(m, false),
 		servletContextPath: make(map[string]string),
 	}
+	pm.r.pm = pm
+	return pm
 }
 
 func (cm *PropertyManager) M() *manifest.Manifest {

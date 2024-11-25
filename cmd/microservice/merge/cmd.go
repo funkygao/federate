@@ -77,7 +77,7 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Instrumentation of spring-boot-maven-plugin",
 			Fn: func() {
-				InstrumentPomForFederatePackaging(m) // 代码插桩
+				InstrumentPomForFederatePackaging(m)
 			}},
 		{
 			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
@@ -168,7 +168,7 @@ func doMerge(m *manifest.Manifest) {
 				rpcAliasManager.Reconcile(dryRunMerge)
 			}},
 		{
-			Name: "Transforming @Transactional to support multiple PlatformTransactionManager",
+			Name: "Transforming @Transactional/TransactionTemplate to support multiple PlatformTransactionManager",
 			Fn: func() {
 				for _, c := range m.Components {
 					if err := javast.InjectTransactionManager(c); err != nil {
