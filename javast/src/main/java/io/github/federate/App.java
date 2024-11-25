@@ -12,13 +12,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class App {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.err.println("Usage: java -jar javast.jar <command> <directory_path> [arg]");
             System.exit(1);
@@ -28,36 +27,21 @@ public class App {
         String directoryPath = args[1];
         Path rootPath = Paths.get(directoryPath);
 
-        try {
-            List<Path> javaFiles = Files.walk(rootPath)
-                    .filter(Files::isRegularFile)
-                    .filter(p -> p.toString().endsWith(".java"))
-                    .filter(p -> !isTestFile(p))
-                    .collect(Collectors.toList());
+        List<Path> javaFiles = Files.walk(rootPath)
+                .filter(Files::isRegularFile)
+                .filter(p -> p.toString().endsWith(".java"))
+                .filter(p -> !isTestFile(p))
+                .collect(Collectors.toList());
 
-            ParserConfiguration config = new ParserConfiguration();
-            config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
-            StaticJavaParser.setConfiguration(config);
-            FileVisitor visitor = createVisitor(command, args);
+        ParserConfiguration config = new ParserConfiguration();
+        config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
+        StaticJavaParser.setConfiguration(config);
 
-            for (Path javaFile : javaFiles) {
-                try {
-                    CompilationUnit cu = StaticJavaParser.parse(javaFile);
-                    visitor.visit(cu, javaFile);
-                } catch (IOException e) {
-                    System.err.println("Error parsing file " + javaFile + ": " + e.getMessage());
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("Error walking through directory: " + e.getMessage());
-            System.exit(1);
+        FileVisitor visitor = createVisitor(command, args);
+        for (Path javaFile : javaFiles) {
+            CompilationUnit cu = StaticJavaParser.parse(javaFile);
+            visitor.visit(cu, javaFile);
         }
-    }
-
-    private static boolean isTestFile(Path path) {
-        String pathStr = path.toString();
-        return pathStr.contains("src" + File.separator + "test" + File.separator + "java") 
-               || pathStr.endsWith("Test.java");
     }
 
     private static FileVisitor createVisitor(String command, String[] args) {
@@ -79,6 +63,12 @@ public class App {
                 System.exit(1);
                 return null;
         }
+    }
+
+    private static boolean isTestFile(Path path) {
+        String pathStr = path.toString();
+        return pathStr.contains("src" + File.separator + "test" + File.separator + "java")
+               || pathStr.endsWith("Test.java");
     }
 
     private static void validateArgsLength(String[] args, int expectedLength, String errorMessage) {
