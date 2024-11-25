@@ -64,6 +64,11 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 			return nil
 		}
 
+		if t.c.M.MainClass.ExcludeJavaFile(info.Name()) {
+			log.Printf("Excluded from fixing conflicting property key: %s", info.Name())
+			return nil
+		}
+
 		content, err := ioutil.ReadFile(path)
 		if err != nil {
 			return err

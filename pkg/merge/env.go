@@ -94,7 +94,7 @@ func (e *envManager) findEnvRefsInJava(filePath string) ([]string, error) {
 				keys = append(keys, arg[1:len(arg)-1])
 			} else {
 				// 可能是变量或常量
-				keys = append(keys, "VARIABLE: "+arg)
+				keys = append(keys, arg)
 			}
 		}
 	}

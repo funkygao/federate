@@ -28,6 +28,8 @@ func debugFederate(m *manifest.Manifest) {
 		log.SetFlags(log.Llongfile)
 	}
 
+	log.Printf("dryRun: %v", dryRunMerge)
+
 	manager := property.NewManager(m)
 	manager.Silent().Debug().Analyze()
 	reconcilePropertiesConflicts(manager)

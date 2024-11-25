@@ -75,17 +75,6 @@ func (t *Transformer) ShowSummary() {
 	t.printSimpleMapSection("Transformed Transaction Manager:", indent, t.transactions)
 }
 
-func (t *Transformer) printSection(title, indent string, m map[string]map[string]struct{}) {
-	log.Printf(title)
-	components := sortedKeys(m)
-	for _, component := range components {
-		keys := sortedKeysFromSet(m[component])
-		for _, key := range keys {
-			log.Printf("%s%s: %s", indent, component, key)
-		}
-	}
-}
-
 func (t *Transformer) printMapSection(title, indent string, m map[string]map[string]string) {
 	log.Printf(title)
 	components := sortedKeys(m)
@@ -100,11 +89,22 @@ func (t *Transformer) printMapSection(title, indent string, m map[string]map[str
 	tablerender.DisplayTable(header, cellData, true, -1)
 }
 
+func (t *Transformer) printSection(title, indent string, m map[string]map[string]struct{}) {
+	log.Printf(title)
+	components := sortedKeys(m)
+	for _, component := range components {
+		keys := sortedKeysFromSet(m[component])
+		for _, key := range keys {
+			log.Printf("%s%s: %s", indent, component, key)
+		}
+	}
+}
+
 func (t *Transformer) printSimpleMapSection(title, indent string, m map[string]string) {
 	log.Printf(title)
 	keys := sortedKeys(m)
 	for _, key := range keys {
-		log.Printf("%s%s => %s", indent, key, m[key])
+		log.Printf("%s%s: %s", indent, key, m[key])
 	}
 }
 

@@ -175,8 +175,9 @@ func (r *registry) NamespaceProperty(componentName string, key Key, value interf
 func (r *registry) namespaceConfigurationProperties(componentName, configPropPrefix string) {
 	for subKey := range r.resolvableEntries[componentName] {
 		if strings.HasPrefix(subKey, configPropPrefix) {
+			transformer.Get().TransformConfigurationProperties(componentName, configPropPrefix, Key(configPropPrefix).WithNamespace(componentName))
 			nsKey := Key(subKey).WithNamespace(componentName)
-			transformer.Get().TransformConfigurationProperties(componentName, subKey, nsKey)
+			log.Printf("[%s] ConfigurationProperties(%s => %s)", componentName, subKey, nsKey)
 			r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 				Value:     r.resolvableEntries[componentName][subKey].Value,
 				RawString: r.resolvableEntries[componentName][subKey].RawString,
