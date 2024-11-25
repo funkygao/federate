@@ -1,4 +1,4 @@
-package conflict
+package transformer
 
 import "testing"
 

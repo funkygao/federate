@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"federate/pkg/manifest"
+	"federate/pkg/merge/transformer"
 )
 
 func TransformService(component manifest.ComponentInfo) error {
@@ -27,6 +28,7 @@ func InjectTransactionManager(component manifest.ComponentInfo) error {
 		return nil
 	}
 
+	transformer.Get().TransformTransaction(component.Name, component.Transform.TxManager)
 	d := NewJavastDriver(component)
 	return d.Invoke("inject-transaction-manager", component.Transform.TxManager)
 }

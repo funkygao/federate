@@ -7,14 +7,12 @@ import (
 	"strings"
 
 	"federate/pkg/manifest"
-	"federate/pkg/merge/conflict"
 )
 
 // 合并 YAML, properties 文件
 type PropertyManager struct {
-	m  *manifest.Manifest
-	cc conflict.Collector
-	r  *registry
+	m *manifest.Manifest
+	r *registry
 
 	silent bool
 	debug  bool
@@ -27,7 +25,6 @@ type PropertyManager struct {
 func NewManager(m *manifest.Manifest) *PropertyManager {
 	return &PropertyManager{
 		m:                  m,
-		cc:                 conflict.NewManager(),
 		r:                  newRegistry(m, false),
 		servletContextPath: make(map[string]string),
 	}

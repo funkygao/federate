@@ -13,6 +13,7 @@ import (
 	"federate/pkg/merge"
 	"federate/pkg/merge/bean"
 	"federate/pkg/merge/property"
+	"federate/pkg/merge/transformer"
 	"federate/pkg/step"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -66,7 +67,6 @@ func doMerge(m *manifest.Manifest) {
 	injectionManager := merge.NewSpringBeanInjectionManager(m)
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
-	fusionStarterManager := merge.NewFusionStarterManager(m)
 
 	steps := []step.Step{
 		{
@@ -179,7 +179,7 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Post-Instrumentation: display conflict summary guiding you fix fusion-starter",
 			Fn: func() {
-				fusionStarterManager.Reconcile(dryRunMerge)
+				transformer.Get().ShowSummary()
 			}},
 	}
 
