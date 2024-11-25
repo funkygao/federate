@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math"
-	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -36,7 +34,7 @@ Example usage:
 }
 
 func showKeyFeatures(directory string) {
-	files, err := getFiles(directory)
+	files, err := java.ListJavaMainSourceFiles(directory)
 	if err != nil {
 		fmt.Printf("Error getting files: %v\n", err)
 		return
@@ -58,20 +56,6 @@ func showKeyFeatures(directory string) {
 		topFeatures := getTopFeatures(tfidf[i], featureN)
 		fmt.Printf("%s\n  %s\n", java.JavaFile2Class(file), topFeatures)
 	}
-}
-
-func getFiles(directory string) ([]string, error) {
-	var files []string
-	err := filepath.Walk(directory, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && java.IsJavaMainSource(info, path) {
-			files = append(files, path)
-		}
-		return nil
-	})
-	return files, err
 }
 
 func calculateTFIDF(corpus []string) []map[string]float64 {

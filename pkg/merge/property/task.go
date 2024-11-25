@@ -1,9 +1,6 @@
 package property
 
 import (
-	"federate/pkg/diff"
-	"federate/pkg/java"
-	"federate/pkg/manifest"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +8,9 @@ import (
 	"regexp"
 	"strings"
 
+	"federate/pkg/diff"
+	"federate/pkg/java"
+	"federate/pkg/manifest"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 

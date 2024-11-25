@@ -177,7 +177,7 @@ func doMerge(m *manifest.Manifest) {
 				}
 			}},
 		{
-			Name: "Display Conflict Summary guiding you fix fusion-starter",
+			Name: "Post-Instrumentation: display conflict summary guiding you fix fusion-starter",
 			Fn: func() {
 				fusionStarterManager.Reconcile(dryRunMerge)
 			}},
