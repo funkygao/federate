@@ -37,7 +37,7 @@ func (t *reconcileTask) Execute() error {
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsXml, createXmlRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsXML, createXmlRegex); err != nil {
 		return err
 	}
 

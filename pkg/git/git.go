@@ -40,6 +40,16 @@ func AddSubmodules(m *manifest.Manifest) error {
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("failed to commit .gitmodules changes: %v", err)
 		}
+
+		// 提交 .gitignore .gitattributes
+		cmd = exec.Command("git", "add", ".gitignore", ".gitattributes")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to git add .gitignore and .gitattributes: %v", err)
+		}
+		cmd = exec.Command("git", "commit", "-am", "Update .gitignore and .gitattributes")
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("failed to commit .gitignore and .gitattribute changes: %v", err)
+		}
 	}
 
 	return nil

@@ -19,7 +19,7 @@ func (b *XmlBeanManager) loadBeans() error {
 				return err
 			}
 
-			if java.IsXml(info, path) {
+			if java.IsXML(info, path) {
 				if ignored := b.m.IgnoreResourceSrcFile(info, component); ignored {
 					return nil
 				}

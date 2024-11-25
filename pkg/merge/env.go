@@ -11,6 +11,7 @@ import (
 	"federate/pkg/merge/transformer"
 )
 
+// Java源代码和XML
 type envManager struct {
 	m *manifest.Manifest
 }
@@ -47,9 +48,7 @@ func (e *envManager) Reconcile(dryRun bool) error {
 	}
 
 	if len(propertyKeys) > 0 {
-		log.Println("System.getProperty keys found:")
 		for key := range propertyKeys {
-			log.Printf("  - %s", key)
 			transformer.Get().RegisterEnvKey(key)
 		}
 	} else {

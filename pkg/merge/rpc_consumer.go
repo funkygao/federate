@@ -12,6 +12,7 @@ import (
 	"github.com/beevik/etree"
 )
 
+// 合并 RPC Consumer xml
 type RpcConsumerManager struct {
 	m *manifest.Manifest
 

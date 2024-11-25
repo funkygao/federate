@@ -22,6 +22,7 @@ var (
 	}
 )
 
+// 资源文件的合并和拷贝
 type ResourceManager struct {
 	m *manifest.Manifest
 

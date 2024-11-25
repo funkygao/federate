@@ -14,7 +14,7 @@ func WalkCode(root string, handler FileHandler) error {
 }
 
 func WalkXML(root string, handler FileHandler) error {
-	return Walk(root, nil, IsXml, handler)
+	return Walk(root, nil, IsXML, handler)
 }
 
 func ListJavaMainSourceFiles(root string) ([]string, error) {

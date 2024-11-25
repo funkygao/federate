@@ -17,6 +17,7 @@ import (
 	"federate/pkg/merge/transformer"
 )
 
+// @ImportResource
 type ImportResourceManager struct {
 	m *manifest.Manifest
 

@@ -64,7 +64,7 @@ func (b *XmlBeanManager) removeRedundantBeanClassesInDir(component manifest.Comp
 		if err != nil {
 			return err
 		}
-		if java.IsXml(info, path) {
+		if java.IsXML(info, path) {
 			if err := b.removeRedundantBeanClassesInFile(path, component); err != nil {
 				return err
 			}
@@ -166,7 +166,7 @@ func (b *XmlBeanManager) updateBeanRefsInDir(dir, componentName string) error {
 		if err != nil {
 			return err
 		}
-		if java.IsXml(info, path) {
+		if java.IsXML(info, path) {
 			if modificationPlan, exists := b.plan.beanIdModificationFiles[path]; exists {
 				if err := b.updateBeanRefsInFile(path, modificationPlan, componentName); err != nil {
 					return err
