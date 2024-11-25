@@ -95,7 +95,7 @@ func TestUpdateRequestMappingInFile(t *testing.T) {
 		},
 	}
 
-	task := reconcileTask{cm: NewManager(nil)}
+	task := reconcileTask{}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
@@ -139,7 +139,7 @@ func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
 		},
 	}
 
-	task := reconcileTask{cm: NewManager(nil)}
+	task := reconcileTask{}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)

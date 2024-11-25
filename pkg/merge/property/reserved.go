@@ -7,7 +7,6 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/tablerender"
-
 	"github.com/fatih/color"
 )
 

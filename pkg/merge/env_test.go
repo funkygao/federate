@@ -72,7 +72,7 @@ func TestFindEnvRefsInJava(t *testing.T) {
                     }
                 }
             `,
-			expected: []string{"java.home", "VARIABLE: SystemConstants.APP_NAME"},
+			expected: []string{"java.home", "SystemConstants.APP_NAME"},
 		},
 	}
 

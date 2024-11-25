@@ -139,11 +139,11 @@ func (m *ImportResourceManager) processImportResource(line, componentName string
 		// 重构 @ImportResource 注解
 		hasLocations := strings.Contains(match, "locations")
 		if len(newPaths) == 1 && !hasLocations {
-			transformer.Get().TransformImportResource(strings.Join(oldResourcePaths, ", "), newPaths[0])
+			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), newPaths[0])
 			return fmt.Sprintf(`@ImportResource(%s)`, newPaths[0])
 		} else {
 			newValue := strings.Join(newPaths, ", ")
-			transformer.Get().TransformImportResource(strings.Join(oldResourcePaths, ", "), newValue)
+			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), newValue)
 			return fmt.Sprintf(`@ImportResource(locations = {%s})`, newValue)
 		}
 	}), true

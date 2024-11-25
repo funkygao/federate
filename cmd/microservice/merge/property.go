@@ -40,7 +40,7 @@ func reconcilePropertiesConflicts(manager *property.PropertyManager) {
 	if err := manager.GenerateMergedYamlFile(an); err != nil {
 		log.Fatalf("%v", err)
 	} else {
-		log.Printf("Generated %s", pn)
+		log.Printf("Generated %s", an)
 	}
 	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
 		result.RequestMapping, result.KeyPrefixed, result.ConfigurationProperties)

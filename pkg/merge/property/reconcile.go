@@ -7,12 +7,6 @@ import (
 	"federate/pkg/concurrent"
 )
 
-type ReconcileReport struct {
-	KeyPrefixed             int
-	RequestMapping          int
-	ConfigurationProperties int
-}
-
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 	// pass 1: 识别冲突
@@ -21,7 +15,7 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 		return
 	}
 
-	// pass 2:
+	// pass 2: 注册表调和冲突，为冲突key增加前缀ns，对于 ConfigurationProperties/integralKey 整体处理
 	conflictingKeysOfComponents := make(map[string][]string) // Group keys by component
 	for key, components := range conflicts {
 		for componentName, value := range components {
@@ -36,12 +30,11 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 	executor.SetName("Overwrite Java/XML conflicted property references & @RequestMapping & @ConfigurationProperties")
 	for componentName, keys := range conflictingKeysOfComponents {
 		executor.AddTask(&reconcileTask{
-			cm:                 cm,
-			component:          cm.m.ComponentByName(componentName),
+			c:                  cm.m.ComponentByName(componentName),
 			keys:               keys,
 			dryRun:             dryRun,
 			servletContextPath: cm.servletContextPath[componentName],
-			result:             reconcileTaskResult{},
+			result:             ReconcileReport{},
 		})
 	}
 
@@ -50,11 +43,12 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 		err = errors[0] // 返回第一个遇到的错误
 	}
 
+	// aggregate resport
 	for _, task := range executor.Tasks() {
 		reconcileTask := task.(*reconcileTask)
-		cm.result.KeyPrefixed += reconcileTask.result.keyPrefixed
-		cm.result.RequestMapping += reconcileTask.result.requestMapping
-		cm.result.ConfigurationProperties += reconcileTask.result.configurationProperties
+		cm.result.KeyPrefixed += reconcileTask.result.KeyPrefixed
+		cm.result.RequestMapping += reconcileTask.result.RequestMapping
+		cm.result.ConfigurationProperties += reconcileTask.result.ConfigurationProperties
 	}
 
 	return

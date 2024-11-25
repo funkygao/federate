@@ -8,11 +8,14 @@ import (
 	"strings"
 
 	"federate/pkg/manifest"
+	"federate/pkg/merge/transformer"
 )
 
 type registry struct {
 	manifest *manifest.Manifest
-	silent   bool
+	pm       *PropertyManager
+
+	silent bool
 
 	resolvableEntries   map[string]map[string]PropertyEntry
 	unresolvableEntries map[string]map[string]PropertyEntry
@@ -148,13 +151,14 @@ func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue int
 	return existing.Value != nil && (newValue == nil || (reflect.TypeOf(newValue).Kind() == reflect.String && strings.Contains(newValue.(string), "${")))
 }
 
+// 调和冲突
 func (r *registry) NamespaceProperty(componentName string, key Key, value interface{}) {
 	strKey := string(key)
 	originalEntry := r.resolvableEntries[componentName][strKey]
 
 	newRawString := originalEntry.RawString
 	if strings.Contains(newRawString, "${") {
-		newRawString = r.updateReferencesInString(originalEntry.RawString, componentName)
+		newRawString = r.pm.namespacePropertyPlaceholders(originalEntry.RawString, componentName)
 		if !r.silent {
 			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalEntry.RawString, newRawString)
 		}
@@ -167,10 +171,13 @@ func (r *registry) NamespaceProperty(componentName string, key Key, value interf
 	}
 }
 
+// 统一调和 @ConfigurationProperties 的 key
 func (r *registry) namespaceConfigurationProperties(componentName, configPropPrefix string) {
 	for subKey := range r.resolvableEntries[componentName] {
 		if strings.HasPrefix(subKey, configPropPrefix) {
+			transformer.Get().TransformConfigurationProperties(componentName, configPropPrefix, Key(configPropPrefix).WithNamespace(componentName))
 			nsKey := Key(subKey).WithNamespace(componentName)
+			log.Printf("[%s] ConfigurationProperties(%s => %s)", componentName, subKey, nsKey)
 			r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 				Value:     r.resolvableEntries[componentName][subKey].Value,
 				RawString: r.resolvableEntries[componentName][subKey].RawString,
@@ -182,17 +189,12 @@ func (r *registry) namespaceConfigurationProperties(componentName, configPropPre
 
 func (r *registry) namespaceRegularProperty(componentName string, key Key, value interface{}, newOriginalString string, originalEntry PropertyEntry) {
 	nsKey := key.WithNamespace(componentName)
+	transformer.Get().TransformRegularProperty(componentName, string(key), nsKey)
 	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 		Value:     value,
 		RawString: newOriginalString,
 		FilePath:  originalEntry.FilePath,
 	}
-}
-
-func (r *registry) updateReferencesInString(s, componentName string) string {
-	return os.Expand(s, func(key string) string {
-		return "${" + componentName + "." + key + "}"
-	})
 }
 
 func (r *registry) isReservedProperty(key string) bool {
