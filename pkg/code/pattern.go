@@ -31,8 +31,9 @@ type pattern struct {
 	// private Map Hash List beans;
 	collectionTypePattern *regexp.Regexp
 
-	// System.getProperty
+	// 环境变量在 java 源代码和资源文件的引用
 	SystemGetPropertyRegex *regexp.Regexp
+	XmlEnvRef              *regexp.Regexp
 
 	importRegex *regexp.Regexp
 
@@ -52,6 +53,7 @@ func init() {
 		collectionTypePattern: regexp.MustCompile(`(Map|List)<.*>`),
 
 		SystemGetPropertyRegex: regexp.MustCompile(`System\.getProperty\s*\(\s*([^)]+)\s*\)`),
+		XmlEnvRef:              regexp.MustCompile(`\$\{([^:}]+)(?::[^}]+)?\}`),
 
 		importRegex:           regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
 		ImportResourcePattern: regexp.MustCompile(`@ImportResource\s*\(\s*(locations\s*=\s*)?\{?\s*("([^"]+)"|'([^']+)')\s*(,\s*("([^"]+)"|'([^']+)')\s*)*\}?\s*\)`),

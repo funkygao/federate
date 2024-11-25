@@ -48,6 +48,14 @@ func (c *ComponentInfo) RootDir() string {
 	return filepath.Join(c.Name)
 }
 
+func (c *ComponentInfo) ResourceBaseDirs() []string {
+	var dirs []string
+	for _, d := range c.Resources.BaseDirs {
+		dirs = append(dirs, d)
+	}
+	return dirs
+}
+
 func (c *ComponentInfo) MavenBuildModules() string {
 	var r []string
 	for _, m := range c.Modules {

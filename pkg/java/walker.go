@@ -13,17 +13,24 @@ func WalkCode(root string, handler FileHandler) error {
 	return Walk(root, nil, IsJavaMainSource, handler)
 }
 
+func WalkResources(root string, handler FileHandler) error {
+	return Walk(root, nil, IsResourceFile, handler)
+}
+
 func WalkXML(root string, handler FileHandler) error {
 	return Walk(root, nil, IsXML, handler)
 }
 
+func ListXMLFiles(root string) ([]string, error) {
+	return listFiles(root, WalkXML)
+}
+
+func ListResourceFiles(root string) ([]string, error) {
+	return listFiles(root, WalkResources)
+}
+
 func ListJavaMainSourceFiles(root string) ([]string, error) {
-	var files []string
-	err := WalkCode(root, func(path string) error {
-		files = append(files, path)
-		return nil
-	})
-	return files, err
+	return listFiles(root, WalkCode)
 }
 
 func Walk(root string, dirFilter WalkFilter, fileFilter WalkFilter, fileHandler FileHandler) error {
@@ -45,4 +52,13 @@ func Walk(root string, dirFilter WalkFilter, fileFilter WalkFilter, fileHandler 
 		// path is file, not dir
 		return fileHandler(path)
 	})
+}
+
+func listFiles(root string, walkFunc func(string, FileHandler) error) ([]string, error) {
+	var files []string
+	err := walkFunc(root, func(path string) error {
+		files = append(files, path)
+		return nil
+	})
+	return files, err
 }

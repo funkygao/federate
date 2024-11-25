@@ -63,7 +63,7 @@ func doMerge(m *manifest.Manifest) {
 	propertyManager := property.NewManager(m)
 	xmlBeanManager := bean.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager(m)
-	envManager := merge.NewEnvManager(m)
+	envManager := merge.NewEnvManager(m, propertyManager)
 	injectionManager := merge.NewSpringBeanInjectionManager(m)
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
@@ -78,13 +78,6 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Instrumentation of spring-boot-maven-plugin",
 			Fn: func() {
 				InstrumentPomForFederatePackaging(m) // 代码插桩
-			}},
-		{
-			Name: "Reconciling ENV variables conflicts",
-			Fn: func() {
-				if err := envManager.Reconcile(dryRunMerge); err != nil {
-					log.Fatalf("%v", err)
-				}
 			}},
 		{
 			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
@@ -145,6 +138,13 @@ func doMerge(m *manifest.Manifest) {
 				fs.GenerateFileFromTmpl("templates/spring.xml", targetFile, m)
 
 				color.Green("🍺 Generated %s", targetFile)
+			}},
+		{
+			Name: "Reconciling ENV variables conflicts",
+			Fn: func() {
+				if err := envManager.Reconcile(dryRunMerge); err != nil {
+					log.Fatalf("%v", err)
+				}
 			}},
 		{
 			Name: "Transforming Java @Service/@Component value",

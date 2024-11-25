@@ -142,6 +142,11 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	return keys
 }
 
+func (pm *PropertyManager) ContainsKey(c manifest.ComponentInfo, key string) bool {
+	_, ok := pm.r.getComponentProperty(c, key)
+	return ok
+}
+
 func (pm *PropertyManager) Resolve(key string) interface{} {
 	for _, entries := range pm.r.resolvableEntries {
 		if entry, ok := entries[key]; ok {

@@ -2,11 +2,14 @@ package merge
 
 import (
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
+
+	"federate/pkg/manifest"
 )
 
-func TestFindSystemGetPropertyKeys(t *testing.T) {
+func TestFindEnvRefsInJava(t *testing.T) {
 	testCases := []struct {
 		name     string
 		content  string
@@ -73,7 +76,7 @@ func TestFindSystemGetPropertyKeys(t *testing.T) {
 		},
 	}
 
-	manager := newEnvManager(nil)
+	manager := newEnvManager(nil, nil)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// 创建临时目录
@@ -92,7 +95,7 @@ func TestFindSystemGetPropertyKeys(t *testing.T) {
 			}
 
 			// 运行测试函数
-			got, err := manager.findSystemGetPropertyKeys(tmpfile.Name())
+			got, err := manager.findEnvRefsInJava(tmpfile.Name())
 			if err != nil {
 				t.Fatalf("findSystemGetPropertyKeys returned an error: %v", err)
 			}
@@ -102,5 +105,37 @@ func TestFindSystemGetPropertyKeys(t *testing.T) {
 				t.Errorf("findSystemGetPropertyKeys() = %v, want %v", got, tc.expected)
 			}
 		})
+	}
+}
+
+func TestFindEnvRefsInXML(t *testing.T) {
+	// 创建一个临时的 XML 文件内容
+	xmlContent := `
+    <beans>
+        <bean id="myBean" class="${BEAN_CLASS}" />
+        <property name="url" value="${DATABASE_URL:jdbc:mysql://localhost:3306/db}" />
+        <property name="env" value="${ENV:production}" />
+    </beans>
+    `
+
+	// 将内容写入临时文件
+	tempDir := t.TempDir()
+	xmlFilePath := filepath.Join(tempDir, "test.xml")
+	err := os.WriteFile(xmlFilePath, []byte(xmlContent), 0644)
+	if err != nil {
+		t.Fatalf("Failed to write temp XML file: %v", err)
+	}
+
+	// 调用 findEnvRefsInXML
+	e := &envManager{}
+	keys, err := e.findEnvRefsInXML(manifest.ComponentInfo{}, xmlFilePath)
+	if err != nil {
+		t.Fatalf("Error in findEnvRefsInXML: %v", err)
+	}
+
+	expectedKeys := []string{"BEAN_CLASS", "DATABASE_URL", "ENV"}
+
+	if !reflect.DeepEqual(keys, expectedKeys) {
+		t.Errorf("Expected keys %v, got %v", expectedKeys, keys)
 	}
 }
