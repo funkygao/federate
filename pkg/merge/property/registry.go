@@ -177,7 +177,7 @@ func (r *registry) namespaceConfigurationProperties(componentName, configPropPre
 		if strings.HasPrefix(subKey, configPropPrefix) {
 			transformer.Get().TransformConfigurationProperties(componentName, configPropPrefix, Key(configPropPrefix).WithNamespace(componentName))
 			nsKey := Key(subKey).WithNamespace(componentName)
-			log.Printf("[%s] ConfigurationProperties(%s => %s)", componentName, subKey, nsKey)
+			// 为该key增加ns前缀的key
 			r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 				Value:     r.resolvableEntries[componentName][subKey].Value,
 				RawString: r.resolvableEntries[componentName][subKey].RawString,

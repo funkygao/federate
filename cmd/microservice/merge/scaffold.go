@@ -39,12 +39,7 @@ func generatePomFile(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "pom.xml")
-	overwrite := fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
-	if overwrite {
-		log.Printf("Overwrite %s", fn)
-	} else {
-		log.Printf("Generated %s", fn)
-	}
+	fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
 }
 
 func generateMetaInf(m *manifest.Manifest) {
@@ -59,12 +54,7 @@ func generateMetaInf(m *manifest.Manifest) {
 		FederatedRuntimePackage: m.Main.FederatedRuntimePackage(),
 	}
 	fn := filepath.Join(root, "src", "main", "resources", "META-INF", "spring.factories")
-	overwrite := fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
-	if overwrite {
-		log.Printf("Overwrite %s", fn)
-	} else {
-		log.Printf("Generated %s", fn)
-	}
+	fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
 }
 
 func generateMainClassFile(packageName, className string, m *manifest.Manifest) {
@@ -95,12 +85,7 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	}
 	mainClassDir := filepath.Join(root, "src", "main", "java", java.Pkg2Path(packageName))
 	fn := filepath.Join(mainClassDir, className+".java")
-	overwrite := fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
-	if overwrite {
-		log.Printf("Overwrite %s", fn)
-	} else {
-		log.Printf("Generated %s", fn)
-	}
+	fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
 }
 
 func generateMakefile(m *manifest.Manifest) {
@@ -127,12 +112,7 @@ func generateMakefile(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "Makefile")
-	overwrite := fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
-	if overwrite {
-		log.Printf("Overwrite %s", fn)
-	} else {
-		log.Printf("Generated %s", fn)
-	}
+	fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
 }
 
 func generatePackageXml(m *manifest.Manifest) {
@@ -141,12 +121,7 @@ func generatePackageXml(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 	fn := filepath.Join(root, "src", "main", "assembly", "package.xml")
-	overwrite := fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
-	if overwrite {
-		log.Printf("Overwrite %s", fn)
-	} else {
-		log.Printf("Generated %s", fn)
-	}
+	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
 }
 
 func generateStartStopScripts(m *manifest.Manifest) {

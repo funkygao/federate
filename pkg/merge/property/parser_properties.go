@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"federate/pkg/ds"
 	"federate/pkg/manifest"
 )
 
@@ -50,13 +49,9 @@ func (p *propertiesParser) Parse(filePath string, component manifest.ComponentIn
 
 func (p *propertiesParser) Generate(entries map[string]PropertyEntry, rawKeys []string, targetFile string) error {
 	var builder strings.Builder
-	processedKeys := ds.NewStringSet()
 
 	for key, entry := range entries {
-		if !processedKeys.Contains(key) {
-			builder.WriteString(fmt.Sprintf("%s=%v\n", key, entry.Value))
-			processedKeys.Add(key)
-		}
+		builder.WriteString(fmt.Sprintf("%s=%v\n", key, entry.Value))
 	}
 
 	if err := os.MkdirAll(filepath.Dir(targetFile), 0755); err != nil {

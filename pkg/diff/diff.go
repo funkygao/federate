@@ -8,6 +8,7 @@ import (
 )
 
 // Render diff in unified mode instead of side by side.
+// Limitation: Only works if no line Insert/Delete.
 func RenderUnifiedDiff(oldText, newText string) {
 	dmp := diffmatchpatch.New()
 	oldLines := strings.Split(oldText, "\n")
@@ -37,4 +38,44 @@ func RenderUnifiedDiff(oldText, newText string) {
 			}
 		}
 	}
+}
+
+func ShowDiffLineByLine(oldText, newText string) {
+	dmp := diffmatchpatch.New()
+
+	// 计算差异
+	diffs := dmp.DiffMain(oldText, newText, false)
+
+	// 清理差异
+	diffs = dmp.DiffCleanupSemantic(diffs)
+
+	// 构建输出
+	var currentLine strings.Builder
+
+	flushLine := func() {
+		if currentLine.Len() > 0 {
+			log.Printf("%s", currentLine.String())
+			currentLine.Reset()
+		}
+	}
+
+	for _, diff := range diffs {
+		lines := strings.Split(diff.Text, "\n")
+		for i, line := range lines {
+			switch diff.Type {
+			case diffmatchpatch.DiffInsert:
+				currentLine.WriteString("\x1b[32m" + line + "\x1b[0m")
+			case diffmatchpatch.DiffDelete:
+				currentLine.WriteString("\x1b[31m" + line + "\x1b[0m")
+			case diffmatchpatch.DiffEqual:
+				currentLine.WriteString(line)
+			}
+
+			if i < len(lines)-1 {
+				flushLine()
+			}
+		}
+	}
+
+	flushLine()
 }

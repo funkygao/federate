@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"embed"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"text/template"
 
+	"federate/pkg/diff"
 	"federate/pkg/manifest"
 	"federate/pkg/util"
 )
@@ -38,13 +40,15 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (ov
 	}
 
 	// 解析嵌入的模板文件并应用 FuncMap
-	tmplName := filepath.Base(templatePath)
-	tmpl, err := template.New(tmplName).Funcs(funcMap).ParseFS(FS, templatePath)
+	tmpl, err := template.New(filepath.Base(templatePath)).Funcs(funcMap).ParseFS(FS, templatePath)
 	if err != nil {
 		log.Fatalf("Error parsing template: %v", err)
 	}
 
-	var output io.Writer
+	var (
+		output     io.Writer
+		oldContent []byte
+	)
 	if outputPath == "" {
 		// 如果 outputPath 为空，使用 os.Stdout
 		output = os.Stdout
@@ -61,6 +65,7 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (ov
 		// 检测目标文件是否存在
 		if util.FileExists(outputPath) {
 			overwrite = true
+			oldContent, _ = ioutil.ReadFile(outputPath)
 		}
 		file, err := os.Create(outputPath)
 		if err != nil {
@@ -70,9 +75,24 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (ov
 		output = file
 	}
 
-	err = tmpl.Execute(output, data)
+	var buf bytes.Buffer
+	multiOutput := io.MultiWriter(&buf, output)
+
+	err = tmpl.Execute(multiOutput, data)
 	if err != nil {
 		log.Fatalf("Error executing template: %v", err)
+	}
+
+	if overwrite {
+		oldContentStr := string(oldContent)
+		newContentStr := buf.String()
+		if oldContentStr != newContentStr {
+			log.Printf("Overwrite %s", outputPath)
+
+			diff.ShowDiffLineByLine(oldContentStr, newContentStr)
+		}
+	} else {
+		log.Printf("Generated %s", outputPath)
 	}
 	return
 }
