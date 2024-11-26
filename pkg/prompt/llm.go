@@ -112,7 +112,7 @@ func (pg *PromptGenerator) executeShellCommand(command string, outputToPrompt bo
 	fmt.Print(output)
 
 	if outputToPrompt {
-		promptGenerator.AddInput(fmt.Sprintf("Shell command: %s\nOutput:\n%s", command, output))
+		promptGenerator.AddInput(fmt.Sprintf("Shell command: %s\nOutput:\n```\n%s```\n", command, output))
 	}
 }
 
