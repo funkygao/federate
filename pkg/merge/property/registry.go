@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"strings"
 
 	"federate/pkg/manifest"
@@ -39,11 +38,13 @@ func (r *registry) AddProperty(component manifest.ComponentInfo, key string, val
 		r.resolvableEntries[component.Name] = make(map[string]PropertyEntry)
 	}
 
+	// 保留关键字
 	if r.isReservedProperty(key) {
 		r.addReservedProperty(key, component, value)
 		return
 	}
 
+	// 用户自定义
 	if val, overridden := r.manifest.PropertyOverridden(key); overridden {
 		r.resolvableEntries[component.Name][key] = PropertyEntry{
 			Value:    val,
@@ -147,8 +148,26 @@ func (r *registry) ResolvePropertyReference(component, value string) interface{}
 	})
 }
 
+// shouldKeepExistingValue 决定是否应保留现有属性值而不是用新值替换它
 func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue interface{}) bool {
-	return existing.Value != nil && (newValue == nil || (reflect.TypeOf(newValue).Kind() == reflect.String && strings.Contains(newValue.(string), "${")))
+	// 如果现有值为空，允许新值替换
+	if existing.Value == nil {
+		return false
+	}
+
+	// 如果新值为空，保留现有值
+	if newValue == nil {
+		return true
+	}
+
+	// 如果新值是字符串并且包含占位符（如 ${...}），保留现有值
+	// 这是为了避免用未解析的引用替换可能已经解析过的值
+	if str, ok := newValue.(string); ok {
+		return strings.Contains(str, "${")
+	}
+
+	// 其他情况下，允许新值替换现有值
+	return false
 }
 
 // 调和冲突
