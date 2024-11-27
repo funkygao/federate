@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"federate/pkg/tablerender"
+	"federate/pkg/util"
 )
 
 type Transformer struct {
@@ -83,7 +84,7 @@ func (t *Transformer) printMapSection(title, indent string, m map[string]map[str
 	for _, component := range components {
 		keys := sortedKeys(m[component])
 		for _, key := range keys {
-			cellData = append(cellData, []string{component, key, m[component][key]})
+			cellData = append(cellData, []string{component, key, util.Truncate(m[component][key], 40)})
 		}
 	}
 	tablerender.DisplayTable(header, cellData, true, -1)

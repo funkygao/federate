@@ -35,15 +35,15 @@ func (e *PropertyEntry) IsProperties() bool {
 	return ext == ".properties"
 }
 
-func (e *PropertyEntry) WasReference() bool {
-	return strings.Contains(e.RawString, "${")
-}
-
 func (e *PropertyEntry) StringValue() string {
 	if s, ok := e.Value.(string); ok {
 		return s
 	}
 	return ""
+}
+
+func (e *PropertyEntry) WasReference() bool {
+	return strings.Contains(e.RawString, "${")
 }
 
 func (e *PropertyEntry) RawReferenceValue() string {
