@@ -37,7 +37,7 @@ func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) error
 	entries := make(map[string]PropertyEntry)
 	processedKeys := ds.NewStringSet()
 	for _, component := range cm.m.Components {
-		for key, entry := range cm.r.ComponentYamlEntries(component) {
+		for key, entry := range cm.r.ComponentPropertiesEntries(component) {
 			if !processedKeys.Contains(key) {
 				entries[key] = entry
 				processedKeys.Add(key)
