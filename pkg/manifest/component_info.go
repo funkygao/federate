@@ -51,7 +51,7 @@ func (c *ComponentInfo) RootDir() string {
 func (c *ComponentInfo) ResourceBaseDirs() []string {
 	var dirs []string
 	for _, d := range c.Resources.BaseDirs {
-		dirs = append(dirs, d)
+		dirs = append(dirs, filepath.Join(c.RootDir(), d))
 	}
 	return dirs
 }
