@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"regexp"
@@ -43,7 +44,7 @@ func (m *ImportResourceManager) reconcileComponent(component manifest.ComponentI
 		Walk()
 }
 
-func (m *ImportResourceManager) Visit(jf *code.JavaFile) {
+func (m *ImportResourceManager) Visit(ctx context.Context, jf *code.JavaFile) {
 	if newFileContent, dirty := m.reconcileJavaFile(jf); dirty {
 		diff.RenderUnifiedDiff(jf.Content(), newFileContent)
 

@@ -7,6 +7,7 @@ import (
 
 	"federate/pkg/tablerender"
 	"federate/pkg/util"
+	"github.com/fatih/color"
 )
 
 type Transformer struct {
@@ -77,7 +78,7 @@ func (t *Transformer) ShowSummary() {
 }
 
 func (t *Transformer) printMapSection(title, indent string, m map[string]map[string]string) {
-	log.Printf(title)
+	color.Cyan(title)
 	components := sortedKeys(m)
 	header := []string{"Component", "Old", "New"}
 	var cellData [][]string
@@ -91,7 +92,7 @@ func (t *Transformer) printMapSection(title, indent string, m map[string]map[str
 }
 
 func (t *Transformer) printSection(title, indent string, m map[string]map[string]struct{}) {
-	log.Printf(title)
+	color.Cyan(title)
 	components := sortedKeys(m)
 	for _, component := range components {
 		keys := sortedKeysFromSet(m[component])
@@ -102,7 +103,7 @@ func (t *Transformer) printSection(title, indent string, m map[string]map[string
 }
 
 func (t *Transformer) printSimpleMapSection(title, indent string, m map[string]string) {
-	log.Printf(title)
+	color.Cyan(title)
 	keys := sortedKeys(m)
 	for _, key := range keys {
 		log.Printf("%s%s: %s", indent, key, m[key])

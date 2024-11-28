@@ -1,6 +1,7 @@
 package property
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"federate/pkg/code"
 	"federate/pkg/diff"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
@@ -119,36 +121,32 @@ func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
 
 func (t *reconcileTask) updateRequestMappings() error {
 	contextPath := filepath.Clean("/" + strings.Trim(t.servletContextPath, "/"))
-	return filepath.Walk(t.c.RootDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	ctx := context.WithValue(context.Background(), "contextPath", contextPath)
+	return code.NewComponentJavaWalker(*t.c).
+		AddVisitor(t).
+		Walk(code.WithContext(ctx))
+}
 
-		if java.IsJavaMainSource(info, path) {
-			content, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
+func (t *reconcileTask) Visit(ctx context.Context, jf *code.JavaFile) {
+	contextPath, ok := ctx.Value("contextPath").(string)
+	if !ok {
+		log.Fatalf("BUG: invalid contxt value: %+v", contextPath)
+	}
+
+	oldContent := jf.Content()
+	newContent := t.updateRequestMappingInFile(oldContent, contextPath)
+	if newContent != oldContent {
+		transformer.Get().TransformRequestMapping(t.c.Name, "", contextPath)
+		if !t.dryRun {
+			diff.RenderUnifiedDiff(oldContent, newContent)
+
+			if err := jf.Overwrite(newContent); err != nil {
+				log.Fatalf("%v", err)
 			}
-
-			oldContent := string(content)
-			newContent := t.updateRequestMappingInFile(oldContent, contextPath)
-			if newContent != oldContent {
-				transformer.Get().TransformRequestMapping(t.c.Name, "", contextPath)
-				if !t.dryRun {
-					diff.RenderUnifiedDiff(oldContent, newContent)
-
-					err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
-					if err != nil {
-						return err
-					}
-					log.Printf("↖ %s", path)
-					t.result.RequestMapping++
-				}
-			}
+			log.Printf("↖ %s", jf.Path())
+			t.result.RequestMapping++
 		}
-
-		return nil
-	})
+	}
 }
 
 func (t *reconcileTask) updateRequestMappingInFile(content, contextPath string) string {

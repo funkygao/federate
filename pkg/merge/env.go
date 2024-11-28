@@ -1,8 +1,8 @@
 package merge
 
 import (
+	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"strings"
 
@@ -28,29 +28,16 @@ func newEnvManager(m *manifest.Manifest, propManager *property.PropertyManager) 
 	return &envManager{m: m, p: propManager}
 }
 
-// TODO xml 也可能引用环境变量
 func (e *envManager) Reconcile(dryRun bool) error {
+	// java 源代码里的环境变量引用
 	for _, component := range e.m.Components {
-		// java 源代码里的环境变量引用
-		paths, err := java.ListJavaMainSourceFiles(component.RootDir())
-		if err != nil {
-			log.Printf("Error walking the path %s: %v", component.RootDir(), err)
-			continue
-		}
+		code.NewComponentJavaWalker(component).
+			AddVisitor(e).
+			Walk()
+	}
 
-		for _, path := range paths {
-			keys, err := e.findEnvRefsInJava(path)
-			if err != nil {
-				log.Printf("Error processing file %s: %v", path, err)
-				return nil
-			}
-
-			for _, key := range keys {
-				transformer.Get().RegisterEnvKey(component.Name, key)
-			}
-		}
-
-		// XML 里环境变量引用
+	// XML 里环境变量引用
+	for _, component := range e.m.Components {
 		for _, root := range component.ResourceBaseDirs() {
 			xmlPaths, err := java.ListXMLFiles(root)
 			if err != nil {
@@ -74,13 +61,19 @@ func (e *envManager) Reconcile(dryRun bool) error {
 	return nil
 }
 
-func (e *envManager) findEnvRefsInJava(filePath string) ([]string, error) {
-	content, err := ioutil.ReadFile(filePath)
+func (e *envManager) Visit(ctx context.Context, jf *code.JavaFile) {
+	keys, err := e.findEnvRefsInJava(jf)
 	if err != nil {
-		return nil, err
+		log.Fatalf("%v", err)
 	}
 
-	matches := code.P.SystemGetPropertyRegex.FindAllSubmatch(content, -1)
+	for _, key := range keys {
+		transformer.Get().RegisterEnvKey(jf.ComponentName(), key)
+	}
+}
+
+func (e *envManager) findEnvRefsInJava(jf *code.JavaFile) ([]string, error) {
+	matches := code.P.SystemGetPropertyRegex.FindAllSubmatch(jf.Bytes(), -1)
 
 	keys := make([]string, 0, len(matches))
 	for _, match := range matches {
@@ -126,7 +119,11 @@ func (e *envManager) searchElementForEnvRefs(c manifest.ComponentInfo, filePath 
 		matches := code.P.XmlEnvRef.FindAllStringSubmatch(attr.Value, -1)
 		for _, match := range matches {
 			if len(match) > 1 {
-				*keys = append(*keys, match[1])
+				key := match[1]
+				if strings.ToUpper(key) == key {
+					// 只有全大写才认为是环境变量，否则没有办法识别
+					*keys = append(*keys, key)
+				}
 			}
 		}
 	}
@@ -137,7 +134,10 @@ func (e *envManager) searchElementForEnvRefs(c manifest.ComponentInfo, filePath 
 		for _, match := range matches {
 			// 属性管理器里没有定义的才是环境变量
 			if len(match) > 1 && (e.p == nil || !e.p.ContainsKey(c, match[1])) {
-				*keys = append(*keys, match[1])
+				key := match[1]
+				if strings.ToUpper(key) == key {
+					*keys = append(*keys, key)
+				}
 			}
 		}
 	}

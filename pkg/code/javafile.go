@@ -1,6 +1,7 @@
 package code
 
 import (
+	"context"
 	"io/ioutil"
 	"log"
 	"os"
@@ -16,27 +17,30 @@ type JavaFile struct {
 	path string
 	info os.FileInfo
 
+	bytes       []byte
 	content     string
 	cachedLines []string
 
 	visitors []JavaFileVisitor
 }
 
-func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFile {
+func NewJavaFile(path string, c *manifest.ComponentInfo, b []byte) *JavaFile {
 	// reformat
+	content := string(b)
 	content = strings.ReplaceAll(content, "\r\n", "\n") // 处理 Windows 风格的行尾
 	content = strings.ReplaceAll(content, "\r", "\n")   // 处理旧 Mac 风格的行尾
 
 	return &JavaFile{
 		c:           c,
 		path:        path,
+		bytes:       b,
 		content:     content,
 		cachedLines: nil,
 		visitors:    []JavaFileVisitor{},
 	}
 }
 
-func (j *JavaFile) WithInfo(info os.FileInfo) *JavaFile {
+func (j *JavaFile) withInfo(info os.FileInfo) *JavaFile {
 	j.info = info
 	return j
 }
@@ -47,6 +51,10 @@ func (j *JavaFile) ComponentName() string {
 	}
 
 	return j.c.Name
+}
+
+func (j *JavaFile) Path() string {
+	return j.path
 }
 
 func (j *JavaFile) FileBaseName() string {
@@ -62,6 +70,10 @@ func (j *JavaFile) UpdateContent(content string) {
 func (j *JavaFile) Overwrite(content string) error {
 	log.Printf("[%s] Updated: %s", j.ComponentName(), j.path)
 	return ioutil.WriteFile(j.path, []byte(content), j.info.Mode())
+}
+
+func (j *JavaFile) Bytes() []byte {
+	return j.bytes
 }
 
 func (j *JavaFile) Content() string {
@@ -80,14 +92,22 @@ func (j *JavaFile) RawLines() []string {
 }
 
 // AddVisitor registers a new JavaFileVisitor to be applied when Accept is called.
-func (j *JavaFile) AddVisitor(visitor JavaFileVisitor) {
-	j.visitors = append(j.visitors, visitor)
+func (j *JavaFile) AddVisitor(visitors ...JavaFileVisitor) {
+	j.visitors = append(j.visitors, visitors...)
 }
 
 // Accept applies all registered visitors to the Java file.
-func (j *JavaFile) Accept() {
+// It can optionally take a context via the WithContext option.
+func (j *JavaFile) Accept(opts ...AcceptOption) {
+	options := &acceptOptions{
+		ctx: context.Background(), // Default to background context
+	}
+	for _, opt := range opts {
+		opt(options)
+	}
+
 	for _, v := range j.visitors {
-		v.Visit(j)
+		v.Visit(options.ctx, j)
 	}
 }
 

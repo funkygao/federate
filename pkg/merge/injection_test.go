@@ -251,7 +251,7 @@ public class TestClass {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jf := code.NewJavaFile("", nil, tc.input)
+			jf := code.NewJavaFile("", nil, []byte(tc.input))
 			result, dirty := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result))
 			assert.Equal(t, dirty, tc.dirty, tc.name)
@@ -329,7 +329,7 @@ public class TestClass {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jf := code.NewJavaFile("", nil, tc.input)
+			jf := code.NewJavaFile("", nil, []byte(tc.input))
 			result, _ := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.input), util.RemoveEmptyLines(result))
 		})
@@ -527,7 +527,7 @@ public class TestClass {
 }
 `
 
-	jf := code.NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, []byte(input))
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -651,7 +651,7 @@ public class TestClass {
 }
 `
 
-	jf := code.NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, []byte(input))
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -699,7 +699,7 @@ public class TestClass {
     private SomeService service4;
 }
 `
-	jf := code.NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, []byte(input))
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -739,7 +739,7 @@ public class TestClass {
 }
 `
 
-	jf := code.NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, []byte(input))
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, util.RemoveEmptyLines(expected), util.RemoveEmptyLines(result))
 }
@@ -908,7 +908,7 @@ public class TestClass {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			jf := code.NewJavaFile("", nil, tc.input)
+			jf := code.NewJavaFile("", nil, []byte(tc.input))
 			result, _ := manager.reconcileInjectionAnnotations(jf)
 			assert.Equal(t, util.RemoveEmptyLines(tc.expected), util.RemoveEmptyLines(result), tc.name)
 		})
@@ -930,7 +930,7 @@ public class ChangeOrderApproveInnerAppServiceImpl implements ChangeOrderApprove
     private ChangeOrderDetailRepository changeOrderDetailRepository;
 }`
 
-	jf := code.NewJavaFile("", nil, content)
+	jf := code.NewJavaFile("", nil, []byte(content))
 	processedLines, needAutowired, needQualifier := manager.transformInjectionAnnotations(jf, jf.RawLines())
 
 	// 验证结果
@@ -1012,7 +1012,7 @@ public class TestClass {
 `
 
 	manager := NewSpringBeanInjectionManager(nil)
-	jf := code.NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, []byte(input))
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result, "Should not add extra lines between imports and class declaration")
 }
@@ -1057,7 +1057,7 @@ public class KvTool {
 }
 `
 	manager := NewSpringBeanInjectionManager(nil)
-	jf := code.NewJavaFile("", nil, input)
+	jf := code.NewJavaFile("", nil, []byte(input))
 	assert.True(t, jf.HasInjectionAnnotation(), "jf.HasInjectionAnnotation()")
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result)
@@ -1106,7 +1106,7 @@ public class FooService implements Foo {
 				Excludes: []string{"CountTaskMasterExternalService"},
 			},
 		},
-	}, input)
+	}, []byte(input))
 	result, _ := manager.reconcileInjectionAnnotations(jf)
 	assert.Equal(t, expected, result)
 

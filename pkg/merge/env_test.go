@@ -1,11 +1,13 @@
 package merge
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
 
+	"federate/pkg/code"
 	"federate/pkg/manifest"
 )
 
@@ -95,7 +97,9 @@ func TestFindEnvRefsInJava(t *testing.T) {
 			}
 
 			// 运行测试函数
-			got, err := manager.findEnvRefsInJava(tmpfile.Name())
+			bytes, _ := ioutil.ReadFile(tmpfile.Name())
+			jf := code.NewJavaFile(tmpfile.Name(), nil, bytes)
+			got, err := manager.findEnvRefsInJava(jf)
 			if err != nil {
 				t.Fatalf("findSystemGetPropertyKeys returned an error: %v", err)
 			}

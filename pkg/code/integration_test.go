@@ -86,7 +86,7 @@ func TestApplyBeanTransforms(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			jf := NewJavaFile("", nil, tt.content)
+			jf := NewJavaFile("", nil, []byte(tt.content))
 			result := jf.applyBeanTransformRule(tt.beanTransforms)
 			assert.Equal(t, tt.expected, result, tt.name)
 		})
@@ -351,7 +351,7 @@ func TestSpringBeanInjectionManager_shouldKeepResource(t *testing.T) {
 		},
 	}
 
-	jf := NewJavaFile("", nil, "")
+	jf := NewJavaFile("", nil, []byte{})
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := jf.ShouldKeepResource(tt.beans, tt.beanType, tt.fieldName)

@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"strings"
@@ -36,7 +37,7 @@ func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.Compo
 		Walk()
 }
 
-func (m *SpringBeanInjectionManager) Visit(jf *code.JavaFile) {
+func (m *SpringBeanInjectionManager) Visit(ctx context.Context, jf *code.JavaFile) {
 	if newfileContent, dirty := m.reconcileJavaFile(jf); dirty {
 		if err := jf.Overwrite(newfileContent); err != nil {
 			log.Fatalf("%v", err)
