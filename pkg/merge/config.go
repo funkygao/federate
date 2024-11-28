@@ -12,4 +12,6 @@ const (
 
 var (
 	FailFast = false
+
+	SupportedRPCs = []string{RpcJsf, RpcDubbo}
 )

@@ -17,6 +17,10 @@ func NewServiceManager(m *manifest.Manifest) Reconciler {
 	return &ServiceManager{m: m}
 }
 
+func (m *ServiceManager) Name() string {
+	return "Transforming Java @Service/@Component value"
+}
+
 func (m *ServiceManager) Reconcile(dryRun bool) error {
 	// pass 1: 通过 javast 修改源代码
 	refTransformMap := make(map[string]map[string]string)

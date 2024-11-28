@@ -48,6 +48,10 @@ func NewXmlBeanManager(m *manifest.Manifest) *XmlBeanManager {
 	}
 }
 
+func (m *XmlBeanManager) Name() string {
+	return "Reconciling Spring XML BeanDefinition conflicts by Rewriting XML ref/value-ref/bean/properties-ref"
+}
+
 func (m *XmlBeanManager) ComponentBeans(componentName string, predicate func(c string, i BeanIdInfo) bool) []BeanIdInfo {
 	var beans []BeanIdInfo
 	for _, infos := range m.beanIdMap {

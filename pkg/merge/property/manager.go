@@ -40,6 +40,10 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 	return pm
 }
 
+func (cm *PropertyManager) Name() string {
+	return "Analyze All Property and Identify Conflicts"
+}
+
 func (cm *PropertyManager) M() *manifest.Manifest {
 	return cm.m
 }

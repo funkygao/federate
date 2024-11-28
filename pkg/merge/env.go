@@ -28,6 +28,10 @@ func newEnvManager(m *manifest.Manifest, propManager *property.PropertyManager) 
 	return &envManager{m: m, p: propManager}
 }
 
+func (e *envManager) Name() string {
+	return "Reconciling ENV variables conflicts"
+}
+
 func (e *envManager) Reconcile(dryRun bool) error {
 	// java 源代码里的环境变量引用
 	for _, component := range e.m.Components {

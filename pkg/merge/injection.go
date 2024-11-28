@@ -22,6 +22,10 @@ func NewSpringBeanInjectionManager(m *manifest.Manifest) *SpringBeanInjectionMan
 	return &SpringBeanInjectionManager{m: m}
 }
 
+func (m *SpringBeanInjectionManager) Name() string {
+	return "Reconciling Spring Bean Injection conflicts by Rewriting @Resource"
+}
+
 func (m *SpringBeanInjectionManager) Reconcile(dryRun bool) error {
 	for _, component := range m.m.Components {
 		if err := m.reconcileComponent(component, dryRun); err != nil {

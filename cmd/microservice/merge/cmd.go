@@ -54,9 +54,8 @@ func doMerge(m *manifest.Manifest) {
 		color.NoColor = true
 	}
 
-	rpcTypes := []string{merge.RpcJsf, merge.RpcDubbo}
 	var rpcConsumerManagers []*merge.RpcConsumerManager
-	for _, rpc := range rpcTypes {
+	for _, rpc := range merge.SupportedRPCs {
 		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(m, rpc))
 	}
 

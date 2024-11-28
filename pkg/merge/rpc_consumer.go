@@ -50,6 +50,10 @@ func (dm *RpcConsumerManager) referenceXmlTags() []string {
 	return []string{}
 }
 
+func (dm *RpcConsumerManager) Name() string {
+	return "Mergeing RPC Consumer XML to reduce redundant resource consumption"
+}
+
 func (dm *RpcConsumerManager) RPC() string {
 	return dm.rpcType
 }
