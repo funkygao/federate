@@ -2,16 +2,14 @@ package merge
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"federate/pkg/code"
-	"federate/pkg/java"
 	"federate/pkg/manifest"
 )
+
+var _ code.JavaFileVisitor = &SpringBeanInjectionManager{}
 
 // 处理 @Resource 的 Bean 注入：基本操作是替换为 @Autowired，如果一个类里同一个类型有多次注入则增加 @Qualifier
 type SpringBeanInjectionManager struct {
@@ -35,31 +33,17 @@ func (m *SpringBeanInjectionManager) Reconcile(dryRun bool) error {
 }
 
 func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) error {
-	err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !java.IsJavaMainSource(info, path) {
-			return nil
-		}
+	return code.NewComponentJavaWalker(component).
+		AddVisitor(m).
+		Walk()
+}
 
-		fileContent, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
+func (m *SpringBeanInjectionManager) Visit(jf *code.JavaFile) {
+	if newfileContent, dirty := m.reconcileJavaFile(jf); dirty {
+		if err := jf.Overwrite(newfileContent); err != nil {
+			log.Fatalf("%v", err)
 		}
-
-		javaFile := code.NewJavaFile(path, &component, string(fileContent))
-		newfileContent, dirty := m.reconcileJavaFile(javaFile)
-
-		if !dryRun && dirty {
-			err = ioutil.WriteFile(path, []byte(newfileContent), info.Mode())
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return err
+	}
 }
 
 func (m *SpringBeanInjectionManager) reconcileJavaFile(jf *code.JavaFile) (string, bool) {

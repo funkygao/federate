@@ -1,4 +1,4 @@
-package ds
+package primitive
 
 type StringSet struct {
 	items map[string]struct{}

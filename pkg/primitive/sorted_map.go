@@ -1,4 +1,4 @@
-package ds
+package primitive
 
 import (
 	"sort"

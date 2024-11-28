@@ -3,7 +3,7 @@ package property
 import (
 	"fmt"
 
-	"federate/pkg/ds"
+	"federate/pkg/primitive"
 )
 
 func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) error {
@@ -13,7 +13,7 @@ func (cm *PropertyManager) GenerateMergedYamlFile(targetFile string) error {
 	}
 
 	entries := make(map[string]PropertyEntry)
-	processedKeys := ds.NewStringSet()
+	processedKeys := primitive.NewStringSet()
 
 	for _, component := range cm.m.Components {
 		for key, entry := range cm.r.ComponentYamlEntries(component) {
@@ -35,7 +35,7 @@ func (cm *PropertyManager) GenerateMergedPropertiesFile(targetFile string) error
 	}
 
 	entries := make(map[string]PropertyEntry)
-	processedKeys := ds.NewStringSet()
+	processedKeys := primitive.NewStringSet()
 	for _, component := range cm.m.Components {
 		for key, entry := range cm.r.ComponentPropertiesEntries(component) {
 			if !processedKeys.Contains(key) {

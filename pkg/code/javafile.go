@@ -1,7 +1,9 @@
 package code
 
 import (
+	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -11,10 +13,13 @@ import (
 type JavaFile struct {
 	c *manifest.ComponentInfo
 
-	path    string
-	content string
+	path string
+	info os.FileInfo
 
+	content     string
 	cachedLines []string
+
+	visitors []JavaFileVisitor
 }
 
 func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFile {
@@ -27,7 +32,13 @@ func NewJavaFile(path string, c *manifest.ComponentInfo, content string) *JavaFi
 		path:        path,
 		content:     content,
 		cachedLines: nil,
+		visitors:    []JavaFileVisitor{},
 	}
+}
+
+func (j *JavaFile) WithInfo(info os.FileInfo) *JavaFile {
+	j.info = info
+	return j
 }
 
 func (j *JavaFile) ComponentName() string {
@@ -48,6 +59,10 @@ func (j *JavaFile) UpdateContent(content string) {
 	j.cachedLines = nil
 }
 
+func (j *JavaFile) Overwrite(content string) error {
+	return ioutil.WriteFile(j.path, []byte(content), j.info.Mode())
+}
+
 func (j *JavaFile) Content() string {
 	return j.content
 }
@@ -61,6 +76,18 @@ func (j *JavaFile) RawLines() []string {
 		j.cachedLines = strings.Split(j.content, "\n")
 	}
 	return j.cachedLines
+}
+
+// AddVisitor registers a new JavaFileVisitor to be applied when Accept is called.
+func (j *JavaFile) AddVisitor(visitor JavaFileVisitor) {
+	j.visitors = append(j.visitors, visitor)
+}
+
+// Accept applies all registered visitors to the Java file.
+func (j *JavaFile) Accept() {
+	for _, v := range j.visitors {
+		v.Visit(j)
+	}
 }
 
 func (jf *JavaFile) HasInjectionAnnotation() bool {

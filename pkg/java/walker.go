@@ -5,34 +5,43 @@ import (
 	"path/filepath"
 )
 
-type FileHandler func(path string) error
-type WalkFilter func(info os.FileInfo, path string) bool
-
-func WalkCode(root string, handler FileHandler) error {
-	return Walk(root, nil, IsJavaMainSource, handler)
-}
-
-func WalkResources(root string, handler FileHandler) error {
-	return Walk(root, nil, IsResourceFile, handler)
-}
-
-func WalkXML(root string, handler FileHandler) error {
-	return Walk(root, nil, IsXML, handler)
-}
+type fileHandler func(path string) error
+type walkFilter func(info os.FileInfo, path string) bool
 
 func ListXMLFiles(root string) ([]string, error) {
-	return listFiles(root, WalkXML)
+	return listFiles(root, walkXML)
 }
 
 func ListResourceFiles(root string) ([]string, error) {
-	return listFiles(root, WalkResources)
+	return listFiles(root, walkResources)
 }
 
 func ListJavaMainSourceFiles(root string) ([]string, error) {
-	return listFiles(root, WalkCode)
+	return listFiles(root, walkCode)
 }
 
-func Walk(root string, dirFilter WalkFilter, fileFilter WalkFilter, fileHandler FileHandler) error {
+func listFiles(root string, walkFunc func(string, fileHandler) error) ([]string, error) {
+	var files []string
+	err := walkFunc(root, func(path string) error {
+		files = append(files, path)
+		return nil
+	})
+	return files, err
+}
+
+func walkCode(root string, handler fileHandler) error {
+	return walk(root, nil, IsJavaMainSource, handler)
+}
+
+func walkResources(root string, handler fileHandler) error {
+	return walk(root, nil, IsResourceFile, handler)
+}
+
+func walkXML(root string, handler fileHandler) error {
+	return walk(root, nil, IsXML, handler)
+}
+
+func walk(root string, dirFilter walkFilter, fileFilter walkFilter, fileHandler fileHandler) error {
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -52,13 +61,4 @@ func Walk(root string, dirFilter WalkFilter, fileFilter WalkFilter, fileHandler 
 		// path is file, not dir
 		return fileHandler(path)
 	})
-}
-
-func listFiles(root string, walkFunc func(string, FileHandler) error) ([]string, error) {
-	var files []string
-	err := walkFunc(root, func(path string) error {
-		files = append(files, path)
-		return nil
-	})
-	return files, err
 }
