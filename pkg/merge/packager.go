@@ -14,18 +14,17 @@ type Packager interface {
 }
 
 // 准备合并打包器，并自动注册内置 Reconciler.
-func NewMergePackager(m *manifest.Manifest) Packager {
+func NewPackager(m *manifest.Manifest) Packager {
 	p := &packager{
 		m:           m,
 		reconcilers: make([]Reconciler, 0),
 	}
 
-	pm := property.NewManager(m)
-
 	// the order matters !
 	for _, rpcType := range SupportedRPCs {
 		p.AddReconciler(NewRpcConsumerManager(m, rpcType))
 	}
+	pm := property.NewManager(m)
 	p.AddReconciler(pm)
 	p.AddReconciler(bean.NewXmlBeanManager(m))
 	p.AddReconciler(NewSpringBeanInjectionManager(m))

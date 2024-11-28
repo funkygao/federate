@@ -9,7 +9,7 @@ import (
 func ExamplePackager(t *testing.T) {
 	m := manifest.Load()
 
-	packager := NewMergePackager(m)
+	packager := NewPackager(m)
 
 	// 添加一个模拟的 Reconciler
 	packager.AddReconciler(&mockReconciler{})
