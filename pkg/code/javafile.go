@@ -60,6 +60,7 @@ func (j *JavaFile) UpdateContent(content string) {
 }
 
 func (j *JavaFile) Overwrite(content string) error {
+	log.Printf("[%s] Updated: %s", j.ComponentName(), j.path)
 	return ioutil.WriteFile(j.path, []byte(content), j.info.Mode())
 }
 

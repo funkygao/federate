@@ -2,17 +2,13 @@ package merge
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 
 	"federate/pkg/code"
 	"federate/pkg/diff"
 	"federate/pkg/federated"
-	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/transformer"
 )
@@ -42,40 +38,19 @@ func (m *ImportResourceManager) Reconcile(dryRun bool) error {
 }
 
 func (m *ImportResourceManager) reconcileComponent(component manifest.ComponentInfo) error {
-	err := filepath.Walk(component.RootDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !java.IsJavaMainSource(info, path) {
-			return nil
-		}
+	return code.NewComponentJavaWalker(component).
+		AddVisitor(m).
+		Walk()
+}
 
-		fileContent, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
+func (m *ImportResourceManager) Visit(jf *code.JavaFile) {
+	if newFileContent, dirty := m.reconcileJavaFile(jf); dirty {
+		diff.RenderUnifiedDiff(jf.Content(), newFileContent)
+
+		if err := jf.Overwrite(newFileContent); err != nil {
+			log.Fatalf("%v", err)
 		}
-
-		if m.m != nil && m.m.Main.MainClass.ExcludeJavaFile(info.Name()) {
-			log.Printf("[%s] Excluded %s", component.Name, info.Name())
-			return nil
-		}
-
-		oldFileConent := string(fileContent)
-		javaFile := code.NewJavaFile(path, &component, oldFileConent)
-		newFileContent, dirty := m.reconcileJavaFile(javaFile)
-
-		if dirty {
-			log.Printf("[%s] %s Updated:", component.Name, info.Name())
-			diff.RenderUnifiedDiff(oldFileConent, newFileContent)
-
-			err = ioutil.WriteFile(path, []byte(newFileContent), info.Mode())
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-	return err
+	}
 }
 
 func (m *ImportResourceManager) reconcileJavaFile(jf *code.JavaFile) (string, bool) {

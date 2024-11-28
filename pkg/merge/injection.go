@@ -9,8 +9,6 @@ import (
 	"federate/pkg/manifest"
 )
 
-var _ code.JavaFileVisitor = &SpringBeanInjectionManager{}
-
 // 处理 @Resource 的 Bean 注入：基本操作是替换为 @Autowired，如果一个类里同一个类型有多次注入则增加 @Qualifier
 type SpringBeanInjectionManager struct {
 	m *manifest.Manifest
