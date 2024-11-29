@@ -25,8 +25,7 @@ func (f *FusionProjectGenerator) Name() string {
 
 func (f *FusionProjectGenerator) Reconcile() error {
 	f.generatePomFile()
-	packageName, className := f.m.ParseMainClass()
-	f.generateMainClassFile(packageName, className)
+	f.generateMainClassFile()
 	f.generateMetaInf()
 	f.generateMakefile()
 	f.generatePackageXml()
@@ -71,7 +70,8 @@ func (f *FusionProjectGenerator) generateMetaInf() {
 	fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
 }
 
-func (f *FusionProjectGenerator) generateMainClassFile(packageName, className string) {
+func (f *FusionProjectGenerator) generateMainClassFile() {
+	packageName, className := f.m.ParseMainClass()
 	m := f.m
 	mainClassData := struct {
 		App                     string
