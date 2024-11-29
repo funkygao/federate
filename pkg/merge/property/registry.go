@@ -8,6 +8,7 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge/transformer"
+	"federate/pkg/util"
 )
 
 type registry struct {
@@ -235,4 +236,13 @@ func (r *registry) getConfigurationPropertiesPrefix(key string) string {
 		}
 	}
 	return ""
+}
+
+func (r *registry) dump() {
+	for _, componentName := range util.MapSortedStringKeys(r.resolvableEntries) {
+		values := r.resolvableEntries[componentName]
+		for k, v := range values {
+			log.Printf("[%s] %s = %s, Raw: %s", componentName, k, v.Value, v.RawString)
+		}
+	}
 }

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"federate/pkg/manifest"
-
+	"federate/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -281,6 +281,7 @@ a.key=foo
 mysql.driver=com.mysql.jdbc.Driver
 mysql.url=${datasource.mysql.url}
 mysql.maximumPoolSize=10
+master.ds0.mysql.url=jdbc:mysql://a/db_1
 reverse.master.ds0.mysql.url=${datasource.reverse.master.mysql.url}
 schedule.token=${schedule.token}
 `
@@ -293,6 +294,8 @@ schedule.token=${schedule.token}
 datasource:
   mysql:
     url: jdbc:mysql://1.1.1.1
+  ds0-master:
+    jdbcUrl: ${master.ds0.mysql.url}
   reverse:
     master:
       mysql:
@@ -317,6 +320,7 @@ wms:
 b.key=0
 mysql.driver=com.mysql.jdbc.Driver
 mysql.url=${datasource.mysql.url}
+master.ds0.mysql.url=jdbc:mysql://b/db_2
 mysql.maximumPoolSize=20
 `
 	bRoot := filepath.Join(tempDir, "b")
@@ -329,6 +333,10 @@ datasource:
   mysql:
     url: jdbc:mysql://1.1.1.8
 wms:
+  ds0-master:
+    jdbcUrl: ${master.ds0.mysql.url}
+  ds1-master:
+    jdbcUrl: ${master.ds0.mysql.url}
   datasource:
     driverClassName: ${mysql.driver}
     maximumPoolSize: ${mysql.maximumPoolSize}
@@ -411,5 +419,37 @@ func TestUpdateReferencesInString(t *testing.T) {
 				t.Errorf("Expected %q, but got %q", tc.expectedOutput, result)
 			}
 		})
+	}
+}
+
+func TestGenerateAllForManualCheck(t *testing.T) {
+	m := prepareTestManifest(t, "target")
+	pm := NewManager(m)
+	pm.Analyze()
+
+	t.Log("")
+	t.Logf("属性冲突")
+	showConflict(t, pm.IdentifyPropertiesFileConflicts())
+	t.Logf("YML冲突")
+	showConflict(t, pm.IdentifyYamlFileConflicts())
+	t.Log("")
+
+	t.Logf("Reconcile")
+	pm.Reconcile(false)
+	t.Log("")
+
+	t.Logf("Registry DUMP")
+	pm.r.dump()
+	t.Log("")
+
+	pm.GenerateMergedYamlFile("target/application.yml")
+	pm.GenerateMergedPropertiesFile("target/application.properties")
+}
+
+func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
+	for key, componentValue := range conflicts {
+		for _, c := range util.MapSortedStringKeys(componentValue) {
+			t.Logf("[%s] %s = %v", c, key, conflicts[key][c])
+		}
 	}
 }

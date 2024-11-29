@@ -35,3 +35,12 @@ func TestFileExists(t *testing.T) {
 	// 测试目录的情况
 	assert.False(FileExists(tempDir), "不应该将目录视为存在的文件")
 }
+
+func TestMapSortedStringKeys(t *testing.T) {
+	m := map[string]interface{}{
+		"b": 3,
+		"a": 1,
+		"c": 2,
+	}
+	assert.Equal(t, []string{"a", "b", "c"}, MapSortedStringKeys(m))
+}
