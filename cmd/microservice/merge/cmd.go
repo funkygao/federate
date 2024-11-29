@@ -62,10 +62,13 @@ func doMerge(m *manifest.Manifest) {
 	propertyManager := property.NewManager(m)
 	xmlBeanManager := bean.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager(m)
-	envManager := merge.NewEnvManager(m, propertyManager)
+	envManager := merge.NewEnvManager(propertyManager)
 	injectionManager := merge.NewSpringBeanInjectionManager(m)
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
+
+	compiler := merge.NewCompiler(m)
+	compiler.Compile(true)
 
 	steps := []step.Step{
 		{

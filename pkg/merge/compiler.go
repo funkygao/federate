@@ -7,45 +7,48 @@ import (
 	"federate/pkg/merge/property"
 )
 
-// 合并打包器.
-type Packager interface {
+// 合并编译器.
+type Compiler interface {
+	Prepare()
+
 	AddReconciler(Reconciler)
-	Execute(dryRun bool) error
+
+	// 合并编译.
+	Compile(dryRun bool) error
 }
 
-// 准备合并打包器，并自动注册内置 Reconciler.
-func NewPackager(m *manifest.Manifest) Packager {
-	p := &packager{
+func NewCompiler(m *manifest.Manifest) Compiler {
+	return &compiler{
 		m:           m,
 		reconcilers: make([]Reconciler, 0),
 	}
-
-	// the order matters !
-	for _, rpcType := range SupportedRPCs {
-		p.AddReconciler(NewRpcConsumerManager(m, rpcType))
-	}
-	pm := property.NewManager(m)
-	p.AddReconciler(pm)
-	p.AddReconciler(bean.NewXmlBeanManager(m))
-	p.AddReconciler(NewSpringBeanInjectionManager(m))
-	p.AddReconciler(NewEnvManager(m, pm))
-	p.AddReconciler(NewServiceManager(m))
-	p.AddReconciler(NewImportResourceManager(m))
-	p.AddReconciler(NewRpcAliasManager(pm))
-
-	return p
 }
 
-type packager struct {
+type compiler struct {
 	m           *manifest.Manifest
 	reconcilers []Reconciler
 }
 
-func (p *packager) AddReconciler(r Reconciler) {
+func (p *compiler) Prepare() {
+	// the order matters !
+	for _, rpcType := range SupportedRPCs {
+		p.AddReconciler(NewRpcConsumerManager(p.m, rpcType))
+	}
+	pm := property.NewManager(p.m)
+	p.AddReconciler(pm)
+	p.AddReconciler(bean.NewXmlBeanManager(p.m))
+	p.AddReconciler(NewSpringBeanInjectionManager(p.m))
+	p.AddReconciler(NewEnvManager(pm))
+	p.AddReconciler(NewServiceManager(p.m))
+	p.AddReconciler(NewImportResourceManager(p.m))
+	p.AddReconciler(NewRpcAliasManager(pm))
+}
+
+func (p *compiler) AddReconciler(r Reconciler) {
 	p.reconcilers = append(p.reconcilers, r)
 }
 
-func (p *packager) Execute(dryRun bool) error {
+func (p *compiler) Compile(dryRun bool) error {
 	for _, c := range p.m.Components {
 		for _, r := range p.reconcilers {
 			if visitor, ok := r.(code.JavaFileVisitor); ok {

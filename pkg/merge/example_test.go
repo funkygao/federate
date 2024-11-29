@@ -6,19 +6,20 @@ import (
 	"federate/pkg/manifest"
 )
 
-func ExamplePackager(t *testing.T) {
+func ExampleCompiler(t *testing.T) {
 	m := manifest.Load()
 
-	packager := NewPackager(m)
+	compiler := NewCompiler(m)
+	compiler.Prepare()
 
 	// 添加一个模拟的 Reconciler
-	packager.AddReconciler(&mockReconciler{})
+	compiler.AddReconciler(&mockReconciler{})
 
-	if err := packager.Execute(true); err != nil {
-		t.Fatalf("Error executing packager: %v", err)
+	if err := compiler.Compile(true); err != nil {
+		t.Fatalf("Error executing compiler: %v", err)
 	}
 
-	t.Log("Merge packager executed successfully")
+	t.Log("Merge compiler executed successfully")
 }
 
 type mockReconciler struct{}

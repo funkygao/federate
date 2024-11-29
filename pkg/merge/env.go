@@ -20,8 +20,8 @@ type envManager struct {
 	p *property.PropertyManager
 }
 
-func NewEnvManager(m *manifest.Manifest, propManager *property.PropertyManager) Reconciler {
-	return newEnvManager(m, propManager)
+func NewEnvManager(propManager *property.PropertyManager) Reconciler {
+	return newEnvManager(propManager.M(), propManager)
 }
 
 func newEnvManager(m *manifest.Manifest, propManager *property.PropertyManager) *envManager {
