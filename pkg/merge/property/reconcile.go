@@ -1,6 +1,7 @@
 package property
 
 import (
+	"log"
 	"os"
 	"runtime"
 
@@ -21,7 +22,10 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 		for componentName, value := range components {
 			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
-			cm.r.NamespaceProperty(componentName, Key(key), value)
+			if cm.debug {
+				log.Printf("[%s] fixing conflict key=%s value=%v", componentName, key, value)
+			}
+			cm.r.SegregateProperty(componentName, Key(key), value)
 		}
 	}
 

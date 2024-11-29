@@ -21,7 +21,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
 					newValue := cm.r.ResolvePropertyReference(component, rawRef)
 					if newValue != rawRef {
-						cm.r.UpdateProperty(component, key, existingEntry, newValue)
+						cm.r.ResolveProperty(component, key, existingEntry, newValue)
 						changed = true
 					} else {
 						// 相互引用，此轮还无法解析
@@ -40,7 +40,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 					cm.r.MarkAsUnresolvable(component, existingEntry, key)
 					unresolved = append(unresolved, []string{component, key, strValue, fmt.Sprintf("%v", existingEntry.IsYAML())})
 				} else {
-					cm.r.UpdateProperty(component, key, existingEntry, strValue)
+					cm.r.ResolveProperty(component, key, existingEntry, strValue)
 				}
 			}
 		}

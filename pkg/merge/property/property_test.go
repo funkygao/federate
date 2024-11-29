@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"federate/pkg/manifest"
+	"federate/pkg/merge/transformer"
 	"federate/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -425,6 +426,7 @@ func TestUpdateReferencesInString(t *testing.T) {
 func TestGenerateAllForManualCheck(t *testing.T) {
 	m := prepareTestManifest(t, "target")
 	pm := NewManager(m)
+	pm.Debug()
 	pm.Analyze()
 
 	t.Log("")
@@ -444,6 +446,10 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 
 	pm.GenerateMergedYamlFile("target/application.yml")
 	pm.GenerateMergedPropertiesFile("target/application.properties")
+	t.Log("")
+
+	t.Log("Summary")
+	transformer.Get().ShowSummary()
 }
 
 func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {

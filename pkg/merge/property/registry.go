@@ -69,8 +69,8 @@ func (r *registry) AddProperty(component manifest.ComponentInfo, key string, val
 	}
 }
 
-// UpdateProperty updates an existing property in the registry
-func (r *registry) UpdateProperty(componentName string, key string, existingEntry PropertyEntry, newValue interface{}) {
+// 更新解析后的值
+func (r *registry) ResolveProperty(componentName string, key string, existingEntry PropertyEntry, newValue interface{}) {
 	r.resolvableEntries[componentName][key] = PropertyEntry{
 		Value:     newValue,
 		RawString: existingEntry.RawString,
@@ -171,13 +171,13 @@ func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue int
 	return false
 }
 
-// 调和冲突
-func (r *registry) NamespaceProperty(componentName string, key Key, value interface{}) {
+// 隔离冲突
+func (r *registry) SegregateProperty(componentName string, key Key, value interface{}) {
 	strKey := string(key)
 	originalEntry := r.resolvableEntries[componentName][strKey]
 
 	newRawString := originalEntry.RawString
-	if strings.Contains(newRawString, "${") {
+	if originalEntry.WasReference() {
 		newRawString = r.pm.namespacePropertyPlaceholders(originalEntry.RawString, componentName)
 		if !r.silent {
 			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalEntry.RawString, newRawString)
@@ -189,6 +189,9 @@ func (r *registry) NamespaceProperty(componentName string, key Key, value interf
 	} else {
 		r.namespaceRegularProperty(componentName, key, value, newRawString, originalEntry)
 	}
+
+	// 更新内存中其他属性的引用
+	r.updateReferencesInMemory(componentName, strKey, string(key.WithNamespace(componentName)))
 }
 
 // 统一调和 @ConfigurationProperties 的 key
@@ -214,6 +217,30 @@ func (r *registry) namespaceRegularProperty(componentName string, key Key, value
 		Value:     value,
 		RawString: newOriginalString,
 		FilePath:  originalEntry.FilePath,
+	}
+
+	// 可能造成间接依赖的 jar 在运行时报错：通过 manifest override 人工指定
+	//delete(r.resolvableEntries[componentName], string(key)) TODO
+}
+
+func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string) {
+	for comp, entries := range r.resolvableEntries {
+		for k, entry := range entries {
+			if entry.WasReference() {
+				updatedRawString := strings.ReplaceAll(entry.RawString, "${"+oldKey+"}", "${"+newKey+"}")
+				if updatedRawString != entry.RawString {
+					updatedValue := r.pm.ResolveLine(updatedRawString)
+					r.resolvableEntries[comp][k] = PropertyEntry{
+						Value:     updatedValue,
+						RawString: updatedRawString,
+						FilePath:  entry.FilePath,
+					}
+					if !r.silent {
+						log.Printf("[%s] Updated reference in key %s: %s => %s", comp, k, entry.RawString, updatedRawString)
+					}
+				}
+			}
+		}
 	}
 }
 
