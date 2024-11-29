@@ -7,11 +7,13 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/optimizer"
+	"federate/pkg/similarity"
 	"github.com/spf13/cobra"
 )
 
 var (
 	similarityThreshold float64
+	similarityAlgo      string
 	optimizeVerbosity   int
 )
 
@@ -55,7 +57,15 @@ func showDuplicates(m *manifest.Manifest) {
 }
 
 func init() {
+	manifest.RequiredManifestFileFlag(duplicateCmd)
 	duplicateCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.6, "Threshold for similarity to count high similarity dup")
 	duplicateCmd.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
-	manifest.RequiredManifestFileFlag(duplicateCmd)
+	duplicateCmd.Flags().StringVarP(&similarityAlgo, "similarity-algorithm", "s", "simhash", "simhash | jaccard")
+
+	switch similarityAlgo {
+	case "simhash":
+		similarity.UseSimhash()
+	case "jaccard":
+		similarity.UseJaccard()
+	}
 }

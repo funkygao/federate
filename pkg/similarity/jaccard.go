@@ -5,8 +5,29 @@ import (
 	"strings"
 )
 
-// CalculateJaccardSimilarity 计算两个文件的Jaccard相似度
-func CalculateJaccardSimilarity(file1, file2 string) (float64, error) {
+func jaccardAvg(paths []string) (float64, error) {
+	if len(paths) < 2 {
+		return 0, nil
+	}
+
+	totalSimilarity := 0.0
+	count := 0
+
+	for i := 0; i < len(paths); i++ {
+		for j := i + 1; j < len(paths); j++ {
+			similarityScore, err := jaccard(paths[i], paths[j])
+			if err != nil {
+				return 0, err
+			}
+			totalSimilarity += similarityScore
+			count++
+		}
+	}
+
+	return totalSimilarity / float64(count), nil
+}
+
+func jaccard(file1, file2 string) (float64, error) {
 	content1, err := ioutil.ReadFile(file1)
 	if err != nil {
 		return 0, err
@@ -45,27 +66,4 @@ func CalculateJaccardSimilarity(file1, file2 string) (float64, error) {
 	}
 
 	return float64(intersection) / float64(union), nil
-}
-
-// CalculateAverageSimilarity 计算多个文件之间的平均相似度
-func CalculateAverageSimilarity(paths []string) (float64, error) {
-	if len(paths) < 2 {
-		return 0, nil
-	}
-
-	totalSimilarity := 0.0
-	count := 0
-
-	for i := 0; i < len(paths); i++ {
-		for j := i + 1; j < len(paths); j++ {
-			similarityScore, err := CalculateJaccardSimilarity(paths[i], paths[j])
-			if err != nil {
-				return 0, err
-			}
-			totalSimilarity += similarityScore
-			count++
-		}
-	}
-
-	return totalSimilarity / float64(count), nil
 }
