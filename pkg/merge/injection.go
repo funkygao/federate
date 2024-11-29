@@ -26,16 +26,16 @@ func (m *SpringBeanInjectionManager) Name() string {
 	return "Reconciling Spring Bean Injection conflicts by Rewriting @Resource"
 }
 
-func (m *SpringBeanInjectionManager) Reconcile(dryRun bool) error {
+func (m *SpringBeanInjectionManager) Reconcile() error {
 	for _, component := range m.m.Components {
-		if err := m.reconcileComponent(component, dryRun); err != nil {
+		if err := m.reconcileComponent(component); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo, dryRun bool) error {
+func (m *SpringBeanInjectionManager) reconcileComponent(component manifest.ComponentInfo) error {
 	return code.NewComponentJavaWalker(component).
 		AddVisitor(m).
 		Walk()

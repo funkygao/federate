@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"federate/cmd/microservice/merge"
 	"federate/internal/fs"
 	"federate/pkg/git"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/merge"
 	"federate/pkg/util"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -38,8 +38,9 @@ func doCreate(m *manifest.Manifest) {
 	generatePlusProjectFiles(m)
 
 	// 让WMS6.0代码安装后可以被依赖
-	log.Println("Instrumenting submodule pom.xml for JAR dependency ...")
-	merge.InstrumentPomForFederatePackaging(m)
+	springBoot := merge.NewSpringBootMavenPluginManager(m)
+	log.Println(springBoot.Name())
+	springBoot.Reconcile()
 
 	color.Green("🍺 Congrat, %s scaffolded!", m.Main.Name)
 }

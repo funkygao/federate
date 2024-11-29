@@ -32,7 +32,7 @@ type RpcConsumerManager struct {
 
 func NewRpcConsumerManager(m *manifest.Manifest, rpcType string) *RpcConsumerManager {
 	return &RpcConsumerManager{
-		m:                       m,
+		m: m,
 		IntraComponentConflicts: make(map[string][]string),
 		interfaceToComponent:    make(map[string]string),
 		globalReferenceMap:      make(map[string]*etree.Element),
@@ -51,20 +51,11 @@ func (dm *RpcConsumerManager) referenceXmlTags() []string {
 }
 
 func (dm *RpcConsumerManager) Name() string {
-	return "Mergeing RPC Consumer XML to reduce redundant resource consumption"
+	return fmt.Sprintf("Mergeing %s Consumer XML to reduce redundant resource consumption", dm.rpcType)
 }
 
 func (dm *RpcConsumerManager) RPC() string {
 	return dm.rpcType
-}
-
-func (dm *RpcConsumerManager) Reset() {
-	dm.ScannedBeansCount = 0
-	dm.IntraComponentConflicts = make(map[string][]string)
-	dm.GeneratedBeansCount = 0
-	dm.TargetFile = ""
-	dm.interfaceToComponent = make(map[string]string)
-	dm.globalReferenceMap = make(map[string]*etree.Element)
 }
 
 func (dm *RpcConsumerManager) Reconcile(dryRun bool) error {

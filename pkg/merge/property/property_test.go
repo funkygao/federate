@@ -203,7 +203,7 @@ func TestAnalyze(t *testing.T) {
 	assert.Equal(t, "com.mysql.jdbc.Driver", pm.r.resolvableEntries["a"]["wms.datasource.driverClassName"].Value)
 
 	// 调和冲突
-	err := pm.Reconcile(true) // 使用 dryRun 模式
+	err := pm.Reconcile()
 	require.NoError(t, err)
 	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
 	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
@@ -251,7 +251,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 	require.NoError(t, pm.Analyze())
 
 	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
-	pm.GenerateMergedYamlFile(mergedYamlPath)
+	pm.generateMergedYamlFile(mergedYamlPath)
 
 	// 读取生成的YAML文件
 	data, err := os.ReadFile(mergedYamlPath)
@@ -437,15 +437,15 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	t.Log("")
 
 	t.Logf("Reconcile")
-	pm.Reconcile(false)
+	pm.Reconcile()
 	t.Log("")
 
 	t.Logf("Registry DUMP")
 	pm.r.dump()
 	t.Log("")
 
-	pm.GenerateMergedYamlFile("target/application.yml")
-	pm.GenerateMergedPropertiesFile("target/application.properties")
+	pm.generateMergedYamlFile("target/application.yml")
+	pm.generateMergedPropertiesFile("target/application.properties")
 	t.Log("")
 
 	t.Log("Summary")

@@ -20,7 +20,6 @@ import (
 type reconcileTask struct {
 	c                  *manifest.ComponentInfo
 	keys               []string
-	dryRun             bool
 	servletContextPath string
 
 	result ReconcileReport
@@ -43,7 +42,7 @@ func (t *reconcileTask) Execute() error {
 	}
 
 	// 解决 server.servlet.context-path 冲突：修改Java源代码
-	if !t.dryRun && t.servletContextPath != "" {
+	if t.servletContextPath != "" {
 		if err := t.updateRequestMappings(); err != nil {
 			return err
 		}
@@ -100,7 +99,7 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 			}
 		}
 
-		if changed && !t.dryRun {
+		if changed {
 			err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
 			if err != nil {
 				return err
@@ -137,15 +136,13 @@ func (t *reconcileTask) Visit(ctx context.Context, jf *code.JavaFile) {
 	newContent := t.updateRequestMappingInFile(oldContent, contextPath)
 	if newContent != oldContent {
 		transformer.Get().TransformRequestMapping(t.c.Name, "", contextPath)
-		if !t.dryRun {
-			diff.RenderUnifiedDiff(oldContent, newContent)
+		diff.RenderUnifiedDiff(oldContent, newContent)
 
-			if err := jf.Overwrite(newContent); err != nil {
-				log.Fatalf("%v", err)
-			}
-			log.Printf("↖ %s", jf.Path())
-			t.result.RequestMapping++
+		if err := jf.Overwrite(newContent); err != nil {
+			log.Fatalf("%v", err)
 		}
+		log.Printf("↖ %s", jf.Path())
+		t.result.RequestMapping++
 	}
 }
 

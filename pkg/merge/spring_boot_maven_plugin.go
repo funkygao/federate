@@ -10,10 +10,22 @@ import (
 	"github.com/beevik/etree"
 )
 
-func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
-	for _, c := range m.Components {
+type springBootMavenPluginManager struct {
+	m *manifest.Manifest
+}
+
+func NewSpringBootMavenPluginManager(m *manifest.Manifest) Reconciler {
+	return &springBootMavenPluginManager{m: m}
+}
+
+func (s *springBootMavenPluginManager) Name() string {
+	return "Instrumentation of spring-boot-maven-plugin"
+}
+
+func (s *springBootMavenPluginManager) Reconcile() error {
+	for _, c := range s.m.Components {
 		rootPom := filepath.Join(c.RootDir(), "pom.xml")
-		if err := instrumentPom(rootPom); err != nil {
+		if err := s.instrumentPom(rootPom); err != nil {
 			log.Fatalf("%s: %v", rootPom, err)
 		}
 
@@ -22,14 +34,14 @@ func InstrumentPomForFederatePackaging(m *manifest.Manifest) {
 			if !util.FileExists(pomPath) {
 				continue
 			}
-			if err := instrumentPom(pomPath); err != nil {
+			if err := s.instrumentPom(pomPath); err != nil {
 				log.Fatalf("%s: %v", pomPath, err)
 			}
 		}
 	}
 }
 
-func instrumentPom(pomPath string) error {
+func (s *springBootMavenPluginManager) instrumentPom(pomPath string) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(pomPath); err != nil {
 		return err

@@ -3,18 +3,19 @@ package merge
 import (
 	"federate/pkg/code"
 	"federate/pkg/manifest"
+	"federate/pkg/merge/addon"
 	"federate/pkg/merge/bean"
 	"federate/pkg/merge/property"
+	_ "federate/pkg/step"
 )
 
 // 合并编译器.
 type Compiler interface {
-	Prepare()
+	WithDryRun(bool) Compiler
 
+	Init()
 	AddReconciler(Reconciler)
-
-	// 合并编译.
-	Compile(dryRun bool) error
+	Merge(dryRun bool) error
 }
 
 func NewCompiler(m *manifest.Manifest) Compiler {
@@ -27,13 +28,25 @@ func NewCompiler(m *manifest.Manifest) Compiler {
 type compiler struct {
 	m           *manifest.Manifest
 	reconcilers []Reconciler
+
+	dryRun bool
 }
 
-func (p *compiler) Prepare() {
+func (p *compiler) WithDryRun(dryRun bool) Compiler {
+	p.dryRun = dryRun
+	return p
+}
+
+func (p *compiler) Init() {
 	// the order matters !
+
+	p.AddReconciler(addon.NewFusionProjectGenerator(m))
+	p.AddReconciler(NewSpringBootMavenPluginManager(p.m))
+
 	for _, rpcType := range SupportedRPCs {
 		p.AddReconciler(NewRpcConsumerManager(p.m, rpcType))
 	}
+
 	pm := property.NewManager(p.m)
 	p.AddReconciler(pm)
 	p.AddReconciler(bean.NewXmlBeanManager(p.m))
@@ -48,7 +61,12 @@ func (p *compiler) AddReconciler(r Reconciler) {
 	p.reconcilers = append(p.reconcilers, r)
 }
 
-func (p *compiler) Compile(dryRun bool) error {
+func (p *compiler) Merge() error {
+	if len(p.reconcilers) == 0 {
+		log.Println("No reconcilers registered")
+		return nil
+	}
+
 	for _, c := range p.m.Components {
 		for _, r := range p.reconcilers {
 			if visitor, ok := r.(code.JavaFileVisitor); ok {
@@ -60,7 +78,7 @@ func (p *compiler) Compile(dryRun bool) error {
 	}
 
 	for _, r := range p.reconcilers {
-		if err := r.Reconcile(dryRun); err != nil {
+		if err := r.Reconcile(); err != nil {
 			return err
 		}
 	}

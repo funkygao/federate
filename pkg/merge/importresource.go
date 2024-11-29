@@ -33,7 +33,7 @@ func (m *ImportResourceManager) Name() string {
 	return "Transforming Java @ImportResource value"
 }
 
-func (m *ImportResourceManager) Reconcile(dryRun bool) error {
+func (m *ImportResourceManager) Reconcile() error {
 	for _, component := range m.m.Components {
 		if err := m.reconcileComponent(component); err != nil {
 			return err

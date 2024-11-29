@@ -1,4 +1,4 @@
-package merge
+package addon
 
 import (
 	"fmt"
@@ -11,18 +11,31 @@ import (
 	"federate/pkg/util"
 )
 
-func scaffoldTargetSystem(m *manifest.Manifest) {
-	packageName, className := m.ParseMainClass()
-	generatePomFile(m)
-	generateMainClassFile(packageName, className, m)
-	generateMetaInf(m)
-	generateMakefile(m)
-	generatePackageXml(m)
-	generateStartStopScripts(m)
-	copyTaint(m)
+type FusionProjectGenerator struct {
+	m *manifest.Manifest
 }
 
-func generatePomFile(m *manifest.Manifest) {
+func NewFusionProjectGenerator(m *manifest.Manifest) *FusionProjectGenerator {
+	return &FusionProjectGenerator{m: m}
+}
+
+func (f *FusionProjectGenerator) Name() string {
+	return "Generate federated system scaffold"
+}
+
+func (f *FusionProjectGenerator) Reconcile() error {
+	f.generatePomFile()
+	packageName, className := f.m.ParseMainClass()
+	f.generateMainClassFile(packageName, className)
+	f.generateMetaInf()
+	f.generateMakefile()
+	f.generatePackageXml()
+	f.generateStartStopScripts()
+	f.copyTaint()
+}
+
+func (f *FusionProjectGenerator) generatePomFile() {
+	m := f.m
 	pomData := struct {
 		ArtifactId          string
 		GroupId             string
@@ -42,7 +55,8 @@ func generatePomFile(m *manifest.Manifest) {
 	fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
 }
 
-func generateMetaInf(m *manifest.Manifest) {
+func (f *FusionProjectGenerator) generateMetaInf() {
+	m := f.m
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -57,7 +71,8 @@ func generateMetaInf(m *manifest.Manifest) {
 	fs.GenerateFileFromTmpl("templates/spring.factories", fn, data)
 }
 
-func generateMainClassFile(packageName, className string, m *manifest.Manifest) {
+func (f *FusionProjectGenerator) generateMainClassFile(packageName, className string) {
+	m := f.m
 	mainClassData := struct {
 		App                     string
 		Package                 string
@@ -88,7 +103,8 @@ func generateMainClassFile(packageName, className string, m *manifest.Manifest) 
 	fs.GenerateFileFromTmpl("templates/mainClass.java", fn, mainClassData)
 }
 
-func generateMakefile(m *manifest.Manifest) {
+func (f *FusionProjectGenerator) generateMakefile() {
+	m := f.m
 	data := struct {
 		AppName    string
 		AppSrc     string
@@ -115,8 +131,9 @@ func generateMakefile(m *manifest.Manifest) {
 	fs.GenerateFileFromTmpl("templates/Makefile", fn, data)
 }
 
-func generatePackageXml(m *manifest.Manifest) {
-	root, err := m.CreateTargetSystemDir()
+func (f *FusionProjectGenerator) generatePackageXml() {
+	m := f.m
+	root, err := f.m.CreateTargetSystemDir()
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
@@ -124,7 +141,8 @@ func generatePackageXml(m *manifest.Manifest) {
 	fs.GenerateFileFromTmpl("templates/package.xml", fn, nil) // TODO 动态指定哪些资源文件拷贝的目标包
 }
 
-func generateStartStopScripts(m *manifest.Manifest) {
+func (f *FusionProjectGenerator) generateStartStopScripts() {
+	m := f.m
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -148,7 +166,8 @@ func generateStartStopScripts(m *manifest.Manifest) {
 	}
 }
 
-func copyTaint(m *manifest.Manifest) {
+func (f *FusionProjectGenerator) copyTaint() {
+	m := f.m
 	root, err := m.CreateTargetSystemDir()
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -162,5 +181,4 @@ func copyTaint(m *manifest.Manifest) {
 		}
 		log.Printf("Taint Copied %s -> %s", src, target)
 	}
-
 }

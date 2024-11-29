@@ -15,17 +15,12 @@ import (
 )
 
 // 解决 bean id 冲突：此时资源文件都已经拷贝到目标目录
-func (b *XmlBeanManager) Reconcile(dryRun bool) error {
+func (b *XmlBeanManager) Reconcile() error {
 	b.loadBeans()
 	b.makeReconcilePlan()
 
 	if b.plan.HasConflict() {
 		b.plan.ShowConflictReport()
-	}
-
-	if dryRun {
-		log.Printf("[Dry Run] Would update %d xml files", len(b.plan.beanIdModificationFiles))
-		return nil
 	}
 
 	b.executeReconcilePlan()

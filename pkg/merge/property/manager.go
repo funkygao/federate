@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"federate/pkg/manifest"
+	"federate/pkg/primitive"
 	"federate/pkg/util"
 )
 
@@ -22,8 +23,9 @@ type PropertyManager struct {
 	m *manifest.Manifest
 	r *registry
 
-	silent bool
-	debug  bool
+	analyzed bool
+	silent   bool
+	debug    bool
 
 	servletContextPath map[string]string // {componentName: contextPath}
 
@@ -38,10 +40,6 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 	}
 	pm.r.pm = pm
 	return pm
-}
-
-func (cm *PropertyManager) Name() string {
-	return "Analyze All Property and Identify Conflicts"
 }
 
 func (cm *PropertyManager) M() *manifest.Manifest {
@@ -65,6 +63,10 @@ func (cm *PropertyManager) Result() ReconcileReport {
 
 // 分析 .yml & .properties
 func (cm *PropertyManager) Analyze() error {
+	if cm.analyzed {
+		return nil
+	}
+
 	for _, component := range cm.m.Components {
 		if err := cm.analyzeComponent(component); err != nil {
 			return err
@@ -76,6 +78,8 @@ func (cm *PropertyManager) Analyze() error {
 
 	// 应用保留key处理规则
 	cm.applyReservedPropertyRules()
+
+	cm.analyzed = true
 	return nil
 }
 
@@ -205,58 +209,46 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 	return keys
 }
 
-func (pm *PropertyManager) ContainsKey(c manifest.ComponentInfo, key string) bool {
-	_, ok := pm.r.getComponentProperty(c, key)
-	return ok
-}
+// 写目标文件 federated/application.yml
+func (cm *PropertyManager) generateMergedYamlFile(targetFile string) error {
+	parser, supported := ParserByFile(targetFile)
+	if !supported {
+		return fmt.Errorf("unsupported file type: %s", targetFile)
+	}
 
-func (pm *PropertyManager) Resolve(key string) interface{} {
-	for _, entries := range pm.r.resolvableEntries {
-		if entry, ok := entries[key]; ok {
-			return entry.Value
+	entries := make(map[string]PropertyEntry)
+	processedKeys := primitive.NewStringSet()
+
+	for _, component := range cm.m.Components {
+		for key, entry := range cm.r.ComponentYamlEntries(component) {
+			if !processedKeys.Contains(key) {
+				entries[key] = entry
+				processedKeys.Add(key)
+			}
 		}
 	}
 
-	return nil
+	rawKeys := cm.m.Main.Reconcile.Resources.Property.RawKeys
+	return parser.Generate(entries, rawKeys, targetFile)
 }
 
-// 自动获取 line 里的属性引用占位符，并解析对应属性值，返回解析后的 line
-// 如果没有占位符，则返回原 line
-func (pm *PropertyManager) ResolveLine(line string) string {
-	// 使用正则表达式找到所有的占位符
-	matches := P.placeholderRegex.FindAllStringSubmatchIndex(line, -1)
-
-	// 如果没有匹配项，直接返回原始行
-	if len(matches) == 0 {
-		return line
+// 写目标文件 federated/application.properties
+func (cm *PropertyManager) generateMergedPropertiesFile(targetFile string) error {
+	parser, supported := ParserByFile(targetFile)
+	if !supported {
+		return fmt.Errorf("unsupported file type: %s", targetFile)
 	}
 
-	// 创建一个新的字符串构建器
-	var result strings.Builder
-	lastIndex := 0
-
-	for _, match := range matches {
-		// 添加占位符之前的文本
-		result.WriteString(line[lastIndex:match[0]])
-
-		// 提取占位符中的键
-		key := line[match[2]:match[3]]
-
-		// 解析键对应的值
-		value := pm.Resolve(key)
-
-		// 如果找到了值，添加到结果中；否则保留原始占位符
-		if value != nil {
-			result.WriteString(fmt.Sprintf("%v", value))
-		} else {
-			result.WriteString(line[match[0]:match[1]])
+	entries := make(map[string]PropertyEntry)
+	processedKeys := primitive.NewStringSet()
+	for _, component := range cm.m.Components {
+		for key, entry := range cm.r.ComponentPropertiesEntries(component) {
+			if !processedKeys.Contains(key) {
+				entries[key] = entry
+				processedKeys.Add(key)
+			}
 		}
-
-		lastIndex = match[1]
 	}
 
-	// 添加最后一个占位符之后的文本
-	result.WriteString(line[lastIndex:])
-
-	return result.String()
+	return parser.Generate(entries, nil, targetFile)
 }

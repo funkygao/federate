@@ -1,4 +1,4 @@
-package merge
+package microservice
 
 import (
 	"io"
@@ -11,6 +11,7 @@ import (
 	"federate/pkg/javast"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
+	"federate/pkg/merge/addon"
 	"federate/pkg/merge/bean"
 	"federate/pkg/merge/property"
 	"federate/pkg/merge/transformer"
@@ -32,7 +33,7 @@ var (
 	noColor                  bool
 )
 
-var MergeCmd = &cobra.Command{
+var mergeCmd = &cobra.Command{
 	Use:   "consolidate",
 	Short: "Merge components into target system following directives of the manifest",
 	Long: `The merge command merges components into target system following directives of the manifest.
@@ -59,6 +60,8 @@ func doMerge(m *manifest.Manifest) {
 		rpcConsumerManagers = append(rpcConsumerManagers, merge.NewRpcConsumerManager(m, rpc))
 	}
 
+	fusionProjectGenerator := addon.NewFusionProjectGenerator(m)
+	springBootMavenPlugiManager := merge.NewSpringBootMavenPluginManager(m)
 	propertyManager := property.NewManager(m)
 	xmlBeanManager := bean.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager(m)
@@ -67,24 +70,33 @@ func doMerge(m *manifest.Manifest) {
 	serviceManager := merge.NewServiceManager(m)
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
 
-	compiler := merge.NewCompiler(m)
-	compiler.Compile(true)
+	// TODO v3.0
+	compiler := merge.NewCompiler(m).WithDryRun(dryRunMerge)
+	compiler.Merge()
 
 	steps := []step.Step{
 		{
 			Name: "Generating federated system scaffold",
 			Fn: func() {
-				scaffoldTargetSystem(m)
+				if err := fusionProjectGenerator.Reconcile(); err != nil {
+					log.Fatalf("%s %v", fusionProjectGenerator.Name(), err)
+				}
 			}},
 		{
 			Name: "Instrumentation of spring-boot-maven-plugin",
 			Fn: func() {
-				InstrumentPomForFederatePackaging(m)
+				if err := springBootMavenPlugiManager.Reconcile(); err != nil {
+					log.Fatalf("%s %v", springBootMavenPlugiManager.Name(), err)
+				}
 			}},
 		{
 			Name: "Mergeing RPC Consumer XML to reduce redundant resource consumption",
 			Fn: func() {
-				mergeRpcConsumerXml(rpcConsumerManagers)
+				for _, manager := range rpcConsumerManagers {
+					if err := manager.Reconcile(); err != nil {
+						log.Fatalf("Error merging %s consumer xml: %v", manager.RPC(), err)
+					}
+				}
 			}},
 		{
 			Name: "Federated-Copying Resources",
@@ -101,26 +113,23 @@ func doMerge(m *manifest.Manifest) {
 				}
 			}},
 		{
-			Name: "Analyze All Property and Identify Conflicts",
-			Fn: func() {
-				identifyPropertyConflicts(propertyManager)
-			}},
-		{
 			Name: "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping",
 			Fn: func() {
-				reconcilePropertiesConflicts(propertyManager)
+				if err := propertyManager.Reconcile(); err != nil {
+					log.Fatalf("%s %v", propertyManager.Name(), err)
+				}
 			}},
 		{
 			Name: "Reconciling Spring XML BeanDefinition conflicts by Rewriting XML ref/value-ref/bean/properties-ref",
 			Fn: func() {
-				xmlBeanManager.Reconcile(dryRunMerge)
+				xmlBeanManager.Reconcile()
 				plan := xmlBeanManager.ReconcilePlan()
 				log.Printf("Found bean id conflicts: %d", plan.ConflictCount())
 			}},
 		{
 			Name: "Reconciling Spring Bean Injection conflicts by Rewriting @Resource",
 			Fn: func() {
-				if err := injectionManager.Reconcile(dryRunMerge); err != nil {
+				if err := injectionManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 				}
 
@@ -144,14 +153,14 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Reconciling ENV variables conflicts",
 			Fn: func() {
-				if err := envManager.Reconcile(dryRunMerge); err != nil {
+				if err := envManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 				}
 			}},
 		{
 			Name: "Transforming Java @Service/@Component value",
 			Fn: func() {
-				if err := serviceManager.Reconcile(dryRunMerge); err != nil {
+				if err := serviceManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 
 				}
@@ -160,14 +169,14 @@ func doMerge(m *manifest.Manifest) {
 			Name: "Transforming Java @ImportResource value",
 			Fn: func() {
 				importResourceManager := merge.NewImportResourceManager(m)
-				if err := importResourceManager.Reconcile(dryRunMerge); err != nil {
+				if err := importResourceManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 				}
 			}},
 		{
 			Name: "Detecting RPC Provider alias/group conflicts by Rewriting XML",
 			Fn: func() {
-				rpcAliasManager.Reconcile(dryRunMerge)
+				rpcAliasManager.Reconcile()
 			}},
 		{
 			Name: "Transforming @Transactional/TransactionTemplate to support multiple PlatformTransactionManager",
@@ -190,11 +199,11 @@ func doMerge(m *manifest.Manifest) {
 }
 
 func init() {
-	manifest.RequiredManifestFileFlag(MergeCmd)
-	MergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
-	MergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
-	MergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
-	MergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
-	MergeCmd.Flags().BoolVarP(&noColor, "no-color", "n", false, "Disable colorized output")
-	MergeCmd.Flags().BoolVarP(&merge.FailFast, "fail-fast", "f", false, "Fail fast")
+	manifest.RequiredManifestFileFlag(mergeCmd)
+	mergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
+	mergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
+	mergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
+	mergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
+	mergeCmd.Flags().BoolVarP(&noColor, "no-color", "n", false, "Disable colorized output")
+	mergeCmd.Flags().BoolVarP(&merge.FailFast, "fail-fast", "f", false, "Fail fast")
 }

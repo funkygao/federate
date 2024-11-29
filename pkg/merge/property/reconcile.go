@@ -3,13 +3,21 @@ package property
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"federate/pkg/concurrent"
+	"federate/pkg/federated"
 )
 
+func (cm *PropertyManager) Name() string {
+	return "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping"
+}
+
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
-func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
+func (cm *PropertyManager) Reconcile() (err error) {
+	cm.Analyze()
+
 	// pass 1: 识别冲突
 	conflicts := cm.identifyAllConflicts()
 	if len(conflicts) == 0 {
@@ -36,7 +44,6 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 		executor.AddTask(&reconcileTask{
 			c:                  cm.m.ComponentByName(componentName),
 			keys:               keys,
-			dryRun:             dryRun,
 			servletContextPath: cm.servletContextPath[componentName],
 			result:             ReconcileReport{},
 		})
@@ -47,12 +54,33 @@ func (cm *PropertyManager) Reconcile(dryRun bool) (err error) {
 		err = errors[0] // 返回第一个遇到的错误
 	}
 
+	// pass 4: 合并到目标文件
+	if err = cm.writeTargetFiles(); err != nil {
+		return
+	}
+
 	// aggregate resport
 	for _, task := range executor.Tasks() {
 		reconcileTask := task.(*reconcileTask)
 		cm.result.KeyPrefixed += reconcileTask.result.KeyPrefixed
 		cm.result.RequestMapping += reconcileTask.result.RequestMapping
 		cm.result.ConfigurationProperties += reconcileTask.result.ConfigurationProperties
+	}
+
+	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
+		result.RequestMapping, result.KeyPrefixed, result.ConfigurationProperties)
+	return
+}
+
+func (cm *PropertyManager) writeTargetFiles() (err error) {
+	pn := filepath.Join(federated.GeneratedResourceBaseDir(cm.m.Main.Name), "application.properties")
+	if err = cm.generateMergedPropertiesFile(pn); err != nil {
+		return err
+	}
+
+	an := filepath.Join(federated.GeneratedResourceBaseDir(cm.m.Main.Name), "application.yml")
+	if err = cm.generateMergedYamlFile(an); err != nil {
+		return err
 	}
 
 	return
