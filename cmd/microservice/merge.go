@@ -71,7 +71,7 @@ func doMerge(m *manifest.Manifest) {
 	rpcAliasManager := merge.NewRpcAliasManager(propertyManager)
 
 	// TODO v3.0
-	compiler := merge.NewCompiler(m).WithDryRun(dryRunMerge)
+	compiler := merge.NewCompiler(m, merge.WithDryRun(dryRunMerge), merge.WithAutoYes(autoYes))
 	compiler.Merge()
 
 	steps := []step.Step{

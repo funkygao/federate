@@ -11,30 +11,44 @@ import (
 
 // 合并编译器.
 type Compiler interface {
-	WithDryRun(bool) Compiler
-
 	Init()
 	AddReconciler(Reconciler)
 	Merge(dryRun bool) error
 }
 
-func NewCompiler(m *manifest.Manifest) Compiler {
-	return &compiler{
+type CompilerOption func(*Compiler)
+
+func NewCompiler(m *manifest.Manifest, opts ...CompilerOption) Compiler {
+	c := &compiler{
 		m:           m,
 		reconcilers: make([]Reconciler, 0),
 	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c
 }
 
 type compiler struct {
 	m           *manifest.Manifest
 	reconcilers []Reconciler
 
-	dryRun bool
+	dryRun  bool
+	autoYes bool
 }
 
-func (p *compiler) WithDryRun(dryRun bool) Compiler {
-	p.dryRun = dryRun
-	return p
+func WithAutoYes(butoYes ool) CompilerOption {
+	return func(c *compiler) {
+		c.autoYes = autoYes
+	}
+}
+
+func WithDryRun(dryRun bool) CompilerOption {
+	return func(c *compiler) {
+		c.dryRun = dryRun
+	}
 }
 
 func (p *compiler) Init() {
