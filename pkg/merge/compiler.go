@@ -16,7 +16,7 @@ type Compiler interface {
 	Merge(dryRun bool) error
 }
 
-type CompilerOption func(*Compiler)
+type CompilerOption func(Compiler)
 
 func NewCompiler(m *manifest.Manifest, opts ...CompilerOption) Compiler {
 	c := &compiler{
