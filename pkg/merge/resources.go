@@ -47,6 +47,21 @@ func NewResourceManager(m *manifest.Manifest) *ResourceManager {
 	}
 }
 
+func (rm *ResourceManager) Name() string {
+	return "Flat-Copy & Federated-Copy Resources"
+}
+
+func (rm *ResourceManager) Reconcile() error {
+	if err := rm.RecursiveFederatedCopyResources(); err != nil {
+		return err
+	}
+
+	if err := rm.RecursiveFlatCopyResources(); err != nil {
+		return err
+	}
+	return nil
+}
+
 // RecursiveFederatedCopyResources copy component resource files to target system src/main/resources/federated/{component}
 func (rm *ResourceManager) RecursiveFederatedCopyResources() error {
 	for _, component := range rm.m.Components {

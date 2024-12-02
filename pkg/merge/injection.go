@@ -32,6 +32,10 @@ func (m *SpringBeanInjectionManager) Reconcile() error {
 			return err
 		}
 	}
+
+	if m.AutowiredN > 0 {
+		log.Printf("Source Code Rewritten, +@Autowired: %d, +@Qualifier: %d", m.AutowiredN, m.QualifierN)
+	}
 	return nil
 }
 
