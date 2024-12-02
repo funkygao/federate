@@ -227,7 +227,7 @@ func TestAnalyze(t *testing.T) {
 	assert.Contains(t, resolvedProps["a"], "a.mysql.maximumPoolSize")
 	assert.Contains(t, resolvedProps["b"], "b.mysql.maximumPoolSize")
 	// 该值仍引用
-	assert.Equal(t, "${a.mysql.maximumPoolSize}", resolvedProps["a"]["a.wms.datasource.maximumPoolSize"].RawString)
+	assert.Equal(t, "${a.mysql.maximumPoolSize}", resolvedProps["a"]["a.wms.datasource.maximumPoolSize"].Raw)
 	assert.Equal(t, "10", resolvedProps["a"]["a.mysql.maximumPoolSize"].Value)
 	assert.Equal(t, "20", resolvedProps["b"]["b.mysql.maximumPoolSize"].Value)
 
@@ -379,8 +379,23 @@ wms:
 	}
 }
 
+func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
+	for key, componentValue := range conflicts {
+		for _, c := range util.MapSortedStringKeys(componentValue) {
+			t.Logf("[%s] %s = %v", c, key, conflicts[key][c])
+		}
+	}
+}
+
+func TestUpdatedReferenceString(t *testing.T) {
+	componentName, oldKey, newKey := "wms-stock", "db.pool.size", "wms-stock.db.pool.size"
+	entry := PropertyEntry{Raw: "${db.pool.size}"}
+	r := newRegistry(nil, true)
+	assert.Equal(t, "${wms-stock.db.pool.size}", r.updatedReferenceString(componentName, oldKey, newKey, entry))
+}
+
 func TestGenerateAllForManualCheck(t *testing.T) {
-	if true {
+	if os.Getenv("manual") == "" {
 		return
 	}
 
@@ -392,13 +407,22 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 
 	t.Log("")
 	t.Logf("属性冲突")
+	// master.ds0.mysql.url
+	// mysql.url
 	showConflict(t, pm.IdentifyPropertiesFileConflicts())
 	t.Logf("YML冲突")
+	// wms.datasource.maximumPoolSize
 	showConflict(t, pm.IdentifyYamlFileConflicts())
 	t.Log("")
 
 	t.Logf("Reconcile")
 	pm.Reconcile()
+	// a 和 b 的 yaml key: wms.datasource.maximumPoolSize，都在引用 ${mysql.maximumPoolSize}
+	assert.Equal(t, "${a.mysql.maximumPoolSize}", pm.r.resolvableEntries["a"]["wms.datasource.maximumPoolSize"].Raw)
+	assert.Equal(t, "10", pm.r.resolvableEntries["a"]["wms.datasource.maximumPoolSize"].Value)
+	assert.Equal(t, "20", pm.r.resolvableEntries["b"]["wms.datasource.maximumPoolSize"].Value)
+	assert.Equal(t, "${b.master.ds0.mysql.url}", pm.r.resolvableEntries["b"]["wms.ds0-master.jdbcUrl"].Value)
+	assert.Equal(t, "${b.master.ds0.mysql.url}", pm.r.resolvableEntries["b"]["wms.ds1-master.jdbcUrl"].Value)
 	t.Log("")
 
 	t.Logf("Registry DUMP")
@@ -411,19 +435,4 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 
 	t.Log("Summary")
 	transformer.Get().ShowSummary()
-}
-
-func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
-	for key, componentValue := range conflicts {
-		for _, c := range util.MapSortedStringKeys(componentValue) {
-			t.Logf("[%s] %s = %v", c, key, conflicts[key][c])
-		}
-	}
-}
-
-func TestUpdatedReferenceString(t *testing.T) {
-	componentName, oldKey, newKey := "wms-stock", "db.pool.size", "wms-stock.db.pool.size"
-	entry := PropertyEntry{RawString: "${db.pool.size}"}
-	r := newRegistry(nil, true)
-	assert.Equal(t, "${wms-stock.db.pool.size}", r.updatedReferenceString(componentName, oldKey, newKey, entry))
 }

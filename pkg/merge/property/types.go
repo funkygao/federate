@@ -16,7 +16,7 @@ type PropertyEntry struct {
 	Value interface{}
 
 	// 最原始值
-	RawString string
+	Raw string
 
 	FilePath string
 }
@@ -43,7 +43,7 @@ func (e *PropertyEntry) StringValue() string {
 }
 
 func (e *PropertyEntry) WasReference() bool {
-	return strings.Contains(e.RawString, "${")
+	return strings.Contains(e.Raw, "${")
 }
 
 func (e *PropertyEntry) RawReferenceValue() string {

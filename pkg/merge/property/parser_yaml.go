@@ -84,7 +84,7 @@ func (y *yamlParser) Generate(entries map[string]PropertyEntry, rawKeys []string
 	mergedYaml := make(map[string]interface{})
 	for key, entry := range entries {
 		if entry.WasReference() {
-			mergedYaml[key] = entry.RawString
+			mergedYaml[key] = entry.Raw
 		} else {
 			mergedYaml[key] = entry.Value
 		}

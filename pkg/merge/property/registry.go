@@ -63,18 +63,18 @@ func (r *registry) AddProperty(component manifest.ComponentInfo, key string, val
 	}
 
 	r.resolvableEntries[component.Name][key] = PropertyEntry{
-		Value:     value,
-		RawString: fmt.Sprintf("%v", value),
-		FilePath:  filePath,
+		Value:    value,
+		Raw:      fmt.Sprintf("%v", value),
+		FilePath: filePath,
 	}
 }
 
 // 更新解析后的值
 func (r *registry) ResolveProperty(componentName string, key string, existingEntry PropertyEntry, newValue interface{}) {
 	r.resolvableEntries[componentName][key] = PropertyEntry{
-		Value:     newValue,
-		RawString: existingEntry.RawString,
-		FilePath:  existingEntry.FilePath,
+		Value:    newValue,
+		Raw:      existingEntry.Raw,
+		FilePath: existingEntry.FilePath,
 	}
 }
 
@@ -194,9 +194,9 @@ func (r *registry) namespaceConfigurationProperties(componentName, configPropPre
 			nsKey := Key(subKey).WithNamespace(componentName)
 			// 为该key增加ns前缀的key
 			r.resolvableEntries[componentName][nsKey] = PropertyEntry{
-				Value:     r.resolvableEntries[componentName][subKey].Value,
-				RawString: r.resolvableEntries[componentName][subKey].RawString,
-				FilePath:  r.resolvableEntries[componentName][subKey].FilePath,
+				Value:    r.resolvableEntries[componentName][subKey].Value,
+				Raw:      r.resolvableEntries[componentName][subKey].Raw,
+				FilePath: r.resolvableEntries[componentName][subKey].FilePath,
 			}
 		}
 	}
@@ -206,9 +206,9 @@ func (r *registry) namespaceRegularProperty(componentName string, key Key, value
 	nsKey := key.WithNamespace(componentName)
 	transformer.Get().TransformRegularProperty(componentName, string(key), nsKey)
 	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
-		Value:     value,
-		RawString: originalEntry.RawString,
-		FilePath:  originalEntry.FilePath,
+		Value:    value,
+		Raw:      originalEntry.Raw,
+		FilePath: originalEntry.FilePath,
 	}
 
 	// 可能造成间接依赖的 jar 在运行时报错：通过 manifest override 人工指定
@@ -218,16 +218,17 @@ func (r *registry) namespaceRegularProperty(componentName string, key Key, value
 func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string) {
 	for k, entry := range r.resolvableEntries[componentName] {
 		if entry.WasReference() {
-			updatedRawString := r.updatedReferenceString(componentName, oldKey, newKey, entry)
-			if updatedRawString != entry.RawString {
-				updatedValue := r.pm.ResolveLine(updatedRawString)
+			updatedRaw := r.updatedReferenceString(componentName, oldKey, newKey, entry)
+			if updatedRaw != entry.Raw {
+				transformer.Get().TransformPlaceholder(componentName, entry.Raw, updatedRaw)
+				updatedValue := r.pm.ResolveLine(updatedRaw)
 				r.resolvableEntries[componentName][k] = PropertyEntry{
-					Value:     updatedValue,
-					RawString: updatedRawString,
-					FilePath:  entry.FilePath,
+					Value:    updatedValue,
+					Raw:      updatedRaw,
+					FilePath: entry.FilePath,
 				}
 				if !r.silent {
-					log.Printf("[%s] Updated reference in key %s: %s => %s", componentName, k, entry.RawString, updatedRawString)
+					log.Printf("[%s] Updated reference in key %s: %s => %s", componentName, k, entry.Raw, updatedRaw)
 				}
 			}
 		}
@@ -235,7 +236,7 @@ func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string
 }
 
 func (r *registry) updatedReferenceString(componentName, oldKey, newKey string, entry PropertyEntry) string {
-	return P.placeholderRegex.ReplaceAllStringFunc(entry.RawString, func(placeholder string) string {
+	return P.placeholderRegex.ReplaceAllStringFunc(entry.Raw, func(placeholder string) string {
 		key := strings.TrimPrefix(strings.TrimSuffix(placeholder, "}"), "${")
 		if key == oldKey && !strings.HasPrefix(key, componentName+".") {
 			// 修改
@@ -271,7 +272,7 @@ func (r *registry) dump() {
 	for _, componentName := range util.MapSortedStringKeys(r.resolvableEntries) {
 		values := r.resolvableEntries[componentName]
 		for k, v := range values {
-			log.Printf("[%s] %s = %s, Raw: %s", componentName, k, v.Value, v.RawString)
+			log.Printf("[%s] %s = %s, Raw: %s", componentName, k, v.Value, v.Raw)
 		}
 	}
 }

@@ -15,6 +15,7 @@ type Transformer struct {
 	importResource          map[string]map[string]string
 	configurationProperties map[string]map[string]string
 	regularProperties       map[string]map[string]string
+	propertyPlaceholders    map[string]map[string]string
 	requestMappings         map[string]map[string]string
 	envKeys                 map[string]map[string]struct{}
 }
@@ -23,6 +24,7 @@ var tf = &Transformer{
 	transactions:            make(map[string]string),
 	importResource:          make(map[string]map[string]string),
 	configurationProperties: make(map[string]map[string]string),
+	propertyPlaceholders:    make(map[string]map[string]string),
 	regularProperties:       make(map[string]map[string]string),
 	requestMappings:         make(map[string]map[string]string),
 	envKeys:                 make(map[string]map[string]struct{}),
@@ -42,6 +44,10 @@ func (t *Transformer) TransformRegularProperty(componentName, value, newValue st
 
 func (t *Transformer) TransformConfigurationProperties(componentName, value, newValue string) {
 	t.transform(t.configurationProperties, componentName, value, newValue)
+}
+
+func (t *Transformer) TransformPlaceholder(componentName, value, newValue string) {
+	t.transform(t.propertyPlaceholders, componentName, value, newValue)
 }
 
 func (t *Transformer) TransformImportResource(componentName, value, newValue string) {
@@ -70,6 +76,7 @@ func (t *Transformer) ShowSummary() {
 	indent := strings.Repeat(" ", 4)
 
 	t.printMapSection("Transformed Regular Properties:", indent, t.regularProperties)
+	t.printMapSection("Transformed Property Placeholders:", indent, t.propertyPlaceholders)
 	t.printMapSection("Transformed @ConfigurationProperties:", indent, t.configurationProperties)
 	t.printMapSection("Transformed @RequestMapping:", indent, t.requestMappings)
 	t.printMapSection("Transformed @ImportResource:", indent, t.importResource)
