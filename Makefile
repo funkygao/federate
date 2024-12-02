@@ -29,6 +29,9 @@ generate:
 fmt:
 	go fmt ./...
 
+race: fmt
+	go test -race ./...
+
 test: fmt
 	go test ./...
 

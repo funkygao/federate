@@ -23,9 +23,10 @@ type PropertyManager struct {
 	m *manifest.Manifest
 	r *registry
 
-	analyzed bool
-	silent   bool
-	debug    bool
+	analyzed    bool
+	silent      bool
+	debug       bool
+	writeTarget bool
 
 	servletContextPath map[string]string // {componentName: contextPath}
 
@@ -36,6 +37,7 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 	pm := &PropertyManager{
 		m:                  m,
 		r:                  newRegistry(m, false),
+		writeTarget:        true,
 		servletContextPath: make(map[string]string),
 	}
 	pm.r.pm = pm

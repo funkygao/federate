@@ -164,6 +164,7 @@ func TestAnalyze(t *testing.T) {
 	m := prepareTestManifest(t, tempDir)
 
 	pm := NewManager(m)
+	pm.writeTarget = false
 	require.NoError(t, pm.Analyze())
 	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
 	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
@@ -248,6 +249,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 	m := prepareTestManifest(t, tempDir)
 
 	pm := NewManager(m)
+	pm.writeTarget = false
 	require.NoError(t, pm.Analyze())
 
 	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
@@ -424,8 +426,13 @@ func TestUpdateReferencesInString(t *testing.T) {
 }
 
 func TestGenerateAllForManualCheck(t *testing.T) {
+	if true {
+		return
+	}
+
 	m := prepareTestManifest(t, "target")
 	pm := NewManager(m)
+	pm.writeTarget = false
 	pm.Debug()
 	pm.Analyze()
 

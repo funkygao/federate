@@ -1,6 +1,8 @@
 package merge
 
 import (
+	"log"
+
 	"federate/pkg/code"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/addon"
@@ -13,7 +15,7 @@ import (
 type Compiler interface {
 	Init()
 	AddReconciler(Reconciler)
-	Merge(dryRun bool) error
+	Merge() error
 }
 
 type CompilerOption func(Compiler)
@@ -39,22 +41,26 @@ type compiler struct {
 	autoYes bool
 }
 
-func WithAutoYes(butoYes ool) CompilerOption {
-	return func(c *compiler) {
-		c.autoYes = autoYes
+func WithAutoYes(autoYes bool) CompilerOption {
+	return func(c Compiler) {
+		if cc, ok := c.(*compiler); ok {
+			cc.autoYes = autoYes
+		}
 	}
 }
 
 func WithDryRun(dryRun bool) CompilerOption {
-	return func(c *compiler) {
-		c.dryRun = dryRun
+	return func(c Compiler) {
+		if cc, ok := c.(*compiler); ok {
+			cc.dryRun = dryRun
+		}
 	}
 }
 
 func (p *compiler) Init() {
 	// the order matters !
 
-	p.AddReconciler(addon.NewFusionProjectGenerator(m))
+	p.AddReconciler(addon.NewFusionProjectGenerator(p.m))
 	p.AddReconciler(NewSpringBootMavenPluginManager(p.m))
 
 	for _, rpcType := range SupportedRPCs {

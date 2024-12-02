@@ -31,6 +31,7 @@ func (f *FusionProjectGenerator) Reconcile() error {
 	f.generatePackageXml()
 	f.generateStartStopScripts()
 	f.copyTaint()
+	return nil
 }
 
 func (f *FusionProjectGenerator) generatePomFile() {
@@ -132,7 +133,6 @@ func (f *FusionProjectGenerator) generateMakefile() {
 }
 
 func (f *FusionProjectGenerator) generatePackageXml() {
-	m := f.m
 	root, err := f.m.CreateTargetSystemDir()
 	if err != nil {
 		log.Fatalf("%v", err)

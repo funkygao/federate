@@ -16,7 +16,9 @@ func (cm *PropertyManager) Name() string {
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) Reconcile() (err error) {
-	cm.Analyze()
+	if err = cm.Analyze(); err != nil {
+		return
+	}
 
 	// pass 1: 识别冲突
 	conflicts := cm.identifyAllConflicts()
@@ -55,8 +57,10 @@ func (cm *PropertyManager) Reconcile() (err error) {
 	}
 
 	// pass 4: 合并到目标文件
-	if err = cm.writeTargetFiles(); err != nil {
-		return
+	if cm.writeTarget {
+		if err = cm.writeTargetFiles(); err != nil {
+			return
+		}
 	}
 
 	// aggregate resport
@@ -68,7 +72,7 @@ func (cm *PropertyManager) Reconcile() (err error) {
 	}
 
 	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
-		result.RequestMapping, result.KeyPrefixed, result.ConfigurationProperties)
+		cm.result.RequestMapping, cm.result.KeyPrefixed, cm.result.ConfigurationProperties)
 	return
 }
 

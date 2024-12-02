@@ -26,7 +26,7 @@ func (s *springBootMavenPluginManager) Reconcile() error {
 	for _, c := range s.m.Components {
 		rootPom := filepath.Join(c.RootDir(), "pom.xml")
 		if err := s.instrumentPom(rootPom); err != nil {
-			log.Fatalf("%s: %v", rootPom, err)
+			return err
 		}
 
 		for _, module := range c.ChildDirs() {
@@ -35,10 +35,11 @@ func (s *springBootMavenPluginManager) Reconcile() error {
 				continue
 			}
 			if err := s.instrumentPom(pomPath); err != nil {
-				log.Fatalf("%s: %v", pomPath, err)
+				return err
 			}
 		}
 	}
+	return nil
 }
 
 func (s *springBootMavenPluginManager) instrumentPom(pomPath string) error {

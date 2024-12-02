@@ -14,6 +14,7 @@ It supports the @Files and @Folders mention mechanism.
 
 Example usage:
   federate chatgpt prompt [codebase dir]`,
+	Args: cobra.NoArgs,
 	Run: func(cmd *cobra.Command, args []string) {
 		codebaseDir := "."
 		if len(args) > 0 {
