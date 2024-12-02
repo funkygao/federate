@@ -63,6 +63,7 @@ func doMerge(m *manifest.Manifest) {
 	fusionProjectGenerator := addon.NewFusionProjectGenerator(m)
 	springBootMavenPlugiManager := merge.NewSpringBootMavenPluginManager(m)
 	propertyManager := property.NewManager(m)
+	importResourceManager := merge.NewImportResourceManager(m)
 	xmlBeanManager := bean.NewXmlBeanManager(m)
 	resourceManager := merge.NewResourceManager(m)
 	envManager := merge.NewEnvManager(propertyManager)
@@ -168,7 +169,6 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Transforming Java @ImportResource value",
 			Fn: func() {
-				importResourceManager := merge.NewImportResourceManager(m)
 				if err := importResourceManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 				}
