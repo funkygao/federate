@@ -36,11 +36,10 @@ type PropertyManager struct {
 func NewManager(m *manifest.Manifest) *PropertyManager {
 	pm := &PropertyManager{
 		m:                  m,
-		r:                  newRegistry(m, false),
 		writeTarget:        true,
 		servletContextPath: make(map[string]string),
 	}
-	pm.r.pm = pm
+	pm.r = newRegistry(m, pm, false)
 	return pm
 }
 

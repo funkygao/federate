@@ -37,7 +37,7 @@ func (cm *PropertyManager) resolveAllReferences() {
 		for key, existingEntry := range entries {
 			if strValue := existingEntry.StringValue(); strValue != "" {
 				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
-					cm.r.MarkAsUnresolvable(component, existingEntry, key)
+					cm.r.MovePropertyToUnresolvable(component, existingEntry, key)
 					unresolved = append(unresolved, []string{component, key, strValue, fmt.Sprintf("%v", existingEntry.IsYAML())})
 				} else {
 					cm.r.ResolveProperty(component, key, existingEntry, strValue)

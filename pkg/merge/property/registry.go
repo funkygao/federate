@@ -23,12 +23,13 @@ type registry struct {
 	reservedPropertyValues map[string][]ComponentPropertyValue
 }
 
-func newRegistry(m *manifest.Manifest, silent bool) *registry {
+func newRegistry(m *manifest.Manifest, pm *PropertyManager, silent bool) *registry {
 	return &registry{
 		resolvableEntries:      make(map[string]map[string]PropertyEntry),
 		unresolvableEntries:    make(map[string]map[string]PropertyEntry),
 		reservedPropertyValues: make(map[string][]ComponentPropertyValue),
 		manifest:               m,
+		pm:                     pm,
 		silent:                 silent,
 	}
 }
@@ -41,7 +42,7 @@ func (r *registry) AddProperty(component manifest.ComponentInfo, key string, val
 
 	// 保留关键字
 	if r.isReservedProperty(key) {
-		r.addReservedProperty(key, component, value)
+		r.AddToReservedProperties(key, component, value)
 		return
 	}
 
@@ -78,8 +79,8 @@ func (r *registry) ResolveProperty(componentName string, key string, existingEnt
 	}
 }
 
-// MarkAsUnresolvable marks a property as unresolvable and removes it from resolvable entries
-func (r *registry) MarkAsUnresolvable(componentName string, existingEntry PropertyEntry, key string) {
+// MovePropertyToUnresolvable marks a property as unresolvable and removes it from resolvable entries
+func (r *registry) MovePropertyToUnresolvable(componentName string, existingEntry PropertyEntry, key string) {
 	if _, present := r.unresolvableEntries[componentName]; !present {
 		r.unresolvableEntries[componentName] = make(map[string]PropertyEntry)
 	}
@@ -176,10 +177,10 @@ func (r *registry) SegregateProperty(componentName string, key Key, value interf
 	strKey := string(key)
 	originalEntry := r.resolvableEntries[componentName][strKey]
 
-	if integralKey := r.getConfigurationPropertiesPrefix(strKey); integralKey != "" {
-		r.namespaceConfigurationProperties(componentName, integralKey)
+	if integralKey := r.pm.getConfigurationPropertiesPrefix(strKey); integralKey != "" {
+		r.addNamespaceToConfigurationProperties(componentName, integralKey)
 	} else {
-		r.namespaceRegularProperty(componentName, key, value, originalEntry)
+		r.addNamespaceToRegularProperty(componentName, key, value, originalEntry)
 	}
 
 	// 更新内存中其他属性的引用
@@ -187,7 +188,7 @@ func (r *registry) SegregateProperty(componentName string, key Key, value interf
 }
 
 // 统一调和 @ConfigurationProperties 的 key
-func (r *registry) namespaceConfigurationProperties(componentName, configPropPrefix string) {
+func (r *registry) addNamespaceToConfigurationProperties(componentName, configPropPrefix string) {
 	for subKey := range r.resolvableEntries[componentName] {
 		if strings.HasPrefix(subKey, configPropPrefix) {
 			transformer.Get().TransformConfigurationProperties(componentName, configPropPrefix, Key(configPropPrefix).WithNamespace(componentName))
@@ -202,7 +203,7 @@ func (r *registry) namespaceConfigurationProperties(componentName, configPropPre
 	}
 }
 
-func (r *registry) namespaceRegularProperty(componentName string, key Key, value interface{}, originalEntry PropertyEntry) {
+func (r *registry) addNamespaceToRegularProperty(componentName string, key Key, value interface{}, originalEntry PropertyEntry) {
 	nsKey := key.WithNamespace(componentName)
 	transformer.Get().TransformRegularProperty(componentName, string(key), nsKey)
 	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
@@ -252,20 +253,11 @@ func (r *registry) isReservedProperty(key string) bool {
 	return exists
 }
 
-func (r *registry) addReservedProperty(key string, component manifest.ComponentInfo, value interface{}) {
+func (r *registry) AddToReservedProperties(key string, component manifest.ComponentInfo, value interface{}) {
 	if _, exists := r.reservedPropertyValues[key]; !exists {
 		r.reservedPropertyValues[key] = []ComponentPropertyValue{}
 	}
 	r.reservedPropertyValues[key] = append(r.reservedPropertyValues[key], ComponentPropertyValue{Component: component, Value: value})
-}
-
-func (r *registry) getConfigurationPropertiesPrefix(key string) string {
-	for _, prefix := range r.manifest.Main.Reconcile.Resources.Property.ConfigurationPropertiesKeys {
-		if strings.HasPrefix(key, prefix) {
-			return prefix
-		}
-	}
-	return ""
 }
 
 func (r *registry) dump() {
