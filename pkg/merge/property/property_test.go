@@ -395,7 +395,7 @@ func TestUpdatedReferenceString(t *testing.T) {
 }
 
 func TestGenerateAllForManualCheck(t *testing.T) {
-	if os.Getenv("manual") == "" {
+	if !testing.Verbose() {
 		return
 	}
 
