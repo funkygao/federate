@@ -2,7 +2,6 @@ package property
 
 import (
 	"log"
-	"os"
 	"path/filepath"
 	"runtime"
 
@@ -88,10 +87,4 @@ func (cm *PropertyManager) writeTargetFiles() (err error) {
 	}
 
 	return
-}
-
-func (cm *PropertyManager) namespacePropertyPlaceholders(s, componentName string) string {
-	return os.Expand(s, func(key string) string {
-		return "${" + componentName + "." + key + "}"
-	})
 }

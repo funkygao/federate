@@ -164,16 +164,19 @@ func TestAnalyze(t *testing.T) {
 	m := prepareTestManifest(t, tempDir)
 
 	pm := NewManager(m)
+	pm.silent = false
 	pm.writeTarget = false
 	require.NoError(t, pm.Analyze())
-	resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
-	t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
-	unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.unresolvableEntries, "", "  ")
-	t.Logf("Unresovled properties:\n%s", string(unresolvedPropertiesJSON))
-
 	conflicts := pm.identifyAllConflicts()
-	conflictsJSON, _ := json.MarshalIndent(conflicts, "", "  ")
-	t.Logf("Conflicts:\n%s", string(conflictsJSON))
+	if pm.debug {
+		resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
+		t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
+		unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.unresolvableEntries, "", "  ")
+		t.Logf("Unresovled properties:\n%s", string(unresolvedPropertiesJSON))
+
+		conflictsJSON, _ := json.MarshalIndent(conflicts, "", "  ")
+		t.Logf("Conflicts:\n%s", string(conflictsJSON))
+	}
 
 	// 验证无法解析的keys
 	assert.Equal(t, "${non.exist}", pm.r.unresolvableEntries["b"]["wms.datasource.unresolved"].Value)
@@ -206,8 +209,10 @@ func TestAnalyze(t *testing.T) {
 	// 调和冲突
 	err := pm.Reconcile()
 	require.NoError(t, err)
-	resolvedPropertiesJSON, _ = json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
-	t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
+	if pm.debug {
+		resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
+		t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
+	}
 
 	// 检查解决后的属性
 	resolvedProps := pm.r.resolvableEntries
@@ -374,57 +379,6 @@ wms:
 	}
 }
 
-func TestUpdateReferencesInString(t *testing.T) {
-	testCases := []struct {
-		name           string
-		input          string
-		componentName  string
-		expectedOutput string
-	}{
-		{
-			name:           "Simple replacement",
-			input:          "Hello ${name}",
-			componentName:  "user",
-			expectedOutput: "Hello ${user.name}",
-		},
-		{
-			name:           "Multiple replacements",
-			input:          "Hello ${firstName} ${lastName}",
-			componentName:  "person",
-			expectedOutput: "Hello ${person.firstName} ${person.lastName}",
-		},
-		{
-			name:           "No replacements needed",
-			input:          "Hello World",
-			componentName:  "greeting",
-			expectedOutput: "Hello World",
-		},
-		{
-			name:           "Empty string",
-			input:          "",
-			componentName:  "empty",
-			expectedOutput: "",
-		},
-		{
-			name:           "Only placeholders",
-			input:          "${a}${b}${c}",
-			componentName:  "test",
-			expectedOutput: "${test.a}${test.b}${test.c}",
-		},
-	}
-
-	pm := &PropertyManager{}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := pm.namespacePropertyPlaceholders(tc.input, tc.componentName)
-			if result != tc.expectedOutput {
-				t.Errorf("Expected %q, but got %q", tc.expectedOutput, result)
-			}
-		})
-	}
-}
-
 func TestGenerateAllForManualCheck(t *testing.T) {
 	if true {
 		return
@@ -465,4 +419,11 @@ func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
 			t.Logf("[%s] %s = %v", c, key, conflicts[key][c])
 		}
 	}
+}
+
+func TestUpdatedReferenceString(t *testing.T) {
+	componentName, oldKey, newKey := "wms-stock", "db.pool.size", "wms-stock.db.pool.size"
+	entry := PropertyEntry{RawString: "${db.pool.size}"}
+	r := newRegistry(nil, true)
+	assert.Equal(t, "${wms-stock.db.pool.size}", r.updatedReferenceString(componentName, oldKey, newKey, entry))
 }

@@ -176,18 +176,10 @@ func (r *registry) SegregateProperty(componentName string, key Key, value interf
 	strKey := string(key)
 	originalEntry := r.resolvableEntries[componentName][strKey]
 
-	newRawString := originalEntry.RawString
-	if originalEntry.WasReference() {
-		newRawString = r.pm.namespacePropertyPlaceholders(originalEntry.RawString, componentName)
-		if !r.silent {
-			log.Printf("[%s] Key=%s Ref Updated: %s => %s", componentName, strKey, originalEntry.RawString, newRawString)
-		}
-	}
-
 	if integralKey := r.getConfigurationPropertiesPrefix(strKey); integralKey != "" {
 		r.namespaceConfigurationProperties(componentName, integralKey)
 	} else {
-		r.namespaceRegularProperty(componentName, key, value, newRawString, originalEntry)
+		r.namespaceRegularProperty(componentName, key, value, originalEntry)
 	}
 
 	// 更新内存中其他属性的引用
@@ -210,12 +202,12 @@ func (r *registry) namespaceConfigurationProperties(componentName, configPropPre
 	}
 }
 
-func (r *registry) namespaceRegularProperty(componentName string, key Key, value interface{}, newOriginalString string, originalEntry PropertyEntry) {
+func (r *registry) namespaceRegularProperty(componentName string, key Key, value interface{}, originalEntry PropertyEntry) {
 	nsKey := key.WithNamespace(componentName)
 	transformer.Get().TransformRegularProperty(componentName, string(key), nsKey)
 	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 		Value:     value,
-		RawString: newOriginalString,
+		RawString: originalEntry.RawString,
 		FilePath:  originalEntry.FilePath,
 	}
 
@@ -224,24 +216,34 @@ func (r *registry) namespaceRegularProperty(componentName string, key Key, value
 }
 
 func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string) {
-	for comp, entries := range r.resolvableEntries {
-		for k, entry := range entries {
-			if entry.WasReference() {
-				updatedRawString := strings.ReplaceAll(entry.RawString, "${"+oldKey+"}", "${"+newKey+"}")
-				if updatedRawString != entry.RawString {
-					updatedValue := r.pm.ResolveLine(updatedRawString)
-					r.resolvableEntries[comp][k] = PropertyEntry{
-						Value:     updatedValue,
-						RawString: updatedRawString,
-						FilePath:  entry.FilePath,
-					}
-					if !r.silent {
-						log.Printf("[%s] Updated reference in key %s: %s => %s", comp, k, entry.RawString, updatedRawString)
-					}
+	for k, entry := range r.resolvableEntries[componentName] {
+		if entry.WasReference() {
+			updatedRawString := r.updatedReferenceString(componentName, oldKey, newKey, entry)
+			if updatedRawString != entry.RawString {
+				updatedValue := r.pm.ResolveLine(updatedRawString)
+				r.resolvableEntries[componentName][k] = PropertyEntry{
+					Value:     updatedValue,
+					RawString: updatedRawString,
+					FilePath:  entry.FilePath,
+				}
+				if !r.silent {
+					log.Printf("[%s] Updated reference in key %s: %s => %s", componentName, k, entry.RawString, updatedRawString)
 				}
 			}
 		}
 	}
+}
+
+func (r *registry) updatedReferenceString(componentName, oldKey, newKey string, entry PropertyEntry) string {
+	return P.placeholderRegex.ReplaceAllStringFunc(entry.RawString, func(placeholder string) string {
+		key := strings.TrimPrefix(strings.TrimSuffix(placeholder, "}"), "${")
+		if key == oldKey && !strings.HasPrefix(key, componentName+".") {
+			// 修改
+			return "${" + newKey + "}"
+		}
+		// 不变
+		return placeholder
+	})
 }
 
 func (r *registry) isReservedProperty(key string) bool {
