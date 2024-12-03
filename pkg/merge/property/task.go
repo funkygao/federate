@@ -18,6 +18,7 @@ import (
 )
 
 type reconcileTask struct {
+	pm                 *PropertyManager
 	c                  *manifest.ComponentInfo
 	keys               []string
 	servletContextPath string
@@ -66,7 +67,9 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		}
 
 		if t.c.M.MainClass.ExcludeJavaFile(info.Name()) {
-			log.Printf("Excluded from fixing conflicting property key: %s", info.Name())
+			if t.pm.debug {
+				log.Printf("[%s] Excluded from fixing conflicting property key: %s", t.c.Name, info.Name())
+			}
 			return nil
 		}
 
@@ -88,7 +91,9 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 					replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
 					dmp := diffmatchpatch.New()
 					diffs := dmp.DiffMain(match, replaced, false)
-					log.Printf("Transforming %s\n%s", path, dmp.DiffPrettyText(diffs))
+					if t.pm.debug {
+						log.Printf("[%s] Transforming %s\n%s", t.c.Name, path, dmp.DiffPrettyText(diffs))
+					}
 					return replaced
 				})
 				if strings.Contains(regex.String(), "@ConfigurationProperties") {
@@ -102,7 +107,6 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		if changed {
 			// newContent 是叠加所有替换后的完整文件内容
 			if err = ioutil.WriteFile(path, []byte(newContent), info.Mode()); err != nil {
-				log.Fatalf("%v", err)
 				return err
 			}
 		}
@@ -130,6 +134,7 @@ func (t *reconcileTask) updateRequestMappings() error {
 		Walk(code.WithContext(ctx))
 }
 
+// 更新 @RequestMapping
 func (t *reconcileTask) Visit(ctx context.Context, jf *code.JavaFile) {
 	contextPath, ok := ctx.Value("contextPath").(string)
 	if !ok {
@@ -140,7 +145,9 @@ func (t *reconcileTask) Visit(ctx context.Context, jf *code.JavaFile) {
 	newContent := t.updateRequestMappingInFile(oldContent, contextPath)
 	if newContent != oldContent {
 		ledger.Get().TransformRequestMapping(t.c.Name, "", contextPath)
-		diff.RenderUnifiedDiff(oldContent, newContent)
+		if t.pm.debug {
+			diff.RenderUnifiedDiff(oldContent, newContent)
+		}
 
 		if err := jf.Overwrite(newContent); err != nil {
 			log.Fatalf("%v", err)

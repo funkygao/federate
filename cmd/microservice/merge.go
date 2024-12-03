@@ -133,10 +133,6 @@ func doMerge(m *manifest.Manifest) {
 				if err := injectionManager.Reconcile(); err != nil {
 					log.Fatalf("%v", err)
 				}
-
-				if injectionManager.AutowiredN > 0 {
-					log.Printf("Source Code Rewritten, +@Autowired: %d, +@Qualifier: %d", injectionManager.AutowiredN, injectionManager.QualifierN)
-				}
 			}},
 		{
 			Name: "Generating Federated Spring Bootstrap XML",

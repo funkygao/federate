@@ -9,10 +9,6 @@ import (
 	"federate/pkg/federated"
 )
 
-func (cm *PropertyManager) Name() string {
-	return "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping"
-}
-
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) Reconcile() (err error) {
 	if err = cm.Prepare(); err != nil {
@@ -37,9 +33,9 @@ func (cm *PropertyManager) Reconcile() (err error) {
 
 	// pass 3: 创建并发任务对 Component 源代码进行插桩改写
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
-	executor.SetName("Overwrite Java/XML conflicted property references & @RequestMapping & @ConfigurationProperties")
 	for componentName, keys := range conflictingKeysOfComponents {
 		executor.AddTask(&reconcileTask{
+			pm:                 cm,
 			c:                  cm.m.ComponentByName(componentName),
 			keys:               keys,
 			servletContextPath: cm.servletContextPath[componentName],

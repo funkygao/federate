@@ -20,7 +20,7 @@ func NewFusionProjectGenerator(m *manifest.Manifest) *FusionProjectGenerator {
 }
 
 func (f *FusionProjectGenerator) Name() string {
-	return "Generate federated system scaffold"
+	return "Generating federated system scaffold"
 }
 
 func (f *FusionProjectGenerator) Reconcile() error {

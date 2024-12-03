@@ -15,22 +15,19 @@ type registry struct {
 	manifest *manifest.Manifest
 	pm       *PropertyManager
 
-	silent bool
-
 	resolvableEntries   map[string]map[string]PropertyEntry
 	unresolvableEntries map[string]map[string]PropertyEntry
 
 	reservedPropertyValues map[string][]ComponentPropertyValue
 }
 
-func newRegistry(m *manifest.Manifest, pm *PropertyManager, silent bool) *registry {
+func newRegistry(m *manifest.Manifest, pm *PropertyManager) *registry {
 	return &registry{
 		resolvableEntries:      make(map[string]map[string]PropertyEntry),
 		unresolvableEntries:    make(map[string]map[string]PropertyEntry),
 		reservedPropertyValues: make(map[string][]ComponentPropertyValue),
 		manifest:               m,
 		pm:                     pm,
-		silent:                 silent,
 	}
 }
 
@@ -57,8 +54,8 @@ func (r *registry) AddProperty(component manifest.ComponentInfo, key string, val
 
 	existingEntry, exists := r.getComponentProperty(component, key)
 	if exists && r.shouldKeepExistingValue(existingEntry, value) {
-		if !r.silent {
-			log.Printf("[%s] Keep existing value for %s: %v (new value was: %v)", component.Name, key, existingEntry.Value, value)
+		if !r.pm.silent {
+			log.Printf("[%s] Retain value for %s: %v (new value was: %v)", component.Name, key, existingEntry.Value, value)
 		}
 		return
 	}
@@ -228,7 +225,7 @@ func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string
 					Raw:      updatedRaw,
 					FilePath: entry.FilePath,
 				}
-				if !r.silent {
+				if r.pm.debug {
 					log.Printf("[%s] Updated registry key reference %s: %s => %s", componentName, k, entry.Raw, updatedRaw)
 				}
 			}

@@ -7,7 +7,6 @@ import (
 	"federate/internal/fs"
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
-	"github.com/fatih/color"
 )
 
 type springXmlMerger struct {
@@ -30,7 +29,5 @@ func (m *springXmlMerger) Reconcile() error {
 
 	targetFile := filepath.Join(targetDir, "spring.xml")
 	fs.GenerateFileFromTmpl("templates/spring.xml", targetFile, m)
-
-	color.Green("🍺 Generated %s", targetFile)
 	return nil
 }

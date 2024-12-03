@@ -21,7 +21,7 @@ func (p *propertiesParser) Parse(filePath string, component manifest.ComponentIn
 	defer file.Close()
 
 	if !cm.silent || cm.debug {
-		log.Printf("[%s] Processing %s", component.Name, filePath)
+		log.Printf("[%s] Parsing %s", component.Name, filePath)
 	}
 
 	scanner := bufio.NewScanner(file)

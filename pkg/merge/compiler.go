@@ -67,8 +67,10 @@ func (p *compiler) Init() Compiler {
 		p.AddReconciler(NewRpcConsumerManager(p.m, rpcType))
 	}
 
+	// 属性管理器修改 component 目录，需要在 ResourceManager 之前处理后，才能拷贝到目标目录
 	pm := property.NewManager(p.m)
 	p.AddReconciler(pm)
+
 	p.AddReconciler(NewResourceManager(p.m))
 	p.AddReconciler(bean.NewXmlBeanManager(p.m))
 	p.AddReconciler(NewSpringBeanInjectionManager(p.m))

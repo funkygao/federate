@@ -417,7 +417,9 @@ func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
 func TestUpdatedReferenceString(t *testing.T) {
 	componentName, oldKey, newKey := "wms-stock", "db.pool.size", "wms-stock.db.pool.size"
 	entry := PropertyEntry{Raw: "${db.pool.size}"}
-	r := newRegistry(nil, nil, true)
+	pm := NewManager(nil)
+	pm.Debug()
+	r := newRegistry(nil, nil)
 	assert.Equal(t, "${wms-stock.db.pool.size}", r.updatedReferenceString(componentName, oldKey, newKey, entry))
 }
 

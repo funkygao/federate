@@ -1,7 +1,6 @@
 package code
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 
@@ -42,7 +41,6 @@ func (w *JavaWalker) Walk(opts ...AcceptOption) error {
 			return nil
 		}
 		if w.c.M != nil && w.c.M.MainClass.ExcludeJavaFile(info.Name()) {
-			log.Printf("[%s] Excluded %s", w.c.Name, info.Name())
 			return nil
 		}
 

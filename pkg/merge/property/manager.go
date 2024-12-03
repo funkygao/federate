@@ -20,10 +20,10 @@ type ReconcileReport struct {
 
 // 合并 YAML, properties 文件
 type PropertyManager struct {
-	m *manifest.Manifest
-	r *registry
+	m        *manifest.Manifest
+	r        *registry
+	analyzed bool
 
-	analyzed    bool
 	silent      bool
 	debug       bool
 	writeTarget bool
@@ -39,8 +39,12 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 		writeTarget:        true,
 		servletContextPath: make(map[string]string),
 	}
-	pm.r = newRegistry(m, pm, false)
+	pm.r = newRegistry(m, pm)
 	return pm
+}
+
+func (cm *PropertyManager) Name() string {
+	return "Reconciling Property Conflicts by Rewriting @Value/@ConfigurationProperties/@RequestMapping/XML/.properties"
 }
 
 func (cm *PropertyManager) M() *manifest.Manifest {
@@ -54,7 +58,6 @@ func (cm *PropertyManager) Debug() *PropertyManager {
 
 func (cm *PropertyManager) Silent() *PropertyManager {
 	cm.silent = true
-	cm.r.silent = true
 	return cm
 }
 
@@ -160,7 +163,9 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry)
 
 			// 检查是否是 ConfigurationProperties 的一部分
 			if integralKey := pm.getConfigurationPropertiesPrefix(key); integralKey != "" {
-				log.Printf("@ConfigurationProperties(%s) key[%s] encounters conflict values", integralKey, key)
+				if pm.debug {
+					log.Printf("@ConfigurationProperties(%s) key[%s] encounters conflict values", integralKey, key)
+				}
 				configPropConflicts[integralKey] = true
 			}
 		}

@@ -24,7 +24,7 @@ func (y *yamlParser) recursiveParseFile(filePath string, springProfile string, c
 	}
 
 	if !pm.silent || pm.debug {
-		log.Printf("[%s:%s] Processing %s", component.Name, springProfile, filePath)
+		log.Printf("[%s:%s] Parsing %s", component.Name, springProfile, filePath)
 	}
 
 	dataStr := string(data)

@@ -19,13 +19,13 @@ func NewSpringBootMavenPluginManager(m *manifest.Manifest) Reconciler {
 }
 
 func (s *springBootMavenPluginManager) Name() string {
-	return "Instrumentation of spring-boot-maven-plugin"
+	return "Instrumentation of spring-boot-maven-plugin "
 }
 
 func (s *springBootMavenPluginManager) Reconcile() error {
 	for _, c := range s.m.Components {
 		rootPom := filepath.Join(c.RootDir(), "pom.xml")
-		if err := s.instrumentPom(rootPom); err != nil {
+		if err := s.instrumentPom(c, rootPom); err != nil {
 			return err
 		}
 
@@ -34,7 +34,7 @@ func (s *springBootMavenPluginManager) Reconcile() error {
 			if !util.FileExists(pomPath) {
 				continue
 			}
-			if err := s.instrumentPom(pomPath); err != nil {
+			if err := s.instrumentPom(c, pomPath); err != nil {
 				return err
 			}
 		}
@@ -42,7 +42,7 @@ func (s *springBootMavenPluginManager) Reconcile() error {
 	return nil
 }
 
-func (s *springBootMavenPluginManager) instrumentPom(pomPath string) error {
+func (s *springBootMavenPluginManager) instrumentPom(c manifest.ComponentInfo, pomPath string) error {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(pomPath); err != nil {
 		return err
@@ -101,7 +101,7 @@ func (s *springBootMavenPluginManager) instrumentPom(pomPath string) error {
 				skip = configuration.CreateElement("skip")
 			}
 			skip.SetText("${federate.packaging}")
-			log.Printf("Rewritten spring-boot-maven-plugin skip federate.packaging in %s", pomPath)
+			log.Printf("[%s] Instrumented spring-boot-maven-plugin configuration: %s", c.Name, pomPath)
 			break
 		}
 	}
