@@ -16,7 +16,7 @@ func TestDependencyGraph(t *testing.T) {
 		assert.Len(t, dg.Nodes, 2)
 		assert.Equal(t, "value1", dg.Nodes["key1"].Value)
 		assert.Equal(t, "value2", dg.Nodes["key2"].Value)
-		assert.Contains(t, dg.Nodes["key1"].Deps, "key2")
+		assert.True(t, dg.Nodes["key1"].Deps.Contains("key2"))
 	})
 
 	t.Run("TopologicalSort", func(t *testing.T) {
@@ -74,9 +74,9 @@ func TestDependencyGraph(t *testing.T) {
 		assert.Contains(t, dg.Nodes, "component2.prop3")
 		assert.Contains(t, dg.Nodes, "component2.prop4")
 
-		assert.Contains(t, dg.Nodes["component1.prop2"].Deps, "component1.prop3")
-		assert.Contains(t, dg.Nodes["component1.prop5"].Deps, "component2.prop3")
-		assert.Contains(t, dg.Nodes["component2.prop4"].Deps, "component1.prop1")
+		assert.True(t, dg.Nodes["component1.prop2"].Deps.Contains("component1.prop3"))
+		assert.True(t, dg.Nodes["component1.prop5"].Deps.Contains("component2.prop3"))
+		assert.True(t, dg.Nodes["component2.prop4"].Deps.Contains("component1.prop1"))
 
 		sorted := dg.TopologicalSort()
 		assert.Equal(t, 6, len(sorted))

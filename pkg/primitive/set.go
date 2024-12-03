@@ -19,6 +19,10 @@ func (s *StringSet) Contains(item string) bool {
 	return exists
 }
 
+func (s *StringSet) Items() map[string]struct{} {
+	return s.items
+}
+
 func (s *StringSet) Remove(item string) {
 	delete(s.items, item)
 }
