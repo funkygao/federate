@@ -2,4 +2,4 @@
 
 ## How to use
 
-Copy your `federated` plugin `.so` plugin files here, and the plugin will be triggered automatically.
+Copy your `federate` plugin files `.so` here, and the plugin loader will automatically load and trigger them as expected.
