@@ -23,7 +23,7 @@ func createJavaRegex(key string) *regexp.Regexp {
 }
 
 func createXmlRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`(value|key)="\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
+	return regexp.MustCompile(`(\w+\s*=\s*"\$\{)` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 
 func createConfigurationPropertiesRegex(key string) *regexp.Regexp {
