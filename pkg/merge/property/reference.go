@@ -3,28 +3,36 @@ package property
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"federate/pkg/tablerender"
 )
 
 func (cm *PropertyManager) resolveAllReferences() {
-	maxIterations := 10 // 设置最大迭代次数，防止无限循环
-	iteration := 0
-	changed := true
+	dg := NewDependencyGraph().FromPropertyManager(cm)
+	sortedKeys := dg.TopologicalSort()
 
-	for changed && iteration < maxIterations {
-		changed = false
-		iteration++
+	for _, fullKey := range sortedKeys {
+		component, key := splitFullKey(fullKey)
+		if entry, ok := cm.r.resolvableEntries[component][key]; ok {
+			if rawRef := entry.RawReferenceValue(); rawRef != "" {
+				newValue := cm.r.ResolvePropertyReference(component, rawRef)
+				if newValue != rawRef {
+					cm.r.ResolveProperty(component, key, entry, newValue)
+				}
+			}
+		}
+	}
 
-		for component, entries := range cm.r.GetAllResolvableEntries() {
-			for key, existingEntry := range entries {
-				if rawRef := existingEntry.RawReferenceValue(); rawRef != "" {
+	// 第二遍解析，处理可能依赖于刚刚解析的值的引用
+	for _, fullKey := range sortedKeys {
+		component, key := splitFullKey(fullKey)
+		if entries, ok := cm.r.resolvableEntries[component]; ok {
+			if entry, ok := entries[key]; ok {
+				if rawRef := entry.RawReferenceValue(); rawRef != "" {
 					newValue := cm.r.ResolvePropertyReference(component, rawRef)
 					if newValue != rawRef {
-						cm.r.ResolveProperty(component, key, existingEntry, newValue)
-						changed = true
-					} else {
-						// 相互引用，此轮还无法解析
+						cm.r.ResolveProperty(component, key, entry, newValue)
 					}
 				}
 			}
@@ -48,7 +56,15 @@ func (cm *PropertyManager) resolveAllReferences() {
 
 	if !cm.silent && len(unresolved) > 0 {
 		header := []string{"Component", "Key", "Unresolved Value", "Yaml"}
-		log.Printf("Found %d unresolvable references (these properties will be removed) after %d iterations:", len(unresolved), iteration+1)
+		log.Printf("Found %d unresolvable references (these properties will be removed):", len(unresolved))
 		tablerender.DisplayTable(header, unresolved, false, -1)
 	}
+}
+
+func splitFullKey(fullKey string) (component, key string) {
+	parts := strings.SplitN(fullKey, ".", 2)
+	if len(parts) == 2 {
+		return parts[0], parts[1]
+	}
+	return "", fullKey
 }
