@@ -44,3 +44,58 @@ func TestMapSortedStringKeys(t *testing.T) {
 	}
 	assert.Equal(t, []string{"a", "b", "c"}, MapSortedStringKeys(m))
 }
+
+func TestBeautify(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    interface{}
+		expected string
+	}{
+		{
+			name:     "Empty map",
+			input:    map[string]interface{}{},
+			expected: "{}",
+		},
+		{
+			name: "Simple map",
+			input: map[string]interface{}{
+				"name": "John",
+				"age":  30,
+			},
+			expected: `{
+  "age": 30,
+  "name": "John"
+}`,
+		},
+		{
+			name: "Nested map",
+			input: map[string]interface{}{
+				"person": map[string]interface{}{
+					"name": "Alice",
+					"age":  25,
+				},
+				"city": "New York",
+			},
+			expected: `{
+  "city": "New York",
+  "person": {
+    "age": 25,
+    "name": "Alice"
+  }
+}`,
+		},
+		{
+			name:  "Array",
+			input: []string{"apple", "banana", "cherry"},
+			expected: `[
+  "apple",
+  "banana",
+  "cherry"
+]`,
+		},
+	}
+
+	for _, tt := range tests {
+		assert.Equal(t, tt.expected, Beautify(tt.input))
+	}
+}

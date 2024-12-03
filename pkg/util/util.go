@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/json"
 	"io"
 	"os"
 	"strings"
@@ -83,4 +84,9 @@ func UniqueStrings(input []string) []string {
 	}
 
 	return result
+}
+
+func Beautify(d interface{}) string {
+	b, _ := json.MarshalIndent(d, "", "  ")
+	return string(b)
 }
