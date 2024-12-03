@@ -6,7 +6,6 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
-	"federate/pkg/merge/ledger"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -48,8 +47,6 @@ func doMerge(m *manifest.Manifest) {
 	compiler.WithOption(merge.WithDryRun(dryRunMerge))
 	compiler.WithOption(merge.WithAutoYes(autoYes))
 	compiler.Init().Merge()
-
-	ledger.Get().ShowSummary()
 }
 
 func init() {

@@ -104,6 +104,9 @@ func (p *compiler) Init() Compiler {
 		}
 	}
 
+	// tail shows summary
+	p.AddReconciler(newSummary())
+
 	// prepare if nec
 	var preparers []Preparer
 	for _, r := range p.reconcilers {
