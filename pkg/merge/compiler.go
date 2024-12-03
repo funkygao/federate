@@ -107,7 +107,7 @@ func (p *compiler) Init() Compiler {
 	// tail shows summary
 	p.AddReconciler(newSummary())
 
-	// prepare if nec
+	// prepare if nec: plugin might also implement Preparer
 	var preparers []Preparer
 	for _, r := range p.reconcilers {
 		if p, ok := r.(Preparer); ok {

@@ -8,14 +8,8 @@ import (
 	"federate/pkg/manifest"
 )
 
-type PluginReconciler interface {
-	Reconciler
-	Init(m *manifest.Manifest) error
-}
-
-func LoadPluginReconcilers(pluginDir string, m *manifest.Manifest) ([]Reconciler, error) {
-	var reconcilers []Reconciler
-
+// Load PluginReconcilers from specified dir.
+func LoadPluginReconcilers(pluginDir string, m *manifest.Manifest) (reconcilers []Reconciler, err error) {
 	plugins, err := filepath.Glob(filepath.Join(pluginDir, "*.so"))
 	if err != nil {
 		return nil, fmt.Errorf("error loading plugins: %v", err)
@@ -37,6 +31,7 @@ func LoadPluginReconcilers(pluginDir string, m *manifest.Manifest) ([]Reconciler
 			return nil, fmt.Errorf("invalid Reconciler type in plugin %s", pluginPath)
 		}
 
+		// 执行初始化，传入 manifest
 		if err := reconciler.Init(m); err != nil {
 			return nil, fmt.Errorf("error initializing plugin %s: %v", pluginPath, err)
 		}
@@ -44,5 +39,5 @@ func LoadPluginReconcilers(pluginDir string, m *manifest.Manifest) ([]Reconciler
 		reconcilers = append(reconcilers, reconciler)
 	}
 
-	return reconcilers, nil
+	return
 }
