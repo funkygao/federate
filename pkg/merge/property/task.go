@@ -88,7 +88,7 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 					replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
 					dmp := diffmatchpatch.New()
 					diffs := dmp.DiffMain(match, replaced, false)
-					log.Printf("Transforming %s: %s, %s", path, dmp.DiffPrettyText(diffs), regex.String())
+					log.Printf("Transforming %s\n%s", path, dmp.DiffPrettyText(diffs))
 					return replaced
 				})
 				if strings.Contains(regex.String(), "@ConfigurationProperties") {
