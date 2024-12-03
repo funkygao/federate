@@ -12,6 +12,7 @@ __pycache__/
 *.iws
 *.idea
 *.log
+*.so
 
 # Eclipse artifacts, including WTP generated manifests
 .classpath
