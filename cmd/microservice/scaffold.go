@@ -23,6 +23,7 @@ multiple existing code repositories using git submodules.`,
 	},
 }
 
+// 生产目标系统工程.
 func scaffoldMonolith() {
 	log.Printf("Parsing %s to configure git submodule", manifest.File())
 
@@ -34,8 +35,6 @@ func scaffoldMonolith() {
 	}
 
 	generateMonolithFiles(m)
-	// mkdir plugins
-	os.MkdirAll(federated.FederatePluginsDir, 0755)
 }
 
 func generateMonolithFiles(m *manifest.Manifest) {
@@ -55,6 +54,7 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	generateFile("Makefile", "Makefile", data)
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("gitignore", ".gitignore", data)
+
 	// Add .gitattributes to skip merging specific files
 	generateFile("gitattributes", ".gitattributes", data)
 
@@ -62,6 +62,9 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
 	}
+
+	// plugins
+	generateFile("plugin.md", filepath.Join(federated.FederatePluginsDir, "README.md"), data)
 
 	color.Green("🍺 Fusion project[%s] scaffolded.", m.Main.Name)
 }
