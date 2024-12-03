@@ -13,7 +13,7 @@ import (
 	"federate/pkg/diff"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
-	"federate/pkg/merge/transformer"
+	"federate/pkg/merge/ledger"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -139,7 +139,7 @@ func (t *reconcileTask) Visit(ctx context.Context, jf *code.JavaFile) {
 	oldContent := jf.Content()
 	newContent := t.updateRequestMappingInFile(oldContent, contextPath)
 	if newContent != oldContent {
-		transformer.Get().TransformRequestMapping(t.c.Name, "", contextPath)
+		ledger.Get().TransformRequestMapping(t.c.Name, "", contextPath)
 		diff.RenderUnifiedDiff(oldContent, newContent)
 
 		if err := jf.Overwrite(newContent); err != nil {

@@ -13,8 +13,8 @@ import (
 	"federate/pkg/merge"
 	"federate/pkg/merge/addon"
 	"federate/pkg/merge/bean"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/merge/property"
-	"federate/pkg/merge/transformer"
 	"federate/pkg/step"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -190,7 +190,7 @@ func doMerge(m *manifest.Manifest) {
 		{
 			Name: "Post-Instrumentation: display conflict summary guiding you fix fusion-starter",
 			Fn: func() {
-				transformer.Get().ShowSummary()
+				ledger.Get().ShowSummary()
 			}},
 	}
 
