@@ -15,7 +15,7 @@ func (cm *PropertyManager) Name() string {
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (cm *PropertyManager) Reconcile() (err error) {
-	if err = cm.Analyze(); err != nil {
+	if err = cm.Prepare(); err != nil {
 		return
 	}
 
@@ -31,9 +31,6 @@ func (cm *PropertyManager) Reconcile() (err error) {
 		for componentName, value := range components {
 			conflictingKeysOfComponents[componentName] = append(conflictingKeysOfComponents[componentName], key)
 
-			if cm.debug {
-				log.Printf("[%s] fixing conflict key=%s value=%v", componentName, key, value)
-			}
 			cm.r.SegregateProperty(componentName, Key(key), value)
 		}
 	}
@@ -52,7 +49,8 @@ func (cm *PropertyManager) Reconcile() (err error) {
 
 	errors := executor.Execute()
 	if len(errors) > 0 {
-		err = errors[0] // 返回第一个遇到的错误
+		err = errors[0]
+		return
 	}
 
 	// pass 4: 合并到目标文件

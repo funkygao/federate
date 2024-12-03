@@ -18,6 +18,8 @@ import (
 type ImportResourceManager struct {
 	m *manifest.Manifest
 
+	resourcePathPattern *regexp.Regexp
+
 	ImportResourceCount int
 }
 
@@ -26,7 +28,10 @@ func NewImportResourceManager(m *manifest.Manifest) Reconciler {
 }
 
 func newImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
-	return &ImportResourceManager{m: m}
+	return &ImportResourceManager{
+		m:                   m,
+		resourcePathPattern: regexp.MustCompile(`"([^"]+)"|'([^']+)'`),
+	}
 }
 
 func (m *ImportResourceManager) Name() string {
@@ -91,8 +96,7 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *code.JavaFile) (string, bo
 func (m *ImportResourceManager) processImportResource(line, componentName string) (string, bool) {
 	return code.P.ImportResourcePattern.ReplaceAllStringFunc(line, func(match string) string {
 		// 提取所有资源路径
-		resourcePaths := regexp.MustCompile(`"([^"]+)"|'([^']+)'`).FindAllStringSubmatch(match, -1)
-
+		resourcePaths := m.resourcePathPattern.FindAllStringSubmatch(match, -1)
 		newPaths := make([]string, 0, len(resourcePaths))
 		oldResourcePaths := make([]string, 0, len(resourcePaths))
 		for _, path := range resourcePaths {
@@ -111,7 +115,6 @@ func (m *ImportResourceManager) processImportResource(line, componentName string
 			}
 
 			// 构造新的资源路径
-
 			newResourcePath := fmt.Sprintf(`"%s%s/%s/%s"`, prefix, federated.FederatedDir, componentName, resourcePath)
 			newPaths = append(newPaths, newResourcePath)
 		}
@@ -119,8 +122,9 @@ func (m *ImportResourceManager) processImportResource(line, componentName string
 		// 重构 @ImportResource 注解
 		hasLocations := strings.Contains(match, "locations")
 		if len(newPaths) == 1 && !hasLocations {
-			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), newPaths[0])
-			return fmt.Sprintf(`@ImportResource(%s)`, newPaths[0])
+			newValue := newPaths[0]
+			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), strings.Trim(newValue, `"`))
+			return fmt.Sprintf(`@ImportResource(%s)`, newValue)
 		} else {
 			newValue := strings.Join(newPaths, ", ")
 			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), newValue)

@@ -63,7 +63,7 @@ func (cm *PropertyManager) Result() ReconcileReport {
 }
 
 // 分析 .yml & .properties
-func (cm *PropertyManager) Analyze() error {
+func (cm *PropertyManager) Prepare() error {
 	if cm.analyzed {
 		return nil
 	}

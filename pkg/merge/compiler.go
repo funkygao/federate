@@ -67,9 +67,9 @@ func (p *compiler) Init() Compiler {
 		p.AddReconciler(NewRpcConsumerManager(p.m, rpcType))
 	}
 
-	p.AddReconciler(NewResourceManager(p.m))
 	pm := property.NewManager(p.m)
 	p.AddReconciler(pm)
+	p.AddReconciler(NewResourceManager(p.m))
 	p.AddReconciler(bean.NewXmlBeanManager(p.m))
 	p.AddReconciler(NewSpringBeanInjectionManager(p.m))
 	p.AddReconciler(NewSpringXmlMerger(p.m))
@@ -78,6 +78,14 @@ func (p *compiler) Init() Compiler {
 	p.AddReconciler(NewImportResourceManager(p.m))
 	p.AddReconciler(NewRpcAliasManager(pm))
 	p.AddReconciler(NewTransactionManager(p.m))
+
+	// prepare if nec
+	for _, r := range p.reconcilers {
+		if p, ok := r.(Preparer); ok {
+			p.Prepare()
+		}
+	}
+
 	return p
 }
 

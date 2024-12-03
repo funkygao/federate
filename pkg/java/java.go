@@ -41,6 +41,7 @@ func IsJavaMainSource(info os.FileInfo, path string) bool {
 func IsXML(info os.FileInfo, path string) bool {
 	return !info.IsDir() &&
 		strings.HasSuffix(info.Name(), ".xml") &&
+		!strings.Contains(path, "/target/") &&
 		!strings.Contains(path, "/test/")
 }
 

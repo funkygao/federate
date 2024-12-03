@@ -87,6 +87,10 @@ func (rm *ResourceManager) federatedCopyResources(sourceDir, targetDir string, c
 		if err != nil {
 			return err
 		}
+
+		// 只要是资源文件就拷贝
+		// 为什么不能分析目标 spring.xml 的 import 关系，只拷贝那些文件？
+		// 用户代码里可能有 @ImportResource，而且它的值可能被改写
 		if ignored := rm.m.IgnoreResourceSrcFile(info, component); ignored {
 			log.Printf("[%s:%s] Skipped components.resources.ignore: %s", component.Name, component.SpringProfile, info.Name())
 			return nil

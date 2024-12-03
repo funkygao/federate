@@ -213,7 +213,7 @@ func (r *registry) addNamespaceToRegularProperty(componentName string, key Key, 
 	}
 
 	// 可能造成间接依赖的 jar 在运行时报错：通过 manifest override 人工指定
-	//delete(r.resolvableEntries[componentName], string(key)) TODO
+	delete(r.resolvableEntries[componentName], string(key))
 }
 
 func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string) {
@@ -229,7 +229,7 @@ func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string
 					FilePath: entry.FilePath,
 				}
 				if !r.silent {
-					log.Printf("[%s] Updated reference in key %s: %s => %s", componentName, k, entry.Raw, updatedRaw)
+					log.Printf("[%s] Updated registry key reference %s: %s => %s", componentName, k, entry.Raw, updatedRaw)
 				}
 			}
 		}

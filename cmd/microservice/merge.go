@@ -100,6 +100,13 @@ func doMerge(m *manifest.Manifest) {
 				}
 			}},
 		{
+			Name: "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping",
+			Fn: func() {
+				if err := propertyManager.Reconcile(); err != nil {
+					log.Fatalf("%s %v", propertyManager.Name(), err)
+				}
+			}},
+		{
 			Name: "Federated-Copying Resources",
 			Fn: func() {
 				if err := resourceManager.RecursiveFederatedCopyResources(); err != nil {
@@ -111,13 +118,6 @@ func doMerge(m *manifest.Manifest) {
 			Fn: func() {
 				if err := resourceManager.RecursiveFlatCopyResources(); err != nil {
 					log.Fatalf("Error merging reconcile.flatCopyResources: %v", err)
-				}
-			}},
-		{
-			Name: "Reconciling Property Conflicts References by Rewriting @Value/@ConfigurationProperties/@RequestMapping",
-			Fn: func() {
-				if err := propertyManager.Reconcile(); err != nil {
-					log.Fatalf("%s %v", propertyManager.Name(), err)
 				}
 			}},
 		{

@@ -20,14 +20,18 @@ type Transformer struct {
 	envKeys                 map[string]map[string]struct{}
 }
 
-var tf = &Transformer{
-	transactions:            make(map[string]string),
-	importResource:          make(map[string]map[string]string),
-	configurationProperties: make(map[string]map[string]string),
-	propertyPlaceholders:    make(map[string]map[string]string),
-	regularProperties:       make(map[string]map[string]string),
-	requestMappings:         make(map[string]map[string]string),
-	envKeys:                 make(map[string]map[string]struct{}),
+var tf *Transformer = newTransformer()
+
+func newTransformer() *Transformer {
+	return &Transformer{
+		transactions:            make(map[string]string),
+		importResource:          make(map[string]map[string]string),
+		configurationProperties: make(map[string]map[string]string),
+		propertyPlaceholders:    make(map[string]map[string]string),
+		regularProperties:       make(map[string]map[string]string),
+		requestMappings:         make(map[string]map[string]string),
+		envKeys:                 make(map[string]map[string]struct{}),
+	}
 }
 
 func Get() *Transformer {
@@ -92,7 +96,7 @@ func (t *Transformer) printMapSection(title, indent string, m map[string]map[str
 	for _, component := range components {
 		keys := sortedKeys(m[component])
 		for _, key := range keys {
-			cellData = append(cellData, []string{component, key, util.Truncate(m[component][key], 40)})
+			cellData = append(cellData, []string{component, key, util.Truncate(m[component][key], 60)})
 		}
 	}
 	tablerender.DisplayTable(header, cellData, true, -1)

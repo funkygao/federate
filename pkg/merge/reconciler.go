@@ -5,3 +5,7 @@ type Reconciler interface {
 
 	Reconcile() error
 }
+
+type Preparer interface {
+	Prepare() error
+}

@@ -1,7 +1,6 @@
 package property
 
 import (
-	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -159,23 +158,19 @@ func TestPropertyEntry(t *testing.T) {
 	assert.Equal(t, true, ps.IsProperties())
 }
 
-func TestAnalyze(t *testing.T) {
+func TestPrepare(t *testing.T) {
 	tempDir := t.TempDir()
 	m := prepareTestManifest(t, tempDir)
 
 	pm := NewManager(m)
 	pm.silent = false
 	pm.writeTarget = false
-	require.NoError(t, pm.Analyze())
+	require.NoError(t, pm.Prepare())
 	conflicts := pm.identifyAllConflicts()
 	if pm.debug {
-		resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
-		t.Logf("All properties:\n%s", string(resolvedPropertiesJSON))
-		unresolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.unresolvableEntries, "", "  ")
-		t.Logf("Unresovled properties:\n%s", string(unresolvedPropertiesJSON))
-
-		conflictsJSON, _ := json.MarshalIndent(conflicts, "", "  ")
-		t.Logf("Conflicts:\n%s", string(conflictsJSON))
+		t.Logf("All properties:\n%s", util.Beautify(pm.r.resolvableEntries))
+		t.Logf("Unresovled properties:\n%s", util.Beautify(pm.r.unresolvableEntries))
+		t.Logf("Conflicts:\n%s", util.Beautify(conflicts))
 	}
 
 	// 验证无法解析的keys
@@ -210,8 +205,7 @@ func TestAnalyze(t *testing.T) {
 	err := pm.Reconcile()
 	require.NoError(t, err)
 	if pm.debug {
-		resolvedPropertiesJSON, _ := json.MarshalIndent(pm.r.resolvableEntries, "", "  ")
-		t.Logf("All properties after reconcile:\n%s", string(resolvedPropertiesJSON))
+		t.Logf("All properties after reconcile:\n%s", util.Beautify(pm.r.resolvableEntries))
 	}
 
 	// 检查解决后的属性
@@ -236,8 +230,10 @@ func TestAnalyze(t *testing.T) {
 	assert.Equal(t, "0", resolvedProps["b"]["b.key"].Value)
 
 	// 检查原始的冲突键是否被删除
-	assert.Contains(t, resolvedProps["a"], "datasource.mysql.url")
-	assert.Contains(t, resolvedProps["b"], "datasource.mysql.url")
+	assert.NotContains(t, resolvedProps["a"], "datasource.mysql.url")
+	assert.Contains(t, resolvedProps["a"], "a.datasource.mysql.url")
+	assert.NotContains(t, resolvedProps["b"], "datasource.mysql.url")
+	assert.Contains(t, resolvedProps["b"], "b.datasource.mysql.url")
 
 	// Resolve
 	assert.Equal(t, "10", pm.Resolve("a.mysql.maximumPoolSize"))
@@ -255,7 +251,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 
 	pm := NewManager(m)
 	pm.writeTarget = false
-	require.NoError(t, pm.Analyze())
+	require.NoError(t, pm.Prepare())
 
 	mergedYamlPath := filepath.Join(tempDir, "merged.yml")
 	pm.generateMergedYamlFile(mergedYamlPath)
@@ -324,6 +320,20 @@ wms:
 	err = os.WriteFile(filepath.Join(aRoot, "application.yml"), []byte(a_yaml), 0644)
 	require.NoError(t, err)
 
+	a_xml := `
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="checkPendingAsyncTask" class="com.google.wms.inventory.worker.AutoExecutionTask">
+        <property name="name" value="检查是否有未执行的积压异步任务"/>
+        <property name="foo" value="${wms.datasource.maximumPoolSize:5}"/>
+        <property name="sqls" value="${wms.datasource.maximumPoolSize}"/>
+    </bean>
+    <kafka:transport address="${wms.datasource.maximumPoolSize}" password="${kafka.password}" app="${kafka.app}" user="${kafka.user}" sendTimeout="1000"/>
+`
+	os.WriteFile(filepath.Join(aRoot, "config.xml"), []byte(a_xml), 0644)
+
 	b_properties := `
 b.key=0
 mysql.driver=com.mysql.jdbc.Driver
@@ -353,30 +363,47 @@ wms:
 	err = os.WriteFile(filepath.Join(bRoot, "application.yml"), []byte(b_yaml), 0644)
 	require.NoError(t, err)
 
-	return &manifest.Manifest{
-		Components: []manifest.ComponentInfo{
-			{
-				Name:    "a",
-				BaseDir: tempDir,
-				Resources: manifest.ComponentResourceSpec{
-					BaseDirs: []string{""},
-					PropertySources: []string{
-						"application.properties",
-					},
+	b_xml := `
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+    <bean id="checkPendingAsyncTask" class="com.google.wms.stock.worker.AutoExecutionTask">
+        <property name="name" value="检查是否有未执行的积压异步任务"/>
+        <property name="foo" value="${wms.datasource.maximumPoolSize:5}"/>
+        <property name="sqls" value="${wms.datasource.maximumPoolSize}"/>
+    </bean>
+    <kafka:transport address="${wms.datasource.maximumPoolSize}" password="${kafka.password}" app="${kafka.app}" user="${kafka.user}" sendTimeout="1000"/>
+`
+	os.WriteFile(filepath.Join(bRoot, "config.xml"), []byte(b_xml), 0644)
+
+	m := &manifest.Manifest{}
+	target := &manifest.MainSystem{}
+	m.Components = []manifest.ComponentInfo{
+		{
+			M:       target,
+			Name:    "a",
+			BaseDir: tempDir,
+			Resources: manifest.ComponentResourceSpec{
+				BaseDirs: []string{""},
+				PropertySources: []string{
+					"application.properties",
 				},
 			},
-			{
-				Name:    "b",
-				BaseDir: tempDir,
-				Resources: manifest.ComponentResourceSpec{
-					BaseDirs: []string{""},
-					PropertySources: []string{
-						"application.properties",
-					},
+		},
+		{
+			M:       target,
+			Name:    "b",
+			BaseDir: tempDir,
+			Resources: manifest.ComponentResourceSpec{
+				BaseDirs: []string{""},
+				PropertySources: []string{
+					"application.properties",
 				},
 			},
 		},
 	}
+	return m
 }
 
 func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
@@ -403,7 +430,7 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	pm := NewManager(m)
 	pm.writeTarget = false
 	pm.Debug()
-	pm.Analyze()
+	pm.Prepare()
 
 	t.Log("")
 	t.Logf("属性冲突")
@@ -417,12 +444,13 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 
 	t.Logf("Reconcile")
 	pm.Reconcile()
+	//t.Logf("%s", util.Beautify(pm.r.resolvableEntries))
 	// a 和 b 的 yaml key: wms.datasource.maximumPoolSize，都在引用 ${mysql.maximumPoolSize}
-	assert.Equal(t, "${a.mysql.maximumPoolSize}", pm.r.resolvableEntries["a"]["wms.datasource.maximumPoolSize"].Raw)
-	assert.Equal(t, "10", pm.r.resolvableEntries["a"]["wms.datasource.maximumPoolSize"].Value)
-	assert.Equal(t, "20", pm.r.resolvableEntries["b"]["wms.datasource.maximumPoolSize"].Value)
-	assert.Equal(t, "${b.master.ds0.mysql.url}", pm.r.resolvableEntries["b"]["wms.ds0-master.jdbcUrl"].Value)
-	assert.Equal(t, "${b.master.ds0.mysql.url}", pm.r.resolvableEntries["b"]["wms.ds1-master.jdbcUrl"].Value)
+	assert.Equal(t, "${a.mysql.maximumPoolSize}", pm.r.resolvableEntries["a"]["a.wms.datasource.maximumPoolSize"].Raw)
+	assert.Equal(t, "10", pm.r.resolvableEntries["a"]["a.wms.datasource.maximumPoolSize"].Value)
+	assert.Equal(t, "20", pm.r.resolvableEntries["b"]["b.wms.datasource.maximumPoolSize"].Value)
+	assert.Equal(t, "${b.master.ds0.mysql.url}", pm.r.resolvableEntries["b"]["wms.ds0-master.jdbcUrl"].Raw)
+	assert.Equal(t, "jdbc:mysql://b/db_2", pm.r.resolvableEntries["b"]["wms.ds1-master.jdbcUrl"].Value)
 	t.Log("")
 
 	t.Logf("Registry DUMP")
