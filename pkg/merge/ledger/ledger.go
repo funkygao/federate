@@ -1,4 +1,4 @@
-package transformer
+package ledger
 
 import (
 	"log"
@@ -10,7 +10,7 @@ import (
 	"github.com/fatih/color"
 )
 
-type Transformer struct {
+type Ledger struct {
 	transactions            map[string]string
 	importResource          map[string]map[string]string
 	configurationProperties map[string]map[string]string
@@ -20,10 +20,10 @@ type Transformer struct {
 	envKeys                 map[string]map[string]struct{}
 }
 
-var tf *Transformer = newTransformer()
+var instance = newLedger()
 
-func newTransformer() *Transformer {
-	return &Transformer{
+func newLedger() *Ledger {
+	return &Ledger{
 		transactions:            make(map[string]string),
 		importResource:          make(map[string]map[string]string),
 		configurationProperties: make(map[string]map[string]string),
@@ -34,61 +34,61 @@ func newTransformer() *Transformer {
 	}
 }
 
-func Get() *Transformer {
-	return tf
+func Get() *Ledger {
+	return instance
 }
 
-func (t *Transformer) TransformRequestMapping(componentName, value, newValue string) {
-	t.transform(t.requestMappings, componentName, value, newValue)
+func (l *Ledger) TransformRequestMapping(componentName, value, newValue string) {
+	l.transform(l.requestMappings, componentName, value, newValue)
 }
 
-func (t *Transformer) TransformRegularProperty(componentName, value, newValue string) {
-	t.transform(t.regularProperties, componentName, value, newValue)
+func (l *Ledger) TransformRegularProperty(componentName, value, newValue string) {
+	l.transform(l.regularProperties, componentName, value, newValue)
 }
 
-func (t *Transformer) TransformConfigurationProperties(componentName, value, newValue string) {
-	t.transform(t.configurationProperties, componentName, value, newValue)
+func (l *Ledger) TransformConfigurationProperties(componentName, value, newValue string) {
+	l.transform(l.configurationProperties, componentName, value, newValue)
 }
 
-func (t *Transformer) TransformPlaceholder(componentName, value, newValue string) {
-	t.transform(t.propertyPlaceholders, componentName, value, newValue)
+func (l *Ledger) TransformPlaceholder(componentName, value, newValue string) {
+	l.transform(l.propertyPlaceholders, componentName, value, newValue)
 }
 
-func (t *Transformer) TransformImportResource(componentName, value, newValue string) {
-	t.transform(t.importResource, componentName, value, newValue)
+func (l *Ledger) TransformImportResource(componentName, value, newValue string) {
+	l.transform(l.importResource, componentName, value, newValue)
 }
 
-func (t *Transformer) TransformTransaction(component, txManagerName string) {
-	t.transactions[component] = txManagerName
+func (l *Ledger) TransformTransaction(component, txManagerName string) {
+	l.transactions[component] = txManagerName
 }
 
-func (t *Transformer) transform(m map[string]map[string]string, componentName, value, newValue string) {
+func (l *Ledger) transform(m map[string]map[string]string, componentName, value, newValue string) {
 	if _, exists := m[componentName]; !exists {
 		m[componentName] = make(map[string]string)
 	}
 	m[componentName][value] = newValue
 }
 
-func (t *Transformer) RegisterEnvKey(componentName, key string) {
-	if _, exists := t.envKeys[componentName]; !exists {
-		t.envKeys[componentName] = make(map[string]struct{})
+func (l *Ledger) RegisterEnvKey(componentName, key string) {
+	if _, exists := l.envKeys[componentName]; !exists {
+		l.envKeys[componentName] = make(map[string]struct{})
 	}
-	t.envKeys[componentName][key] = struct{}{}
+	l.envKeys[componentName][key] = struct{}{}
 }
 
-func (t *Transformer) ShowSummary() {
+func (l *Ledger) ShowSummary() {
 	indent := strings.Repeat(" ", 4)
 
-	t.printMapSection("Transformed Regular Properties:", indent, t.regularProperties)
-	t.printMapSection("Transformed Property Placeholders:", indent, t.propertyPlaceholders)
-	t.printMapSection("Transformed @ConfigurationProperties:", indent, t.configurationProperties)
-	t.printMapSection("Transformed @RequestMapping:", indent, t.requestMappings)
-	t.printMapSection("Transformed @ImportResource:", indent, t.importResource)
-	t.printSection("Detected ENV keys referenced:", indent, t.envKeys)
-	t.printSimpleMapSection("Transformed Transaction Manager:", indent, t.transactions)
+	l.printMapSection("Transformed Regular Properties:", indent, l.regularProperties)
+	l.printMapSection("Transformed Property Placeholders:", indent, l.propertyPlaceholders)
+	l.printMapSection("Transformed @ConfigurationProperties:", indent, l.configurationProperties)
+	l.printMapSection("Transformed @RequestMapping:", indent, l.requestMappings)
+	l.printMapSection("Transformed @ImportResource:", indent, l.importResource)
+	l.printSection("Detected ENV keys referenced:", indent, l.envKeys)
+	l.printSimpleMapSection("Transformed Transaction Manager:", indent, l.transactions)
 }
 
-func (t *Transformer) printMapSection(title, indent string, m map[string]map[string]string) {
+func (l *Ledger) printMapSection(title, indent string, m map[string]map[string]string) {
 	color.Cyan(title)
 	components := sortedKeys(m)
 	header := []string{"Component", "Old", "New"}
@@ -102,7 +102,7 @@ func (t *Transformer) printMapSection(title, indent string, m map[string]map[str
 	tablerender.DisplayTable(header, cellData, true, -1)
 }
 
-func (t *Transformer) printSection(title, indent string, m map[string]map[string]struct{}) {
+func (l *Ledger) printSection(title, indent string, m map[string]map[string]struct{}) {
 	color.Cyan(title)
 	components := sortedKeys(m)
 	for _, component := range components {
@@ -113,7 +113,7 @@ func (t *Transformer) printSection(title, indent string, m map[string]map[string
 	}
 }
 
-func (t *Transformer) printSimpleMapSection(title, indent string, m map[string]string) {
+func (l *Ledger) printSimpleMapSection(title, indent string, m map[string]string) {
 	color.Cyan(title)
 	keys := sortedKeys(m)
 	for _, key := range keys {

@@ -9,8 +9,8 @@ import (
 	"federate/pkg/code"
 	"federate/pkg/java"
 	"federate/pkg/manifest"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/merge/property"
-	"federate/pkg/merge/transformer"
 	"github.com/beevik/etree"
 )
 
@@ -56,7 +56,7 @@ func (e *envManager) Reconcile() error {
 					continue
 				}
 				for _, key := range keys {
-					transformer.Get().RegisterEnvKey(component.Name, key)
+					ledger.Get().RegisterEnvKey(component.Name, key)
 				}
 			}
 		}
@@ -72,7 +72,7 @@ func (e *envManager) Visit(ctx context.Context, jf *code.JavaFile) {
 	}
 
 	for _, key := range keys {
-		transformer.Get().RegisterEnvKey(jf.ComponentName(), key)
+		ledger.Get().RegisterEnvKey(jf.ComponentName(), key)
 	}
 }
 

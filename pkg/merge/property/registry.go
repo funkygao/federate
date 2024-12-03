@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"federate/pkg/manifest"
-	"federate/pkg/merge/transformer"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/util"
 )
 
@@ -191,7 +191,7 @@ func (r *registry) SegregateProperty(componentName string, key Key, value interf
 func (r *registry) addNamespaceToConfigurationProperties(componentName, configPropPrefix string) {
 	for subKey := range r.resolvableEntries[componentName] {
 		if strings.HasPrefix(subKey, configPropPrefix) {
-			transformer.Get().TransformConfigurationProperties(componentName, configPropPrefix, Key(configPropPrefix).WithNamespace(componentName))
+			ledger.Get().TransformConfigurationProperties(componentName, configPropPrefix, Key(configPropPrefix).WithNamespace(componentName))
 			nsKey := Key(subKey).WithNamespace(componentName)
 			// 为该key增加ns前缀的key
 			r.resolvableEntries[componentName][nsKey] = PropertyEntry{
@@ -205,7 +205,7 @@ func (r *registry) addNamespaceToConfigurationProperties(componentName, configPr
 
 func (r *registry) addNamespaceToRegularProperty(componentName string, key Key, value interface{}, originalEntry PropertyEntry) {
 	nsKey := key.WithNamespace(componentName)
-	transformer.Get().TransformRegularProperty(componentName, string(key), nsKey)
+	ledger.Get().TransformRegularProperty(componentName, string(key), nsKey)
 	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
 		Value:    value,
 		Raw:      originalEntry.Raw,
@@ -221,7 +221,7 @@ func (r *registry) updateReferencesInMemory(componentName, oldKey, newKey string
 		if entry.WasReference() {
 			updatedRaw := r.updatedReferenceString(componentName, oldKey, newKey, entry)
 			if updatedRaw != entry.Raw {
-				transformer.Get().TransformPlaceholder(componentName, entry.Raw, updatedRaw)
+				ledger.Get().TransformPlaceholder(componentName, entry.Raw, updatedRaw)
 				updatedValue := r.pm.ResolveLine(updatedRaw)
 				r.resolvableEntries[componentName][k] = PropertyEntry{
 					Value:    updatedValue,

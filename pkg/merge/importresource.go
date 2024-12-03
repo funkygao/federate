@@ -11,7 +11,7 @@ import (
 	"federate/pkg/diff"
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
-	"federate/pkg/merge/transformer"
+	"federate/pkg/merge/ledger"
 )
 
 // @ImportResource
@@ -123,11 +123,11 @@ func (m *ImportResourceManager) processImportResource(line, componentName string
 		hasLocations := strings.Contains(match, "locations")
 		if len(newPaths) == 1 && !hasLocations {
 			newValue := newPaths[0]
-			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), strings.Trim(newValue, `"`))
+			ledger.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), strings.Trim(newValue, `"`))
 			return fmt.Sprintf(`@ImportResource(%s)`, newValue)
 		} else {
 			newValue := strings.Join(newPaths, ", ")
-			transformer.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), newValue)
+			ledger.Get().TransformImportResource(componentName, strings.Join(oldResourcePaths, ", "), newValue)
 			return fmt.Sprintf(`@ImportResource(locations = {%s})`, newValue)
 		}
 	}), true

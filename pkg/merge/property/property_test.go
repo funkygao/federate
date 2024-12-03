@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"federate/pkg/manifest"
-	"federate/pkg/merge/transformer"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -462,5 +462,5 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	t.Log("")
 
 	t.Log("Summary")
-	transformer.Get().ShowSummary()
+	ledger.Get().ShowSummary()
 }
