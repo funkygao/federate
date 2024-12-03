@@ -22,7 +22,7 @@ type ReconcileReport struct {
 type PropertyManager struct {
 	m        *manifest.Manifest
 	r        *registry
-	analyzed bool
+	prepared bool
 
 	silent      bool
 	debug       bool
@@ -67,7 +67,7 @@ func (cm *PropertyManager) Result() ReconcileReport {
 
 // 分析 .yml & .properties
 func (cm *PropertyManager) Prepare() error {
-	if cm.analyzed {
+	if cm.prepared {
 		return nil
 	}
 
@@ -83,7 +83,7 @@ func (cm *PropertyManager) Prepare() error {
 	// 应用保留key处理规则
 	cm.applyReservedPropertyRules()
 
-	cm.analyzed = true
+	cm.prepared = true
 	return nil
 }
 
