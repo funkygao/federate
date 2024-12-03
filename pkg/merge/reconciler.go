@@ -7,5 +7,6 @@ type Reconciler interface {
 }
 
 type Preparer interface {
+	Reconciler
 	Prepare() error
 }

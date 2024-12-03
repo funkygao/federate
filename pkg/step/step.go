@@ -27,7 +27,7 @@ func Run(steps []Step) {
 
 func promptToProceed(seq, total int, stepName string) {
 	c := color.New(color.FgMagenta)
-	c.Printf("☕️ Step [%d/%d] %s ...", seq, total, stepName)
+	c.Printf("Step [%d/%d] %s", seq, total, stepName)
 	if AutoConfirm {
 		fmt.Println()
 		return

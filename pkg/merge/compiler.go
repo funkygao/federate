@@ -11,6 +11,7 @@ import (
 	"federate/pkg/merge/bean"
 	"federate/pkg/merge/property"
 	"federate/pkg/step"
+	"github.com/fatih/color"
 )
 
 // 合并编译器.
@@ -104,10 +105,16 @@ func (p *compiler) Init() Compiler {
 	}
 
 	// prepare if nec
+	var preparers []Preparer
 	for _, r := range p.reconcilers {
 		if p, ok := r.(Preparer); ok {
-			p.Prepare()
+			preparers = append(preparers, p)
 		}
+	}
+
+	for i, p := range preparers {
+		color.Cyan("Prepare [%d/%d] %s", i+1, len(preparers), p.Name())
+		p.Prepare()
 	}
 
 	return p
