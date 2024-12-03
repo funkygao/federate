@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	GeneratedDir = ""
-	FederatedDir = "federated"
+	GeneratedDir       = ""
+	FederatedDir       = "federated"
+	FederatePluginsDir = "plugins"
 
 	starterSuffix = "-starter"
 )

@@ -34,6 +34,8 @@ func scaffoldMonolith() {
 	}
 
 	generateMonolithFiles(m)
+	// mkdir plugins
+	os.MkdirAll(federated.FederatePluginsDir, 0755)
 }
 
 func generateMonolithFiles(m *manifest.Manifest) {

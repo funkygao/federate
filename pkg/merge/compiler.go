@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"federate/pkg/code"
+	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/addon"
 	"federate/pkg/merge/bean"
@@ -92,6 +93,15 @@ func (p *compiler) Init() Compiler {
 	p.AddReconciler(NewImportResourceManager(p.m))
 	p.AddReconciler(NewRpcAliasManager(pm))
 	p.AddReconciler(NewTransactionManager(p.m))
+
+	// Load plugin reconcilers
+	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
+		log.Printf("Error loading plugin reconcilers: %v", err)
+	} else {
+		for _, reconciler := range pluginReconcilers {
+			p.AddReconciler(reconciler)
+		}
+	}
 
 	// prepare if nec
 	for _, r := range p.reconcilers {
