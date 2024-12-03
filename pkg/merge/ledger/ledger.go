@@ -89,21 +89,23 @@ func (l *Ledger) ShowSummary() {
 }
 
 func (l *Ledger) printMapSection(title, indent string, m map[string]map[string]string) {
-	color.Cyan(title)
 	components := sortedKeys(m)
 	header := []string{"Component", "Old", "New"}
 	var cellData [][]string
+	n := 0
 	for _, component := range components {
 		keys := sortedKeys(m[component])
+		n += len(keys)
 		for _, key := range keys {
 			cellData = append(cellData, []string{component, key, util.Truncate(m[component][key], 60)})
 		}
 	}
+	color.Yellow("%s: %d", title, n)
 	tablerender.DisplayTable(header, cellData, true, -1)
 }
 
 func (l *Ledger) printSection(title, indent string, m map[string]map[string]struct{}) {
-	color.Cyan(title)
+	color.Yellow(title)
 	components := sortedKeys(m)
 	for _, component := range components {
 		keys := sortedKeysFromSet(m[component])
@@ -114,7 +116,7 @@ func (l *Ledger) printSection(title, indent string, m map[string]map[string]stru
 }
 
 func (l *Ledger) printSimpleMapSection(title, indent string, m map[string]string) {
-	color.Cyan(title)
+	color.Yellow(title)
 	keys := sortedKeys(m)
 	for _, key := range keys {
 		log.Printf("%s%s: %s", indent, key, m[key])

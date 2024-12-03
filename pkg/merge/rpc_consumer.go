@@ -131,7 +131,7 @@ func (dm *RpcConsumerManager) processXmlFile(filePath string, component manifest
 		// 移除 resource 属性中的 classpath: 前缀
 		resourceAttr = strings.TrimPrefix(resourceAttr, "classpath:")
 		importPath := filepath.Join(filepath.Dir(filePath), resourceAttr)
-		log.Printf("[%s:%s] Processing %s import: %s", dm.rpcType, component.Name, filepath.Base(filePath), filepath.Base(importPath))
+		log.Printf("[%s:%s] Processing %s import: %s", component.Name, dm.rpcType, filepath.Base(filePath), filepath.Base(importPath))
 
 		if err := dm.processXmlFile(importPath, component, componentConflicts); err != nil {
 			return err
