@@ -92,27 +92,41 @@ func (pg *PromptGenerator) echoFileInput(path string) {
 }
 
 func (pg *PromptGenerator) executeShellCommand(command string, outputToPrompt bool) {
-	shell := os.Getenv("SHELL")
-	if shell == "" {
-		shell = "/bin/bash" // 默认使用 bash
-	}
-
-	cmd := exec.Command(shell, "-c", command)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-
-	err := cmd.Run()
-	if err != nil {
-		fmt.Printf("执行命令时出错: %v\n", err)
+	// 将命令拆分为程序名和参数
+	parts := strings.Fields(command)
+	if len(parts) == 0 {
+		fmt.Println("错误：空命令")
 		return
 	}
 
-	output := out.String()
-	fmt.Print(output)
+	cmd := exec.Command(parts[0], parts[1:]...)
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	cmd.Run()
+
+	stdoutStr := stdout.String()
+	stderrStr := stderr.String()
+
+	if stdoutStr != "" {
+		fmt.Print(stdoutStr)
+	}
+
+	if stderrStr != "" {
+		fmt.Print(stderrStr)
+	}
 
 	if outputToPrompt {
-		promptGenerator.AddInput(fmt.Sprintf("Shell command: %s\nOutput:\n```\n%s```\n", command, output))
+		promptContent := fmt.Sprintf("Shell command: %s\n", command)
+		if stdoutStr != "" {
+			promptContent += fmt.Sprintf("Standard output:\n```\n%s```\n", stdoutStr)
+		}
+		if stderrStr != "" {
+			promptContent += fmt.Sprintf("Standard error:\n```\n%s```\n", stderrStr)
+		}
+
+		promptGenerator.AddInput(promptContent)
 	}
 }
 
