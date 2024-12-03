@@ -28,6 +28,6 @@ func (m *springXmlMerger) Reconcile() error {
 	}
 
 	targetFile := filepath.Join(targetDir, "spring.xml")
-	fs.GenerateFileFromTmpl("templates/spring.xml", targetFile, m)
+	fs.GenerateFileFromTmpl("templates/spring.xml", targetFile, m.m)
 	return nil
 }

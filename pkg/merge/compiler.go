@@ -14,8 +14,15 @@ import (
 
 // 合并编译器.
 type Compiler interface {
+	// 初始化，注册内置调和器
 	Init() Compiler
+
+	WithOption(CompilerOption) Compiler
+
+	// 注册调和器
 	AddReconciler(Reconciler) Compiler
+
+	// 合并编译
 	Merge() error
 }
 
@@ -56,6 +63,11 @@ func WithDryRun(dryRun bool) CompilerOption {
 			cc.dryRun = dryRun
 		}
 	}
+}
+
+func (p *compiler) WithOption(opt CompilerOption) Compiler {
+	opt(p)
+	return p
 }
 
 func (p *compiler) Init() Compiler {

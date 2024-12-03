@@ -44,7 +44,7 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 }
 
 func (cm *PropertyManager) Name() string {
-	return "Reconciling Property Conflicts by Rewriting @Value/@ConfigurationProperties/@RequestMapping/XML/.properties"
+	return "Reconciling Property Conflicts by Rewriting @Value/@ConfigurationProperties/@RequestMapping/XML/Properties"
 }
 
 func (cm *PropertyManager) M() *manifest.Manifest {
