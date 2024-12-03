@@ -31,11 +31,6 @@ func (t *reconcileTask) Execute() error {
 		return err
 	}
 
-	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsXML, createXmlRegex); err != nil {
-		return err
-	}
-
 	// 处理 @ConfigurationProperties
 	if err := t.namespaceKeyReferences(java.IsJavaMainSource, createConfigurationPropertiesRegex); err != nil {
 		return err
@@ -46,6 +41,11 @@ func (t *reconcileTask) Execute() error {
 		if err := t.updateRequestMappings(); err != nil {
 			return err
 		}
+	}
+
+	// 为xml里这些key的引用增加组件名称前缀作为ns
+	if err := t.namespaceKeyReferences(java.IsXML, createXmlRegex); err != nil {
+		return err
 	}
 
 	return nil
@@ -76,19 +76,19 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		}
 
 		oldContent := string(content)
-		var newContent string
+		newContent := oldContent
 		changed := false
 
 		for i, regex := range keyRegexes {
 			matches := regex.FindAllStringSubmatchIndex(oldContent, -1)
 			if len(matches) > 0 {
 				changed = true
-				newContent = regex.ReplaceAllStringFunc(oldContent, func(match string) string {
+				newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
 					newKey := Key(t.keys[i]).WithNamespace(t.c.Name)
 					replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
 					dmp := diffmatchpatch.New()
 					diffs := dmp.DiffMain(match, replaced, false)
-					log.Printf("%s", dmp.DiffPrettyText(diffs))
+					log.Printf("Transforming %s: %s", path, dmp.DiffPrettyText(diffs))
 					return replaced
 				})
 				if strings.Contains(regex.String(), "@ConfigurationProperties") {
@@ -100,11 +100,11 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		}
 
 		if changed {
-			err = ioutil.WriteFile(path, []byte(newContent), info.Mode())
-			if err != nil {
+			// newContent 是叠加所有替换后的完整文件内容
+			if err = ioutil.WriteFile(path, []byte(newContent), info.Mode()); err != nil {
+				log.Fatalf("%v", err)
 				return err
 			}
-			log.Printf("↖ %s", path)
 		}
 
 		return nil
@@ -115,7 +115,11 @@ func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
 	if strings.Contains(match, "@ConfigurationProperties") {
 		return strings.Replace(match, `"`+key+`"`, `"`+newKey+`"`, 1)
 	}
-	return strings.Replace(match, "${"+key, "${"+newKey, 1)
+	parts := strings.SplitN(match, "${", 2)
+	if len(parts) == 2 {
+		return parts[0] + "${" + newKey + strings.TrimPrefix(parts[1], key)
+	}
+	return match
 }
 
 func (t *reconcileTask) updateRequestMappings() error {
@@ -141,7 +145,6 @@ func (t *reconcileTask) Visit(ctx context.Context, jf *code.JavaFile) {
 		if err := jf.Overwrite(newContent); err != nil {
 			log.Fatalf("%v", err)
 		}
-		log.Printf("↖ %s", jf.Path())
 		t.result.RequestMapping++
 	}
 }
