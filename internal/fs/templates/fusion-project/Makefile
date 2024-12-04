@@ -92,7 +92,7 @@ package:
 ##@ Explore: Post-Fuse Phase
 
 discover: ## Step-by-step guide for detecting potential conflicts.
-	$(FEDERATE_CMD) debug wizard -i $(MANIFEST_FILE)
+	$(FEDERATE_CMD) debug wizard --yes -i $(MANIFEST_FILE)
 
 inspect: ## Inspect indirect conflict risk before deployment.
 	$(MAKE) -C {{.FusionProjectName}} inspect
