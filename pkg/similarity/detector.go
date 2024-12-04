@@ -93,7 +93,7 @@ func (d *Detector) Detect() ([]DuplicatePair, error) {
 	}
 	sort.Strings(components)
 
-    // pass-2: 精确计算相似度，桶降低了时间复杂度
+	// pass-2: 精确计算相似度，桶降低了时间复杂度
 
 	for _, c1 := range components {
 		jfs := componentFiles[c1]
