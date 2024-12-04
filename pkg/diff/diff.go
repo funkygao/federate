@@ -54,28 +54,30 @@ func ShowDiffLineByLine(oldText, newText string) {
 
 	flushLine := func() {
 		if currentLine.Len() > 0 {
-			log.Printf("%s", currentLine.String())
+			line := currentLine.String()
+			if strings.Contains(line, "\033") {
+				// 有改动
+				log.Printf("%s", line)
+			}
 			currentLine.Reset()
 		}
 	}
 
 	for _, diff := range diffs {
-		lines := strings.Split(diff.Text, "\n")
-		for i, line := range lines {
+		diffLines := strings.Split(diff.Text, "\n")
+		for i, diffLine := range diffLines {
 			switch diff.Type {
 			case diffmatchpatch.DiffInsert:
-				currentLine.WriteString("\x1b[32m" + line + "\x1b[0m")
+				currentLine.WriteString("\033[32m" + diffLine + "\033[0m")
 			case diffmatchpatch.DiffDelete:
-				currentLine.WriteString("\x1b[31m" + line + "\x1b[0m")
+				currentLine.WriteString("\033[31m" + diffLine + "\033[0m")
 			case diffmatchpatch.DiffEqual:
-				currentLine.WriteString(line)
+				currentLine.WriteString(diffLine)
 			}
 
-			if i < len(lines)-1 {
+			if i < len(diffLines)-1 {
 				flushLine()
 			}
 		}
 	}
-
-	flushLine()
 }
