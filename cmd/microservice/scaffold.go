@@ -3,6 +3,7 @@ package microservice
 import (
 	"log"
 	"os"
+	"path/filepath"
 
 	"federate/internal/fs"
 	"federate/pkg/federated"

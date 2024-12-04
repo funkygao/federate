@@ -26,6 +26,7 @@ lsp/
 # Ignore federate generated fusion-project contents
 Makefile
 pom.xml
+plugins/README.md
 
 # Ignore federate generated fusion-starter contents
 {{.FusionStarter}}/**/src/main/java/com/jdwl/wms/fusion/runtime/

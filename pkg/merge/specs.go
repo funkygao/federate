@@ -1,5 +1,9 @@
 package merge
 
+import (
+	"federate/pkg/manifest"
+)
+
 // 合并编译调和器.
 type Reconciler interface {
 	Name() string
