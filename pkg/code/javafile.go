@@ -21,6 +21,8 @@ type JavaFile struct {
 	content     string
 	cachedLines []string
 
+	cachedCompactCode string
+
 	visitors []JavaFileVisitor
 }
 
@@ -68,6 +70,10 @@ func (j *JavaFile) FileBaseName() string {
 }
 
 func (j *JavaFile) CompactCode() string {
+	if j.cachedCompactCode != "" {
+		return j.cachedCompactCode
+	}
+
 	// Remove comments
 	noComments := P.commentRegex.ReplaceAllString(j.content, "")
 
@@ -80,7 +86,9 @@ func (j *JavaFile) CompactCode() string {
 	// Remove semicolons
 	noSemicolons := strings.ReplaceAll(noWhitespace, ";", "")
 
-	return noSemicolons
+	j.cachedCompactCode = noSemicolons
+
+	return j.cachedCompactCode
 }
 
 func (j *JavaFile) UpdateContent(content string) {

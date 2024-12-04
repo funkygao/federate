@@ -22,7 +22,7 @@ type Detector struct {
 
 	ignoreRegex *regexp.Regexp
 
-	LSH *LSH
+	Indexer *Indexer
 }
 
 type DuplicatePair struct {
@@ -37,13 +37,14 @@ func NewDetector(m *manifest.Manifest, threshold float64, algo string) *Detector
 		threshold:   threshold,
 		algo:        algo,
 		ignoreRegex: regexp.MustCompile(`(Dto|DTO|Query|Mapper|Request|Response|Result|Vo|Dao|Po|Detail|Param)`),
-		LSH:         NewLSH(),
+		Indexer:     NewIndexer(),
 	}
 }
 
 func (d *Detector) Detect() ([]DuplicatePair, error) {
 	t0 := time.Now()
 
+	// pass-1: 对所有文件进行分桶
 	var totalFiles int
 	componentFiles := make(map[string][]*code.JavaFile)
 	for _, c := range d.m.Components {
@@ -70,16 +71,15 @@ func (d *Detector) Detect() ([]DuplicatePair, error) {
 			}
 
 			jf := code.NewJavaFile(path, &c, content)
-			compactCode := jf.CompactCode()
-			if len(compactCode) > 100 {
+			if len(jf.CompactCode()) > 100 {
 				componentFiles[c.Name] = append(componentFiles[c.Name], jf)
 
-				d.LSH.Insert(jf, simHash(compactCode))
+				d.Indexer.Insert(jf)
 			}
 		}
 	}
 
-	log.Printf("%d Java Files Parsed, LSH Buckets: %d, cost %s", totalFiles, d.LSH.Size(), time.Since(t0))
+	log.Printf("%d Java Files Parsed, Buckets: %d, cost %s", totalFiles, len(d.Indexer.Buckets), time.Since(t0))
 
 	t0 = time.Now()
 	processed := primitive.NewStringSet()
@@ -93,10 +93,12 @@ func (d *Detector) Detect() ([]DuplicatePair, error) {
 	}
 	sort.Strings(components)
 
+    // pass-2: 精确计算相似度，桶降低了时间复杂度
+
 	for _, c1 := range components {
 		jfs := componentFiles[c1]
 		for _, jf1 := range jfs {
-			for _, jf2 := range d.LSH.GetCandidates(simHash(jf1.CompactCode())) { // near neighbors
+			for _, jf2 := range d.Indexer.GetCandidates(simHash(jf1.CompactCode())) {
 				ops++
 
 				if jf1.Path() == jf2.Path() { // itself
