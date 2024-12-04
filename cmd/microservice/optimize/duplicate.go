@@ -32,9 +32,12 @@ func showDuplicates(m *manifest.Manifest) {
 		log.Fatalf("%v", err)
 	}
 
-	// 按相似度升序排序
+	// 首先按 File1 排序，然后按 Similarity 降序排序
 	sort.Slice(pairs, func(i, j int) bool {
-		return pairs[i].Similarity < pairs[j].Similarity
+		if pairs[i].File1 != pairs[j].File1 {
+			return pairs[i].File1 < pairs[j].File1
+		}
+		return pairs[i].Similarity > pairs[j].Similarity
 	})
 
 	// 创建一个map来存储每个文件的相似文件
@@ -42,18 +45,14 @@ func showDuplicates(m *manifest.Manifest) {
 
 	for _, pair := range pairs {
 		similarFiles[pair.File1] = append(similarFiles[pair.File1], pair)
-		similarFiles[pair.File2] = append(similarFiles[pair.File2], pair)
+		// 不再需要为 File2 添加条目，因为我们现在按 File1 排序
 	}
 
 	// 显示结果
 	for file, pairs := range similarFiles {
 		color.Yellow(file)
 		for _, pair := range pairs {
-			otherFile := pair.File1
-			if otherFile == file {
-				otherFile = pair.File2
-			}
-			log.Printf("  - %.2f%% %s\n", pair.Similarity*100, otherFile)
+			log.Printf("  - %.2f%% %s\n", pair.Similarity*100, pair.File2)
 		}
 		log.Println()
 	}
