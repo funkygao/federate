@@ -4,15 +4,6 @@ import (
 	"federate/pkg/code"
 )
 
-const (
-	// 将 SimHash 的 64 位特征向量分割成多个小段：band
-	// 每个文档被放入 4 个 buckets，牺牲空间，提升召回率
-	NumBands = 4
-
-	// 每个 band 的位数：16
-	BandBits = SimHashBits / NumBands
-)
-
 type BandHash uint16
 
 type Indexer struct {
@@ -26,8 +17,9 @@ func NewIndexer() *Indexer {
 }
 
 func (l *Indexer) Insert(jf *code.JavaFile) {
-	// 对于每个文档，我们计算其 SimHash 值：特征
+	// 对于每个文档，我们计算其 SimHash 值：特征，并缓存
 	simhash := simHash(jf.CompactCode())
+	jf.Context = context.WithValue(context.Background(), simhashCacheKey, simhash)
 
 	// 文档分桶过程
 	for i := 0; i < NumBands; i++ {
@@ -41,18 +33,18 @@ func (l *Indexer) Insert(jf *code.JavaFile) {
 
 // GetCandidates 查找可能相似的文档
 func (l *Indexer) GetCandidates(simhash uint64) []*code.JavaFile {
-	candidates := make(map[*code.JavaFile]struct{})
+	uniqueCandidates := make(map[*code.JavaFile]struct{})
 	// 如果两个文档在任何一个 band 上完全匹配，它们就会在至少一个 bucket 中相遇
 	for i := 0; i < NumBands; i++ {
 		bandHash := l.bandHash(simhash, i)
 		for _, jf := range l.Buckets[bandHash] {
-			candidates[jf] = struct{}{}
+			uniqueCandidates[jf] = struct{}{}
 		}
 	}
 
 	// 结果转换
-	result := make([]*code.JavaFile, 0, len(candidates))
-	for jf := range candidates {
+	result := make([]*code.JavaFile, 0, len(uniqueCandidates))
+	for jf := range uniqueCandidates {
 		result = append(result, jf)
 	}
 	return result

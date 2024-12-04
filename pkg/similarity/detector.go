@@ -98,7 +98,8 @@ func (d *Detector) Detect() ([]DuplicatePair, error) {
 	for _, c1 := range components {
 		jfs := componentFiles[c1]
 		for _, jf1 := range jfs {
-			for _, jf2 := range d.Indexer.GetCandidates(simHash(jf1.CompactCode())) {
+			simhash1 := jf1.Context.Value("simhash").(uint64)
+			for _, jf2 := range d.Indexer.GetCandidates(simhash1) {
 				ops++
 
 				if jf1.Path() == jf2.Path() { // itself

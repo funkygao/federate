@@ -4,6 +4,26 @@ import (
 	"strings"
 )
 
+type FileSimilarityFunc func(f1, f2 string) (float64, error)
+
+var simFuncs = map[string]FileSimilarityFunc{
+	"simhash": simHashFileSimilarity,
+	"jaccard": jaccardFileSimilarity,
+}
+
+func BetweenFiles(f1, f2 string, algo string) (float64, error) {
+	return simFuncs[algo](f1, f2)
+}
+
+func simHashFileSimilarity(file1, file2 string) (float64, error) {
+	jf1, jf2, err := loadJavaFiles(file1, file2)
+	if err != nil {
+		return 0, err
+	}
+
+	return simHashJavaFileSimilarity(jf1, jf2), nil
+}
+
 func jaccardFileSimilarity(file1, file2 string) (float64, error) {
 	jf1, jf2, err := loadJavaFiles(file1, file2)
 	if err != nil {

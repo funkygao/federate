@@ -12,7 +12,8 @@ import (
 )
 
 type JavaFile struct {
-	c *manifest.ComponentInfo
+	c       *manifest.ComponentInfo
+	Context context.Context
 
 	path string
 	info os.FileInfo
