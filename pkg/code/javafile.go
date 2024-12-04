@@ -40,6 +40,12 @@ func NewJavaFile(path string, c *manifest.ComponentInfo, b []byte) *JavaFile {
 	}
 }
 
+func NewJavaFileWithContent(b []byte) *JavaFile {
+	return &JavaFile{
+		content: string(b),
+	}
+}
+
 func (j *JavaFile) withInfo(info os.FileInfo) *JavaFile {
 	j.info = info
 	return j
@@ -59,6 +65,22 @@ func (j *JavaFile) Path() string {
 
 func (j *JavaFile) FileBaseName() string {
 	return filepath.Base(j.path)
+}
+
+func (j *JavaFile) CompactCode() string {
+	// Remove comments
+	noComments := P.commentRegex.ReplaceAllString(j.content, "")
+
+	// Remove annotations
+	noAnnotations := P.annotationRegex.ReplaceAllString(noComments, "")
+
+	// Remove whitespace
+	noWhitespace := P.whitespaceRegex.ReplaceAllString(noAnnotations, "")
+
+	// Remove semicolons
+	noSemicolons := strings.ReplaceAll(noWhitespace, ";", "")
+
+	return noSemicolons
 }
 
 func (j *JavaFile) UpdateContent(content string) {

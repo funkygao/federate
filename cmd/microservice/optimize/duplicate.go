@@ -5,7 +5,7 @@ import (
 	"sort"
 
 	"federate/pkg/manifest"
-	"federate/pkg/optimizer"
+	"federate/pkg/similarity"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -26,33 +26,44 @@ var duplicateCmd = &cobra.Command{
 }
 
 func showDuplicates(m *manifest.Manifest) {
-	dups, err := optimizer.DetectDuplicateJava(m, similarityThreshold, similarityAlgo)
+	detector := similarity.NewDetector(m, similarityThreshold, similarityAlgo)
+	pairs, err := detector.Detect()
 	if err != nil {
-		log.Fatalf("Error detecting duplicate java: %v", err)
+		log.Fatalf("%v", err)
 	}
 
-	if len(dups) == 0 {
-		log.Println("Congrat, no dups detected.")
-	}
-
-	sort.Slice(dups, func(i, j int) bool {
-		return dups[i].Similarity < dups[j].Similarity
+	// 按相似度升序排序
+	sort.Slice(pairs, func(i, j int) bool {
+		return pairs[i].Similarity < pairs[j].Similarity
 	})
 
-	if optimizeVerbosity > 2 {
-		for _, dup := range dups {
-			log.Printf("%s %.2f", color.New(color.FgYellow).Sprintf(dup.ClassName), dup.Similarity)
-			for _, path := range dup.Paths {
-				log.Printf("  - %s\n", path)
-			}
-		}
+	// 创建一个map来存储每个文件的相似文件
+	similarFiles := make(map[string][]similarity.DuplicatePair)
+
+	for _, pair := range pairs {
+		similarFiles[pair.File1] = append(similarFiles[pair.File1], pair)
+		similarFiles[pair.File2] = append(similarFiles[pair.File2], pair)
 	}
-	log.Printf("Duplicate with similarity over %.2f : %v", similarityThreshold, len(dups))
+
+	// 显示结果
+	for file, pairs := range similarFiles {
+		color.Yellow(file)
+		for _, pair := range pairs {
+			otherFile := pair.File1
+			if otherFile == file {
+				otherFile = pair.File2
+			}
+			log.Printf("  - %.2f%% %s\n", pair.Similarity*100, otherFile)
+		}
+		log.Println()
+	}
+
+	log.Printf("Total: %d unique files with similarities detected", len(similarFiles))
 }
 
 func init() {
 	manifest.RequiredManifestFileFlag(duplicateCmd)
-	duplicateCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.72, "Threshold for similarity to count high similarity dup")
+	duplicateCmd.Flags().Float64VarP(&similarityThreshold, "similarity-threshold", "t", 0.91, "Similarity threshold (0.0 - 1.0)")
 	duplicateCmd.Flags().IntVarP(&optimizeVerbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 	duplicateCmd.Flags().StringVarP(&similarityAlgo, "similarity-algorithm", "s", "simhash", "simhash | jaccard")
 }

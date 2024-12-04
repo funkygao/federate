@@ -32,3 +32,38 @@ func TestJavaFileLines(t *testing.T) {
 	assert.NotEqual(t, expected, lines3, "After content change, return updated lines")
 	assert.Equal(t, []string{"newline1", "newline2"}, j.RawLines())
 }
+
+func TestCompactCode(t *testing.T) {
+	content := `
+
+
+package com.foo;
+
+import com.goog.util;
+
+// this is comment
+// author: Bob
+// date: 1989-09-12
+public class Hi {
+    /**
+     * func doc
+     */
+   public static void say(String arg) {
+       // 
+
+       /*
+       hello
+       */
+   }
+
+   @RestController("aadsfa")
+   @Resource
+   private String a;
+
+
+}
+`
+	expected := `packagecom.fooimportcom.goog.utilpublicclassHi{publicstaticvoidsay(Stringarg){}privateStringa}`
+	j := &JavaFile{content: content}
+	assert.Equal(t, j.CompactCode(), expected)
+}
