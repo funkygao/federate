@@ -2,18 +2,11 @@ package similarity
 
 type SimilarityFunc func(paths []string) (float64, error)
 
-var (
-	f SimilarityFunc
-)
-
-func UseSimhash() {
-	f = simhashAvg
+var distanceFuncs = map[string]SimilarityFunc{
+	"simhash": simhashAvg,
+	"jaccard": jaccardAvg,
 }
 
-func UseJaccard() {
-	f = jaccardAvg
-}
-
-func BetweenFiles(paths []string) (float64, error) {
-	return f(paths)
+func BetweenFiles(paths []string, algo string) (float64, error) {
+	return distanceFuncs[algo](paths)
 }

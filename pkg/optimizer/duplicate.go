@@ -16,7 +16,7 @@ type DupJavaInfo struct {
 }
 
 // DetectDuplicateJava detects highly similar java files across components.
-func DetectDuplicateJava(manifest *manifest.Manifest) ([]DupJavaInfo, error) {
+func DetectDuplicateJava(manifest *manifest.Manifest, similarityThreshold float64, similarityAlgo string) ([]DupJavaInfo, error) {
 	classMap := make(map[string][]string)
 
 	for _, component := range manifest.Components {
@@ -41,15 +41,18 @@ func DetectDuplicateJava(manifest *manifest.Manifest) ([]DupJavaInfo, error) {
 	var dups []DupJavaInfo
 	for className, paths := range classMap {
 		if len(paths) > 1 {
-			similarityScore, err := similarity.BetweenFiles(paths)
+			similarityScore, err := similarity.BetweenFiles(paths, similarityAlgo)
 			if err != nil {
 				return nil, err
 			}
-			dups = append(dups, DupJavaInfo{
-				ClassName:  className,
-				Paths:      paths,
-				Similarity: similarityScore,
-			})
+			if similarityScore > similarityThreshold {
+
+				dups = append(dups, DupJavaInfo{
+					ClassName:  className,
+					Paths:      paths,
+					Similarity: similarityScore,
+				})
+			}
 		}
 	}
 
