@@ -11,5 +11,7 @@ const (
 	// 每个 band 的位数：16
 	BandBits = SimHashBits / NumBands
 
+	NGramLength = 3
+
 	simhashCacheKey = "simhash"
 )

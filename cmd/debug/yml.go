@@ -3,9 +3,9 @@ package debug
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
+	"federate/pkg/java"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -36,20 +36,15 @@ Example usage:
 }
 
 func searchYAMLFiles(dir, key string) {
-	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() && strings.Contains(path, "/target/") {
-			return filepath.SkipDir
-		}
-		if !info.IsDir() && (strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")) {
-			searchYAMLFile(path, key)
-		}
-		return nil
+	files, err := java.ListFiles(dir, func(info os.FileInfo, path string) bool {
+		return strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")
 	})
 	if err != nil {
 		fmt.Printf("Error walking the path %q: %v\n", dir, err)
+	}
+
+	for _, path := range files {
+		searchYAMLFile(path, key)
 	}
 }
 

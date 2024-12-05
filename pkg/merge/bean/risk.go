@@ -3,8 +3,6 @@ package bean
 import (
 	"io/ioutil"
 	"log"
-	"os"
-	"path/filepath"
 	"runtime"
 	"sync"
 	"time"
@@ -69,26 +67,25 @@ type getBeanRiskTask struct {
 }
 
 func (t *getBeanRiskTask) Execute() error {
-	return filepath.Walk(t.component.RootDir(), func(path string, info os.FileInfo, err error) error {
+	files, err := java.ListJavaMainSourceFiles(t.component.RootDir())
+	if err != nil {
+		return err
+	}
+	for _, path := range files {
+		t.counter.Increment()
+		names, err := findGetBeanNames(path)
 		if err != nil {
 			return err
 		}
-		if java.IsJavaMainSource(info, path) {
-			t.counter.Increment()
-			names, err := findGetBeanNames(path)
-			if err != nil {
-				return err
+		if len(names) > 0 {
+			t.mu.Lock()
+			for _, name := range names {
+				*t.risks = append(*t.risks, getBeanRisk{filePath: path, beanName: name})
 			}
-			if len(names) > 0 {
-				t.mu.Lock()
-				for _, name := range names {
-					*t.risks = append(*t.risks, getBeanRisk{filePath: path, beanName: name})
-				}
-				t.mu.Unlock()
-			}
+			t.mu.Unlock()
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func findGetBeanNames(filePath string) ([]string, error) {

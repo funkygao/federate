@@ -62,6 +62,12 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		if err != nil {
 			return err
 		}
+		if info.IsDir() {
+			if java.ShouldSkipDir(info) {
+				return filepath.SkipDir
+			}
+			return nil
+		}
 		if !fileFilter(info, path) {
 			return nil
 		}

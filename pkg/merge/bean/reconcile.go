@@ -3,8 +3,6 @@ package bean
 import (
 	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
 	"federate/pkg/diff"
 	"federate/pkg/federated"
@@ -55,17 +53,17 @@ func (b *XmlBeanManager) executeReconcilePlan() {
 }
 
 func (b *XmlBeanManager) removeRedundantBeanClassesInDir(component manifest.ComponentInfo) error {
-	return filepath.Walk(component.TargetResourceDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
+	files, err := java.ListXMLFiles(component.TargetResourceDir())
+	if err != nil {
+		return err
+	}
+
+	for _, path := range files {
+		if err := b.removeRedundantBeanClassesInFile(path, component); err != nil {
 			return err
 		}
-		if java.IsXML(info, path) {
-			if err := b.removeRedundantBeanClassesInFile(path, component); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func (b *XmlBeanManager) removeRedundantBeanClassesInFile(filePath string, component manifest.ComponentInfo) error {
@@ -157,19 +155,19 @@ func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifica
 
 // updateBeanRefsInDir 更新目录中的 bean 引用
 func (b *XmlBeanManager) updateBeanRefsInDir(dir, componentName string) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if java.IsXML(info, path) {
-			if modificationPlan, exists := b.plan.beanIdModificationFiles[path]; exists {
-				if err := b.updateBeanRefsInFile(path, modificationPlan, componentName); err != nil {
-					return err
-				}
+	files, err := java.ListXMLFiles(dir)
+	if err != nil {
+		return err
+	}
+
+	for _, path := range files {
+		if modificationPlan, exists := b.plan.beanIdModificationFiles[path]; exists {
+			if err := b.updateBeanRefsInFile(path, modificationPlan, componentName); err != nil {
+				return err
 			}
 		}
-		return nil
-	})
+	}
+	return nil
 }
 
 func (b *XmlBeanManager) updateBeanRefsInFile(filePath string, modificationPlan map[string]string, componentName string) error {

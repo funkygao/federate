@@ -18,6 +18,12 @@ func (b *XmlBeanManager) loadBeans() error {
 			if err != nil {
 				return err
 			}
+			if info.IsDir() {
+				if java.ShouldSkipDir(info) {
+					return filepath.SkipDir
+				}
+				return nil
+			}
 
 			if java.IsXML(info, path) {
 				if ignored := b.m.IgnoreResourceSrcFile(info, component); ignored {

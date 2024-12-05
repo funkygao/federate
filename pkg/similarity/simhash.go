@@ -24,24 +24,15 @@ func simHashJavaFileSimilarity(jf1, jf2 *code.JavaFile) float64 {
 }
 
 // LSH: Locality-Sensitive Hashing.
-func simHash(content string) (feature uint64) {
+func simHash(doc string) (feature uint64) {
 	var vector [SimHashBits]int
 
-	// 对内容进行滑动窗口处理，生成trigram
-	for i := 0; i < len(content)-3; i++ {
-		trigram := content[i : i+3]
-		// 对每个trigram计算hash值
-		hash := md5.Sum([]byte(trigram))
-		for j := 0; j < SimHashBits; j++ {
-			// 检查 hash 的第 j 位是否为 1
-			if hash[j/8]&(1<<(uint(j)%8)) != 0 {
-				vector[j]++
-			} else {
-				vector[j]--
-			}
-		}
+	// 对文档进行滑动窗口处理，生成ngram向量
+	for i := 0; i < len(doc)-NGramLength; i++ {
+		processNgram(doc[i:i+NGramLength], &vector)
 	}
 
+	// 根据向量计数生成特征值
 	for i := 0; i < SimHashBits; i++ {
 		if vector[i] > 0 {
 			// 如果向量中第 i 位大于 0，则在 feature 的第 i 位设置为 1
@@ -50,6 +41,24 @@ func simHash(content string) (feature uint64) {
 	}
 
 	return
+}
+
+func processNgram(ngram string, vectorCounts *[SimHashBits]int) {
+	ngramHash := md5.Sum([]byte(ngram))
+
+	for bitIndex := 0; bitIndex < SimHashBits; bitIndex++ {
+		if isBitSet(ngramHash, bitIndex) {
+			vectorCounts[bitIndex]++
+		} else {
+			vectorCounts[bitIndex]--
+		}
+	}
+}
+
+func isBitSet(hash [16]byte, bitIndex int) bool {
+	byteIndex := bitIndex / 8
+	bitOffset := uint(bitIndex % 8)
+	return hash[byteIndex]&(1<<bitOffset) != 0
 }
 
 func hammingSimilarity(hash1, hash2 uint64) float64 {

@@ -2,6 +2,9 @@ package similarity
 
 import (
 	"context"
+	"runtime"
+	"sync"
+	"sync/atomic"
 
 	"federate/pkg/code"
 )
@@ -10,6 +13,7 @@ type BandHash uint16
 
 type Indexer struct {
 	Buckets map[BandHash][]*code.JavaFile
+	mu      sync.RWMutex
 }
 
 func NewIndexer() *Indexer {
@@ -23,20 +27,67 @@ func (l *Indexer) Insert(jf *code.JavaFile) {
 	simhash := simHash(jf.CompactCode())
 	jf.Context = context.WithValue(context.Background(), simhashCacheKey, simhash)
 
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
 	// 文档分桶过程
 	for i := 0; i < NumBands; i++ {
-		// 对每个 band，我们使用其 16 位值作为一个 bucket 的 key
 		bandHash := l.bandHash(simhash, i)
-
-		// 文档被添加到这个 bucket 中
 		l.Buckets[bandHash] = append(l.Buckets[bandHash], jf)
 	}
 }
 
-// GetCandidates 查找可能相似的文档
+func (l *Indexer) BatchInsert(jfs []*code.JavaFile) {
+	type result struct {
+		jf      *code.JavaFile
+		simhash uint64
+	}
+
+	numWorkers := runtime.NumCPU()
+	resultChan := make(chan result, len(jfs))
+	workChan := make(chan *code.JavaFile, len(jfs))
+	remainingTasks := int32(len(jfs))
+
+	// 启动工作者
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			for jf := range workChan {
+				resultChan <- result{jf, simHash(jf.CompactCode())} // expensive
+
+				if atomic.AddInt32(&remainingTasks, -1) == 0 {
+					close(resultChan)
+				}
+			}
+		}()
+	}
+
+	// 发送工作内容
+	for _, jf := range jfs {
+		workChan <- jf
+	}
+	close(workChan)
+
+	// 处理结果并插入到索引中
+	l.mu.Lock()
+	defer l.mu.Unlock()
+
+	for r := range resultChan {
+		jf, simhash := r.jf, r.simhash
+		jf.Context = context.WithValue(context.Background(), simhashCacheKey, simhash)
+
+		for i := 0; i < NumBands; i++ {
+			bandHash := l.bandHash(simhash, i)
+			l.Buckets[bandHash] = append(l.Buckets[bandHash], jf)
+		}
+	}
+}
+
 func (l *Indexer) GetCandidates(simhash uint64) []*code.JavaFile {
 	uniqueCandidates := make(map[*code.JavaFile]struct{})
-	// 如果两个文档在任何一个 band 上完全匹配，它们就会在至少一个 bucket 中相遇
+
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
 	for i := 0; i < NumBands; i++ {
 		bandHash := l.bandHash(simhash, i)
 		for _, jf := range l.Buckets[bandHash] {
@@ -44,7 +95,6 @@ func (l *Indexer) GetCandidates(simhash uint64) []*code.JavaFile {
 		}
 	}
 
-	// 结果转换
 	result := make([]*code.JavaFile, 0, len(uniqueCandidates))
 	for jf := range uniqueCandidates {
 		result = append(result, jf)

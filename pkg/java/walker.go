@@ -5,60 +5,61 @@ import (
 	"path/filepath"
 )
 
-type fileHandler func(path string) error
-type walkFilter func(info os.FileInfo, path string) bool
+type FilePredicate func(info os.FileInfo, path string) bool
 
 func ListXMLFiles(root string) ([]string, error) {
-	return listFiles(root, walkXML)
+	return ListFiles(root, IsXML)
 }
 
 func ListResourceFiles(root string) ([]string, error) {
-	return listFiles(root, walkResources)
+	return ListFiles(root, IsResourceFile)
 }
 
 func ListJavaMainSourceFiles(root string) ([]string, error) {
-	return listFiles(root, walkCode)
+	return ListFiles(root, IsJavaMainSource)
 }
 
-func listFiles(root string, walkFunc func(string, fileHandler) error) ([]string, error) {
-	var files []string
-	err := walkFunc(root, func(path string) error {
-		files = append(files, path)
-		return nil
-	})
-	return files, err
+func ListFiles(root string, predicate FilePredicate) (files []string, err error) {
+	resultChan := make(chan string, 2000)
+	errChan := make(chan error, 1)
+
+	go func() {
+		if err := parallelWalk(root, predicate, resultChan, errChan); err != nil {
+			errChan <- err
+		}
+
+		close(resultChan)
+		close(errChan)
+	}()
+
+	for file := range resultChan {
+		files = append(files, file)
+	}
+
+	if err = <-errChan; err != nil {
+		return
+	}
+
+	return
 }
 
-func walkCode(root string, handler fileHandler) error {
-	return walk(root, nil, IsJavaMainSource, handler)
-}
-
-func walkResources(root string, handler fileHandler) error {
-	return walk(root, nil, IsResourceFile, handler)
-}
-
-func walkXML(root string, handler fileHandler) error {
-	return walk(root, nil, IsXML, handler)
-}
-
-func walk(root string, dirFilter walkFilter, fileFilter walkFilter, fileHandler fileHandler) error {
+func parallelWalk(root string, predicate FilePredicate, resultChan chan<- string, errChan chan<- error) error {
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
 		if info.IsDir() {
-			if dirFilter != nil && !dirFilter(info, path) {
+			if ShouldSkipDir(info) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if fileFilter != nil && !fileFilter(info, path) {
-			return nil
+		if predicate(info, path) {
+			resultChan <- path
 		}
 
-		// path is file, not dir
-		return fileHandler(path)
+		return nil
 	})
 }
