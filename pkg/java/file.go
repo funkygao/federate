@@ -6,11 +6,6 @@ import (
 	"strings"
 )
 
-type FileInfo struct {
-	Path string
-	Info os.FileInfo
-}
-
 func IsJavaMainSource(info os.FileInfo, path string) bool {
 	return !info.IsDir() &&
 		info.Size() > 20 &&
