@@ -56,8 +56,6 @@ checkenv:
 fusion-start: ## Scaffold the fusion-starter module.
 	$(FEDERATE_CMD) microservice fusion-start -i $(MANIFEST_FILE)
 
-rebuild-starter:fusion-start package
-
 consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 	$(MAKE) init
 	echo
@@ -76,7 +74,7 @@ consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 		echo "☕️ Skipped Components Installation"; \
 	fi
 	$(call measure_time, $(MAKE) package)
-	echo "🍺 {{.FusionProjectName}} consolidated and packaged!"
+	echo "🍺 {{.FusionProjectName}} consolidated and installed!"
 
 run: ## Debug {{.FusionProjectName}} locally.
 	$(MAKE) -C {{.FusionProjectName}} run
@@ -85,9 +83,9 @@ jdos: ## Generate CI/CD help for JDOS 3.0.
 	$(FEDERATE_CMD) microservice jdos -i $(MANIFEST_FILE)
 
 package:
-	echo "☕️ Building {{.FusionProjectName}} ..."
+	echo "☕️ Installing {{.FusionProjectName}} ..."
 	mvn install -q -T8 -Dmaven.artifact.threads=16
-	echo "   {{.FusionProjectName}} packaged"
+	echo "   {{.FusionProjectName}} installed"
 
 ##@ Explore: Post-Fuse Phase
 
