@@ -56,7 +56,7 @@ func (cm *PropertyManager) Reconcile() (err error) {
 		}
 	}
 
-	// aggregate resport
+	// aggregate report
 	for _, task := range executor.Tasks() {
 		reconcileTask := task.(*reconcileTask)
 		cm.result.KeyPrefixed += reconcileTask.result.KeyPrefixed
