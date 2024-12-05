@@ -23,19 +23,15 @@ func simHashJavaFileSimilarity(jf1, jf2 *code.JavaFile) float64 {
 	return hammingSimilarity(feature1, feature2)
 }
 
-// LSH: Locality-Sensitive Hashing.
 func simHash(doc string) (feature uint64) {
-	var vector [SimHashBits]int
+	var vector [SimHashBits]int64
 
-	// 对文档进行滑动窗口处理，生成ngram向量
 	for i := 0; i < len(doc)-NGramLength; i++ {
 		processNgram(doc[i:i+NGramLength], &vector)
 	}
 
-	// 根据向量计数生成特征值
 	for i := 0; i < SimHashBits; i++ {
 		if vector[i] > 0 {
-			// 如果向量中第 i 位大于 0，则在 feature 的第 i 位设置为 1
 			feature |= 1 << uint(i)
 		}
 	}
@@ -43,7 +39,7 @@ func simHash(doc string) (feature uint64) {
 	return
 }
 
-func processNgram(ngram string, vectorCounts *[SimHashBits]int) {
+func processNgram(ngram string, vectorCounts *[SimHashBits]int64) {
 	ngramHash := md5.Sum([]byte(ngram))
 
 	for bitIndex := 0; bitIndex < SimHashBits; bitIndex++ {
