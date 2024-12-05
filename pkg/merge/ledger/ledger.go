@@ -1,7 +1,9 @@
 package ledger
 
 import (
+	"encoding/json"
 	"log"
+	"os"
 	"sort"
 	"strings"
 
@@ -74,6 +76,38 @@ func (l *Ledger) RegisterEnvKey(componentName, key string) {
 		l.envKeys[componentName] = make(map[string]struct{})
 	}
 	l.envKeys[componentName][key] = struct{}{}
+}
+
+func (l *Ledger) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		Guide                   string                         `json:"帮助,omitempty"`
+		RegularProperties       map[string]map[string]string   `json:"属性Key变化"`
+		PropertyPlaceholders    map[string]map[string]string   `json:"属性的引用值变化"`
+		EnvKeys                 map[string]map[string]struct{} `json:"目前使用的环境变量"`
+		Transactions            map[string]string              `json:"@Transactional 相关源代码改动"`
+		ImportResource          map[string]map[string]string   `json:"@ImportResource 相关源代码改动"`
+		ConfigurationProperties map[string]map[string]string   `json:"@ConfigurationProperties 相关源代码改动"`
+		RequestMappings         map[string]map[string]string   `json:"@RequestMapping 相关源代码改动"`
+	}{
+		Guide:                   "汇总代码和资源文件变更：按照模块分组，左侧是旧值，右侧是新值",
+		Transactions:            l.transactions,
+		ImportResource:          l.importResource,
+		ConfigurationProperties: l.configurationProperties,
+		RegularProperties:       l.regularProperties,
+		PropertyPlaceholders:    l.propertyPlaceholders,
+		RequestMappings:         l.requestMappings,
+		EnvKeys:                 l.envKeys,
+	})
+}
+
+func (l *Ledger) SaveToFile(filename string) error {
+	data, err := json.MarshalIndent(l, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	color.Cyan("Reconcile Summary Writen to: %s", filename)
+	return os.WriteFile(filename, data, 0644)
 }
 
 func (l *Ledger) ShowSummary() {

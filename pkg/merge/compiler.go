@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"federate/pkg/code"
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/addon"
@@ -158,18 +157,6 @@ func (p *compiler) AddReconciler(r Reconciler) Compiler {
 func (p *compiler) Merge() error {
 	if len(p.reconcilers) == 0 {
 		return fmt.Errorf("No reconcilers registered: call Init() before Merge()")
-	}
-
-	if false {
-		for _, c := range p.m.Components {
-			for _, r := range p.reconcilers {
-				if visitor, ok := r.(code.JavaFileVisitor); ok {
-					code.NewComponentJavaWalker(c).
-						AddVisitor(visitor).
-						Walk()
-				}
-			}
-		}
 	}
 
 	var steps = []step.Step{}

@@ -17,5 +17,5 @@ func (m *ReconcileSummary) Name() string {
 
 func (m *ReconcileSummary) Reconcile() error {
 	ledger.Get().ShowSummary()
-	return nil
+	return ledger.Get().SaveToFile("report.json")
 }

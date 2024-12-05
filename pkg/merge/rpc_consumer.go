@@ -154,7 +154,7 @@ func (dm *RpcConsumerManager) mergeReferences(references []*etree.Element, compo
 			continue
 		}
 		if dm.m.Main.Reconcile.Rpc.Consumer.IgnoreInterface(interfaceName) {
-			log.Printf("[%s:%s] Ignore rpc consumer: %s", dm.rpcType, component.Name, interfaceName)
+			log.Printf("[%s:%s] Offload RPC: %s", dm.rpcType, component.Name, interfaceName)
 			dm.IgnoredInterfaceN++
 			continue
 		}
