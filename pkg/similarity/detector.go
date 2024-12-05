@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -72,28 +71,24 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 		go func(c manifest.ComponentInfo) {
 			defer wg.Done()
 
-			files, err := java.ListJavaMainSourceFiles(c.RootDir())
-			if err != nil {
-				log.Printf("Error listing files for component %s: %v", c.Name, err)
-				return
-			}
-
-			atomic.AddInt32(&totalFiles, int32(len(files)))
+			fileChan, _ := java.ListJavaMainSourceFilesAsync(c.RootDir())
 
 			var javaFiles []*code.JavaFile
-			for _, path := range files {
-				className := strings.Trim(filepath.Base(path), ".java")
+			for fileInfo := range fileChan {
+				atomic.AddInt32(&totalFiles, 1)
+
+				className := strings.Trim(fileInfo.Info.Name(), ".java")
 				if d.ignoreRegex.MatchString(className) {
 					continue
 				}
 
-				content, err := ioutil.ReadFile(path)
+				content, err := ioutil.ReadFile(fileInfo.Path)
 				if err != nil {
-					log.Printf("Error reading file %s: %v", path, err)
+					log.Printf("Error reading file %s: %v", fileInfo.Path, err)
 					continue
 				}
 
-				jf := code.NewJavaFile(path, &c, content)
+				jf := code.NewJavaFile(fileInfo.Path, &c, content)
 				if len(jf.CompactCode()) > 100 {
 					javaFiles = append(javaFiles, jf)
 				}
