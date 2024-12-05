@@ -1,6 +1,7 @@
 package similarity
 
 import (
+	"context"
 	"crypto/md5"
 	"math/bits"
 
