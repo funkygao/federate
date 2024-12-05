@@ -2,7 +2,6 @@ package bean
 
 import (
 	"log"
-	"os"
 	"path/filepath"
 
 	"federate/pkg/java"
@@ -13,38 +12,19 @@ import (
 // loadBeans load xml beans from component src dir into memory
 func (b *XmlBeanManager) loadBeans() error {
 	for _, component := range b.m.Components {
-		sourceDir := component.TargetResourceDir()
-		err := filepath.Walk(sourceDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				if java.ShouldSkipDir(info) {
-					return filepath.SkipDir
-				}
-				return nil
-			}
-
-			if java.IsXML(info, path) {
-				if ignored := b.m.IgnoreResourceSrcFile(info, component); ignored {
-					return nil
-				}
-
-				// parse xml
+		dir := component.TargetResourceDir()
+		fileChan, _ := java.ListXMLFilesAsync(dir)
+		for f := range fileChan {
+			if !b.m.IgnoreResourceSrcFile(f.Info, component) {
 				doc := etree.NewDocument()
-				if err := doc.ReadFromFile(path); err != nil {
+				if err := doc.ReadFromFile(f.Path); err != nil {
 					return err
 				}
 
-				root := doc.Root()
-				if err := b.processBeans(root, component, sourceDir, path, []string{}, ""); err != nil {
+				if err := b.processBeans(doc.Root(), component, dir, f.Path, []string{}, ""); err != nil {
 					return err
 				}
 			}
-			return nil
-		})
-		if err != nil {
-			return err
 		}
 	}
 	log.Printf("XML Beans Detected: %d", len(b.beanIdMap))
