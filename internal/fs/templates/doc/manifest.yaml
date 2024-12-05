@@ -43,6 +43,7 @@ federated:
         - com.jdwl.wms.inventory.intercept.WebMvcConfig
         - com.jdwl.wms.stock.common.config.SwaggerConfig
   reconcile: # 冲突调和
+    transformers: # 手工编排
     manual: # 无法自动合并，用户手工合并
       logConfigXml: logback-test.xml
       mybatisConfigXml: mybatis-config.xml

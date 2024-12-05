@@ -73,6 +73,46 @@ func (p *compiler) WithOption(opt CompilerOption) Compiler {
 }
 
 func (p *compiler) Init() Compiler {
+	if len(p.m.Main.Reconcile.Transformers) > 0 {
+		p.orchestrateReconcilers()
+	} else {
+		p.loadDefaultReconcilers()
+	}
+
+	// Load plugin reconcilers
+	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
+		log.Printf("Error loading plugin reconcilers: %v", err)
+	} else {
+		for _, reconciler := range pluginReconcilers {
+			p.AddReconciler(reconciler)
+		}
+	}
+
+	// shows summary
+	p.AddReconciler(newSummary())
+
+	p.prepareReconcilers()
+
+	return p
+}
+
+func (p *compiler) prepareReconcilers() {
+	// prepare if nec: plugin might also implement Preparer
+	var preparers []Preparer
+	for _, r := range p.reconcilers {
+		if p, ok := r.(Preparer); ok {
+			preparers = append(preparers, p)
+		}
+	}
+
+	for i, p := range preparers {
+		color.Cyan("Prepare [%d/%d] %s", i+1, len(preparers), p.Name())
+		p.Prepare()
+	}
+
+}
+
+func (p *compiler) loadDefaultReconcilers() {
 	// the order matters !
 	p.AddReconciler(addon.NewFusionProjectGenerator(p.m))
 	p.AddReconciler(NewSpringBootMavenPluginManager(p.m))
@@ -94,33 +134,20 @@ func (p *compiler) Init() Compiler {
 	p.AddReconciler(NewImportResourceManager(p.m))
 	p.AddReconciler(NewRpcAliasManager(pm))
 	p.AddReconciler(NewTransactionManager(p.m))
+}
 
-	// Load plugin reconcilers
-	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
-		log.Printf("Error loading plugin reconcilers: %v", err)
-	} else {
-		for _, reconciler := range pluginReconcilers {
-			p.AddReconciler(reconciler)
+func (p *compiler) orchestrateReconcilers() {
+	for _, tf := range p.m.Main.Reconcile.Transformers {
+		if rc := p.createReconciler(tf); rc != nil {
+			p.AddReconciler(rc)
 		}
 	}
 
-	// tail shows summary
-	p.AddReconciler(newSummary())
+	log.Fatalf("Not implemented")
+}
 
-	// prepare if nec: plugin might also implement Preparer
-	var preparers []Preparer
-	for _, r := range p.reconcilers {
-		if p, ok := r.(Preparer); ok {
-			preparers = append(preparers, p)
-		}
-	}
-
-	for i, p := range preparers {
-		color.Cyan("Prepare [%d/%d] %s", i+1, len(preparers), p.Name())
-		p.Prepare()
-	}
-
-	return p
+func (p *compiler) createReconciler(tf manifest.TransformerSpec) Reconciler {
+	return nil
 }
 
 func (p *compiler) AddReconciler(r Reconciler) Compiler {
