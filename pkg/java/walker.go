@@ -3,6 +3,7 @@ package java
 import (
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type FilePredicate func(info os.FileInfo, path string) bool
@@ -43,6 +44,17 @@ func ListFiles(root string, predicate FilePredicate) (files []string, err error)
 	return
 }
 
+func walkDir(info os.FileInfo) error {
+	name := info.Name()
+	if name == "target" ||
+		name == "test" ||
+		(name != "." && name != ".." && strings.HasPrefix(name, ".")) { // .git, .idea
+		return filepath.SkipDir
+	}
+
+	return nil
+}
+
 func parallelWalk(root string, predicate FilePredicate, resultChan chan<- string, errChan chan<- error) error {
 	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -50,10 +62,7 @@ func parallelWalk(root string, predicate FilePredicate, resultChan chan<- string
 		}
 
 		if info.IsDir() {
-			if ShouldSkipDir(info) {
-				return filepath.SkipDir
-			}
-			return nil
+			return walkDir(info)
 		}
 
 		if predicate(info, path) {

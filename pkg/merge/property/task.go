@@ -58,67 +58,64 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 		keyRegexes[i] = createRegex(key)
 	}
 
-	return filepath.Walk(t.c.RootDir(), func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			if java.ShouldSkipDir(info) {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if !fileFilter(info, path) {
-			return nil
-		}
-
-		if t.c.M.MainClass.ExcludeJavaFile(info.Name()) {
+	fileChan, _ := java.ListFilesAsync(t.c.RootDir(), fileFilter)
+	for f := range fileChan {
+		if t.c.M.MainClass.ExcludeJavaFile(f.Info.Name()) {
 			if t.pm.debug {
-				log.Printf("[%s] Excluded from fixing conflicting property key: %s", t.c.Name, info.Name())
+				log.Printf("[%s] Excluded from fixing conflicting property key: %s", t.c.Name, f.Info.Name())
 			}
-			return nil
+			continue
 		}
 
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
+		if err := f.namespaceKeyReferenceFile(f, keyRegexes); err != nil {
 			return err
 		}
+	}
 
-		oldContent := string(content)
-		newContent := oldContent
-		changed := false
+	return nil
+}
 
-		for i, regex := range keyRegexes {
-			matches := regex.FindAllStringSubmatchIndex(oldContent, -1)
-			if len(matches) > 0 {
-				changed = true
-				newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-					newKey := Key(t.keys[i]).WithNamespace(t.c.Name)
-					replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
-					dmp := diffmatchpatch.New()
-					diffs := dmp.DiffMain(match, replaced, false)
-					if t.pm.debug {
-						log.Printf("[%s] Transforming %s\n%s", t.c.Name, path, dmp.DiffPrettyText(diffs))
-					}
-					return replaced
-				})
-				if strings.Contains(regex.String(), "@ConfigurationProperties") {
-					t.result.ConfigurationProperties++
-				} else {
-					t.result.KeyPrefixed++
+func (t *reconcileTask) namespaceKeyReferenceFile(f java.FileInfo, keyRegexes []*regexp.Regexp) error {
+	content, err := ioutil.ReadFile(f.Path)
+	if err != nil {
+		return err
+	}
+
+	oldContent := string(content)
+	newContent := oldContent
+	changed := false
+
+	for i, regex := range keyRegexes {
+		matches := regex.FindAllStringSubmatchIndex(oldContent, -1)
+		if len(matches) > 0 {
+			changed = true
+			newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
+				newKey := Key(t.keys[i]).WithNamespace(t.c.Name)
+				replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
+				dmp := diffmatchpatch.New()
+				diffs := dmp.DiffMain(match, replaced, false)
+				if t.pm.debug {
+					log.Printf("[%s] Transforming %s\n%s", t.c.Name, f.Path, dmp.DiffPrettyText(diffs))
 				}
+				return replaced
+			})
+
+			if strings.Contains(regex.String(), "@ConfigurationProperties") {
+				t.result.ConfigurationProperties++
+			} else {
+				t.result.KeyPrefixed++
 			}
 		}
+	}
 
-		if changed {
-			// newContent 是叠加所有替换后的完整文件内容
-			if err = ioutil.WriteFile(path, []byte(newContent), info.Mode()); err != nil {
-				return err
-			}
+	if changed {
+		// newContent 是叠加所有替换后的完整文件内容
+		if err = ioutil.WriteFile(f.Path, []byte(newContent), f.Info.Mode()); err != nil {
+			return err
 		}
+	}
 
-		return nil
-	})
+	return nil
 }
 
 func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {

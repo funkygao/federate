@@ -28,13 +28,6 @@ func IsResourceFile(info os.FileInfo, path string) bool {
 	return exists
 }
 
-func ShouldSkipDir(info os.FileInfo) bool {
-	name := info.Name()
-	return name == "target" ||
-		name == "test" ||
-		(name != "." && name != ".." && strings.HasPrefix(name, ".")) // .git, .idea
-}
-
 func IsMetaInfFile(info os.FileInfo, path string) bool {
 	return strings.Contains(filepath.ToSlash(path), "META-INF")
 }

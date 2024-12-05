@@ -33,19 +33,18 @@ func (w *JavaWalker) AddVisitor(visitors ...JavaFileVisitor) *JavaWalker {
 }
 
 func (w *JavaWalker) Walk(opts ...AcceptOption) error {
-	return filepath.Walk(w.rootDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !java.IsJavaMainSource(info, path) {
-			return nil
-		}
-		if w.c.M != nil && w.c.M.MainClass.ExcludeJavaFile(info.Name()) {
-			return nil
+	fileChan, _ := java.ListJavaMainSourceFilesAsync(w.rootDir)
+	for f := range fileChan {
+		if w.c.M != nil && w.c.M.MainClass.ExcludeJavaFile(f.Info.Name()) {
+			continue
 		}
 
-		return w.processJavaFile(path, info, opts...)
-	})
+		if err := w.processJavaFile(f.Path, f.Info, opts...); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (w *JavaWalker) processJavaFile(path string, info os.FileInfo, opts ...AcceptOption) error {
