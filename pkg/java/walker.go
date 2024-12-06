@@ -6,42 +6,54 @@ import (
 	"strings"
 )
 
-type FilePredicate func(info os.FileInfo, path string) bool
-
-func ListXMLFiles(root string) ([]string, error) {
-	return ListFiles(root, IsXML)
+type FileInfo struct {
+	Path string
+	Info os.FileInfo
 }
 
-func ListResourceFiles(root string) ([]string, error) {
-	return ListFiles(root, IsResourceFile)
+func ListXMLFilesAsync(root string) (<-chan FileInfo, <-chan error) {
+	return ListFilesAsync(root, IsXML)
 }
 
-func ListJavaMainSourceFiles(root string) ([]string, error) {
-	return ListFiles(root, IsJavaMainSource)
+func ListResourceFilesAsync(root string) (<-chan FileInfo, <-chan error) {
+	return ListFilesAsync(root, IsResourceFile)
 }
 
-func ListFiles(root string, predicate FilePredicate) (files []string, err error) {
-	resultChan := make(chan string, 2000)
+func ListJavaMainSourceFilesAsync(root string) (<-chan FileInfo, <-chan error) {
+	return ListFilesAsync(root, IsJavaMainSource)
+}
+
+func ListFilesAsync(root string, predicate func(info os.FileInfo, path string) bool) (<-chan FileInfo, <-chan error) {
+	fileChan := make(chan FileInfo)
 	errChan := make(chan error, 1)
 
 	go func() {
-		if err := parallelWalk(root, predicate, resultChan, errChan); err != nil {
+		err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+
+			if info.IsDir() {
+				return walkDir(info)
+			}
+
+			if predicate(info, path) {
+				fileChan <- FileInfo{Path: path, Info: info}
+			}
+
+			return nil
+		})
+
+		if err != nil {
 			errChan <- err
 		}
 
-		close(resultChan)
+		// 先关闭 fileChan，之后再 errChan
+		close(fileChan)
 		close(errChan)
 	}()
 
-	for file := range resultChan {
-		files = append(files, file)
-	}
-
-	if err = <-errChan; err != nil {
-		return
-	}
-
-	return
+	return fileChan, errChan
 }
 
 func walkDir(info os.FileInfo) error {
@@ -53,22 +65,4 @@ func walkDir(info os.FileInfo) error {
 	}
 
 	return nil
-}
-
-func parallelWalk(root string, predicate FilePredicate, resultChan chan<- string, errChan chan<- error) error {
-	return filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return walkDir(info)
-		}
-
-		if predicate(info, path) {
-			resultChan <- path
-		}
-
-		return nil
-	})
 }

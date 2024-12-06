@@ -1,7 +1,6 @@
 package java
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -43,13 +42,13 @@ func createTempDir(t *testing.T) (string, func()) {
 	}
 }
 
-func TestListFiles(t *testing.T) {
+func TestListFilesAsync(t *testing.T) {
 	tempDir, cleanup := createTempDir(t)
 	defer cleanup()
 
 	tests := []struct {
 		name      string
-		predicate FilePredicate
+		predicate func(info os.FileInfo, path string) bool
 		want      []string
 	}{
 		{
@@ -91,56 +90,15 @@ func TestListFiles(t *testing.T) {
 			}
 
 			if err := <-errChan; err != nil {
-				t.Fatalf("ListFiles returned an error: %v", err)
+				t.Fatalf("ListFilesAsync returned an error: %v", err)
 			}
 
 			sort.Strings(got)
 			sort.Strings(tt.want)
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ListFiles() = %v, want %v", got, tt.want)
+				t.Errorf("ListFilesAsync() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestProcessFiles(t *testing.T) {
-	tempDir, cleanup := createTempDir(t)
-	defer cleanup()
-
-	fileChan, errChan := ListFilesAsync(tempDir, func(info os.FileInfo, path string) bool {
-		return true
-	})
-
-	var processedFiles []string
-	processor := func(f FileInfo) error {
-		t.Logf("%s size:%d", f.Path, f.Info.Size())
-		relPath, err := filepath.Rel(tempDir, f.Path)
-		if err != nil {
-			return fmt.Errorf("Failed to get relative path: %v", err)
-		}
-		processedFiles = append(processedFiles, relPath)
-		return nil
-	}
-
-	err := ProcessFiles(fileChan, errChan, processor)
-	if err != nil {
-		t.Fatalf("ProcessFiles returned an error: %v", err)
-	}
-
-	want := []string{
-		"file1.txt",
-		"file2.xml",
-		filepath.Join("dir1", "file3.txt"),
-		filepath.Join("dir1", "file4.xml"),
-		filepath.Join("dir2", "file5.txt"),
-		filepath.Join("dir2", "file6.xml"),
-	}
-
-	sort.Strings(processedFiles)
-	sort.Strings(want)
-
-	if !reflect.DeepEqual(processedFiles, want) {
-		t.Errorf("ProcessFiles processed files = %v, want %v", processedFiles, want)
 	}
 }

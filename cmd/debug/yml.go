@@ -36,15 +36,11 @@ Example usage:
 }
 
 func searchYAMLFiles(dir, key string) {
-	files, err := java.ListFiles(dir, func(info os.FileInfo, path string) bool {
+	fileChan, _ := java.ListFilesAsync(dir, func(info os.FileInfo, path string) bool {
 		return strings.HasSuffix(info.Name(), ".yaml") || strings.HasSuffix(info.Name(), ".yml")
 	})
-	if err != nil {
-		fmt.Printf("Error walking the path %q: %v\n", dir, err)
-	}
-
-	for _, path := range files {
-		searchYAMLFile(path, key)
+	for f := range fileChan {
+		searchYAMLFile(f.Path, key)
 	}
 }
 

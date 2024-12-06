@@ -34,10 +34,10 @@ Example usage:
 }
 
 func showKeyFeatures(directory string) {
-	files, err := java.ListJavaMainSourceFiles(directory)
-	if err != nil {
-		fmt.Printf("Error getting files: %v\n", err)
-		return
+	fileChan, _ := java.ListJavaMainSourceFilesAsync(directory)
+	var files []string
+	for f := range fileChan {
+		files = append(files, f.Path)
 	}
 
 	corpus := make([]string, len(files))

@@ -43,16 +43,11 @@ func (e *envManager) Reconcile() error {
 	// XML 里环境变量引用
 	for _, component := range e.m.Components {
 		for _, root := range component.ResourceBaseDirs() {
-			xmlPaths, err := java.ListXMLFiles(root)
-			if err != nil {
-				log.Printf("Error listing XML files in %s: %v", root, err)
-				continue
-			}
-
-			for _, xmlPath := range xmlPaths {
-				keys, err := e.findEnvRefsInXML(component, xmlPath)
+			xmlPathChan, _ := java.ListXMLFilesAsync(root)
+			for xmlPath := range xmlPathChan {
+				keys, err := e.findEnvRefsInXML(component, xmlPath.Path)
 				if err != nil {
-					log.Printf("Error processings %s: %v", xmlPath, err)
+					log.Printf("Error processings %s: %v", xmlPath.Path, err)
 					continue
 				}
 				for _, key := range keys {

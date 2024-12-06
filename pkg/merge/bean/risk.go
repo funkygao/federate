@@ -67,20 +67,17 @@ type getBeanRiskTask struct {
 }
 
 func (t *getBeanRiskTask) Execute() error {
-	files, err := java.ListJavaMainSourceFiles(t.component.RootDir())
-	if err != nil {
-		return err
-	}
-	for _, path := range files {
+	fileChan, _ := java.ListJavaMainSourceFilesAsync(t.component.RootDir())
+	for f := range fileChan {
 		t.counter.Increment()
-		names, err := findGetBeanNames(path)
+		names, err := findGetBeanNames(f.Path)
 		if err != nil {
 			return err
 		}
 		if len(names) > 0 {
 			t.mu.Lock()
 			for _, name := range names {
-				*t.risks = append(*t.risks, getBeanRisk{filePath: path, beanName: name})
+				*t.risks = append(*t.risks, getBeanRisk{filePath: f.Path, beanName: name})
 			}
 			t.mu.Unlock()
 		}

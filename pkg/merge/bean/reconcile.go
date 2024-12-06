@@ -53,13 +53,9 @@ func (b *XmlBeanManager) executeReconcilePlan() {
 }
 
 func (b *XmlBeanManager) removeRedundantBeanClassesInDir(component manifest.ComponentInfo) error {
-	files, err := java.ListXMLFiles(component.TargetResourceDir())
-	if err != nil {
-		return err
-	}
-
-	for _, path := range files {
-		if err := b.removeRedundantBeanClassesInFile(path, component); err != nil {
+	fileChan, _ := java.ListXMLFilesAsync(component.TargetResourceDir())
+	for f := range fileChan {
+		if err := b.removeRedundantBeanClassesInFile(f.Path, component); err != nil {
 			return err
 		}
 	}
@@ -155,14 +151,10 @@ func (b *XmlBeanManager) updateBeanIdsInElement(element *etree.Element, modifica
 
 // updateBeanRefsInDir 更新目录中的 bean 引用
 func (b *XmlBeanManager) updateBeanRefsInDir(dir, componentName string) error {
-	files, err := java.ListXMLFiles(dir)
-	if err != nil {
-		return err
-	}
-
-	for _, path := range files {
-		if modificationPlan, exists := b.plan.beanIdModificationFiles[path]; exists {
-			if err := b.updateBeanRefsInFile(path, modificationPlan, componentName); err != nil {
+	fileChan, _ := java.ListXMLFilesAsync(dir)
+	for f := range fileChan {
+		if modificationPlan, exists := b.plan.beanIdModificationFiles[f.Path]; exists {
+			if err := b.updateBeanRefsInFile(f.Path, modificationPlan, componentName); err != nil {
 				return err
 			}
 		}
