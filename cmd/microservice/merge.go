@@ -54,7 +54,7 @@ func init() {
 	mergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
 	mergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
 	mergeCmd.Flags().IntVarP(&yamlConflictCellMaxWidth, "yaml-conflict-cell-width", "w", defaultCellMaxWidth, "Yml files conflict table cell width")
-	mergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Perform a dry run without making any changes")
+	mergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Only show Consolidation Plan")
 	mergeCmd.Flags().BoolVarP(&noColor, "no-color", "n", false, "Disable colorized output")
 	mergeCmd.Flags().BoolVarP(&merge.FailFast, "fail-fast", "f", false, "Fail fast")
 }

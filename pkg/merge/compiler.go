@@ -137,6 +137,11 @@ func (p *compiler) Merge() error {
 		return fmt.Errorf("No reconcilers registered: call Init() before Merge()")
 	}
 
+	if p.dryRun {
+		p.displayDAG()
+		return nil
+	}
+
 	var steps = []step.Step{
 		step.Step{
 			Name: "Consolidation Plan",
