@@ -120,31 +120,31 @@ func (cm *PropertyManager) analyzeComponent(component manifest.ComponentInfo) er
 	return nil
 }
 
-func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]interface{} {
+func (pm *PropertyManager) IdentifyPropertiesFileConflicts() map[string]map[string]any {
 	return pm.identifyConflicts(func(ps *PropertyEntry) bool {
 		return ps.IsProperties()
 	})
 }
 
-func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]interface{} {
+func (pm *PropertyManager) IdentifyYamlFileConflicts() map[string]map[string]any {
 	return pm.identifyConflicts(func(ps *PropertyEntry) bool {
 		return ps.IsYAML()
 	})
 }
 
 // 合并 YAML 和 Properties 的冲突
-func (pm *PropertyManager) identifyAllConflicts() map[string]map[string]interface{} {
+func (pm *PropertyManager) identifyAllConflicts() map[string]map[string]any {
 	return pm.identifyConflicts(nil)
 }
 
-func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry) bool) map[string]map[string]interface{} {
-	conflicts := make(map[string]map[string]interface{})
+func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry) bool) map[string]map[string]any {
+	conflicts := make(map[string]map[string]any)
 	configPropConflicts := make(map[string]bool)
 
 	// 第一遍：识别所有冲突和 ConfigurationProperties 冲突
 	for key := range pm.getAllUniqueKeys() {
-		componentValues := make(map[string]interface{})
-		var firstValue interface{}
+		componentValues := make(map[string]any)
+		var firstValue any
 		isConflict := false
 
 		for component, entries := range pm.r.resolvableEntries {
@@ -175,7 +175,7 @@ func (pm *PropertyManager) identifyConflicts(fileTypeFilter func(*PropertyEntry)
 	for key := range pm.getAllUniqueKeys() {
 		for integralKey := range configPropConflicts {
 			if strings.HasPrefix(key, integralKey) {
-				componentValues := make(map[string]interface{})
+				componentValues := make(map[string]any)
 				for component, entries := range pm.r.resolvableEntries {
 					if entry, exists := entries[key]; exists {
 						componentValues[component] = entry.Value

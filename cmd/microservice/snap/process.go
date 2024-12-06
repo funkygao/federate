@@ -65,7 +65,7 @@ func finalChecks(indent int) {
 	logIndent(indent+1, "- 待交付代码是否已剔除集团内部研发的公共SDK及其他非必需交付的代码片段")
 }
 
-func logIndent(indent int, format string, v ...interface{}) {
+func logIndent(indent int, format string, v ...any) {
 	indentStr := strings.Repeat("  ", indent)
 	log.Printf(indentStr+format, v...)
 }

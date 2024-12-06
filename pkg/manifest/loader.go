@@ -75,7 +75,7 @@ func Load() *Manifest {
 }
 
 // 为 Manifest 结构体添加 UnmarshalYAML 方法
-func (m *Manifest) UnmarshalYAML(unmarshal func(interface{}) error) error {
+func (m *Manifest) UnmarshalYAML(unmarshal func(any) error) error {
 	// 创建一个临时结构体来解析 YAML
 	type TempManifest Manifest
 	temp := (*TempManifest)(m)

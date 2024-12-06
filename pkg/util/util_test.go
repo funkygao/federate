@@ -37,7 +37,7 @@ func TestFileExists(t *testing.T) {
 }
 
 func TestMapSortedStringKeys(t *testing.T) {
-	m := map[string]interface{}{
+	m := map[string]any{
 		"b": 3,
 		"a": 1,
 		"c": 2,
@@ -48,17 +48,17 @@ func TestMapSortedStringKeys(t *testing.T) {
 func TestBeautify(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    interface{}
+		input    any
 		expected string
 	}{
 		{
 			name:     "Empty map",
-			input:    map[string]interface{}{},
+			input:    map[string]any{},
 			expected: "{}",
 		},
 		{
 			name: "Simple map",
-			input: map[string]interface{}{
+			input: map[string]any{
 				"name": "John",
 				"age":  30,
 			},
@@ -69,8 +69,8 @@ func TestBeautify(t *testing.T) {
 		},
 		{
 			name: "Nested map",
-			input: map[string]interface{}{
-				"person": map[string]interface{}{
+			input: map[string]any{
+				"person": map[string]any{
 					"name": "Alice",
 					"age":  25,
 				},

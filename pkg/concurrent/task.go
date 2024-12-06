@@ -6,4 +6,4 @@ type Task interface {
 }
 
 // Result represents the result of a task execution
-type Result interface{}
+type Result any

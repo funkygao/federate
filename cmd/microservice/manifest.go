@@ -66,7 +66,7 @@ func generateManifestGuide() {
 }
 
 func doGenerateGuide(data []byte) (string, error) {
-	var manifest map[string]interface{}
+	var manifest map[string]any
 	err := yaml.Unmarshal(data, &manifest)
 	if err != nil {
 		return "", fmt.Errorf("error parsing YAML: %v", err)
@@ -90,11 +90,11 @@ func doGenerateGuide(data []byte) (string, error) {
 	return markdown, nil
 }
 
-func generateMarkdownForValue(prefix string, v interface{}) string {
+func generateMarkdownForValue(prefix string, v any) string {
 	var markdown string
 
 	switch val := v.(type) {
-	case map[interface{}]interface{}:
+	case map[any]any:
 		for k, v := range val {
 			newPrefix := prefix
 			if newPrefix != "" {
@@ -103,7 +103,7 @@ func generateMarkdownForValue(prefix string, v interface{}) string {
 			newPrefix += fmt.Sprintf("%v", k)
 			markdown += generateMarkdownForValue(newPrefix, v)
 		}
-	case map[string]interface{}:
+	case map[string]any:
 		for k, v := range val {
 			newPrefix := prefix
 			if newPrefix != "" {
@@ -112,7 +112,7 @@ func generateMarkdownForValue(prefix string, v interface{}) string {
 			newPrefix += k
 			markdown += generateMarkdownForValue(newPrefix, v)
 		}
-	case []interface{}:
+	case []any:
 		for i, item := range val {
 			newPrefix := fmt.Sprintf("%s[%d]", prefix, i)
 			markdown += generateMarkdownForValue(newPrefix, item)
@@ -124,7 +124,7 @@ func generateMarkdownForValue(prefix string, v interface{}) string {
 	return markdown
 }
 
-func getType(v interface{}) string {
+func getType(v any) string {
 	switch v.(type) {
 	case bool:
 		return "Boolean"
@@ -134,9 +134,9 @@ func getType(v interface{}) string {
 		return "Number"
 	case string:
 		return "String"
-	case []interface{}:
+	case []any:
 		return "Array"
-	case map[string]interface{}, map[interface{}]interface{}:
+	case map[string]any, map[any]any:
 		return "Object"
 	default:
 		return fmt.Sprintf("Unknown (%T)", v)

@@ -12,27 +12,27 @@ import (
 
 type ComponentPropertyValue struct {
 	Component manifest.ComponentInfo
-	Value     interface{}
+	Value     any
 }
 
 // If return value is nil, the key will be deleted.
-type ReservedPropertyHandler func(*PropertyManager, []ComponentPropertyValue) interface{}
+type ReservedPropertyHandler func(*PropertyManager, []ComponentPropertyValue) any
 
 func M(values []ComponentPropertyValue) *manifest.MainSystem {
 	return values[0].Component.M
 }
 
 var reservedKeyHandlers = map[string]ReservedPropertyHandler{
-	"spring.application.name": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"spring.application.name": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return M(values).Name
 	},
-	"spring.profiles.active": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"spring.profiles.active": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return M(values).SpringProfile
 	},
-	"spring.profiles.include": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"spring.profiles.include": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return nil
 	},
-	"spring.messages.basename": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"spring.messages.basename": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		basenameSet := make(map[string]struct{})
 		for _, v := range values {
 			if basenameStr, ok := v.Value.(string); ok {
@@ -53,13 +53,13 @@ var reservedKeyHandlers = map[string]ReservedPropertyHandler{
 
 		return strings.Join(uniqueBasenames, ",")
 	},
-	"logging.config": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"logging.config": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return nil
 	},
-	"mybatis.config-location": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"mybatis.config-location": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return nil
 	},
-	"server.servlet.context-path": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"server.servlet.context-path": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		for _, v := range values {
 			if contextPath, ok := v.Value.(string); ok {
 				m.recordServletContextPath(v.Component, contextPath)
@@ -67,7 +67,7 @@ var reservedKeyHandlers = map[string]ReservedPropertyHandler{
 		}
 		return "/"
 	},
-	"server.tomcat.accesslog.directory": func(m *PropertyManager, values []ComponentPropertyValue) interface{} {
+	"server.tomcat.accesslog.directory": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return "${LOG_HOME}"
 	},
 }

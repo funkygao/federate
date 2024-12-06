@@ -108,7 +108,7 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 
 	// 批量插入索引
 	t0 = time.Now()
-	componentFiles.Range(func(key, value interface{}) bool {
+	componentFiles.Range(func(key, value any) bool {
 		javaFiles := value.([]*code.JavaFile)
 		d.Indexer.BatchInsert(javaFiles)
 		return true
@@ -121,7 +121,7 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 
 	// sort, so that we compare in 1 direction: avoid duplicate ops
 	components := make([]string, 0)
-	componentFiles.Range(func(key, _ interface{}) bool {
+	componentFiles.Range(func(key, _ any) bool {
 		components = append(components, key.(string))
 		return true
 	})

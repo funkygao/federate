@@ -65,7 +65,7 @@ func (m *Manifest) SpringXmlPath() string {
 	return filepath.Join(m.TargetResourceDir(), "federated/spring.xml")
 }
 
-func (m *Manifest) PropertyOverridden(key string) (val interface{}, present bool) {
+func (m *Manifest) PropertyOverridden(key string) (val any, present bool) {
 	val, present = m.Main.Reconcile.Resources.Property.Overrides[key]
 	return
 }

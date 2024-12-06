@@ -86,7 +86,7 @@ func UniqueStrings(input []string) []string {
 	return result
 }
 
-func Beautify(d interface{}) string {
+func Beautify(d any) string {
 	b, _ := json.MarshalIndent(d, "", "  ")
 	return string(b)
 }

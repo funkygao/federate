@@ -52,7 +52,7 @@ func searchYAMLFile(filePath, key string) {
 	}
 	defer file.Close()
 
-	var data map[string]interface{}
+	var data map[string]any
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&data); err != nil {
 		if !strings.Contains(err.Error(), "found character that cannot start any token") && err.Error() != "EOF" {
@@ -72,10 +72,10 @@ func searchYAMLFile(filePath, key string) {
 
 type searchResult struct {
 	key   string
-	value interface{}
+	value any
 }
 
-func findPartialKey(data map[string]interface{}, key, prefix string) []searchResult {
+func findPartialKey(data map[string]any, key, prefix string) []searchResult {
 	var results []searchResult
 	for k, v := range data {
 		fullKey := k
@@ -86,9 +86,9 @@ func findPartialKey(data map[string]interface{}, key, prefix string) []searchRes
 		if shouldMatch(fullKey, key) {
 			results = append(results, searchResult{key: fullKey, value: v})
 		}
-		if nestedMap, ok := v.(map[interface{}]interface{}); ok {
+		if nestedMap, ok := v.(map[any]any); ok {
 			results = append(results, findPartialKey(convertMap(nestedMap), key, fullKey)...)
-		} else if nestedMap, ok := v.(map[string]interface{}); ok {
+		} else if nestedMap, ok := v.(map[string]any); ok {
 			results = append(results, findPartialKey(nestedMap, key, fullKey)...)
 		}
 	}
@@ -112,8 +112,8 @@ func matchWholeWord(fullKey, key string) bool {
 	return false
 }
 
-func convertMap(input map[interface{}]interface{}) map[string]interface{} {
-	output := make(map[string]interface{})
+func convertMap(input map[any]any) map[string]any {
+	output := make(map[string]any)
 	for k, v := range input {
 		output[fmt.Sprintf("%v", k)] = v
 	}

@@ -24,10 +24,10 @@ type ResourcesReconcileSpec struct {
 }
 
 type PropertyReconcileSpec struct {
-	Overrides                   map[string]interface{} `yaml:"override"`
-	ConfigurationPropertiesKeys []string               `yaml:"integral"`
-	RawKeys                     []string               `yaml:"raw"`
-	DryRun                      string                 `yaml:"dryrun"`
+	Overrides                   map[string]any `yaml:"override"`
+	ConfigurationPropertiesKeys []string       `yaml:"integral"`
+	RawKeys                     []string       `yaml:"raw"`
+	DryRun                      string         `yaml:"dryrun"`
 }
 
 func (ps *PropertyReconcileSpec) IsDryRun() bool {

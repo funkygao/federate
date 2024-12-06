@@ -261,7 +261,7 @@ func TestGenerateMergedYamlFile(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("%s", string(data))
 
-	var mergedConfig map[string]interface{}
+	var mergedConfig map[string]any
 	err = yaml.Unmarshal(data, &mergedConfig)
 	require.NoError(t, err)
 
@@ -406,7 +406,7 @@ wms:
 	return m
 }
 
-func showConflict(t *testing.T, conflicts map[string]map[string]interface{}) {
+func showConflict(t *testing.T, conflicts map[string]map[string]any) {
 	for key, componentValue := range conflicts {
 		for _, c := range util.MapSortedStringKeys(componentValue) {
 			t.Logf("[%s] %s = %v", c, key, conflicts[key][c])

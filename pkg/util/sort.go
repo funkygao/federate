@@ -5,7 +5,7 @@ import (
 	"sort"
 )
 
-func MapSortedStringKeys(m interface{}) []string {
+func MapSortedStringKeys(m any) []string {
 	v := reflect.ValueOf(m)
 	if v.Kind() != reflect.Map {
 		return nil

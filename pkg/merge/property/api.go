@@ -12,7 +12,7 @@ func (pm *PropertyManager) ContainsKey(c manifest.ComponentInfo, key string) boo
 	return ok
 }
 
-func (pm *PropertyManager) Resolve(key string) interface{} {
+func (pm *PropertyManager) Resolve(key string) any {
 	for _, entries := range pm.r.resolvableEntries {
 		if entry, ok := entries[key]; ok {
 			return entry.Value

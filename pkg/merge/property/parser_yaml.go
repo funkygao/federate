@@ -31,12 +31,12 @@ func (y *yamlParser) recursiveParseFile(filePath string, springProfile string, c
 	// handling @spring.profiles.active@
 	dataStr = strings.ReplaceAll(dataStr, springProfileActive, springProfile)
 
-	var config map[interface{}]interface{}
+	var config map[any]any
 	if err = yaml.Unmarshal([]byte(dataStr), &config); err != nil {
 		return err
 	}
 
-	flatConfig := make(map[string]interface{})
+	flatConfig := make(map[string]any)
 	y.flattenYamlMap(config, "", flatConfig)
 
 	// 注册
@@ -68,11 +68,11 @@ func (y *yamlParser) recursiveParseFile(filePath string, springProfile string, c
 	return nil
 }
 
-func (y *yamlParser) flattenYamlMap(data map[interface{}]interface{}, parentKey string, result map[string]interface{}) {
+func (y *yamlParser) flattenYamlMap(data map[any]any, parentKey string, result map[string]any) {
 	for k, v := range data {
 		fullKey := strings.TrimPrefix(fmt.Sprintf("%s.%v", parentKey, k), ".")
 		switch vTyped := v.(type) {
-		case map[interface{}]interface{}:
+		case map[any]any:
 			y.flattenYamlMap(vTyped, fullKey, result)
 		default:
 			result[fullKey] = v
@@ -81,7 +81,7 @@ func (y *yamlParser) flattenYamlMap(data map[interface{}]interface{}, parentKey 
 }
 
 func (y *yamlParser) Generate(entries map[string]PropertyEntry, rawKeys []string, targetFile string) error {
-	mergedYaml := make(map[string]interface{})
+	mergedYaml := make(map[string]any)
 	for key, entry := range entries {
 		if entry.WasReference() {
 			mergedYaml[key] = entry.Raw

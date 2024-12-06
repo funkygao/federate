@@ -18,7 +18,7 @@ import (
 //go:embed templates/*
 var FS embed.FS
 
-func GenerateExecutableFileFromTmpl(templatePath, outputPath string, data interface{}) (overwrite bool) {
+func GenerateExecutableFileFromTmpl(templatePath, outputPath string, data any) (overwrite bool) {
 	overwrite = GenerateFileFromTmpl(templatePath, outputPath, data)
 	err := os.Chmod(outputPath, 0755)
 	if err != nil {
@@ -27,7 +27,7 @@ func GenerateExecutableFileFromTmpl(templatePath, outputPath string, data interf
 	return
 }
 
-func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (overwrite bool) {
+func GenerateFileFromTmpl(templatePath, outputPath string, data any) (overwrite bool) {
 	// 创建一个 FuncMap 来注册自定义函数
 	funcMap := template.FuncMap{
 		"HasFeature": func(feature string) bool {
@@ -97,7 +97,7 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data interface{}) (ov
 	return
 }
 
-func ParseTemplateToString(templatePath string, data interface{}) string {
+func ParseTemplateToString(templatePath string, data any) string {
 	// 解析嵌入的模板文件
 	tmplName := filepath.Base(templatePath)
 	tmpl, err := template.New(tmplName).ParseFS(FS, templatePath)

@@ -157,7 +157,7 @@ func (l *Ledger) printSimpleMapSection(title, indent string, m map[string]string
 	}
 }
 
-func sortedKeys(m interface{}) []string {
+func sortedKeys(m any) []string {
 	var keys []string
 	switch v := m.(type) {
 	case map[string]map[string]string:

@@ -70,7 +70,7 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	color.Green("🍺 Fusion project[%s] scaffolded.", m.Main.Name)
 }
 
-func generateFile(fromTemplateFile, targetFile string, data interface{}) {
+func generateFile(fromTemplateFile, targetFile string, data any) {
 	fs.GenerateFileFromTmpl("templates/fusion-project/"+fromTemplateFile, targetFile, data)
 }
 

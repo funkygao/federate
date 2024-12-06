@@ -32,7 +32,7 @@ func newRegistry(m *manifest.Manifest, pm *PropertyManager) *registry {
 }
 
 // AddProperty adds a property to the registry
-func (r *registry) AddProperty(component manifest.ComponentInfo, key string, value interface{}, filePath string) {
+func (r *registry) AddProperty(component manifest.ComponentInfo, key string, value any, filePath string) {
 	if r.resolvableEntries[component.Name] == nil {
 		r.resolvableEntries[component.Name] = make(map[string]PropertyEntry)
 	}
@@ -68,7 +68,7 @@ func (r *registry) AddProperty(component manifest.ComponentInfo, key string, val
 }
 
 // 更新解析后的值
-func (r *registry) ResolveProperty(componentName string, key string, existingEntry PropertyEntry, newValue interface{}) {
+func (r *registry) ResolveProperty(componentName string, key string, existingEntry PropertyEntry, newValue any) {
 	r.resolvableEntries[componentName][key] = PropertyEntry{
 		Value:    newValue,
 		Raw:      existingEntry.Raw,
@@ -126,7 +126,7 @@ func (r *registry) GetReservedPropertyValues() map[string][]ComponentPropertyVal
 	return r.reservedPropertyValues
 }
 
-func (r *registry) ResolvePropertyReference(component, value string) interface{} {
+func (r *registry) ResolvePropertyReference(component, value string) any {
 	return os.Expand(value, func(key string) string {
 		// 首先在当前组件中查找，包括 YAML 和 Properties 文件
 		if entry, ok := r.resolvableEntries[component][key]; ok {
@@ -148,7 +148,7 @@ func (r *registry) ResolvePropertyReference(component, value string) interface{}
 }
 
 // shouldKeepExistingValue 决定是否应保留现有属性值而不是用新值替换它
-func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue interface{}) bool {
+func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue any) bool {
 	// 如果现有值为空，允许新值替换
 	if existing.Value == nil {
 		return false
@@ -170,7 +170,7 @@ func (r *registry) shouldKeepExistingValue(existing *PropertyEntry, newValue int
 }
 
 // 隔离冲突
-func (r *registry) SegregateProperty(componentName string, key Key, value interface{}) {
+func (r *registry) SegregateProperty(componentName string, key Key, value any) {
 	strKey := string(key)
 	originalEntry := r.resolvableEntries[componentName][strKey]
 
@@ -200,7 +200,7 @@ func (r *registry) addNamespaceToConfigurationProperties(componentName, configPr
 	}
 }
 
-func (r *registry) addNamespaceToRegularProperty(componentName string, key Key, value interface{}, originalEntry PropertyEntry) {
+func (r *registry) addNamespaceToRegularProperty(componentName string, key Key, value any, originalEntry PropertyEntry) {
 	nsKey := key.WithNamespace(componentName)
 	ledger.Get().TransformRegularProperty(componentName, string(key), nsKey)
 	r.resolvableEntries[componentName][nsKey] = PropertyEntry{
@@ -250,7 +250,7 @@ func (r *registry) isReservedProperty(key string) bool {
 	return exists
 }
 
-func (r *registry) AddToReservedProperties(key string, component manifest.ComponentInfo, value interface{}) {
+func (r *registry) AddToReservedProperties(key string, component manifest.ComponentInfo, value any) {
 	if _, exists := r.reservedPropertyValues[key]; !exists {
 		r.reservedPropertyValues[key] = []ComponentPropertyValue{}
 	}

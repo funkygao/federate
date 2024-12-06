@@ -13,7 +13,7 @@ func (k Key) WithNamespace(ns string) string {
 
 type PropertyEntry struct {
 	// 最新值：如果引用，它被替换为解析后的值
-	Value interface{}
+	Value any
 
 	// 最原始值
 	Raw string

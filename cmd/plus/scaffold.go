@@ -116,7 +116,7 @@ func generatePackageInfo(m *manifest.Manifest) {
 	generateFile("package-info.java", fn, data)
 }
 
-func generateFile(fromTemplateFile, targetFile string, data interface{}) {
+func generateFile(fromTemplateFile, targetFile string, data any) {
 	if util.FileExists(targetFile) {
 		log.Printf("Skipped existing %s", targetFile)
 		return
