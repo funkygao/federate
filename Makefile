@@ -188,6 +188,8 @@ EMBED_DIR = internal/fs/templates/jar
 MAVEN = mvn
 
 embed-javast:
+	echo "Java AST Transformer building ..."
 	cd $(JAVAST_DIR) && $(MAVEN) clean package -q
 	mkdir -p $(EMBED_DIR)/
 	mv -f $(JAVAST_JAR) $(EMBED_DIR)/
+	echo "Java AST Transformer embedded"
