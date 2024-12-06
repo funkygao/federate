@@ -29,7 +29,7 @@ func newEnvManager(m *manifest.Manifest, propManager *property.PropertyManager) 
 }
 
 func (e *envManager) Name() string {
-	return "Reconciling ENV variables conflicts"
+	return "Detect ENV variables conflicts in Java and XML"
 }
 
 func (e *envManager) Reconcile() error {

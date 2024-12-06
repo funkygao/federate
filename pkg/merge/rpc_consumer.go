@@ -51,7 +51,7 @@ func (dm *RpcConsumerManager) referenceXmlTags() []string {
 }
 
 func (dm *RpcConsumerManager) Name() string {
-	return fmt.Sprintf("Mergeing %s Consumer XML to reduce redundant resource consumption", dm.rpcType)
+	return fmt.Sprintf("Merge %s Consumer XML to reduce redundant resource consumption", dm.rpcType)
 }
 
 func (dm *RpcConsumerManager) RPC() string {

@@ -35,7 +35,7 @@ func newImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
 }
 
 func (m *ImportResourceManager) Name() string {
-	return "Transforming Java @ImportResource value"
+	return "Transform Java @ImportResource value with '/federated/'"
 }
 
 func (m *ImportResourceManager) Reconcile() error {
@@ -80,7 +80,6 @@ func (m *ImportResourceManager) reconcileJavaFile(jf *code.JavaFile) (string, bo
 				lines[i] = newLine
 				dirty = true
 				m.ImportResourceCount++
-				//log.Printf("[%s] %s %s => %s", componentName, jf.FileBaseName(), line, newLine)
 			}
 		}
 	}

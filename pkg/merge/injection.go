@@ -23,7 +23,7 @@ func NewSpringBeanInjectionManager(m *manifest.Manifest) *SpringBeanInjectionMan
 }
 
 func (m *SpringBeanInjectionManager) Name() string {
-	return "Reconciling Spring Bean Injection conflicts by Rewriting @Resource"
+	return "Reconcile Spring Bean Injection conflicts by Transforming @Resource with @Autowired/@Qualifier"
 }
 
 func (m *SpringBeanInjectionManager) Reconcile() error {

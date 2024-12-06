@@ -106,7 +106,7 @@ func (l *Ledger) SaveToFile(filename string) error {
 		return err
 	}
 
-	color.Cyan("Reconcile Summary Writen to: %s", filename)
+	color.Cyan("Summary Writen to: %s", filename)
 	return os.WriteFile(filename, data, 0644)
 }
 

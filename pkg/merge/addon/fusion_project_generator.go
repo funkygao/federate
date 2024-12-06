@@ -20,7 +20,7 @@ func NewFusionProjectGenerator(m *manifest.Manifest) *FusionProjectGenerator {
 }
 
 func (f *FusionProjectGenerator) Name() string {
-	return "Generating federated system scaffold"
+	return fmt.Sprintf("Generate federated system scaffold files in %s/", f.m.Main.Name)
 }
 
 func (f *FusionProjectGenerator) Reconcile() error {
@@ -51,8 +51,7 @@ func (f *FusionProjectGenerator) generatePomFile() {
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
-	fn := filepath.Join(root, "pom.xml")
-	fs.GenerateFileFromTmpl("templates/pom.xml", fn, pomData)
+	fs.GenerateFileFromTmpl("templates/pom.xml", filepath.Join(root, "pom.xml"), pomData)
 }
 
 func (f *FusionProjectGenerator) generateMetaInf() {

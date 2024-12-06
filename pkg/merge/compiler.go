@@ -8,6 +8,7 @@ import (
 	"federate/pkg/manifest"
 	"federate/pkg/merge/addon"
 	"federate/pkg/merge/bean"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/merge/property"
 	"federate/pkg/step"
 	"github.com/fatih/color"
@@ -85,9 +86,6 @@ func (p *compiler) Init() Compiler {
 		p.AddReconciler(pluginReconcilers...)
 	}
 
-	// shows summary
-	p.AddReconciler(newSummary())
-
 	return p
 }
 
@@ -108,11 +106,11 @@ func (p *compiler) loadDefaultReconcilers() {
 	p.AddReconciler(bean.NewXmlBeanManager(p.m))
 	p.AddReconciler(NewSpringBeanInjectionManager(p.m))
 	p.AddReconciler(NewSpringXmlMerger(p.m))
-	p.AddReconciler(NewEnvManager(pm))
 	p.AddReconciler(NewServiceManager(p.m))
 	p.AddReconciler(NewImportResourceManager(p.m))
-	p.AddReconciler(NewRpcAliasManager(pm))
 	p.AddReconciler(NewTransactionManager(p.m))
+	p.AddReconciler(NewEnvManager(pm))
+	p.AddReconciler(NewRpcAliasManager(pm))
 }
 
 func (p *compiler) orchestrateReconcilers() {
@@ -160,6 +158,13 @@ func (p *compiler) Merge() error {
 		})
 	}
 
+	steps = append(steps, step.Step{
+		Name: "Consolidation Summary Dump to report.json",
+		Fn: func() {
+			ledger.Get().ShowSummary()
+			ledger.Get().SaveToFile("report.json")
+		}})
+
 	step.AutoConfirm = p.autoYes
 	step.Run(steps)
 	return nil
@@ -184,23 +189,17 @@ func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
 func (p *compiler) displayDAG() {
 	log.Printf("Reconcilers [ Legend: %s Preparer | %s Plugin ]", color.CyanString("■"), color.GreenString("■"))
 
-	for i, r := range p.reconcilers {
-		prefix := "├── "
-		if i == len(p.reconcilers)-1 {
-			prefix = "└── "
-		}
-
-		name := r.Name()
+	for _, r := range p.reconcilers {
 		indicator := "  "
-
 		if _, ok := r.(Preparer); ok {
 			indicator = color.CyanString("■ ")
 		}
-
 		if _, ok := r.(PluginReconciler); ok {
 			indicator = color.GreenString("■ ")
 		}
 
-		log.Printf("  %s%s%s", prefix, indicator, name)
+		log.Printf("  %s%s%s", "├── ", indicator, r.Name())
 	}
+	// summary is step instead of reconciler
+	log.Printf("  └──   Consolidation Summary Dump to report.json")
 }

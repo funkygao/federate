@@ -49,7 +49,7 @@ func NewXmlBeanManager(m *manifest.Manifest) *XmlBeanManager {
 }
 
 func (m *XmlBeanManager) Name() string {
-	return "Reconciling Spring XML BeanDefinition conflicts by Rewriting XML ref/value-ref/bean/properties-ref"
+	return "Reconcile Spring XML BeanDefinition conflicts by Segregate bean, Rewrite XML ref/value-ref/properties-ref"
 }
 
 func (m *XmlBeanManager) ComponentBeans(componentName string, predicate func(c string, i BeanIdInfo) bool) []BeanIdInfo {

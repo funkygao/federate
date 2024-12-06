@@ -18,7 +18,7 @@ func NewSpringXmlMerger(m *manifest.Manifest) Reconciler {
 }
 
 func (m *springXmlMerger) Name() string {
-	return "Generating Federated Spring Bootstrap XML"
+	return "Generate Federated Spring Bootstrap XML: federated/spring.xml"
 }
 
 func (m *springXmlMerger) Reconcile() error {
