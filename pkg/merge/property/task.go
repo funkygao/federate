@@ -67,7 +67,7 @@ func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, stri
 			continue
 		}
 
-		if err := f.namespaceKeyReferenceFile(f, keyRegexes); err != nil {
+		if err := t.namespaceKeyReferenceFile(f, keyRegexes); err != nil {
 			return err
 		}
 	}

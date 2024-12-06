@@ -2,7 +2,6 @@ package code
 
 import (
 	"os"
-	"path/filepath"
 
 	"federate/pkg/java"
 	"federate/pkg/manifest"
