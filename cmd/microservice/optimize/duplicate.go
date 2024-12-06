@@ -1,11 +1,13 @@
 package optimize
 
 import (
+	"fmt"
 	"log"
 	"sort"
 
 	"federate/pkg/manifest"
 	"federate/pkg/similarity"
+	"federate/pkg/tablerender"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -57,7 +59,14 @@ func showDuplicates(m *manifest.Manifest) {
 		log.Println()
 	}
 
-	log.Printf("Total: %d unique files with similarities detected", len(similarFiles))
+	header := []string{"#", "Phase", "Duration"}
+	var cellData = [][]string{
+		{fmt.Sprintf("%d", detector.TotalFiles), "Java Files Loaded in DRAM", fmt.Sprintf("%s", detector.Phase1)},
+		{fmt.Sprintf("%d", len(detector.Indexer.Buckets)), "LSH Buckets allocated for Java Files", fmt.Sprintf("%s", detector.Phase2)},
+		{fmt.Sprintf("%d", detector.RecallOps), "Similarity-based Recall OPS", fmt.Sprintf("%s", detector.Phase3)},
+		{fmt.Sprintf("%d", len(similarFiles)), "Similar Java Files Groups", fmt.Sprintf("%s", detector.Phase1+detector.Phase2+detector.Phase3)},
+	}
+	tablerender.DisplayTable(header, cellData, false)
 }
 
 func init() {

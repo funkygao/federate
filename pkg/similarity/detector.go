@@ -27,6 +27,12 @@ type Detector struct {
 	ignoreRegex *regexp.Regexp
 
 	Indexer *Indexer
+
+	TotalFiles int32
+	RecallOps  int32
+	Phase1     time.Duration
+	Phase2     time.Duration
+	Phase3     time.Duration
 }
 
 type DuplicatePair struct {
@@ -63,7 +69,6 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 
 	componentFiles := sync.Map{}
 	var wg sync.WaitGroup
-	var totalFiles int32
 
 	// 并行获取文件，解析到 []JavaFile
 	for _, c := range d.m.Components {
@@ -75,7 +80,7 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 
 			var javaFiles []*code.JavaFile
 			for fileInfo := range fileChan {
-				atomic.AddInt32(&totalFiles, 1)
+				atomic.AddInt32(&d.TotalFiles, 1)
 
 				className := strings.Trim(fileInfo.Info.Name(), ".java")
 				if d.ignoreRegex.MatchString(className) {
@@ -84,7 +89,7 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 
 				content, err := ioutil.ReadFile(fileInfo.Path)
 				if err != nil {
-					log.Printf("Error reading file %s: %v", fileInfo.Path, err)
+					log.Fatalf("Error reading file %s: %v", fileInfo.Path, err)
 					continue
 				}
 
@@ -99,20 +104,20 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 	}
 
 	wg.Wait()
+	d.Phase1 = time.Since(t0)
 
 	// 批量插入索引
+	t0 = time.Now()
 	componentFiles.Range(func(key, value interface{}) bool {
 		javaFiles := value.([]*code.JavaFile)
 		d.Indexer.BatchInsert(javaFiles)
 		return true
 	})
-
-	log.Printf("%d Java Files Parsed, Buckets: %d, cost %s", totalFiles, len(d.Indexer.Buckets), time.Since(t0))
+	d.Phase2 = time.Since(t0)
 
 	t0 = time.Now()
 	processed := primitive.NewStringSet()
 	var duplicates []DuplicatePair
-	var ops int32
 
 	// sort, so that we compare in 1 direction: avoid duplicate ops
 	components := make([]string, 0)
@@ -133,7 +138,7 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 			for _, jf1 := range jfs {
 				simhash1 := jf1.Context.Value(simhashCacheKey).(uint64)
 				for _, jf2 := range d.Indexer.GetCandidates(simhash1) {
-					atomic.AddInt32(&ops, 1)
+					atomic.AddInt32(&d.RecallOps, 1)
 
 					if jf1.Path() == jf2.Path() {
 						continue
@@ -162,8 +167,7 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 	}
 
 	wg.Wait()
-
-	log.Printf("Total ops: %d, cost %s", ops, time.Since(t0))
+	d.Phase3 = time.Since(t0)
 
 	return duplicates, nil
 }
