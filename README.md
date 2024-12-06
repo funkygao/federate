@@ -87,7 +87,3 @@ federate microservice scaffold -h
 | Property Files | - Segregate conflicting keys |
 | pom.xml | - Disable `spring-boot-maven-plugin` to enable post-`mvn install` usage |
 | Code Generation | - Makefile<br>- fusion-starter runtime<br>- Java AST Manipulate Project<br>- Fusion Maven Project |
-
-## TODO
-
-- manifest.components.springProfile 需要为不同环境配置
