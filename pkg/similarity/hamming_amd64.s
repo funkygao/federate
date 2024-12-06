@@ -1,5 +1,3 @@
-// +build amd64
-
 #include "textflag.h"
 
 // +----------------+
@@ -16,7 +14,7 @@ TEXT ·hammingDistance(SB), NOSPLIT, $0-24
     MOVQ hash2+8(FP), DI
 
     XORQ SI, DI        // DI = hash1 ^ hash2
-    POPCNTQ DI, AX     // Use POPCNT instruction to count bits, POPCNTQ 明确指定了这是一个 64 位（Quadword）操作
+    POPCNTQ DI, AX     // POPCNTQ 明确这是 64 位（Quadword）操作
 
     MOVQ AX, ret+16(FP)
     RET

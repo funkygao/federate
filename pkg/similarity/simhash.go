@@ -3,7 +3,6 @@ package similarity
 import (
 	"context"
 	"crypto/md5"
-	_ "math/bits"
 
 	"federate/pkg/code"
 )
@@ -58,7 +57,6 @@ func isBitSet(hash [16]byte, bitIndex int) bool {
 }
 
 func hammingSimilarity(hash1, hash2 uint64) float64 {
-	//distance := bits.OnesCount64(hash1 ^ hash2) // 汉明距离
 	distance := hammingDistance(hash1, hash2)
 	similarity := 1 - float64(distance)/SimHashBits
 	return similarity
