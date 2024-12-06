@@ -15,6 +15,10 @@ LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
            -X 'federate/cmd/version.GitState=$(GIT_STATE)' \
            -X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'
 
+# Exclude packages
+EXCLUDE_PACKAGES := /plugin /internal/algorithm cmd/explain pkg/convention
+PACKAGES := $(shell go list ./... | grep -Ev '$(subst $() ,|,$(EXCLUDE_PACKAGES))')
+
 help:
 	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
@@ -33,7 +37,7 @@ race: fmt
 	go test -race ./...
 
 test: fmt
-	go test ./...
+	go test $(PACKAGES)
 
 stress:
 	go test ./... -test.count 20 -test.failfast
@@ -55,12 +59,11 @@ install: test embed-javast ## Check if Go is installed, install if not, then bui
 		fi; \
 		brew install go; \
 	fi
-	#echo "💡 Latest commit: $$(git log -1 --pretty=format:"%h by %an, %ar: %s")"
 	if [ -n "$(HOMEBREW_PREFIX)" ]; then \
-		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)"; \
+		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)" $(PACKAGES); \
 		echo "🍺 Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
 	else \
-		go install -ldflags "$(LDFLAGS)"; \
+		go install -ldflags "$(LDFLAGS)" $(PACKAGES); \
 		echo "🍺 Installed to $$(go env GOPATH)/bin/federate"; \
 	fi
 
