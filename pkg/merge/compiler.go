@@ -21,7 +21,7 @@ type Compiler interface {
 	WithOption(CompilerOption) Compiler
 
 	// 注册调和器
-	AddReconciler(Reconciler) Compiler
+	AddReconciler(...Reconciler) Compiler
 
 	// 合并编译
 	Merge() error
@@ -82,33 +82,13 @@ func (p *compiler) Init() Compiler {
 	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
 		log.Printf("Error loading plugin reconcilers: %v", err)
 	} else {
-		for _, reconciler := range pluginReconcilers {
-			p.AddReconciler(reconciler)
-		}
+		p.AddReconciler(pluginReconcilers...)
 	}
 
 	// shows summary
 	p.AddReconciler(newSummary())
 
-	p.prepareReconcilers()
-
 	return p
-}
-
-func (p *compiler) prepareReconcilers() {
-	// prepare if nec: plugin might also implement Preparer
-	var preparers []Preparer
-	for _, r := range p.reconcilers {
-		if p, ok := r.(Preparer); ok {
-			preparers = append(preparers, p)
-		}
-	}
-
-	for i, p := range preparers {
-		color.Cyan("Prepare [%d/%d] %s", i+1, len(preparers), p.Name())
-		p.Prepare()
-	}
-
 }
 
 func (p *compiler) loadDefaultReconcilers() {
@@ -149,8 +129,8 @@ func (p *compiler) createReconciler(tf manifest.TransformerSpec) Reconciler {
 	return nil
 }
 
-func (p *compiler) AddReconciler(r Reconciler) Compiler {
-	p.reconcilers = append(p.reconcilers, r)
+func (p *compiler) AddReconciler(reconcilers ...Reconciler) Compiler {
+	p.reconcilers = append(p.reconcilers, reconcilers...)
 	return p
 }
 
@@ -159,7 +139,16 @@ func (p *compiler) Merge() error {
 		return fmt.Errorf("No reconcilers registered: call Init() before Merge()")
 	}
 
-	var steps = []step.Step{}
+	var steps = []step.Step{
+		step.Step{
+			Name: "Consolidation Plan",
+			Fn: func() {
+				p.displayDAG()
+			}},
+	}
+
+	steps = p.prepareReconcilers(steps)
+
 	for _, r := range p.reconcilers {
 		steps = append(steps, step.Step{
 			Name: r.Name(),
@@ -174,4 +163,44 @@ func (p *compiler) Merge() error {
 	step.AutoConfirm = p.autoYes
 	step.Run(steps)
 	return nil
+}
+
+func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
+	// prepare if nec: plugin might also implement Preparer
+	for _, r := range p.reconcilers {
+		if p, ok := r.(Preparer); ok {
+			steps = append(steps, step.Step{
+				Name: color.CyanString(p.Name() + " *"),
+				Fn: func() {
+					p.Prepare()
+				},
+			})
+		}
+	}
+
+	return steps
+}
+
+func (p *compiler) displayDAG() {
+	log.Printf("Reconcilers [ Legend: %s Preparer | %s Plugin ]", color.CyanString("■"), color.GreenString("■"))
+
+	for i, r := range p.reconcilers {
+		prefix := "├── "
+		if i == len(p.reconcilers)-1 {
+			prefix = "└── "
+		}
+
+		name := r.Name()
+		indicator := "  "
+
+		if _, ok := r.(Preparer); ok {
+			indicator = color.CyanString("■ ")
+		}
+
+		if _, ok := r.(PluginReconciler); ok {
+			indicator = color.GreenString("■ ")
+		}
+
+		log.Printf("  %s%s%s", prefix, indicator, name)
+	}
 }
