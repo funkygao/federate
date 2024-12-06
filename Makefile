@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+.DEFAULT_GOAL := help
 .SILENT:
 
 # Variables to be built into the binary
@@ -8,14 +9,14 @@ GIT_USER    := $(shell git config user.name)
 GIT_STATE   := $(shell if git diff-index --ignore-submodules=all --quiet HEAD --; then echo "clean"; else echo "dirty"; fi)
 BUILD_DATE  := $(shell LC_TIME=zh_CN.UTF-8 date +"%A %Y/%m/%d %H:%M:%S")
 
-# Flags
+# go -ldflags
 LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
            -X 'federate/cmd/version.GitCommit=$(GIT_COMMIT)' \
            -X 'federate/cmd/version.GitBranch=$(GIT_BRANCH)' \
            -X 'federate/cmd/version.GitState=$(GIT_STATE)' \
            -X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'
 
-# Exclude packages
+# go build packages
 EXCLUDE_PACKAGES := /plugin /internal/algorithm cmd/explain pkg/convention
 PACKAGES := $(shell go list ./... | grep -Ev '$(subst $() ,|,$(EXCLUDE_PACKAGES))')
 
@@ -181,14 +182,14 @@ flamegraph:profile
 	$(FLAMEGRAPH_DIR)/flamegraph.pl cpu_profile.folded > cpu_flamegraph.svg
 	echo "🍺 Checkout cpu_flamegraph.svg"
 
-# Java AST Parser
-JAVAST_DIR = javast
+# Java AST Transformer
+JAVAST_DIR = internal/javast
 JAVAST_JAR= $(JAVAST_DIR)/target/javast.jar
 EMBED_DIR = internal/fs/templates/jar
 MAVEN = mvn
 
 embed-javast:
-	echo "Java AST Transformer building ..."
+	echo "Java AST Transformer packaging ..."
 	cd $(JAVAST_DIR) && $(MAVEN) clean package -q
 	mkdir -p $(EMBED_DIR)/
 	mv -f $(JAVAST_JAR) $(EMBED_DIR)/
