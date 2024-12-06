@@ -48,7 +48,7 @@ func walkDir(info os.FileInfo) error {
 	name := info.Name()
 	if name == "target" ||
 		name == "test" ||
-		(name != "." && name != ".." && strings.HasPrefix(name, ".")) { // .git, .idea
+		(len(name) > 2 && strings.HasPrefix(name, ".")) { // .git, .idea
 		return filepath.SkipDir
 	}
 
