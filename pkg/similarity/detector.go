@@ -90,7 +90,6 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 				content, err := ioutil.ReadFile(fileInfo.Path)
 				if err != nil {
 					log.Fatalf("Error reading file %s: %v", fileInfo.Path, err)
-					continue
 				}
 
 				jf := code.NewJavaFile(fileInfo.Path, &c, content)
@@ -133,9 +132,10 @@ func (d *Detector) simhashDetect() ([]DuplicatePair, error) {
 		wg.Add(1)
 		go func(c1 string) {
 			defer wg.Done()
+
 			value, _ := componentFiles.Load(c1)
-			jfs := value.([]*code.JavaFile)
-			for _, jf1 := range jfs {
+			jfs1 := value.([]*code.JavaFile)
+			for _, jf1 := range jfs1 {
 				simhash1 := jf1.Context.Value(simhashCacheKey).(uint64)
 				for _, jf2 := range d.Indexer.GetCandidates(simhash1) {
 					atomic.AddInt32(&d.RecallOps, 1)
