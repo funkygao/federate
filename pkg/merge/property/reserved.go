@@ -59,6 +59,9 @@ var reservedKeyHandlers = map[string]ReservedPropertyHandler{
 	"mybatis.config-location": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return nil
 	},
+	"server.port": func(m *PropertyManager, values []ComponentPropertyValue) any {
+		return 8080
+	},
 	"server.servlet.context-path": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		for _, v := range values {
 			if contextPath, ok := v.Value.(string); ok {
