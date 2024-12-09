@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"os"
 	"testing"
 
 	"federate/pkg/manifest"
@@ -51,6 +52,10 @@ func TestCompiler_AddReconciler(t *testing.T) {
 }
 
 func TestCompiler_Merge(t *testing.T) {
+	defer func() {
+		os.Remove("report.json")
+	}()
+
 	m := &manifest.Manifest{}
 	c := NewCompiler(m).(*compiler)
 
@@ -66,7 +71,6 @@ func TestCompiler_Merge(t *testing.T) {
 	c.AddReconciler(mockReconciler2)
 
 	err := c.Merge()
-
 	assert.NoError(t, err, "Merge should not return an error")
 	mockReconciler1.AssertCalled(t, "Reconcile")
 	mockReconciler2.AssertCalled(t, "Reconcile")
