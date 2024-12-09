@@ -42,6 +42,13 @@ public class App {
             CompilationUnit cu = StaticJavaParser.parse(javaFile);
             visitor.visit(cu, javaFile);
         }
+
+        if (visitor instanceof HITSAnalyzer) {
+            HITSAnalyzer hits = (HITSAnalyzer) visitor;
+            hits.runHITS(20); // Run 20 iterations
+            int topK = Integer.parseInt(args[2]);
+            hits.printTopResults(topK);
+        }
     }
 
     private static FileVisitor createVisitor(String command, String[] args) {
@@ -57,6 +64,9 @@ public class App {
                 // @Transactional, TransactionTemplate
                 validateArgsLength(args, 3, "inject-transaction-manager command requires the transaction manager name");
                 return new TransactionManagerInjector(args[2]);
+
+            case "hits-analysis":
+                return new HITSAnalyzer();
 
             default:
                 System.err.println("Unknown command: " + command);
