@@ -466,3 +466,11 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	t.Log("Summary")
 	ledger.Get().ShowSummary()
 }
+
+func TestReplaceKeyInMatchComplexValue(t *testing.T) {
+	task := &reconcileTask{}
+	oldMatch := `@Value("#{'${sku.extendAttrs}'.split(',')}")`
+	newMatch := task.replaceKeyInMatch(oldMatch, "sku.extendAttrs", "wms-stock.sku.extendAttrs")
+	expected := `@Value("#{'${wms-stock.sku.extendAttrs}'.split(',')}")`
+	assert.Equal(t, expected, newMatch)
+}

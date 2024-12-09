@@ -19,7 +19,7 @@ type pattern struct {
 }
 
 func createJavaRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@Value\s*\(\s*"\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"\s*\)`)
+	return regexp.MustCompile(`@Value\s*\(\s*"([^"]*\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}[^"]*)"\s*\)`)
 }
 
 func createXmlRegex(key string) *regexp.Regexp {

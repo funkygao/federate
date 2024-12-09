@@ -122,6 +122,12 @@ func (t *reconcileTask) replaceKeyInMatch(match, key, newKey string) string {
 	if strings.Contains(match, "@ConfigurationProperties") {
 		return strings.Replace(match, `"`+key+`"`, `"`+newKey+`"`, 1)
 	}
+
+	// 处理复杂的 @Value 表达式，例如：@Value("#{'${sku.extendAttrs}'.split(',')}")
+	if strings.Contains(match, "@Value") {
+		return strings.Replace(match, "${"+key+"}", "${"+newKey+"}", -1)
+	}
+
 	parts := strings.SplitN(match, "${", 2)
 	if len(parts) == 2 {
 		return parts[0] + "${" + newKey + strings.TrimPrefix(parts[1], key)
