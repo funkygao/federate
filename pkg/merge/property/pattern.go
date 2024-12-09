@@ -18,15 +18,15 @@ type pattern struct {
 	parsers map[string]PropertyParser // key is filename ext
 }
 
-func createJavaRegex(key string) *regexp.Regexp {
+func (p *pattern) createValueAnnotationReferenceRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@Value\s*\(\s*"([^"]*\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}[^"]*)"\s*\)`)
 }
 
-func createXmlRegex(key string) *regexp.Regexp {
+func (p *pattern) createXmlPropertyReferenceRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`(\w+\s*=\s*"\$\{)` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 
-func createConfigurationPropertiesRegex(key string) *regexp.Regexp {
+func (p *pattern) createConfigurationPropertiesPrefixRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`@ConfigurationProperties\s*\(\s*"` + regexp.QuoteMeta(key) + `"\s*\)`)
 }
 
