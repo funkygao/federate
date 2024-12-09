@@ -10,7 +10,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class HITSAnalyzer extends VoidVisitorAdapter<Void> implements FileVisitor {
-    private Map<String, Set<String>> dependencies = new HashMap<>();
+    private Map<String, Set<String>> incomingLinks = new HashMap<>();
+    private Map<String, Set<String>> outgoingLinks = new HashMap<>();
     private Map<String, Double> hubScores = new HashMap<>();
     private Map<String, Double> authorityScores = new HashMap<>();
     private String currentFile;
@@ -18,7 +19,8 @@ public class HITSAnalyzer extends VoidVisitorAdapter<Void> implements FileVisito
     @Override
     public void visit(CompilationUnit cu, Path filePath) {
         currentFile = filePath.toString();
-        dependencies.put(currentFile, new HashSet<>());
+        outgoingLinks.putIfAbsent(currentFile, new HashSet<>());
+        incomingLinks.putIfAbsent(currentFile, new HashSet<>());
         hubScores.put(currentFile, 1.0);
         authorityScores.put(currentFile, 1.0);
         super.visit(cu, null);
@@ -27,40 +29,35 @@ public class HITSAnalyzer extends VoidVisitorAdapter<Void> implements FileVisito
     @Override
     public void visit(ImportDeclaration n, Void arg) {
         String importName = n.getNameAsString();
-        dependencies.get(currentFile).add(importName);
+        outgoingLinks.get(currentFile).add(importName);
+        incomingLinks.putIfAbsent(importName, new HashSet<>());
+        incomingLinks.get(importName).add(currentFile);
         super.visit(n, arg);
     }
 
     public void runHITS(int iterations) {
         for (int i = 0; i < iterations; i++) {
             // Update authority scores
-            Map<String, Double> newAuthorityScores = new HashMap<>();
-            for (String file : dependencies.keySet()) {
+            for (String file : incomingLinks.keySet()) {
                 double authorityScore = 0;
-                for (Map.Entry<String, Set<String>> entry : dependencies.entrySet()) {
-                    if (entry.getValue().contains(file)) {
-                        authorityScore += hubScores.get(entry.getKey());
-                    }
+                for (String incomingFile : incomingLinks.get(file)) {
+                    authorityScore += hubScores.get(incomingFile);
                 }
-                newAuthorityScores.put(file, authorityScore);
+                authorityScores.put(file, authorityScore);
             }
 
             // Update hub scores
-            Map<String, Double> newHubScores = new HashMap<>();
-            for (String file : dependencies.keySet()) {
+            for (String file : outgoingLinks.keySet()) {
                 double hubScore = 0;
-                for (String dependency : dependencies.get(file)) {
-                    hubScore += newAuthorityScores.getOrDefault(dependency, 0.0);
+                for (String outgoingFile : outgoingLinks.get(file)) {
+                    hubScore += authorityScores.getOrDefault(outgoingFile, 0.0);
                 }
-                newHubScores.put(file, hubScore);
+                hubScores.put(file, hubScore);
             }
 
             // Normalize scores
-            normalizeScores(newHubScores);
-            normalizeScores(newAuthorityScores);
-
-            hubScores = newHubScores;
-            authorityScores = newAuthorityScores;
+            normalizeScores(hubScores);
+            normalizeScores(authorityScores);
         }
     }
 
@@ -69,12 +66,6 @@ public class HITSAnalyzer extends VoidVisitorAdapter<Void> implements FileVisito
         if (sum > 0) {
             for (Map.Entry<String, Double> entry : scores.entrySet()) {
                 scores.put(entry.getKey(), entry.getValue() / sum);
-            }
-        } else {
-            // If sum is 0, set all scores to 1/n
-            double defaultScore = 1.0 / scores.size();
-            for (String key : scores.keySet()) {
-                scores.put(key, defaultScore);
             }
         }
     }
