@@ -18,9 +18,10 @@ import (
 )
 
 type reconcileTask struct {
-	pm                 *PropertyManager
-	c                  *manifest.ComponentInfo
-	keys               []string
+	pm *PropertyManager
+	c  *manifest.ComponentInfo
+
+	conflictKeys       []string
 	servletContextPath string
 
 	result ReconcileReport
@@ -28,7 +29,7 @@ type reconcileTask struct {
 
 func (t *reconcileTask) Execute() error {
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createValueAnnotationReferenceRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createAnnotationReferenceRegex); err != nil {
 		return err
 	}
 
@@ -45,7 +46,7 @@ func (t *reconcileTask) Execute() error {
 	}
 
 	// 为xml里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsXML, P.createXmlPropertyReferenceRegex); err != nil {
+	if err := t.namespaceKeyReferences(java.IsXML, P.createXMLPropertyReferenceRegex); err != nil {
 		return err
 	}
 
@@ -53,8 +54,8 @@ func (t *reconcileTask) Execute() error {
 }
 
 func (t *reconcileTask) namespaceKeyReferences(fileFilter func(os.FileInfo, string) bool, createRegex func(string) *regexp.Regexp) error {
-	keyRegexes := make([]*regexp.Regexp, len(t.keys))
-	for i, key := range t.keys {
+	keyRegexes := make([]*regexp.Regexp, len(t.conflictKeys))
+	for i, key := range t.conflictKeys {
 		keyRegexes[i] = createRegex(key)
 	}
 
@@ -90,8 +91,8 @@ func (t *reconcileTask) namespaceKeyReferenceFile(f java.FileInfo, keyRegexes []
 		if len(matches) > 0 {
 			changed = true
 			newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-				newKey := Key(t.keys[i]).WithNamespace(t.c.Name)
-				replaced := t.replaceKeyInMatch(match, t.keys[i], newKey)
+				newKey := Key(t.conflictKeys[i]).WithNamespace(t.c.Name)
+				replaced := t.replaceKeyInMatch(match, t.conflictKeys[i], newKey)
 				dmp := diffmatchpatch.New()
 				diffs := dmp.DiffMain(match, replaced, false)
 				if t.pm.debug {

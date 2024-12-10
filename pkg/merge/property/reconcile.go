@@ -37,7 +37,7 @@ func (cm *PropertyManager) Reconcile() (err error) {
 		executor.AddTask(&reconcileTask{
 			pm:                 cm,
 			c:                  cm.m.ComponentByName(componentName),
-			keys:               keys,
+			conflictKeys:       keys,
 			servletContextPath: cm.servletContextPath[componentName],
 			result:             ReconcileReport{},
 		})
