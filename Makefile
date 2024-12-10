@@ -146,7 +146,7 @@ release:embed-javast
 	for platform in $(PLATFORMS); do \
 		GOOS=$${platform%%-*} GOARCH=$${platform##*-} go build \
 		-o build/federate-$$platform \
-		-ldflags "$(LDFLAGS)" $(PACKAGES); \
+		-ldflags "$(LDFLAGS)"; \
 	done
 
 # Diagnose
