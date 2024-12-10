@@ -80,17 +80,17 @@ func (m *PropertyManager) recordServletContextPath(c manifest.ComponentInfo, con
 	m.servletContextPath[c.Name] = contextPath
 }
 
-func (cm *PropertyManager) applyReservedPropertyRules() {
+func (pm *PropertyManager) applyReservedPropertyRules() {
 	var cellData [][]string
-	for key, values := range cm.r.GetReservedPropertyValues() {
+	for key, values := range pm.r.GetReservedPropertyValues() {
 		if handler, exists := reservedKeyHandlers[key]; exists {
-			if cm.m.Main.Reconcile.PropertySettled(key) {
+			if pm.m.Main.Reconcile.PropertySettled(key) {
 				color.Yellow("key:%s reserved, but used directive: propertySettled, skipped", key)
 				continue
 			}
 
-			if value := handler(cm, values); value != nil {
-				for _, entries := range cm.r.GetAllResolvableEntries() {
+			if value := handler(pm, values); value != nil {
+				for _, entries := range pm.r.GetAllResolvableEntries() {
 					entries[key] = PropertyEntry{
 						Value:    value,
 						FilePath: "reserved.yml",
@@ -99,7 +99,7 @@ func (cm *PropertyManager) applyReservedPropertyRules() {
 
 				cellData = append(cellData, []string{key, fmt.Sprintf("%v", value)})
 			} else {
-				for _, entries := range cm.r.GetAllResolvableEntries() {
+				for _, entries := range pm.r.GetAllResolvableEntries() {
 					delete(entries, key)
 				}
 				cellData = append(cellData, []string{key, color.New(color.FgRed).Add(color.CrossedOut).Sprintf("deleted")})
@@ -107,7 +107,7 @@ func (cm *PropertyManager) applyReservedPropertyRules() {
 		}
 	}
 
-	if !cm.silent && len(cellData) > 0 {
+	if !pm.silent && len(cellData) > 0 {
 		log.Printf("Reserved keys processed:")
 		header := []string{"Reserved Key", "Value"}
 		tablerender.DisplayTable(header, cellData, false, -1)

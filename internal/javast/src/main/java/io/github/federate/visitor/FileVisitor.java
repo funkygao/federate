@@ -5,7 +5,7 @@ import com.github.javaparser.ast.CompilationUnit;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public interface FileVisitor {
+interface FileVisitor {
     void visit(CompilationUnit cu, Path filePath) throws IOException;
 }
 

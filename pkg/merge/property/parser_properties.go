@@ -13,14 +13,14 @@ import (
 
 type propertiesParser struct{}
 
-func (p *propertiesParser) Parse(filePath string, component manifest.ComponentInfo, cm *PropertyManager) error {
+func (p *propertiesParser) Parse(filePath string, component manifest.ComponentInfo, pm *PropertyManager) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
 
-	if !cm.silent || cm.debug {
+	if !pm.silent || pm.debug {
 		log.Printf("[%s] Parsing %s", component.Name, filePath)
 	}
 
@@ -36,7 +36,7 @@ func (p *propertiesParser) Parse(filePath string, component manifest.ComponentIn
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 
-			cm.r.AddProperty(component, key, value, filePath)
+			pm.r.AddProperty(component, key, value, filePath)
 		}
 	}
 

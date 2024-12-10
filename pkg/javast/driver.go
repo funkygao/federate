@@ -12,8 +12,13 @@ import (
 	"federate/pkg/manifest"
 )
 
+type Command struct {
+	Name string
+	Args string
+}
+
 type JavastDriver interface {
-	Invoke(command string, jsonArgs string) error
+	Invoke(commands ...Command) error
 }
 
 type javastDriver struct {
@@ -24,14 +29,19 @@ func NewJavastDriver(c manifest.ComponentInfo) JavastDriver {
 	return &javastDriver{c: c}
 }
 
-func (d *javastDriver) Invoke(command, jsonArgs string) error {
+func (d *javastDriver) Invoke(commands ...Command) error {
 	tempDir, jarPath, err := prepareJavastJar()
 	if err != nil {
 		return err
 	}
 	defer os.RemoveAll(tempDir)
 
-	cmd := exec.Command("java", "-jar", jarPath, command, d.c.RootDir(), jsonArgs)
+	args := []string{"-jar", jarPath, d.c.RootDir()}
+	for _, cmd := range commands {
+		args = append(args, cmd.Name, cmd.Args)
+	}
+
+	cmd := exec.Command("java", args...)
 	log.Printf("[%s] Executing: %s", d.c.Name, strings.Join(cmd.Args, " "))
 
 	var stdout, stderr bytes.Buffer

@@ -43,51 +43,51 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 	return pm
 }
 
-func (cm *PropertyManager) Name() string {
+func (pm *PropertyManager) Name() string {
 	return "Reconcile Property Conflicts by Rewriting @Value/@ConfigurationProperties/@RequestMapping/XML/Properties"
 }
 
-func (cm *PropertyManager) M() *manifest.Manifest {
-	return cm.m
+func (pm *PropertyManager) M() *manifest.Manifest {
+	return pm.m
 }
 
-func (cm *PropertyManager) Debug() *PropertyManager {
-	cm.debug = true
-	return cm
+func (pm *PropertyManager) Debug() *PropertyManager {
+	pm.debug = true
+	return pm
 }
 
-func (cm *PropertyManager) Silent() *PropertyManager {
-	cm.silent = true
-	return cm
+func (pm *PropertyManager) Silent() *PropertyManager {
+	pm.silent = true
+	return pm
 }
 
-func (cm *PropertyManager) Result() ReconcileReport {
-	return cm.result
+func (pm *PropertyManager) Result() ReconcileReport {
+	return pm.result
 }
 
 // 分析 .yml & .properties
-func (cm *PropertyManager) Prepare() error {
-	if cm.prepared {
+func (pm *PropertyManager) Prepare() error {
+	if pm.prepared {
 		return nil
 	}
 
-	for _, component := range cm.m.Components {
-		if err := cm.analyzeComponent(component); err != nil {
+	for _, component := range pm.m.Components {
+		if err := pm.analyzeComponent(component); err != nil {
 			return err
 		}
 	}
 
 	// 解析所有引用
-	cm.resolveAllReferences()
+	pm.resolveAllReferences()
 
 	// 应用保留key处理规则
-	cm.applyReservedPropertyRules()
+	pm.applyReservedPropertyRules()
 
-	cm.prepared = true
+	pm.prepared = true
 	return nil
 }
 
-func (cm *PropertyManager) analyzeComponent(component manifest.ComponentInfo) error {
+func (pm *PropertyManager) analyzeComponent(component manifest.ComponentInfo) error {
 	for _, baseDir := range component.Resources.BaseDirs {
 		sourceDir := component.SrcDir(baseDir)
 
@@ -111,7 +111,7 @@ func (cm *PropertyManager) analyzeComponent(component manifest.ComponentInfo) er
 				return fmt.Errorf("unsupported file type: %s", filePath)
 			}
 
-			if err := parser.Parse(filePath, component, cm); err != nil {
+			if err := parser.Parse(filePath, component, pm); err != nil {
 				return err
 			}
 		}
@@ -216,7 +216,7 @@ func (pm *PropertyManager) getAllUniqueKeys() map[string]struct{} {
 }
 
 // 写目标文件 federated/application.yml
-func (cm *PropertyManager) generateMergedYamlFile(targetFile string) error {
+func (pm *PropertyManager) generateMergedYamlFile(targetFile string) error {
 	parser, supported := ParserByFile(targetFile)
 	if !supported {
 		return fmt.Errorf("unsupported file type: %s", targetFile)
@@ -225,8 +225,8 @@ func (cm *PropertyManager) generateMergedYamlFile(targetFile string) error {
 	entries := make(map[string]PropertyEntry)
 	processedKeys := primitive.NewStringSet()
 
-	for _, component := range cm.m.Components {
-		for key, entry := range cm.r.ComponentYamlEntries(component) {
+	for _, component := range pm.m.Components {
+		for key, entry := range pm.r.ComponentYamlEntries(component) {
 			if !processedKeys.Contains(key) {
 				entries[key] = entry
 				processedKeys.Add(key)
@@ -234,12 +234,12 @@ func (cm *PropertyManager) generateMergedYamlFile(targetFile string) error {
 		}
 	}
 
-	rawKeys := cm.m.Main.Reconcile.Resources.Property.RawKeys
+	rawKeys := pm.m.Main.Reconcile.Resources.Property.RawKeys
 	return parser.Generate(entries, rawKeys, targetFile)
 }
 
 // 写目标文件 federated/application.properties
-func (cm *PropertyManager) generateMergedPropertiesFile(targetFile string) error {
+func (pm *PropertyManager) generateMergedPropertiesFile(targetFile string) error {
 	parser, supported := ParserByFile(targetFile)
 	if !supported {
 		return fmt.Errorf("unsupported file type: %s", targetFile)
@@ -247,8 +247,8 @@ func (cm *PropertyManager) generateMergedPropertiesFile(targetFile string) error
 
 	entries := make(map[string]PropertyEntry)
 	processedKeys := primitive.NewStringSet()
-	for _, component := range cm.m.Components {
-		for key, entry := range cm.r.ComponentPropertiesEntries(component) {
+	for _, component := range pm.m.Components {
+		for key, entry := range pm.r.ComponentPropertiesEntries(component) {
 			if !processedKeys.Contains(key) {
 				entries[key] = entry
 				processedKeys.Add(key)
