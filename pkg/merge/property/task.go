@@ -29,14 +29,15 @@ type reconcileTask struct {
 
 func (t *reconcileTask) Execute() error {
 	// 为Java源代码里这些key的引用增加组件名称前缀作为ns
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createAnnotationReferenceRegex); err != nil {
-		return err
-	}
+	/*
+		if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createAnnotationReferenceRegex); err != nil {
+			return err
+		}
 
-	// 处理 @ConfigurationProperties
-	if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createConfigurationPropertiesPrefixRegex); err != nil {
-		return err
-	}
+		// 处理 @ConfigurationProperties
+		if err := t.namespaceKeyReferences(java.IsJavaMainSource, P.createConfigurationPropertiesPrefixRegex); err != nil {
+			return err
+		}*/
 
 	// 解决 server.servlet.context-path 冲突：修改Java源代码
 	if t.servletContextPath != "" {

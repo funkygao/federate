@@ -7,6 +7,7 @@ import (
 
 	"federate/pkg/concurrent"
 	"federate/pkg/federated"
+	"federate/pkg/javast"
 )
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
@@ -31,7 +32,21 @@ func (cm *PropertyManager) Reconcile() (err error) {
 		}
 	}
 
-	// pass 3: 创建并发任务对 Component 源代码进行插桩改写
+	// pass 3: 通过 Java AST 修改 Java 源代码里对冲突key的引用
+	for componentName, keys := range conflictingKeysOfComponents {
+		keyMapping := make(map[string]string)
+		for _, key := range keys {
+			nsKey := Key(key).WithNamespace(componentName)
+			keyMapping[key] = nsKey
+		}
+
+		component := cm.m.ComponentByName(componentName)
+		if err := javast.UpdatePropertyKeys(*component, keyMapping); err != nil {
+			return err
+		}
+	}
+
+	// pass 4: 创建并发任务对 Component 源代码进行插桩改写
 	executor := concurrent.NewParallelExecutor(runtime.NumCPU())
 	for componentName, keys := range conflictingKeysOfComponents {
 		executor.AddTask(&reconcileTask{

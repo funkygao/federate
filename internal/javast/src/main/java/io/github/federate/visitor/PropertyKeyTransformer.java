@@ -83,6 +83,7 @@ public class PropertyKeyTransformer extends BaseCodeModifier {
                 return new StringLiteralExpr(newValue);
             }
         } else if (expr instanceof ArrayInitializerExpr) {
+            // @PostMapping({"${schedule.clover.webAlias}/checkTaskTooManyAlarm"})
             ArrayInitializerExpr aie = (ArrayInitializerExpr) expr;
             NodeList<Expression> values = new NodeList<>();
             boolean changed = false;

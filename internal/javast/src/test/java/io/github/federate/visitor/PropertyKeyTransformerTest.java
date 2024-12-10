@@ -109,6 +109,10 @@ class PropertyKeyTransformerTest {
         testAnnotationTransformation("@PostMapping({\"${schedule.clover.webAlias}/checkTaskTooManyAlarm\"})",
                 "@PostMapping({ \"${wms-stock.schedule.clover.webAlias}/checkTaskTooManyAlarm\" })");
 
+        // JavaParser 在序列化 ArrayInitializerExpr 时会在元素之间添加空格，这是其默认的格式化行为
+        testAnnotationTransformation("@PostMapping({\"${foo}/a\", \"${bar}\", \"xxx\"})",
+                "@PostMapping({ \"${ns.foo}/a\", \"${ns.bar}\", \"xxx\" })");
+
         // Test annotation that should not be modified
         testAnnotationTransformation("@Autowired", "@Autowired");
 
