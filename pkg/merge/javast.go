@@ -18,7 +18,7 @@ func NewJavaAstTransformer(m *manifest.Manifest) Reconciler {
 }
 
 func (m *javaAstTransformer) Name() string {
-	return "Instrument Java AST"
+	return "Instrument Java AST for all conflicts"
 }
 
 func (m *javaAstTransformer) Reconcile() error {

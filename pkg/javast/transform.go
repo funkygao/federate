@@ -27,7 +27,7 @@ func Instrument(m *manifest.Manifest) error {
 	return nil
 }
 
-func TransformService(component manifest.ComponentInfo) {
+func TransformComponentBean(component manifest.ComponentInfo) {
 	if len(component.Transform.Services) == 0 {
 		return
 	}

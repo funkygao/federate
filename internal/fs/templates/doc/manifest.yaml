@@ -148,7 +148,7 @@ components:
       beans: # 为对应的 Bean Injection 增加 @Qualifier
         masterDataSource: inventoryMasterDataSource
         slaveDataSource: inventorySlaveDataSource
-      service: # 修改对应类的 @Service value 值
+      service: # 修改对应类的 @Service/@Component value 值
         com.jdwl.wms.inventory.common.app.service.external.MasterAppServiceImpl: inventoryMasterAppServiceImpl
       txManager: inventoryTxManager # 修改 @Transactional value 值，如果未显式指定
     resources: # 资源文件处理
