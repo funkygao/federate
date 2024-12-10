@@ -32,3 +32,18 @@ func InjectTransactionManager(component manifest.ComponentInfo) error {
 	d := NewJavastDriver(component)
 	return d.Invoke("inject-transaction-manager", component.Transform.TxManager)
 }
+
+func UpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]string) error {
+	if len(keyMapping) == 0 {
+		log.Printf("[%s] No keys to update", component.Name)
+		return nil
+	}
+
+	jsonArgs, err := json.Marshal(keyMapping)
+	if err != nil {
+		return err
+	}
+
+	d := NewJavastDriver(component)
+	return d.Invoke("update-property-keys", string(jsonArgs))
+}

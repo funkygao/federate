@@ -1,8 +1,10 @@
 package property
 
 import (
+	"fmt"
 	"path/filepath"
 	"regexp"
+	"strings"
 )
 
 // global
@@ -18,11 +20,28 @@ type pattern struct {
 	parsers map[string]PropertyParser // key is filename ext
 }
 
-func (p *pattern) createValueAnnotationReferenceRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`@Value\s*\(\s*"([^"]*\$\{` + regexp.QuoteMeta(key) + `(:[^}]*)?\}[^"]*)"\s*\)`)
+func (p *pattern) createAnnotationReferenceRegex(key string) *regexp.Regexp {
+	annotations := []string{
+		"@Value",
+		"@ConditionalOnProperty",
+		"@PostMapping",
+		"@GetMapping",
+		"@DeleteMapping",
+		"@PutMapping",
+		//"@RequestMapping",
+		//"@ConfigurationProperties",
+	}
+
+	annotationPattern := `(` + strings.Join(annotations, `|`) + `)`
+	keyPattern := regexp.QuoteMeta(key)
+
+	// Build a regex pattern that matches annotations referencing the key
+	pattern := fmt.Sprintf(`(?s)%s\s*\(\s*[^)]*%s[^)]*\)`, annotationPattern, keyPattern)
+
+	return regexp.MustCompile(pattern)
 }
 
-func (p *pattern) createXmlPropertyReferenceRegex(key string) *regexp.Regexp {
+func (p *pattern) createXMLPropertyReferenceRegex(key string) *regexp.Regexp {
 	return regexp.MustCompile(`(\w+\s*=\s*"\$\{)` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
 }
 

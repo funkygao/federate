@@ -3,9 +3,12 @@ package property
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 
+	"federate/pkg/federated"
 	"federate/pkg/manifest"
+	"federate/pkg/primitive"
 	"federate/pkg/tablerender"
 	"github.com/fatih/color"
 )
@@ -33,25 +36,23 @@ var reservedKeyHandlers = map[string]ReservedPropertyHandler{
 		return nil
 	},
 	"spring.messages.basename": func(m *PropertyManager, values []ComponentPropertyValue) any {
-		basenameSet := make(map[string]struct{})
+		// i18n message bundles path
+		basenameSet := primitive.NewStringSet()
 		for _, v := range values {
 			if basenameStr, ok := v.Value.(string); ok {
 				basenames := strings.Split(basenameStr, ",")
 				for _, basename := range basenames {
 					trimmedBasename := strings.TrimSpace(basename)
 					if trimmedBasename != "" {
-						basenameSet[trimmedBasename] = struct{}{}
+						federatedBasename := filepath.Join(federated.FederatedDir, v.Component.Name, trimmedBasename)
+						basenameSet.Add(federatedBasename)
+
 					}
 				}
 			}
 		}
 
-		var uniqueBasenames []string
-		for basename := range basenameSet {
-			uniqueBasenames = append(uniqueBasenames, basename)
-		}
-
-		return strings.Join(uniqueBasenames, ",")
+		return strings.Join(basenameSet.Values(), ",")
 	},
 	"logging.config": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		return nil

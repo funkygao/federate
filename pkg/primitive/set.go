@@ -23,6 +23,14 @@ func (s *StringSet) Items() map[string]struct{} {
 	return s.items
 }
 
+func (s *StringSet) Values() []string {
+	r := make([]string, 0, s.Size())
+	for s := range s.items {
+		r = append(r, s)
+	}
+	return r
+}
+
 func (s *StringSet) Remove(item string) {
 	delete(s.items, item)
 }
