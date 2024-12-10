@@ -65,6 +65,12 @@ public class App {
                 validateArgsLength(args, 3, "inject-transaction-manager command requires the transaction manager name");
                 return new TransactionManagerInjector(args[2]);
 
+            case "update-property-keys":
+                // Update annotations with new property keys
+                validateArgsLength(args, 3, "update-property-keys command requires a JSON string of key mappings");
+                Map<String, String> keyMapping = new Gson().fromJson(args[2], Map.class);
+                return new PropertyKeyTransformer(keyMapping);
+
             case "hits-analysis":
                 return new HITSAnalyzer();
 
