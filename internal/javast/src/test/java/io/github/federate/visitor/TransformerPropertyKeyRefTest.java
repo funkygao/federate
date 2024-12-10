@@ -11,8 +11,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class PropertyKeyTransformerTest {
-    private PropertyKeyTransformer transformer;
+class TransformerPropertyKeyRefTest {
+    private TransformerPropertyKeyRef transformer;
     private Map<String, String> keyMapping;
 
     @BeforeEach
@@ -22,7 +22,7 @@ class PropertyKeyTransformerTest {
         keyMapping.put("bar", "ns.bar");
         keyMapping.put("schedule.clover.webAlias", "wms-stock.schedule.clover.webAlias");
         keyMapping.put("sku.extendAttrs", "ns.sku.extendAttrs");
-        transformer = new PropertyKeyTransformer(keyMapping);
+        transformer = new TransformerPropertyKeyRef(keyMapping);
     }
 
     @Test

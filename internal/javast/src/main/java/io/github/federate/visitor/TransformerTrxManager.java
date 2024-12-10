@@ -4,10 +4,10 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.Visitable;
 
 // 显式注入事务管理器：如果现有代码未指定
-public class TransactionManagerInjector extends BaseCodeModifier {
+public class TransformerTrxManager extends BaseCodeModifier {
     private final String transactionManagerName;
 
-    public TransactionManagerInjector(String transactionManagerName) {
+    public TransformerTrxManager(String transactionManagerName) {
         this.transactionManagerName = transactionManagerName;
     }
 

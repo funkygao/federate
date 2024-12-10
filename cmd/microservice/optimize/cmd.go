@@ -28,11 +28,6 @@ func optimize(m *manifest.Manifest) {
 				showDuplicates(m)
 			}},
 		{
-			Name: "Analyze HITS: Hyperlink-Induced Topic Search",
-			Fn: func() {
-				analyzeHITS(m)
-			}},
-		{
 			Name: "Optimize project JAR dependencies",
 			Fn: func() {
 			}},
@@ -44,7 +39,7 @@ func optimize(m *manifest.Manifest) {
 }
 
 func init() {
-	CmdGroup.AddCommand(duplicateCmd, hitsCmd, dependencyCmd)
+	CmdGroup.AddCommand(duplicateCmd, dependencyCmd)
 
 	manifest.RequiredManifestFileFlag(CmdGroup)
 	CmdGroup.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")

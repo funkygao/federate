@@ -8,11 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 // 修改 @Service, @Component 的 value
-public class ServiceAnnotationTransformer extends BaseCodeModifier {
+public class TransformerServiceName extends BaseCodeModifier {
     private final Map<String, String> serviceMap;
     private static final List<String> SUPPORTED_ANNOTATIONS = Arrays.asList("Service", "Component");
 
-    public ServiceAnnotationTransformer(Map<String, String> serviceMap) {
+    public TransformerServiceName(Map<String, String> serviceMap) {
         this.serviceMap = serviceMap;
     }
 

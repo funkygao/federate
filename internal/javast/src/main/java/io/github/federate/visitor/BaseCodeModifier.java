@@ -9,20 +9,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-abstract class BaseCodeModifier extends ModifierVisitor<Void> implements FileVisitor {
+public abstract class BaseCodeModifier extends ModifierVisitor<Void> implements FileVisitor {
     protected String currentPackage;
     protected String currentClassName;
 
     protected boolean modified = false;
 
     @Override
-    public Visitable visit(CompilationUnit cu, Void arg) {
-        currentPackage = cu.getPackageDeclaration().map(pd -> pd.getName().asString()).orElse("");
-        return super.visit(cu, arg);
-    }
-
-    @Override
-    public final void visit(CompilationUnit cu, Path filePath) throws IOException {
+    public void visit(CompilationUnit cu, Path filePath) throws IOException {
         modified = false; // Reset the flag for each file
         CompilationUnit modifiedCu = (CompilationUnit) cu.accept(this, null);
         if (modified) {
@@ -30,6 +24,12 @@ abstract class BaseCodeModifier extends ModifierVisitor<Void> implements FileVis
             Files.write(filePath, modifiedCu.toString().getBytes());
             // System.out.println("Updated: " + filePath);
         }
+    }
+
+    @Override
+    public Visitable visit(CompilationUnit cu, Void arg) {
+        currentPackage = cu.getPackageDeclaration().map(pd -> pd.getName().asString()).orElse("");
+        return super.visit(cu, arg);
     }
 
     @Override
@@ -42,6 +42,10 @@ abstract class BaseCodeModifier extends ModifierVisitor<Void> implements FileVis
 
     protected String getFQCN() {
         return currentPackage.isEmpty() ? currentClassName : currentPackage + "." + currentClassName;
+    }
+
+    boolean isModified() {
+        return modified;
     }
 }
 

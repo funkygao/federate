@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
  * <p>根据 {@code keyMapping} 规则，oldKey -> newKey 改写Java源代码.</p>
  * <p>例如：`@Value("#{'${foo}'.split(',')}")`，keyMapping 里包含：foo -> egg.foo，则替换为：`@Value("#{'${egg.foo}'.split(',')}")`</p>
  */
-public class PropertyKeyTransformer extends BaseCodeModifier {
+public class TransformerPropertyKeyRef extends BaseCodeModifier {
     private final Set<String> annotationsToProcess = new HashSet<>(Arrays.asList(
             "Value", "LafValue", "ConfigurationProperties", "ConditionalOnProperty",
             "RequestMapping", "GetMapping", "PostMapping", "PutMapping", "DeleteMapping"
@@ -23,7 +23,7 @@ public class PropertyKeyTransformer extends BaseCodeModifier {
     private final Pattern placeholderPattern = Pattern.compile("\\$\\{([^}]+)}");
     private final Pattern directKeyPattern;
 
-    public PropertyKeyTransformer(Map<String, String> keyMapping) {
+    public TransformerPropertyKeyRef(Map<String, String> keyMapping) {
         this.keyMapping = keyMapping;
         this.directKeyPattern = Pattern.compile("\\b(" + String.join("|", keyMapping.keySet()) + ")\\b");
     }

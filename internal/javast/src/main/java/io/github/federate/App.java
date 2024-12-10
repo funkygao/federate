@@ -19,15 +19,11 @@ import java.util.stream.Collectors;
 public class App {
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
-            System.err.println("Usage: java -jar javast.jar <command> <directory_path> [arg]");
+            System.err.println("Usage: java -jar javast.jar <directory_path> [<command> <args>]...");
             System.exit(1);
         }
 
-        String command = args[0];
-        String directoryPath = args[1];
-        Path rootPath = Paths.get(directoryPath);
-
-        List<Path> javaFiles = Files.walk(rootPath)
+        List<Path> javaFiles = Files.walk(Paths.get(args[0]))
                 .filter(Files::isRegularFile)
                 .filter(p -> p.toString().endsWith(".java"))
                 .filter(p -> !isTestFile(p))
@@ -37,42 +33,35 @@ public class App {
         config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
         StaticJavaParser.setConfiguration(config);
 
-        FileVisitor visitor = createVisitor(command, args);
-        for (Path javaFile : javaFiles) {
-            CompilationUnit cu = StaticJavaParser.parse(javaFile);
-            visitor.visit(cu, javaFile);
+        CompositeVisitor compositeVisitor = new CompositeVisitor();
+        for (int i = 1; i < args.length; i += 2) {
+            String commandName = args[i];
+            String commandArg = (i + 1 < args.length) ? args[i + 1] : "";
+            BaseCodeModifier visitor = createVisitor(commandName, commandArg);
+            if (visitor != null) {
+                compositeVisitor.addVisitor(visitor);
+            }
         }
 
-        if (visitor instanceof HITSAnalyzer) {
-            HITSAnalyzer hits = (HITSAnalyzer) visitor;
-            hits.runHITS(20); // Run 20 iterations
-            int topK = Integer.parseInt(args[2]);
-            hits.printTopResults(topK);
+        for (Path javaFile : javaFiles) {
+            CompilationUnit cu = StaticJavaParser.parse(javaFile);
+            compositeVisitor.visit(cu, javaFile);
         }
     }
 
-    private static FileVisitor createVisitor(String command, String[] args) {
-        // args: [command, dir, ...]
+    private static BaseCodeModifier createVisitor(String command, String cmdSpecificArg) {
         switch (command) {
             case "replace-service":
-                // @Service
-                validateArgsLength(args, 3, "replace-service command requires a JSON string of old and new values");
-                Map<String, String> serviceMap = new Gson().fromJson(args[2], Map.class);
-                return new ServiceAnnotationTransformer(serviceMap);
+                Map<String, String> serviceMap = new Gson().fromJson(cmdSpecificArg, Map.class);
+                return new TransformerServiceName(serviceMap);
 
             case "inject-transaction-manager":
-                // @Transactional, TransactionTemplate
-                validateArgsLength(args, 3, "inject-transaction-manager command requires the transaction manager name");
-                return new TransactionManagerInjector(args[2]);
+                String trxManager = cmdSpecificArg;
+                return new TransformerTrxManager(trxManager);
 
             case "update-property-keys":
-                // Update annotations with new property keys
-                validateArgsLength(args, 3, "update-property-keys command requires a JSON string of key mappings");
-                Map<String, String> keyMapping = new Gson().fromJson(args[2], Map.class);
-                return new PropertyKeyTransformer(keyMapping);
-
-            case "hits-analysis":
-                return new HITSAnalyzer();
+                Map<String, String> keyMapping = new Gson().fromJson(cmdSpecificArg, Map.class);
+                return new TransformerPropertyKeyRef(keyMapping);
 
             default:
                 System.err.println("Unknown command: " + command);
@@ -85,13 +74,6 @@ public class App {
         String pathStr = path.toString();
         return pathStr.contains("src" + File.separator + "test" + File.separator + "java")
                || pathStr.endsWith("Test.java");
-    }
-
-    private static void validateArgsLength(String[] args, int expectedLength, String errorMessage) {
-        if (args.length < expectedLength) {
-            System.err.println(errorMessage);
-            System.exit(1);
-        }
     }
 }
 
