@@ -5,6 +5,8 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.visitor.Visitable;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Transformer to update property keys in annotations.
@@ -14,19 +16,16 @@ import java.util.*;
  */
 public class PropertyKeyTransformer extends BaseCodeModifier {
     private final Set<String> annotationsToProcess = new HashSet<>(Arrays.asList(
-            "Value",
-            "ConfigurationProperties",
-            "ConditionalOnProperty",
-            "RequestMapping",
-            "GetMapping",
-            "PostMapping",
-            "PutMapping",
-            "DeleteMapping"
+            "Value", "LafValue", "ConfigurationProperties", "ConditionalOnProperty",
+            "RequestMapping", "GetMapping", "PostMapping", "PutMapping", "DeleteMapping"
     ));
     private final Map<String, String> keyMapping;
+    private final Pattern placeholderPattern = Pattern.compile("\\$\\{([^}]+)}");
+    private final Pattern directKeyPattern;
 
     public PropertyKeyTransformer(Map<String, String> keyMapping) {
         this.keyMapping = keyMapping;
+        this.directKeyPattern = Pattern.compile("\\b(" + String.join("|", keyMapping.keySet()) + ")\\b");
     }
 
     @Override
@@ -41,119 +40,102 @@ public class PropertyKeyTransformer extends BaseCodeModifier {
         return super.visit(n, arg);
     }
 
-    private void transformAnnotation(AnnotationExpr n) {
-        if (annotationsToProcess.contains(n.getNameAsString())) {
-            if (n instanceof SingleMemberAnnotationExpr) {
-                SingleMemberAnnotationExpr smae = (SingleMemberAnnotationExpr) n;
-                Expression memberValue = smae.getMemberValue();
-                Expression newMemberValue = transformExpression(memberValue);
-                if (newMemberValue != memberValue) {
-                    smae.setMemberValue(newMemberValue);
-                    modified = true;
-                }
-            } else if (n instanceof NormalAnnotationExpr) {
-                NormalAnnotationExpr nae = (NormalAnnotationExpr) n;
-                boolean changed = false;
-                for (MemberValuePair pair : nae.getPairs()) {
-                    Expression oldValue = pair.getValue();
-                    Expression newValue = transformExpression(oldValue);
-                    if (newValue != oldValue) {
-                        pair.setValue(newValue);
-                        modified = true;
-                        changed = true;
-                    }
-                }
-                if (changed) {
+    void transformAnnotation(AnnotationExpr n) {
+        if (!annotationsToProcess.contains(n.getNameAsString())) {
+            return;
+        }
+
+        if (n instanceof SingleMemberAnnotationExpr) {
+            // 单个参数
+            // @Value("${foo}")
+            SingleMemberAnnotationExpr smae = (SingleMemberAnnotationExpr) n;
+            Expression memberValue = smae.getMemberValue();
+            Expression newMemberValue = transformAnnotationExpression(memberValue);
+            if (newMemberValue != memberValue) {
+                // key reference transformed
+                smae.setMemberValue(newMemberValue);
+                modified = true;
+            }
+        } else if (n instanceof NormalAnnotationExpr) {
+            // 多个参数
+            // @ConfigurationProperties(prefix = "foo")
+            // @ConditionalOnProperty(name = "foo", havingValue = "true")
+            NormalAnnotationExpr nae = (NormalAnnotationExpr) n;
+            for (MemberValuePair pair : nae.getPairs()) {
+                Expression oldValue = pair.getValue();
+                Expression newValue = transformAnnotationExpression(oldValue);
+                if (newValue != oldValue) {
+                    // key reference transformed
+                    pair.setValue(newValue);
                     modified = true;
                 }
             }
+        } else if (n instanceof MarkerAnnotationExpr) {
+            // @Autowired，这里不处理
         }
     }
 
-    private Expression transformExpression(Expression expr) {
+    Expression transformAnnotationExpression(Expression expr) {
         if (expr instanceof StringLiteralExpr) {
             StringLiteralExpr sle = (StringLiteralExpr) expr;
-            String newValue = replaceKeysInString(sle.getValue());
+            String newValue = replaceKeys(sle.getValue());
             if (!newValue.equals(sle.getValue())) {
                 return new StringLiteralExpr(newValue);
             }
         } else if (expr instanceof ArrayInitializerExpr) {
             ArrayInitializerExpr aie = (ArrayInitializerExpr) expr;
-            boolean changed = false;
             NodeList<Expression> values = new NodeList<>();
+            boolean changed = false;
             for (Expression e : aie.getValues()) {
-                Expression newExpr = transformExpression(e);
+                Expression newExpr = transformAnnotationExpression(e);
                 if (newExpr != e) {
                     changed = true;
                 }
                 values.add(newExpr);
             }
             if (changed) {
-                aie.setValues(values);
-                return aie;
-            }
-        } else if (expr instanceof BinaryExpr) {
-            BinaryExpr be = (BinaryExpr) expr;
-            Expression left = transformExpression(be.getLeft());
-            Expression right = transformExpression(be.getRight());
-            if (left != be.getLeft() || right != be.getRight()) {
-                be.setLeft(left);
-                be.setRight(right);
-                return be;
-            }
-        } else if (expr instanceof MethodCallExpr) {
-            MethodCallExpr mce = (MethodCallExpr) expr;
-            boolean changed = false;
-            if (mce.getScope().isPresent()) {
-                Expression newScope = transformExpression(mce.getScope().get());
-                if (newScope != mce.getScope().get()) {
-                    mce.setScope(newScope);
-                    changed = true;
-                }
-            }
-            NodeList<Expression> arguments = new NodeList<>();
-            for (Expression arg : mce.getArguments()) {
-                Expression newArg = transformExpression(arg);
-                if (newArg != arg) {
-                    changed = true;
-                }
-                arguments.add(newArg);
-            }
-            if (changed) {
-                mce.setArguments(arguments);
-                return mce;
-            }
-        } else if (expr instanceof NameExpr) {
-            // Handle NameExpr if necessary
-        } else if (expr instanceof FieldAccessExpr) {
-            // Handle FieldAccessExpr if necessary
-        } else if (expr instanceof ConditionalExpr) {
-            // Handle ConditionalExpr if necessary
-        } else if (expr instanceof EnclosedExpr) {
-            EnclosedExpr ee = (EnclosedExpr) expr;
-            Expression innerExpr = transformExpression(ee.getInner());
-            if (innerExpr != ee.getInner()) {
-                ee.setInner(innerExpr);
-                return ee;
+                return new ArrayInitializerExpr(values);
             }
         }
-        // Handle other expression types if necessary
         return expr;
     }
 
-    private String replaceKeysInString(String str) {
-        String newStr = str;
-        for (Map.Entry<String, String> entry : keyMapping.entrySet()) {
-            String oldKey = entry.getKey();
-            String newKey = entry.getValue();
+    String replaceKeys(String str) {
+        String result = replacePlaceholderKeys(str);
+        return replaceDirectKeys(result);
+    }
 
-            // Replace property placeholders
-            newStr = newStr.replace("${" + oldKey + "}", "${" + newKey + "}");
-
-            // Replace direct references (e.g., "key" -> "component.key")
-            newStr = newStr.replace(oldKey, newKey);
+    private String replacePlaceholderKeys(String str) {
+        StringBuffer sb = new StringBuffer();
+        Matcher matcher = placeholderPattern.matcher(str);
+        while (matcher.find()) {
+            String key = matcher.group(1);
+            String newKey = keyMapping.getOrDefault(key, key);
+            matcher.appendReplacement(sb, Matcher.quoteReplacement("${" + newKey + "}"));
         }
-        return newStr;
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    private String replaceDirectKeys(String str) {
+        StringBuffer sb = new StringBuffer();
+        Matcher matcher = directKeyPattern.matcher(str);
+        while (matcher.find()) {
+            String key = matcher.group(1);
+            String newKey = keyMapping.get(key);
+            if (newKey != null && !isWithinPlaceholder(str, matcher.start())) {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(newKey));
+            } else {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(key));
+            }
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
+    }
+
+    private boolean isWithinPlaceholder(String str, int index) {
+        int openBrace = str.lastIndexOf("${", index);
+        int closeBrace = str.lastIndexOf("}", index);
+        return openBrace > closeBrace;
     }
 }
-
