@@ -13,138 +13,55 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func TestReplaceKeyInMatch(t *testing.T) {
+func TestTransformXMLPropertyKeyReference(t *testing.T) {
 	tests := []struct {
-		name     string
 		match    string
 		key      string
 		newKey   string
 		expected string
 	}{
 		{
-			name:     "Replace @Value annotation",
-			match:    `@Value("${app.name}")`,
-			key:      "app.name",
-			newKey:   "component1.app.name",
-			expected: `@Value("${component1.app.name}")`,
-		},
-		{
-			name:     "Replace XML property",
 			match:    `value="${db.url}"`,
 			key:      "db.url",
 			newKey:   "component2.db.url",
 			expected: `value="${component2.db.url}"`,
 		},
 		{
-			name:     "Replace @ConfigurationProperties annotation",
-			match:    `@ConfigurationProperties("app")`,
-			key:      "app",
-			newKey:   "component3.app",
-			expected: `@ConfigurationProperties("component3.app")`,
+			match:    `<jmq:transport id="jmq.address" address="${jmq.address}" password="${jmq.password}"`,
+			key:      "jmq.address",
+			newKey:   "c1.jmq.address",
+			expected: `<jmq:transport id="jmq.address" address="${c1.jmq.address}" password="${jmq.password}"`,
+		},
+		{
+			match:    `<jmq:transport id="jmq.address" address="${jmq.address}" password="${jmq.password}"`,
+			key:      "jmq.password",
+			newKey:   "c2.jmq.password",
+			expected: `<jmq:transport id="jmq.address" address="${jmq.address}" password="${c2.jmq.password}"`,
+		},
+		{
+			match:    `<property name="serviceDomain" value="${foo}" />`,
+			key:      "foo",
+			newKey:   "c2.foo",
+			expected: `<property name="serviceDomain" value="${c2.foo}" />`,
+		},
+		{
+			match:    `<entry key="replenishStorageEmptyFirst" value-ref="${foo}"/>`,
+			key:      "foo",
+			newKey:   "c2.foo",
+			expected: `<entry key="replenishStorageEmptyFirst" value-ref="${c2.foo}"/>`,
+		},
+		{
+			match:    `<laf-config:resource name="log_level" uri="${foo}"/>`,
+			key:      "foo",
+			newKey:   "c2.foo",
+			expected: `<laf-config:resource name="log_level" uri="${c2.foo}"/>`,
 		},
 	}
 
-	task := &reconcileTask{}
-
+	m := &PropertyManager{}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := task.replaceKeyInMatch(tt.match, tt.key, tt.newKey)
-			if result != tt.expected {
-				t.Errorf("replaceKeyInMatch() = %v, want %v", result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestUpdateRequestMappingInFile(t *testing.T) {
-	testCases := []struct {
-		name        string
-		input       string
-		contextPath string
-		expected    string
-	}{
-		{
-			name:        "Simple RequestMapping",
-			input:       `@RequestMapping("/api/users")`,
-			contextPath: "/wms-stock",
-			expected:    `@RequestMapping("/wms-stock/api/users")`,
-		},
-		{
-			name:        "RequestMapping with value",
-			input:       `@RequestMapping(value = "/api/users")`,
-			contextPath: "/wms-stock",
-			expected:    `@RequestMapping(value = "/wms-stock/api/users")`,
-		},
-		{
-			name:        "Multiple RequestMappings",
-			input:       `@RequestMapping("/api/users")\n@RequestMapping("/api/posts")`,
-			contextPath: "/wms-stock",
-			expected:    `@RequestMapping("/wms-stock/api/users")\n@RequestMapping("/wms-stock/api/posts")`,
-		},
-		{
-			name:        "RequestMapping with existing context path",
-			input:       `@RequestMapping("/wms-stock/api/users")`,
-			contextPath: "/wms-stock",
-			expected:    `@RequestMapping("/wms-stock/api/users")`,
-		},
-		{
-			name:        "No RequestMapping",
-			input:       `public class UserController {}`,
-			contextPath: "/wms-stock",
-			expected:    `public class UserController {}`,
-		},
-	}
-
-	task := reconcileTask{}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
-			if result != tc.expected {
-				t.Errorf("Expected:\n%s\nGot:\n%s", tc.expected, result)
-			}
-		})
-	}
-}
-
-func TestUpdateRequestMappingInFile_EdgeCases(t *testing.T) {
-	testCases := []struct {
-		name        string
-		input       string
-		contextPath string
-		expected    string
-	}{
-		{
-			name:        "Empty input",
-			input:       "",
-			contextPath: "/myapp",
-			expected:    "",
-		},
-		{
-			name:        "Empty context path",
-			input:       `@RequestMapping("/api/users")`,
-			contextPath: "",
-			expected:    `@RequestMapping("/api/users")`,
-		},
-		{
-			name:        "Context path without leading slash",
-			input:       `@RequestMapping("/api/users")`,
-			contextPath: "myapp",
-			expected:    `@RequestMapping("myapp/api/users")`,
-		},
-		{
-			name:        "RequestMapping with regex path",
-			input:       `@RequestMapping("/api/{userId:[0-9]+}")`,
-			contextPath: "/myapp",
-			expected:    `@RequestMapping("/myapp/api/{userId:[0-9]+}")`,
-		},
-	}
-
-	task := reconcileTask{}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := task.updateRequestMappingInFile(tc.input, tc.contextPath)
-			assert.Equal(t, tc.expected, result, "The updated content should match the expected output")
-		})
+		result := m.transformXMLPropertyKeyReference(tt.match, tt.key, tt.newKey)
+		assert.Equal(t, tt.expected, result)
 	}
 }
 
@@ -465,12 +382,4 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 
 	t.Log("Summary")
 	ledger.Get().ShowSummary()
-}
-
-func TestReplaceKeyInMatchComplexValue(t *testing.T) {
-	task := &reconcileTask{}
-	oldMatch := `@Value("#{'${sku.extendAttrs}'.split(',')}")`
-	newMatch := task.replaceKeyInMatch(oldMatch, "sku.extendAttrs", "wms-stock.sku.extendAttrs")
-	expected := `@Value("#{'${wms-stock.sku.extendAttrs}'.split(',')}")`
-	assert.Equal(t, expected, newMatch)
 }
