@@ -14,42 +14,42 @@ const (
 	CmdUpdatePropertyRefKey = "update-property-keys"
 )
 
-func TransformService(component manifest.ComponentInfo) error {
-	if len(component.Transform.Services) == 0 {
-		log.Printf("[%s] Skipped empty transform.service", component.Name)
-		return nil
+var cmds []Command
+
+func Instrument(m *manifest.Manifest) error {
+	for _, c := range m.Components {
+		driver := NewJavastDriver(component)
+		if err := driver.Invoke(cmds); err != nil {
+			return err
+		}
 	}
 
-	jsonArgs, err := json.Marshal(component.Transform.Services)
-	if err != nil {
-		return err
-	}
-
-	d := NewJavastDriver(component)
-	return d.Invoke(Command{CmdReplaceService, string(jsonArgs)})
+	return nil
 }
 
-func InjectTransactionManager(component manifest.ComponentInfo) error {
+func TransformService(component manifest.ComponentInfo) {
+	if len(component.Transform.Services) == 0 {
+		return
+	}
+
+	jsonArgs, _ := json.Marshal(component.Transform.Services)
+	cmds = append(cmds, Command{CmdReplaceService, string(jsonArgs)})
+}
+
+func InjectTransactionManager(component manifest.ComponentInfo) {
 	if component.Transform.TxManager == "" {
-		return nil
+		return
 	}
 
 	ledger.Get().TransformTransaction(component.Name, component.Transform.TxManager)
-	d := NewJavastDriver(component)
-	return d.Invoke(Command{CmdInjectTrxManager, component.Transform.TxManager})
+	cmds = append(cmds, Command{CmdInjectTrxManager, component.Transform.TxManager})
 }
 
-func UpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]string) error {
+func UpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]string) {
 	if len(keyMapping) == 0 {
-		log.Printf("[%s] No keys to update", component.Name)
-		return nil
+		return
 	}
 
-	jsonArgs, err := json.Marshal(keyMapping)
-	if err != nil {
-		return err
-	}
-
-	d := NewJavastDriver(component)
-	return d.Invoke(Command{CmdUpdatePropertyRefKey, string(jsonArgs)})
+	jsonArgs, _ := json.Marshal(keyMapping)
+	cmds = append(cmds, Command{CmdUpdatePropertyRefKey, string(jsonArgs)})
 }

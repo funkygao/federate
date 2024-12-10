@@ -20,9 +20,7 @@ func (m *TransactionManager) Name() string {
 
 func (m *TransactionManager) Reconcile() error {
 	for _, c := range m.m.Components {
-		if err := javast.InjectTransactionManager(c); err != nil {
-			return err
-		}
+		javast.InjectTransactionManager(c)
 	}
 	return nil
 }

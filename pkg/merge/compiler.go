@@ -111,6 +111,7 @@ func (p *compiler) loadDefaultReconcilers() {
 	p.AddReconciler(NewTransactionManager(p.m))
 	p.AddReconciler(NewEnvManager(pm))
 	p.AddReconciler(NewRpcAliasManager(pm))
+	p.AddReconciler(NewJavaAstTransformer(p.m))
 }
 
 func (p *compiler) orchestrateReconcilers() {

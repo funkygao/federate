@@ -49,9 +49,7 @@ func (pm *PropertyManager) Reconcile() (err error) {
 		component := *pm.m.ComponentByName(componentName)
 
 		// 通过 Java AST 修改 Java 源代码里对冲突key的引用
-		if err := javast.UpdatePropertyKeys(component, keyMapping); err != nil {
-			return err
-		}
+		javast.UpdatePropertyKeys(component, keyMapping)
 
 		// 为 @RequestMapping 增加路径前缀
 		componentServletContextPath := pm.servletContextPath[componentName]
