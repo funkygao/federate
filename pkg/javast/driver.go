@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"federate/internal/fs"
+	"github.com/schollz/progressbar/v3"
 )
 
 type CmdName string
@@ -28,7 +29,7 @@ type Command struct {
 }
 
 type JavastDriver interface {
-	Invoke(commands ...Command) error
+	Invoke(bar *progressbar.ProgressBar, commands ...Command) error
 }
 
 type javastDriver struct {
@@ -38,7 +39,7 @@ func NewJavastDriver() JavastDriver {
 	return &javastDriver{}
 }
 
-func (d *javastDriver) Invoke(commands ...Command) error {
+func (d *javastDriver) Invoke(bar *progressbar.ProgressBar, commands ...Command) error {
 	tempDir, jarPath, err := prepareJavastJar()
 	if err != nil {
 		return err
@@ -68,6 +69,7 @@ func (d *javastDriver) Invoke(commands ...Command) error {
 		if out != "" {
 			log.Println(out)
 		}
+		bar.Add(100 / len(groupedCommands))
 	}
 
 	return nil

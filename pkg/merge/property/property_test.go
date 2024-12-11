@@ -8,6 +8,7 @@ import (
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
 	"federate/pkg/util"
+	"github.com/schollz/progressbar/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -119,7 +120,7 @@ func TestPrepare(t *testing.T) {
 	assert.Equal(t, "com.mysql.jdbc.Driver", pm.r.resolvableEntries["a"]["wms.datasource.driverClassName"].Value)
 
 	// 调和冲突
-	err := pm.Reconcile()
+	err := pm.Reconcile(progressbar.Default(100))
 	require.NoError(t, err)
 	if pm.debug {
 		t.Logf("All properties after reconcile:\n%s", util.Beautify(pm.r.resolvableEntries))
@@ -362,7 +363,7 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	t.Log("")
 
 	t.Logf("Reconcile")
-	pm.Reconcile()
+	pm.Reconcile(progressbar.Default(100))
 	//t.Logf("%s", util.Beautify(pm.r.resolvableEntries))
 	// a 和 b 的 yaml key: wms.datasource.maximumPoolSize，都在引用 ${mysql.maximumPoolSize}
 	assert.Equal(t, "${a.mysql.maximumPoolSize}", pm.r.resolvableEntries["a"]["a.wms.datasource.maximumPoolSize"].Raw)

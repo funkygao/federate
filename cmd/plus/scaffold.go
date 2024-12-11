@@ -40,7 +40,7 @@ func doCreate(m *manifest.Manifest) {
 	// 让WMS6.0代码安装后可以被依赖
 	springBoot := merge.NewSpringBootMavenPluginManager(m)
 	log.Println(springBoot.Name())
-	springBoot.Reconcile()
+	merge.RunReconcile(springBoot, nil)
 
 	color.Green("🍺 Congrat, %s scaffolded!", m.Main.Name)
 }

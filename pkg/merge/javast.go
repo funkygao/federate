@@ -3,6 +3,7 @@ package merge
 import (
 	"federate/pkg/javast"
 	"federate/pkg/manifest"
+	"github.com/schollz/progressbar/v3"
 )
 
 type javaAstTransformer struct {
@@ -17,6 +18,6 @@ func (m *javaAstTransformer) Name() string {
 	return "Instrument Java AST Transformers to Execute Plans"
 }
 
-func (m *javaAstTransformer) Reconcile() error {
-	return javast.Instrument()
+func (m *javaAstTransformer) Reconcile(bar *progressbar.ProgressBar) error {
+	return javast.Instrument(bar)
 }

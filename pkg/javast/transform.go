@@ -5,13 +5,14 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
+	"github.com/schollz/progressbar/v3"
 )
 
 var backlog []Command
 
-func Instrument() error {
+func Instrument(bar *progressbar.ProgressBar) error {
 	driver := NewJavastDriver()
-	return driver.Invoke(backlog...)
+	return driver.Invoke(bar, backlog...)
 }
 
 func TransformResourceInject(component manifest.ComponentInfo) {

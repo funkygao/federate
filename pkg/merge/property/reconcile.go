@@ -13,20 +13,23 @@ import (
 	"federate/pkg/javast"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
+	"github.com/schollz/progressbar/v3"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
-func (pm *PropertyManager) Reconcile() (err error) {
+func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 	if err = pm.Prepare(); err != nil {
 		return
 	}
+	bar.Add(1)
 
 	// pass 1: 识别冲突
 	conflicts := pm.identifyAllConflicts()
 	if len(conflicts) == 0 {
 		return
 	}
+	bar.Add(2)
 
 	// pass 2: 注册表调和冲突，为冲突key增加前缀ns，对于 ConfigurationProperties/integralKey 整体处理
 	conflictingKeysOfComponents := make(map[string][]string) // Group keys by component
@@ -58,12 +61,14 @@ func (pm *PropertyManager) Reconcile() (err error) {
 			if err := pm.segregateRequestMapping(component, contextPath); err != nil {
 				return err
 			}
+			bar.Add(50 / len(conflictingKeysOfComponents))
 		}
 
 		// 修改 XML 里对冲突 key 的引用
 		if err := pm.updateXMLPropertyReference(component, keys); err != nil {
 			return err
 		}
+		bar.Add(40 / len(conflictingKeysOfComponents))
 	}
 
 	// pass 4: 合并到目标文件
@@ -71,6 +76,7 @@ func (pm *PropertyManager) Reconcile() (err error) {
 		if err = pm.writeTargetFiles(); err != nil {
 			return
 		}
+		bar.Add(3)
 	}
 
 	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",

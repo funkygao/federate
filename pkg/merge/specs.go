@@ -1,15 +1,41 @@
 package merge
 
 import (
+	"fmt"
+
 	"federate/pkg/manifest"
+	"github.com/schollz/progressbar/v3"
 )
 
 // 合并编译调和器.
 type Reconciler interface {
 	Name() string
+}
 
-	// 执行调和动作.
+// 不带进度条的 Reconciler
+type SimpleReconciler interface {
+	Reconciler
+
 	Reconcile() error
+}
+
+// 带进度条的 Reconciler
+type ProgressReconciler interface {
+	Reconciler
+
+	Reconcile(*progressbar.ProgressBar) error
+}
+
+func RunReconcile(r Reconciler, bar *progressbar.ProgressBar) error {
+	switch rec := r.(type) {
+	case SimpleReconciler:
+		bar.ChangeMax(-1) // unknown length is a spinner
+		return rec.Reconcile()
+	case ProgressReconciler:
+		return rec.Reconcile(bar)
+	default:
+		return fmt.Errorf("reconciler %s does not implement any Reconcile method", r.Name())
+	}
 }
 
 // 有准备阶段的合并编译调和器.

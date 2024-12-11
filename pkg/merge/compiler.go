@@ -11,6 +11,7 @@ import (
 	"federate/pkg/merge/property"
 	"federate/pkg/step"
 	"github.com/fatih/color"
+	"github.com/schollz/progressbar/v3"
 )
 
 // 合并编译器.
@@ -145,29 +146,34 @@ func (p *compiler) Merge() error {
 	var steps = []step.Step{
 		step.Step{
 			Name: "Consolidation Plan",
-			Fn: func() {
+			FnWithProgress: func(bar *progressbar.ProgressBar) {
 				p.displayDAG()
+				bar.Add(100)
 			}},
 	}
 
+	// 先执行 Preparer
 	steps = p.prepareReconcilers(steps)
 
 	for _, r := range p.reconcilers {
 		steps = append(steps, step.Step{
 			Name: r.Name(),
-			Fn: func() {
-				if err := r.Reconcile(); err != nil {
+			FnWithProgress: func(bar *progressbar.ProgressBar) {
+				if err := RunReconcile(r, bar); err != nil {
 					log.Fatalf("[%s] %v", r.Name(), err)
 				}
 			},
 		})
 	}
 
+	// last step: report
 	steps = append(steps, step.Step{
 		Name: "Consolidation Summary Dump to report.json",
-		Fn: func() {
+		FnWithProgress: func(bar *progressbar.ProgressBar) {
 			ledger.Get().ShowSummary()
+			bar.Add(50)
 			ledger.Get().SaveToFile("report.json")
+			bar.Finish()
 		}})
 
 	step.AutoConfirm = p.autoYes
@@ -181,7 +187,7 @@ func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
 		if p, ok := r.(Preparer); ok {
 			steps = append(steps, step.Step{
 				Name: color.CyanString(p.Name() + " *"),
-				Fn: func() {
+				FnWithProgress: func(bar *progressbar.ProgressBar) {
 					p.Prepare()
 				},
 			})
