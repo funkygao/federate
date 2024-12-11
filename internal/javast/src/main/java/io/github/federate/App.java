@@ -63,6 +63,10 @@ public class App {
                 Map<String, String> keyMapping = new Gson().fromJson(cmdSpecificArg, Map.class);
                 return new TransformerPropertyKeyRef(keyMapping);
 
+            case "transform-import-resource":
+                String componentName = cmdSpecificArg;
+                return new TransformerImportResource(componentName);
+
             default:
                 System.err.println("Unknown command: " + command);
                 System.exit(1);
