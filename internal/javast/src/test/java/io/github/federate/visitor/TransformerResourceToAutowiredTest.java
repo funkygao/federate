@@ -1,60 +1,44 @@
 package io.github.federate.visitor;
 
-import com.github.javaparser.StaticJavaParser;
-import com.github.javaparser.ast.CompilationUnit;
-import io.github.federate.util.TestCaseLoader;
-import io.github.federate.util.TestCaseLoader.TestCase;
+import io.github.federate.util.TestUtils;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
 class TransformerResourceToAutowiredTest {
 
     @Test
-    void resourceWithNameAndSetterMethod() throws IOException {
-        assertTransformation("resource_with_name_setter_method");
-    }
-
-    @Test
     void testBasicTransformation() throws IOException {
-        assertTransformation("basic_transformation");
+        TestUtils.assertTransformation("basic_transformation", new TransformerResourceToAutowired());
     }
 
     @Test
     void testMultipleSameTypeFields() throws IOException {
-        assertTransformation("multiple_same_type_fields");
+        TestUtils.assertTransformation("multiple_same_type_fields", new TransformerResourceToAutowired());
     }
 
     @Test
     void testSetterMethodTransformation() throws IOException {
-        assertTransformation("setter_method_transformation");
+        TestUtils.assertTransformation("setter_method_transformation", new TransformerResourceToAutowired());
     }
 
     @Test
     void testWithOtherAnnotations() throws IOException {
-        assertTransformation("with_other_annotations");
+        TestUtils.assertTransformation("with_other_annotations", new TransformerResourceToAutowired());
     }
 
     @Test
     void testGenericTypes() throws IOException {
-        assertTransformation("generic_types");
+        TestUtils.assertTransformation("generic_types", new TransformerResourceToAutowired());
     }
 
     @Test
     void testInnerClass() throws IOException {
-        assertTransformation("inner_class");
+        TestUtils.assertTransformation("inner_class", new TransformerResourceToAutowired());
     }
 
-    private void assertTransformation(String testCaseName) throws IOException {
-        TestCase testCase = TestCaseLoader.load(testCaseName);
-        CompilationUnit cu = StaticJavaParser.parse(testCase.getInput());
-        TransformerResourceToAutowired transformer = new TransformerResourceToAutowired();
-        transformer.visit(cu, (Void) null);
-
-        assertTrue(transformer.isModified());
-        assertEquals(testCase.getExpected(), cu.toString().trim());
+    @Test
+    void resourceWithNameAndSetterMethod() throws IOException {
+        TestUtils.assertTransformation("resource_with_name_setter_method", new TransformerResourceToAutowired());
     }
 }

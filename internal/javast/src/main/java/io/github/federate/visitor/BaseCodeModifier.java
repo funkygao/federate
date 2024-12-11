@@ -52,7 +52,7 @@ public abstract class BaseCodeModifier extends ModifierVisitor<Void> implements 
         this.modified = false;
     }
 
-    boolean isModified() {
+    public boolean isModified() {
         return modified;
     }
 }
