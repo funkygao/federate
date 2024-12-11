@@ -9,12 +9,21 @@ import (
 	"strings"
 
 	"federate/internal/fs"
-	"federate/pkg/manifest"
+)
+
+type CmdName string
+
+const (
+	CmdReplaceService          CmdName = "replace-service"
+	CmdInjectTrxManager        CmdName = "inject-transaction-manager"
+	CmdUpdatePropertyRefKey    CmdName = "update-property-keys"
+	CmdTransformImportResource CmdName = "transform-import-resource"
 )
 
 type Command struct {
-	Name string
-	Args string
+	Name    CmdName
+	RootDir string
+	Args    string
 }
 
 type JavastDriver interface {
@@ -22,11 +31,10 @@ type JavastDriver interface {
 }
 
 type javastDriver struct {
-	c manifest.ComponentInfo
 }
 
-func NewJavastDriver(c manifest.ComponentInfo) JavastDriver {
-	return &javastDriver{c: c}
+func NewJavastDriver() JavastDriver {
+	return &javastDriver{}
 }
 
 func (d *javastDriver) Invoke(commands ...Command) error {
@@ -36,27 +44,40 @@ func (d *javastDriver) Invoke(commands ...Command) error {
 	}
 	defer os.RemoveAll(tempDir)
 
-	args := []string{"-jar", jarPath, d.c.RootDir()}
+	groupedCommands := d.groupByRootDir(commands...)
+	for rootDir, cmds := range groupedCommands {
+		args := []string{"-jar", jarPath, rootDir}
+		for _, cmd := range cmds {
+			args = append(args, string(cmd.Name), cmd.Args)
+		}
+
+		cmd := exec.Command("java", args...)
+		log.Printf("[%s] Executing: %s", rootDir, strings.Join(cmd.Args, " "))
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		err = cmd.Run()
+		if err != nil {
+			log.Printf("Error: %s", stderr.String())
+			return err
+		}
+		out := strings.TrimSpace(stdout.String())
+		if out != "" {
+			log.Println(out)
+		}
+	}
+
+	return nil
+}
+
+func (d *javastDriver) groupByRootDir(commands ...Command) map[string][]Command {
+	grouped := make(map[string][]Command)
 	for _, cmd := range commands {
-		args = append(args, cmd.Name, cmd.Args)
+		grouped[cmd.RootDir] = append(grouped[cmd.RootDir], cmd)
 	}
-
-	cmd := exec.Command("java", args...)
-	log.Printf("[%s] Executing: %s", d.c.Name, strings.Join(cmd.Args, " "))
-
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-
-	err = cmd.Run()
-	if err != nil {
-		log.Printf("Error: %s", stderr.String())
-	}
-	out := strings.TrimSpace(stdout.String())
-	if out != "" {
-		log.Println(out)
-	}
-	return err
+	return grouped
 }
 
 func prepareJavastJar() (string, string, error) {

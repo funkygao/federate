@@ -18,5 +18,5 @@ func (m *javaAstTransformer) Name() string {
 }
 
 func (m *javaAstTransformer) Reconcile() error {
-	return javast.Instrument(m.m)
+	return javast.Instrument()
 }

@@ -7,28 +7,15 @@ import (
 	"federate/pkg/merge/ledger"
 )
 
-const (
-	CmdReplaceService          = "replace-service"
-	CmdInjectTrxManager        = "inject-transaction-manager"
-	CmdUpdatePropertyRefKey    = "update-property-keys"
-	CmdTransformImportResource = "transform-import-resource"
-)
+var backlog []Command
 
-var cmds []Command
-
-func Instrument(m *manifest.Manifest) error {
-	for _, c := range m.Components {
-		driver := NewJavastDriver(c)
-		if err := driver.Invoke(cmds...); err != nil {
-			return err
-		}
-	}
-
-	return nil
+func Instrument() error {
+	driver := NewJavastDriver()
+	return driver.Invoke(backlog...)
 }
 
 func TransformImportResource(component manifest.ComponentInfo) {
-	cmds = append(cmds, Command{CmdTransformImportResource, component.Name})
+	backlog = append(backlog, Command{CmdTransformImportResource, component.Name, component.Name})
 }
 
 func TransformComponentBean(component manifest.ComponentInfo) {
@@ -37,7 +24,7 @@ func TransformComponentBean(component manifest.ComponentInfo) {
 	}
 
 	jsonArgs, _ := json.Marshal(component.Transform.Services)
-	cmds = append(cmds, Command{CmdReplaceService, string(jsonArgs)})
+	backlog = append(backlog, Command{CmdReplaceService, component.Name, string(jsonArgs)})
 }
 
 func InjectTransactionManager(component manifest.ComponentInfo) {
@@ -46,7 +33,7 @@ func InjectTransactionManager(component manifest.ComponentInfo) {
 	}
 
 	ledger.Get().TransformTransaction(component.Name, component.Transform.TxManager)
-	cmds = append(cmds, Command{CmdInjectTrxManager, component.Transform.TxManager})
+	backlog = append(backlog, Command{CmdInjectTrxManager, component.Name, component.Transform.TxManager})
 }
 
 func UpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]string) {
@@ -55,5 +42,5 @@ func UpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]
 	}
 
 	jsonArgs, _ := json.Marshal(keyMapping)
-	cmds = append(cmds, Command{CmdUpdatePropertyRefKey, string(jsonArgs)})
+	backlog = append(backlog, Command{CmdUpdatePropertyRefKey, component.Name, string(jsonArgs)})
 }
