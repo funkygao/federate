@@ -20,6 +20,7 @@ func TestLoad(t *testing.T) {
 	assert.Equal(t, "com.jdwl.wms.runtime", manifest.Main.FederatedRuntimePackage())
 	assert.Equal(t, "wms-stock-api-provider", manifest.Main.Dependency.Includes[0].ArtifactId)
 	assert.Equal(t, "com.goog", manifest.Main.GroupId)
+	assert.Equal(t, 9090, manifest.Main.Reconcile.Resources.Property.TomcatPort)
 
 	// 设置环境变量
 	os.Setenv("GROUP_ID", "com.goog.foo")

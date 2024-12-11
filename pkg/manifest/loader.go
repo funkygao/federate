@@ -50,6 +50,11 @@ func Load() *Manifest {
 					LogConfigXml:     defaultLogConfigXml,
 					MybatisConfigXml: defaultMybatisConfigXml,
 				},
+				Resources: ResourcesReconcileSpec{
+					Property: PropertyReconcileSpec{
+						TomcatPort: 8080,
+					},
+				},
 			},
 		},
 	}

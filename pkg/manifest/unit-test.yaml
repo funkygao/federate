@@ -21,6 +21,7 @@ federated:
   reconcile:
     resources:
       property:
+        tomcatPort: 9090
         dryrun: ${RECONCILE:false}
         override:
           app.demo.feature.newFeature.enabled: true
