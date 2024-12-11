@@ -61,7 +61,7 @@ var reservedKeyHandlers = map[string]ReservedPropertyHandler{
 		return nil
 	},
 	"server.port": func(m *PropertyManager, values []ComponentPropertyValue) any {
-		return 8080
+		return m.m.Main.Reconcile.Resources.Property.TomcatPort
 	},
 	"server.servlet.context-path": func(m *PropertyManager, values []ComponentPropertyValue) any {
 		for _, v := range values {
