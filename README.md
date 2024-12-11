@@ -88,9 +88,3 @@ federate microservice scaffold -h
 | pom.xml | - Disable `spring-boot-maven-plugin` to enable post-`mvn install` usage |
 | Code Generation | - Makefile<br>- fusion-starter runtime<br>- Java AST Manipulate Project<br>- Fusion Maven Project |
 
-
-## TODO
-
-- NewComponentJavaWalker
-  - importresource.go
-  - injection.go
