@@ -8,9 +8,10 @@ import (
 )
 
 const (
-	CmdReplaceService       = "replace-service"
-	CmdInjectTrxManager     = "inject-transaction-manager"
-	CmdUpdatePropertyRefKey = "update-property-keys"
+	CmdReplaceService          = "replace-service"
+	CmdInjectTrxManager        = "inject-transaction-manager"
+	CmdUpdatePropertyRefKey    = "update-property-keys"
+	CmdTransformImportResource = "transform-import-resource"
 )
 
 var cmds []Command
@@ -24,6 +25,10 @@ func Instrument(m *manifest.Manifest) error {
 	}
 
 	return nil
+}
+
+func TransformImportResource(component manifest.ComponentInfo) {
+	cmds = append(cmds, Command{CmdTransformImportResource, component.Name})
 }
 
 func TransformComponentBean(component manifest.ComponentInfo) {
