@@ -75,8 +75,11 @@ func (j *JavaFile) CompactCode() string {
 		return j.cachedCompactCode
 	}
 
+	// Remove package declaration
+	noPackage := P.packageDeclarationRegex.ReplaceAllString(j.content, "")
+
 	// Remove comments
-	noComments := P.commentRegex.ReplaceAllString(j.content, "")
+	noComments := P.commentRegex.ReplaceAllString(noPackage, "")
 
 	// Remove annotations
 	noAnnotations := P.annotationRegex.ReplaceAllString(noComments, "")

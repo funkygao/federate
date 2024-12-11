@@ -63,7 +63,7 @@ public class Hi {
 
 }
 `
-	expected := `packagecom.fooimportcom.goog.utilpublicclassHi{publicstaticvoidsay(Stringarg){}privateStringa}`
+	expected := `importcom.goog.utilpublicclassHi{publicstaticvoidsay(Stringarg){}privateStringa}`
 	j := &JavaFile{content: content}
 	assert.Equal(t, j.CompactCode(), expected)
 }

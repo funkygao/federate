@@ -39,9 +39,10 @@ type pattern struct {
 
 	ImportResourcePattern *regexp.Regexp
 
-	commentRegex    *regexp.Regexp
-	whitespaceRegex *regexp.Regexp
-	annotationRegex *regexp.Regexp
+	commentRegex            *regexp.Regexp
+	packageDeclarationRegex *regexp.Regexp
+	whitespaceRegex         *regexp.Regexp
+	annotationRegex         *regexp.Regexp
 }
 
 func init() {
@@ -62,8 +63,9 @@ func init() {
 		importRegex:           regexp.MustCompile(`^\s*import\s+(?:static\s+)?[\w.]+(?:\s*\*\s*)?;?\s*`),
 		ImportResourcePattern: regexp.MustCompile(`@ImportResource\s*\(\s*(locations\s*=\s*)?\{?\s*("([^"]+)"|'([^']+)')\s*(,\s*("([^"]+)"|'([^']+)')\s*)*\}?\s*\)`),
 
-		commentRegex:    regexp.MustCompile(`(?s:/\*.*?\*/)|//.*`),
-		whitespaceRegex: regexp.MustCompile(`\s+`),
-		annotationRegex: regexp.MustCompile(`@\w+(\s*\([^)]*\))?`),
+		commentRegex:            regexp.MustCompile(`(?s:/\*.*?\*/)|//.*`),
+		packageDeclarationRegex: regexp.MustCompile(`(?m)^\s*package\s+[\w.]+\s*;?\s*`),
+		whitespaceRegex:         regexp.MustCompile(`\s+`),
+		annotationRegex:         regexp.MustCompile(`@\w+(\s*\([^)]*\))?`),
 	}
 }
