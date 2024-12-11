@@ -54,7 +54,7 @@ public class TransformerPropertyKeyRef extends BaseCodeModifier {
             if (newMemberValue != memberValue) {
                 // key reference transformed
                 smae.setMemberValue(newMemberValue);
-                modified = true;
+                markDirty();
             }
         } else if (n instanceof NormalAnnotationExpr) {
             // 多个参数
@@ -67,7 +67,7 @@ public class TransformerPropertyKeyRef extends BaseCodeModifier {
                 if (newValue != oldValue) {
                     // key reference transformed
                     pair.setValue(newValue);
-                    modified = true;
+                    markDirty();
                 }
             }
         } else if (n instanceof MarkerAnnotationExpr) {

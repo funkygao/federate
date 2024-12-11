@@ -19,15 +19,15 @@ public class CompositeVisitor extends BaseCodeModifier {
 
     @Override
     public void visit(CompilationUnit cu, Path filePath) throws IOException {
-        modified = false;
+        restart();
         for (BaseCodeModifier visitor : visitors) {
             visitor.visit(cu, filePath);
             if (visitor.isModified()) {
-                modified = true;
+                markDirty();
             }
         }
 
-        if (modified && filePath != null) {
+        if (isModified() && filePath != null) {
             Files.write(filePath, cu.toString().getBytes());
         }
     }

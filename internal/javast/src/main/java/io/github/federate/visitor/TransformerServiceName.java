@@ -34,7 +34,7 @@ public class TransformerServiceName extends BaseCodeModifier {
                 String oldValue = (n instanceof SingleMemberAnnotationExpr)
                     ? ((SingleMemberAnnotationExpr) n).getMemberValue().toString()
                     : "<empty>";
-                modified = true;
+                markDirty();
                 System.out.println("Modifying " + n.getNameAsString() + " for " + fqcn + ": " + oldValue + " -> " + newValue);
                 return new SingleMemberAnnotationExpr(n.getName(), new StringLiteralExpr(newValue));
             }

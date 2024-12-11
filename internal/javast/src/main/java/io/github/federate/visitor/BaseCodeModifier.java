@@ -13,13 +13,13 @@ public abstract class BaseCodeModifier extends ModifierVisitor<Void> implements 
     protected String currentPackage;
     protected String currentClassName;
 
-    protected boolean modified = false;
+    private boolean modified = false;
 
     @Override
     public void visit(CompilationUnit cu, Path filePath) throws IOException {
-        modified = false; // Reset the flag for each file
+        restart();
         CompilationUnit modifiedCu = (CompilationUnit) cu.accept(this, null);
-        if (modified) {
+        if (isModified()) {
             // Write file: CompilationUnit#toString will be the updated source code
             Files.write(filePath, modifiedCu.toString().getBytes());
             // System.out.println("Updated: " + filePath);
@@ -42,6 +42,14 @@ public abstract class BaseCodeModifier extends ModifierVisitor<Void> implements 
 
     protected String getFQCN() {
         return currentPackage.isEmpty() ? currentClassName : currentPackage + "." + currentClassName;
+    }
+
+    protected void markDirty() {
+        this.modified = true;
+    }
+
+    protected void restart() {
+        this.modified = false;
     }
 
     boolean isModified() {

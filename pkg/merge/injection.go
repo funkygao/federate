@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"federate/pkg/code"
+	"federate/pkg/javast"
 	"federate/pkg/manifest"
 )
 
@@ -28,14 +29,14 @@ func (m *SpringBeanInjectionManager) Name() string {
 
 func (m *SpringBeanInjectionManager) Reconcile() error {
 	for _, component := range m.m.Components {
+		if false {
+			javast.TransformResourceInject(component)
+		}
 		if err := m.reconcileComponent(component); err != nil {
 			return err
 		}
 	}
 
-	if m.AutowiredN > 0 {
-		log.Printf("Source Code Rewritten, +@Autowired: %d, +@Qualifier: %d", m.AutowiredN, m.QualifierN)
-	}
 	return nil
 }
 

@@ -14,6 +14,10 @@ func Instrument() error {
 	return driver.Invoke(backlog...)
 }
 
+func TransformResourceInject(component manifest.ComponentInfo) {
+	backlog = append(backlog, Command{CmdTransformResourceInject, component.Name, component.Name})
+}
+
 func TransformImportResource(component manifest.ComponentInfo) {
 	backlog = append(backlog, Command{CmdTransformImportResource, component.Name, component.Name})
 }

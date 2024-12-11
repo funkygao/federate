@@ -19,7 +19,7 @@ public class TransformerTrxManager extends BaseCodeModifier {
             NormalAnnotationExpr nae = new NormalAnnotationExpr();
             nae.setName(n.getName());
             nae.addPair("transactionManager", new StringLiteralExpr(transactionManagerName));
-            modified = true;
+            markDirty();
             return nae;
         }
         return super.visit(n, arg);
@@ -34,7 +34,7 @@ public class TransformerTrxManager extends BaseCodeModifier {
             if (!hasTransactionManager) {
                 // 添加 transactionManager 属性
                 n.addPair("transactionManager", new StringLiteralExpr(transactionManagerName));
-                modified = true;
+                markDirty();
             }
         }
         return super.visit(n, arg);
@@ -49,7 +49,7 @@ public class TransformerTrxManager extends BaseCodeModifier {
             nae.setName(n.getName());
             nae.addPair("value", n.getMemberValue());
             nae.addPair("transactionManager", new StringLiteralExpr(transactionManagerName));
-            modified = true;
+            markDirty();
             return nae;
         }
         return super.visit(n, arg);
@@ -63,7 +63,7 @@ public class TransformerTrxManager extends BaseCodeModifier {
             if (n.getArguments().isEmpty()) {
                 // 添加 transactionManager 变量作为构造函数参数
                 n.addArgument(new NameExpr(transactionManagerName));
-                modified = true;
+                markDirty();
             }
         }
         return super.visit(n, arg);

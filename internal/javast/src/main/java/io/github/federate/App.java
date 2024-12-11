@@ -67,6 +67,9 @@ public class App {
                 String componentName = cmdSpecificArg;
                 return new TransformerImportResource(componentName);
 
+            case "transform-resource":
+                return new TransformerResourceToAutowired();
+
             default:
                 System.err.println("Unknown command: " + command);
                 System.exit(1);

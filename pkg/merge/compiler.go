@@ -6,7 +6,6 @@ import (
 
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
-	"federate/pkg/merge/addon"
 	"federate/pkg/merge/bean"
 	"federate/pkg/merge/ledger"
 	"federate/pkg/merge/property"
@@ -91,7 +90,7 @@ func (p *compiler) Init() Compiler {
 
 func (p *compiler) loadDefaultReconcilers() {
 	// the order matters !
-	p.AddReconciler(addon.NewFusionProjectGenerator(p.m))
+	p.AddReconciler(NewFusionProjectGenerator(p.m))
 	p.AddReconciler(NewSpringBootMavenPluginManager(p.m))
 
 	for _, rpcType := range SupportedRPCs {
