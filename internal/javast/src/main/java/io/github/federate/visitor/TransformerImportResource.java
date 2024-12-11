@@ -24,7 +24,7 @@ public class TransformerImportResource extends BaseCodeModifier {
             Expression newValue = transformImportResource(n.getMemberValue());
             if (newValue != n.getMemberValue()) {
                 n.setMemberValue(newValue);
-                modified = true;
+                markDirty();
             }
         }
         return super.visit(n, arg);
@@ -39,7 +39,7 @@ public class TransformerImportResource extends BaseCodeModifier {
                     Expression newValue = transformImportResource(pair.getValue());
                     if (newValue != pair.getValue()) {
                         pair.setValue(newValue);
-                        modified = true;
+                        markDirty();
                     }
                 }
             }

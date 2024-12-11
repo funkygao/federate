@@ -1,33 +1,67 @@
 package io.github.federate;
 
-import io.github.federate.visitor.*;
-
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
-import com.github.javaparser.ParserConfiguration;
 import com.google.gson.Gson;
+import io.github.federate.visitor.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.FileVisitor;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class App {
+    private static final List<String> IGNORED_DIRECTORIES = Arrays.asList(
+            ".git",
+            ".idea",
+            ".gradle",
+            ".mvn",
+            "target",
+            "build",
+            "out",
+            "bin"
+    );
+
     public static void main(String[] args) throws IOException {
         if (args.length < 2) {
             System.err.println("Usage: java -jar javast.jar <directory_path> [<command> <args>]...");
             System.exit(1);
         }
 
-        List<Path> javaFiles = Files.walk(Paths.get(args[0]))
-                .filter(Files::isRegularFile)
-                .filter(p -> p.toString().endsWith(".java"))
-                .filter(p -> !isTestFile(p))
-                .collect(Collectors.toList());
+        List<Path> javaFiles = new ArrayList<>();
+        Files.walkFileTree(Paths.get(args[0]), new FileVisitor<Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) {
+                if (isIgnoredPath(dir)) {
+                    return FileVisitResult.SKIP_SUBTREE;
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
+                if (file.toString().endsWith(".java") && !isTestFile(file)) {
+                    javaFiles.add(file);
+                }
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) {
+                return FileVisitResult.CONTINUE;
+            }
+        });
 
         ParserConfiguration config = new ParserConfiguration();
         config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
@@ -56,16 +90,17 @@ public class App {
                 return new TransformerServiceName(serviceMap);
 
             case "inject-transaction-manager":
-                String trxManager = cmdSpecificArg;
-                return new TransformerTrxManager(trxManager);
+                return new TransformerTrxManager(cmdSpecificArg);
 
             case "update-property-keys":
                 Map<String, String> keyMapping = new Gson().fromJson(cmdSpecificArg, Map.class);
                 return new TransformerPropertyKeyRef(keyMapping);
 
             case "transform-import-resource":
-                String componentName = cmdSpecificArg;
-                return new TransformerImportResource(componentName);
+                return new TransformerImportResource(cmdSpecificArg);
+
+            case "transform-resource":
+                return new TransformerResourceToAutowired();
 
             default:
                 System.err.println("Unknown command: " + command);
@@ -74,10 +109,20 @@ public class App {
         }
     }
 
+    private static boolean isIgnoredPath(Path path) {
+        String normalizedPath = path.normalize().toString().replace(File.separator, "/");
+        for (String ignoredDir : IGNORED_DIRECTORIES) {
+            if (normalizedPath.contains("/" + ignoredDir + "/")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isTestFile(Path path) {
         String pathStr = path.toString();
         return pathStr.contains("src" + File.separator + "test" + File.separator + "java")
-               || pathStr.endsWith("Test.java");
+                || pathStr.endsWith("Test.java");
     }
 }
 

@@ -18,6 +18,7 @@ const (
 	CmdInjectTrxManager        CmdName = "inject-transaction-manager"
 	CmdUpdatePropertyRefKey    CmdName = "update-property-keys"
 	CmdTransformImportResource CmdName = "transform-import-resource"
+	CmdTransformResourceInject CmdName = "transform-resource"
 )
 
 type Command struct {
