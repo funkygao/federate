@@ -15,7 +15,7 @@ func NewTransactionManager(m *manifest.Manifest) Reconciler {
 }
 
 func (m *TransactionManager) Name() string {
-	return "Transform @Transactional/TransactionTemplate to support multiple PlatformTransactionManager with Java AST"
+	return "Transform @Transactional/TransactionTemplate to support multiple PlatformTransactionManager"
 }
 
 func (m *TransactionManager) Reconcile() error {

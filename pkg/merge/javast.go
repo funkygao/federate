@@ -1,11 +1,7 @@
 package merge
 
 import (
-	"os"
-	"path/filepath"
-
-	"federate/internal/fs"
-	"federate/pkg/federated"
+	"federate/pkg/javast"
 	"federate/pkg/manifest"
 )
 
@@ -14,11 +10,11 @@ type javaAstTransformer struct {
 }
 
 func NewJavaAstTransformer(m *manifest.Manifest) Reconciler {
-	return &javastTransformer{m: m}
+	return &javaAstTransformer{m: m}
 }
 
 func (m *javaAstTransformer) Name() string {
-	return "Instrument Java AST for all conflicts"
+	return "Instrument Java AST Transformers to Execute Plans"
 }
 
 func (m *javaAstTransformer) Reconcile() error {

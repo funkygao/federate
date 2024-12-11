@@ -35,7 +35,7 @@ func newImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
 }
 
 func (m *ImportResourceManager) Name() string {
-	return "Transform Java @ImportResource value with '/federated/'"
+	return "Prefix Java @ImportResource value with '" + federated.FederatedDir + "'"
 }
 
 func (m *ImportResourceManager) Reconcile() error {

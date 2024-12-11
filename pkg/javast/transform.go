@@ -2,7 +2,6 @@ package javast
 
 import (
 	"encoding/json"
-	"log"
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
@@ -18,8 +17,8 @@ var cmds []Command
 
 func Instrument(m *manifest.Manifest) error {
 	for _, c := range m.Components {
-		driver := NewJavastDriver(component)
-		if err := driver.Invoke(cmds); err != nil {
+		driver := NewJavastDriver(c)
+		if err := driver.Invoke(cmds...); err != nil {
 			return err
 		}
 	}

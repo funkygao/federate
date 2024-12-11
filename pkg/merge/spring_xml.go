@@ -1,6 +1,7 @@
 package merge
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -18,7 +19,7 @@ func NewSpringXmlMerger(m *manifest.Manifest) Reconciler {
 }
 
 func (m *springXmlMerger) Name() string {
-	return "Generate Federated Spring Bootstrap XML: federated/spring.xml"
+	return fmt.Sprintf("Generate Federated Spring Bootstrap XML: %s", filepath.Join(federated.FederatedDir, "spring.xml"))
 }
 
 func (m *springXmlMerger) Reconcile() error {
