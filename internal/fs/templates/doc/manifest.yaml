@@ -62,6 +62,7 @@ federated:
         - "*.html"
         - "*.json"
       property: # 属性 key 的冲突：yml/properties
+        tomcatPort: 8080
         dryrun: ${RECONCILE_PROPERTY_DRYRUN:false}
         override: # 对属性值进行人工设定
           app.demo.feature.newFeature.enabled: true
