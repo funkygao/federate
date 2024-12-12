@@ -12,6 +12,7 @@ import (
 	"federate/pkg/java"
 	"federate/pkg/manifest"
 	"federate/pkg/merge"
+	"federate/pkg/step"
 	"federate/pkg/util"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -40,7 +41,7 @@ func doCreate(m *manifest.Manifest) {
 	// 让WMS6.0代码安装后可以被依赖
 	springBoot := merge.NewSpringBootMavenPluginManager(m)
 	log.Println(springBoot.Name())
-	merge.RunReconcile(springBoot, nil)
+	merge.RunReconcile(springBoot, step.Bar{})
 
 	color.Green("🍺 Congrat, %s scaffolded!", m.Main.Name)
 }

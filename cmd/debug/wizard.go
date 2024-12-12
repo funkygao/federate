@@ -27,15 +27,15 @@ func runWizard(m *manifest.Manifest) {
 	steps := []step.Step{
 		{
 			Name: "Detect spring.xml multiple ref to the same bean",
-			Fn: func() {
+			Fn: func(bar step.Bar) {
 				listRef(m, spring.New(false))
 			},
 		},
 		{
 			Name: "Detect one RPC Interface with multiple alias/group",
-			Fn: func() {
+			Fn: func(bar step.Bar) {
 				propertyManager.Silent().Prepare()
-				merge.RunReconcile(rpcAliasManager, nil)
+				merge.RunReconcile(rpcAliasManager, bar)
 			},
 		},
 	}

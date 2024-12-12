@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"federate/pkg/manifest"
-	"github.com/schollz/progressbar/v3"
+	"federate/pkg/step"
 )
 
 // 合并编译调和器.
@@ -23,10 +23,10 @@ type SimpleReconciler interface {
 type ProgressReconciler interface {
 	Reconciler
 
-	Reconcile(*progressbar.ProgressBar) error
+	Reconcile(step.Bar) error
 }
 
-func RunReconcile(r Reconciler, bar *progressbar.ProgressBar) error {
+func RunReconcile(r Reconciler, bar step.Bar) error {
 	switch rec := r.(type) {
 	case SimpleReconciler:
 		return rec.Reconcile()

@@ -13,9 +13,12 @@ import (
 var AutoConfirm bool
 
 type Step struct {
-	Name           string
-	Fn             func()
-	FnWithProgress func(*progressbar.ProgressBar)
+	Name string
+	Fn   func(Bar)
+}
+
+type Bar struct {
+	*progressbar.ProgressBar
 }
 
 func Run(steps []Step) {
@@ -23,28 +26,23 @@ func Run(steps []Step) {
 	for i, step := range steps {
 		promptToProceed(i+1, totalSteps, step.Name)
 
-		if step.FnWithProgress != nil {
-			bar := progressbar.NewOptions(100,
-				progressbar.OptionEnableColorCodes(true),
-				progressbar.OptionShowElapsedTimeOnFinish(),
-				progressbar.OptionSetWidth(10),
-				progressbar.OptionShowDescriptionAtLineEnd(),
-				progressbar.OptionSetDescription(fmt.Sprintf("[magenta]Step [%d/%d] %s[reset]", i+1, totalSteps, step.Name)),
-				progressbar.OptionSetTheme(progressbar.Theme{
-					Saucer:        "[green]■[reset]",
-					SaucerHead:    "[green]>[reset]",
-					SaucerPadding: " ",
-					BarStart:      "[",
-					BarEnd:        "]",
-				}))
+		bar := progressbar.NewOptions(100,
+			progressbar.OptionEnableColorCodes(true),
+			progressbar.OptionShowElapsedTimeOnFinish(),
+			progressbar.OptionSetWidth(10),
+			progressbar.OptionShowDescriptionAtLineEnd(),
+			progressbar.OptionSetDescription(fmt.Sprintf("[magenta]Step [%d/%d] %s[reset]", i+1, totalSteps, step.Name)),
+			progressbar.OptionSetTheme(progressbar.Theme{
+				Saucer:        "[green]■[reset]",
+				SaucerHead:    "[green]>[reset]",
+				SaucerPadding: " ",
+				BarStart:      "[",
+				BarEnd:        "]",
+			}))
 
-			step.FnWithProgress(bar)
+		step.Fn(Bar{bar})
 
-			bar.Finish()
-		} else {
-			step.Fn()
-		}
-
+		bar.Finish()
 	}
 }
 

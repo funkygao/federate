@@ -11,7 +11,6 @@ import (
 	"federate/pkg/merge/property"
 	"federate/pkg/step"
 	"github.com/fatih/color"
-	"github.com/schollz/progressbar/v3"
 )
 
 // 合并编译器.
@@ -155,7 +154,7 @@ func (p *compiler) Merge() error {
 	var steps = []step.Step{
 		step.Step{
 			Name: "Consolidation Plan",
-			FnWithProgress: func(bar *progressbar.ProgressBar) {
+			Fn: func(bar step.Bar) {
 				p.displayDAG()
 			}},
 	}
@@ -166,7 +165,7 @@ func (p *compiler) Merge() error {
 	for _, r := range p.reconcilers {
 		steps = append(steps, step.Step{
 			Name: r.Name(),
-			FnWithProgress: func(bar *progressbar.ProgressBar) {
+			Fn: func(bar step.Bar) {
 				if err := RunReconcile(r, bar); err != nil {
 					log.Fatalf("[%s] %v", r.Name(), err)
 				}
@@ -192,7 +191,7 @@ func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
 		if p, ok := r.(Preparer); ok {
 			steps = append(steps, step.Step{
 				Name: color.CyanString(p.Name() + " *"),
-				FnWithProgress: func(bar *progressbar.ProgressBar) {
+				Fn: func(bar step.Bar) {
 					p.Prepare()
 				},
 			})

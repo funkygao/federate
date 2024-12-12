@@ -14,12 +14,12 @@ import (
 	"federate/pkg/javast"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
-	"github.com/schollz/progressbar/v3"
+	"federate/pkg/step"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
-func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
+func (pm *PropertyManager) Reconcile(bar step.Bar) (err error) {
 	oldBarDesc := bar.State().Description
 	defer bar.Describe(oldBarDesc)
 
@@ -29,7 +29,7 @@ func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 	bar.Add(1)
 
 	// pass 1: 识别冲突
-	bar.Describe(oldBarDesc + " - Identifying conflicts")
+	bar.Describe(oldBarDesc + " Identifying conflicts")
 	conflicts := pm.identifyAllConflicts()
 	if len(conflicts) == 0 {
 		return
@@ -62,7 +62,7 @@ func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 		// 为 @RequestMapping 增加路径前缀
 		componentServletContextPath := pm.servletContextPath[componentName]
 		if componentServletContextPath != "" {
-			bar.Describe(fmt.Sprintf("%s - [%s] Segrating @RequestMapping", oldBarDesc, componentName))
+			bar.Describe(fmt.Sprintf("%s Transforming @RequestMapping for %s/", oldBarDesc, componentName))
 			contextPath := filepath.Clean("/" + strings.Trim(componentServletContextPath, "/"))
 			if err := pm.segregateRequestMapping(component, contextPath); err != nil {
 				return err
@@ -71,7 +71,7 @@ func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 		}
 
 		// 修改 XML 里对冲突 key 的引用
-		bar.Describe(fmt.Sprintf("%s - [%s] Transforming XML Files", oldBarDesc, componentName))
+		bar.Describe(fmt.Sprintf("%s Transforming XML Files for %s/", oldBarDesc, componentName))
 		if err := pm.updateXMLPropertyReference(component, keys); err != nil {
 			return err
 		}

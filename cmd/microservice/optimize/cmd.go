@@ -24,12 +24,12 @@ func optimize(m *manifest.Manifest) {
 	steps := []step.Step{
 		{
 			Name: "Detect similar classes for potential duplicate coding",
-			Fn: func() {
+			Fn: func(bar step.Bar) {
 				showDuplicates(m)
 			}},
 		{
 			Name: "Optimize project JAR dependencies",
-			Fn: func() {
+			Fn: func(bar step.Bar) {
 			}},
 	}
 

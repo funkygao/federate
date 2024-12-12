@@ -60,7 +60,7 @@ consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 	$(MAKE) init
 	echo
 	echo "☕️ Consolidating the federated project ..."
-	$(call measure_time, $(FEDERATE_CMD) microservice consolidate --yes --silent=false -i $(MANIFEST_FILE))
+	$(call measure_time, $(FEDERATE_CMD) microservice consolidate --yes --silent=true -i $(MANIFEST_FILE))
 	echo
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \

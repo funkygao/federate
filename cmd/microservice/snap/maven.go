@@ -28,11 +28,11 @@ func prepareMavenRepo(m *manifest.Manifest) {
 		},
 		{
 			Name: "Update component pom.xml to use the local Maven repository",
-			Fn:   func() { updatePomFilesForLocalRepo(m) },
+			Fn:   func(bar step.Bar) { updatePomFilesForLocalRepo(m) },
 		},
 		{
 			Name: "Copy dependencies to local Maven repository",
-			Fn:   func() { copyDependenciesToLocalRepo(m) },
+			Fn:   func(bar step.Bar) { copyDependenciesToLocalRepo(m) },
 		},
 		{
 			Name: "Detect version conflicts in local Maven repository",
@@ -47,7 +47,7 @@ func prepareMavenRepo(m *manifest.Manifest) {
 	step.Run(steps)
 }
 
-func createLocalMavenRepo() {
+func createLocalMavenRepo(bar step.Bar) {
 	err := os.MkdirAll(localRepoPath, 0755)
 	if err != nil {
 		log.Fatalf("Failed to create local Maven repository: %v", err)
@@ -93,7 +93,7 @@ func copyDependenciesToLocalRepo(m *manifest.Manifest) {
 	log.Println("🍺 All dependencies copied to local Maven repository")
 }
 
-func detectVersionConflicts() {
+func detectVersionConflicts(bar step.Bar) {
 	artifactVersions := make(map[string][]string)
 
 	err := filepath.Walk(localRepoPath, func(path string, info os.FileInfo, err error) error {
@@ -125,7 +125,7 @@ func detectVersionConflicts() {
 	}
 }
 
-func organizeLocalRepo() {
+func organizeLocalRepo(bar step.Bar) {
 	err := filepath.Walk(localRepoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

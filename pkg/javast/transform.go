@@ -5,12 +5,12 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
-	"github.com/schollz/progressbar/v3"
+	"federate/pkg/step"
 )
 
 var backlog []Command
 
-func Instrument(bar *progressbar.ProgressBar) error {
+func Instrument(bar step.Bar) error {
 	driver := NewJavastDriver()
 	return driver.Invoke(bar, backlog...)
 }

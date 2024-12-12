@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"federate/internal/fs"
-	"github.com/schollz/progressbar/v3"
+	"federate/pkg/step"
 )
 
 type CmdName string
@@ -30,7 +30,7 @@ type Command struct {
 }
 
 type JavastDriver interface {
-	Invoke(bar *progressbar.ProgressBar, commands ...Command) error
+	Invoke(bar step.Bar, commands ...Command) error
 }
 
 type javastDriver struct {
@@ -41,7 +41,7 @@ func NewJavastDriver() JavastDriver {
 	return &javastDriver{verbose: false}
 }
 
-func (d *javastDriver) Invoke(bar *progressbar.ProgressBar, commands ...Command) error {
+func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
 	oldBarDesc := bar.State().Description
 	defer bar.Describe(oldBarDesc)
 
