@@ -56,11 +56,22 @@ func ListFilesAsync(root string, predicate func(info os.FileInfo, path string) b
 	return fileChan, errChan
 }
 
+var empty = struct{}{}
+
+var skippedDirs = map[string]struct{}{
+	"target":  empty,
+	"mappers": empty, // mybatis mapper xml files
+	"test":    empty,
+}
+
 func walkDir(info os.FileInfo) error {
 	name := info.Name()
-	if name == "target" ||
-		name == "test" ||
-		(len(name) > 2 && strings.HasPrefix(name, ".")) { // .git, .idea
+
+	if _, shouldSkip := skippedDirs[name]; shouldSkip {
+		return filepath.SkipDir
+	}
+
+	if len(name) > 2 && strings.HasPrefix(name, ".") { // .git, .idea
 		return filepath.SkipDir
 	}
 
