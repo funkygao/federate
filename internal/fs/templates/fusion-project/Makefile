@@ -6,6 +6,9 @@ MANIFEST_FILE ?= manifest.yaml
 FEDERATE_CMD ?= federate
 INVENTORY_CMD := $(FEDERATE_CMD) util inventory -i $(MANIFEST_FILE)
 ENV ?=
+SILENT ?= true
+
+export MAVEN_OPTS := -Xmx4g
 
 help: 
 	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36mENV=<env> <target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
@@ -60,7 +63,7 @@ consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 	$(MAKE) init
 	echo
 	echo "☕️ Consolidating the federated project ..."
-	$(call measure_time, $(FEDERATE_CMD) microservice consolidate --yes --silent=true -i $(MANIFEST_FILE))
+	$(FEDERATE_CMD) microservice consolidate --yes --silent=$(SILENT) -i $(MANIFEST_FILE)
 	echo
 	if [ "$(sci)" != "1" ]; then \
 		echo "☕️ Local installing the Instrumented Components ..."; \
@@ -68,7 +71,7 @@ consolidate: ## Generate and pacakge {{.FusionProjectName}}.
 			profile=$$($(INVENTORY_CMD) -f maven-profile -r $$repo -e $$ENV); \
 			modules=$$($(INVENTORY_CMD) -f maven-modules -r $$repo); \
 			echo "   Installing $$repo with profile:$$profile on modules:$$modules"; \
-			$(call measure_time, (cd $$repo && mvn clean install -q -U -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)) || exit 1; \
+			$(call measure_time, (cd $$repo && mvn clean install -q -U -pl ":$$modules" -P"$$profile" -am -T 1C -Dmaven.artifact.threads=2C -Dmaven.test.skip=true -Dfederate.packaging=true)) || exit 1; \
 		done; \
 	else \
 		echo "☕️ Skipped Components Installation"; \
@@ -84,7 +87,7 @@ jdos: ## Generate CI/CD help for JDOS 3.0.
 
 package:
 	echo "☕️ Installing {{.FusionProjectName}} ..."
-	mvn install -q -T8 -Dmaven.artifact.threads=16
+	mvn install -q -T 1C -Dmaven.artifact.threads=2C
 	echo "   {{.FusionProjectName}} installed"
 
 ##@ Explore: Post-Fuse Phase
@@ -105,7 +108,7 @@ optimize: ## Identify potential opportunities for optimization.
 {{.}}:checkenv
 	modules=$$($(INVENTORY_CMD) -f maven-modules -r {{.}}); \
 	profile=$$($(INVENTORY_CMD) -f maven-profile -r {{.}} -e $$ENV); \
-	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -T8 -Dmaven.test.skip=true -Dfederate.packaging=true)
+	(cd {{.}} && mvn install -pl ":$$modules" -P"$$profile" -am -T 1C -Dmaven.artifact.threads=2C -Dmaven.test.skip=true -Dfederate.packaging=true)
 	$(MAKE) package
 {{- end }}
 
@@ -115,6 +118,5 @@ define measure_time
 	$\$1; \
 	end=$$(date +%s); \
 	runtime=$$((end-start)); \
-	echo; \
 	echo "⏱️  Time taken: $$runtime seconds"
 endef
