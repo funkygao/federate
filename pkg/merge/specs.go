@@ -27,10 +27,9 @@ type ProgressReconciler interface {
 }
 
 // 有准备阶段的合并编译调和器.
-type Preparer interface {
+type PreparableReconciler interface {
 	Reconciler
 
-	// 准备工作
 	Prepare() error
 }
 
@@ -44,6 +43,8 @@ type PluginReconciler interface {
 
 // 只检测冲突，不调和
 type DetectOnlyReconciler interface {
+	Reconciler
+
 	DetectOnly() bool
 }
 

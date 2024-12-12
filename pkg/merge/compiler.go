@@ -152,7 +152,7 @@ func (p *compiler) Merge() error {
 		return nil
 	}
 
-	// 先执行 Preparer
+	// 先执行 PreparableReconciler
 	steps = p.prepareReconcilers(steps)
 
 	// 再编排内置 Reconciler
@@ -183,9 +183,8 @@ func (p *compiler) Merge() error {
 }
 
 func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
-	// prepare if nec: plugin might also implement Preparer
 	for _, r := range p.reconcilers {
-		if p, ok := r.(Preparer); ok {
+		if p, ok := r.(PreparableReconciler); ok {
 			steps = append(steps, step.Step{
 				Name: color.CyanString(p.Name() + " *"),
 				Fn: func(bar step.Bar) {
@@ -199,7 +198,7 @@ func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
 }
 
 func (p *compiler) showOverview() {
-	log.Printf("Reconcilers [ Legend: %s Preparer | %s Plugin ]", color.CyanString("■"), color.GreenString("■"))
+	log.Printf("Reconcilers [ Legend: %s Preparable | %s Plugin ]", color.CyanString("■"), color.GreenString("■"))
 
 	for i, r := range p.reconcilers {
 		prefix := "├── "
@@ -208,7 +207,7 @@ func (p *compiler) showOverview() {
 		}
 
 		indicator := "  "
-		if _, ok := r.(Preparer); ok {
+		if _, ok := r.(PreparableReconciler); ok {
 			indicator = color.CyanString("■ ")
 		}
 		if _, ok := r.(PluginReconciler); ok {
