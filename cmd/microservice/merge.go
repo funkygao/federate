@@ -46,6 +46,7 @@ func doMerge(m *manifest.Manifest) {
 	compiler := merge.NewCompiler(m)
 	compiler.WithOption(merge.WithDryRun(dryRunMerge))
 	compiler.WithOption(merge.WithAutoYes(autoYes))
+	compiler.WithOption(merge.WithSilent(silentMode))
 	compiler.Init().Merge()
 }
 

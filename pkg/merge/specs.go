@@ -29,7 +29,6 @@ type ProgressReconciler interface {
 func RunReconcile(r Reconciler, bar *progressbar.ProgressBar) error {
 	switch rec := r.(type) {
 	case SimpleReconciler:
-		bar.ChangeMax(-1) // unknown length is a spinner
 		return rec.Reconcile()
 	case ProgressReconciler:
 		return rec.Reconcile(bar)

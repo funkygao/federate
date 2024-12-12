@@ -26,10 +26,12 @@ func Run(steps []Step) {
 		if step.FnWithProgress != nil {
 			bar := progressbar.NewOptions(100,
 				progressbar.OptionEnableColorCodes(true),
-				progressbar.OptionSetWidth(15),
+				progressbar.OptionShowElapsedTimeOnFinish(),
+				progressbar.OptionSetWidth(10),
+				progressbar.OptionShowDescriptionAtLineEnd(),
 				progressbar.OptionSetDescription(fmt.Sprintf("[magenta]Step [%d/%d] %s[reset]", i+1, totalSteps, step.Name)),
 				progressbar.OptionSetTheme(progressbar.Theme{
-					Saucer:        "[green]=[reset]",
+					Saucer:        "[green]■[reset]",
 					SaucerHead:    "[green]>[reset]",
 					SaucerPadding: " ",
 					BarStart:      "[",

@@ -2,6 +2,7 @@ package javast
 
 import (
 	"bytes"
+	"fmt"
 	"log"
 	"os"
 	"os/exec"
@@ -33,13 +34,17 @@ type JavastDriver interface {
 }
 
 type javastDriver struct {
+	verbose bool
 }
 
 func NewJavastDriver() JavastDriver {
-	return &javastDriver{}
+	return &javastDriver{verbose: false}
 }
 
 func (d *javastDriver) Invoke(bar *progressbar.ProgressBar, commands ...Command) error {
+	oldBarDesc := bar.State().Description
+	defer bar.Describe(oldBarDesc)
+
 	tempDir, jarPath, err := prepareJavastJar()
 	if err != nil {
 		return err
@@ -54,7 +59,11 @@ func (d *javastDriver) Invoke(bar *progressbar.ProgressBar, commands ...Command)
 		}
 
 		cmd := exec.Command("java", args...)
-		log.Printf("[%s] Executing: %s", rootDir, strings.Join(cmd.Args, " "))
+		if d.verbose {
+			log.Printf("[%s] Executing: %s", rootDir, strings.Join(cmd.Args, " "))
+		}
+
+		bar.Describe(fmt.Sprintf("%s - Transforming %s", oldBarDesc, rootDir))
 
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
@@ -65,11 +74,15 @@ func (d *javastDriver) Invoke(bar *progressbar.ProgressBar, commands ...Command)
 			log.Printf("Error: %s", stderr.String())
 			return err
 		}
+
+		bar.Add(100 / len(groupedCommands))
+
+		// 在进度条更新后输出 Java 进程的结果
 		out := strings.TrimSpace(stdout.String())
 		if out != "" {
+			log.Println()
 			log.Println(out)
 		}
-		bar.Add(100 / len(groupedCommands))
 	}
 
 	return nil

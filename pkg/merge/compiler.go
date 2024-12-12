@@ -49,6 +49,7 @@ type compiler struct {
 
 	dryRun  bool
 	autoYes bool
+	silent  bool
 }
 
 func WithAutoYes(autoYes bool) CompilerOption {
@@ -63,6 +64,14 @@ func WithDryRun(dryRun bool) CompilerOption {
 	return func(c Compiler) {
 		if cc, ok := c.(*compiler); ok {
 			cc.dryRun = dryRun
+		}
+	}
+}
+
+func WithSilent(silent bool) CompilerOption {
+	return func(c Compiler) {
+		if cc, ok := c.(*compiler); ok {
+			cc.silent = silent
 		}
 	}
 }
@@ -148,7 +157,6 @@ func (p *compiler) Merge() error {
 			Name: "Consolidation Plan",
 			FnWithProgress: func(bar *progressbar.ProgressBar) {
 				p.displayDAG()
-				bar.Add(100)
 			}},
 	}
 
@@ -166,18 +174,15 @@ func (p *compiler) Merge() error {
 		})
 	}
 
-	// last step: report
-	steps = append(steps, step.Step{
-		Name: "Consolidation Summary Dump to report.json",
-		FnWithProgress: func(bar *progressbar.ProgressBar) {
-			ledger.Get().ShowSummary()
-			bar.Add(50)
-			ledger.Get().SaveToFile("report.json")
-			bar.Finish()
-		}})
-
 	step.AutoConfirm = p.autoYes
 	step.Run(steps)
+
+	if !p.silent {
+		log.Println()
+		ledger.Get().ShowSummary()
+		ledger.Get().SaveToFile("report.json")
+	}
+
 	return nil
 }
 

@@ -115,5 +115,6 @@ define measure_time
 	$\$1; \
 	end=$$(date +%s); \
 	runtime=$$((end-start)); \
+	echo; \
 	echo "⏱️  Time taken: $$runtime seconds"
 endef

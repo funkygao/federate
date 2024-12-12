@@ -1,6 +1,7 @@
 package property
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
@@ -19,12 +20,16 @@ import (
 
 // 根据扫描的冲突情况进行调和，处理 .yml & .properties
 func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
+	oldBarDesc := bar.State().Description
+	defer bar.Describe(oldBarDesc)
+
 	if err = pm.Prepare(); err != nil {
 		return
 	}
 	bar.Add(1)
 
 	// pass 1: 识别冲突
+	bar.Describe(oldBarDesc + " - Identifying conflicts")
 	conflicts := pm.identifyAllConflicts()
 	if len(conflicts) == 0 {
 		return
@@ -57,6 +62,7 @@ func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 		// 为 @RequestMapping 增加路径前缀
 		componentServletContextPath := pm.servletContextPath[componentName]
 		if componentServletContextPath != "" {
+			bar.Describe(fmt.Sprintf("%s - [%s] Segrating @RequestMapping", oldBarDesc, componentName))
 			contextPath := filepath.Clean("/" + strings.Trim(componentServletContextPath, "/"))
 			if err := pm.segregateRequestMapping(component, contextPath); err != nil {
 				return err
@@ -65,6 +71,7 @@ func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 		}
 
 		// 修改 XML 里对冲突 key 的引用
+		bar.Describe(fmt.Sprintf("%s - [%s] Transforming XML Files", oldBarDesc, componentName))
 		if err := pm.updateXMLPropertyReference(component, keys); err != nil {
 			return err
 		}
@@ -78,6 +85,8 @@ func (pm *PropertyManager) Reconcile(bar *progressbar.ProgressBar) (err error) {
 		}
 		bar.Add(3)
 	}
+
+	bar.Describe(oldBarDesc)
 
 	log.Printf("Source code rewritten, @RequestMapping: %d, @Value: %d, @ConfigurationProperties: %d",
 		pm.result.RequestMapping, pm.result.KeyPrefixed, pm.result.ConfigurationProperties)
