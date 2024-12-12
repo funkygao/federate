@@ -51,7 +51,7 @@ func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
 	}
 	defer os.RemoveAll(tempDir)
 
-	bar.Describe(fmt.Sprintf("%s - Grouping Components for Batch", oldBarDesc))
+	bar.Describe(fmt.Sprintf("%s Grouping Components for Batch", oldBarDesc))
 	groupedCommands := d.groupByRootDir(commands...)
 	bar.Add(2)
 
@@ -66,7 +66,7 @@ func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
 			log.Printf("[%s] Executing: %s", rootDir, strings.Join(cmd.Args, " "))
 		}
 
-		bar.Describe(fmt.Sprintf("%s - Transforming %s/", oldBarDesc, rootDir))
+		bar.Describe(fmt.Sprintf("%s Transforming %s/", oldBarDesc, rootDir))
 
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout

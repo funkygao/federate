@@ -26,6 +26,11 @@ type ProgressReconciler interface {
 	Reconcile(step.Bar) error
 }
 
+// 只检测冲突，不调和
+type DetectOnlyReconciler interface {
+	DetectOnly() bool
+}
+
 func RunReconcile(r Reconciler, bar step.Bar) error {
 	switch rec := r.(type) {
 	case SimpleReconciler:

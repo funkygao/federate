@@ -32,6 +32,10 @@ func (e *envManager) Name() string {
 	return "Detect ENV variables conflicts in Java and XML"
 }
 
+func (e *envManager) DetectOnly() bool {
+	return true
+}
+
 func (e *envManager) Reconcile() error {
 	// java 源代码里的环境变量引用
 	for _, component := range e.m.Components {

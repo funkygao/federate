@@ -15,7 +15,7 @@ func NewJavaAstTransformer(m *manifest.Manifest) Reconciler {
 }
 
 func (m *javaAstTransformer) Name() string {
-	return "Instrument Java AST Transformers to Execute Plans"
+	return "Instrument Java AST Transformers to Execute All Plans"
 }
 
 func (m *javaAstTransformer) Reconcile(bar step.Bar) error {

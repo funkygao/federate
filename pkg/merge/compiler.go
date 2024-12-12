@@ -153,7 +153,7 @@ func (p *compiler) Merge() error {
 
 	var steps = []step.Step{
 		step.Step{
-			Name: "Consolidation Plan",
+			Name: "Consolidation Plan Landscape",
 			Fn: func(bar step.Bar) {
 				p.displayDAG()
 			}},
@@ -163,6 +163,10 @@ func (p *compiler) Merge() error {
 	steps = p.prepareReconcilers(steps)
 
 	for _, r := range p.reconcilers {
+		if _, ok := r.(DetectOnlyReconciler); ok && p.silent {
+			continue
+		}
+
 		steps = append(steps, step.Step{
 			Name: r.Name(),
 			Fn: func(bar step.Bar) {

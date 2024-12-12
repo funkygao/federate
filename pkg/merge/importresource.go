@@ -20,7 +20,7 @@ func newImportResourceManager(m *manifest.Manifest) *ImportResourceManager {
 }
 
 func (m *ImportResourceManager) Name() string {
-	return "Prefix Java @ImportResource value with '" + federated.FederatedDir + "'"
+	return "Prefix Java @ImportResource value with '" + federated.FederatedDir + "/${component}'"
 }
 
 func (m *ImportResourceManager) Reconcile() error {

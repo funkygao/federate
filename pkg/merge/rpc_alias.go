@@ -25,6 +25,10 @@ func (m *RpcAliasManager) Name() string {
 	return "Detect RPC Provider alias/group conflicts by Rewriting XML"
 }
 
+func (m *RpcAliasManager) DetectOnly() bool {
+	return true
+}
+
 func (m *RpcAliasManager) Reconcile() error {
 	// pass 1: search the conflicting alias/group
 	springMgr := spring.New(false)
