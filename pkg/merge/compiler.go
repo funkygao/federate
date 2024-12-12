@@ -177,7 +177,6 @@ func (p *compiler) Merge() error {
 	step.Run(steps)
 
 	if !p.silent {
-		log.Println()
 		ledger.Get().ShowSummary()
 		ledger.Get().SaveToFile("report.json")
 	}

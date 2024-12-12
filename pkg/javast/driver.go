@@ -51,7 +51,10 @@ func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
 	}
 	defer os.RemoveAll(tempDir)
 
+	bar.Describe(fmt.Sprintf("%s - Grouping Components for Batch", oldBarDesc))
 	groupedCommands := d.groupByRootDir(commands...)
+	bar.Add(2)
+
 	for rootDir, cmds := range groupedCommands {
 		args := []string{"-jar", jarPath, rootDir}
 		for _, cmd := range cmds {
@@ -63,7 +66,7 @@ func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
 			log.Printf("[%s] Executing: %s", rootDir, strings.Join(cmd.Args, " "))
 		}
 
-		bar.Describe(fmt.Sprintf("%s - Transforming %s", oldBarDesc, rootDir))
+		bar.Describe(fmt.Sprintf("%s - Transforming %s/", oldBarDesc, rootDir))
 
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
@@ -75,7 +78,7 @@ func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
 			return err
 		}
 
-		bar.Add(100 / len(groupedCommands))
+		bar.Add(98 / len(groupedCommands))
 
 		// 在进度条更新后输出 Java 进程的结果
 		out := strings.TrimSpace(stdout.String())
