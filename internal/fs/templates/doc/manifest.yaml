@@ -116,6 +116,8 @@ components:
         masterDataSource: stockMasterDataSource
         slaveDataSource: stockSlaveDataSource
       txManager: stockTxManager # 修改 @Transactional value 值，如果未显式指定
+      service: # RPC Provider XML 里 <ref="dataImportAppServiceImpl">，但该bean在不同component有多个实现，需要为bean重新命名
+        com.jdwl.wms.stock.app.service.dataimport.impl.DataImportAppServiceImpl: stockDataImportAppServiceImpl
     resources: # 资源文件处理
       baseDir:
         - wms-stock-api-provider/src/main/resources
