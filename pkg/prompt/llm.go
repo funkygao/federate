@@ -9,6 +9,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/atotto/clipboard"
 )
 
 const (
@@ -216,10 +218,7 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt(useTemplate bool) {
 	}
 
 	// 将内容复制到剪贴板
-	cmd := exec.Command("pbcopy")
-	cmd.Stdin = strings.NewReader(finalContent)
-	err := cmd.Run()
-	if err != nil {
+	if err := clipboard.WriteAll(finalContent); err != nil {
 		log.Fatalf("%v", err)
 	}
 

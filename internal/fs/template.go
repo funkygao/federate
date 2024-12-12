@@ -91,7 +91,7 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data any) (overwrite 
 
 			diff.ShowDiffLineByLine(oldContentStr, newContentStr)
 		}
-	} else {
+	} else if outputPath != "" {
 		log.Printf("Generated %s", outputPath)
 	}
 	return
