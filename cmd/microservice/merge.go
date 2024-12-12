@@ -43,11 +43,10 @@ func doMerge(m *manifest.Manifest) {
 		color.NoColor = true
 	}
 
-	compiler := merge.NewCompiler(m)
-	compiler.WithOption(merge.WithDryRun(dryRunMerge))
-	compiler.WithOption(merge.WithAutoYes(autoYes))
-	compiler.WithOption(merge.WithSilent(silentMode))
-	compiler.Init().Merge()
+	compiler := merge.NewCompiler(m, merge.WithDryRun(dryRunMerge),
+		merge.WithAutoYes(autoYes), merge.WithSilent(silentMode))
+	compiler.Init()
+	compiler.Merge()
 }
 
 func init() {

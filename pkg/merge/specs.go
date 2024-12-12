@@ -26,6 +26,22 @@ type ProgressReconciler interface {
 	Reconcile(step.Bar) error
 }
 
+// 有准备阶段的合并编译调和器.
+type Preparer interface {
+	Reconciler
+
+	// 准备工作
+	Prepare() error
+}
+
+// 可插拔的合并编译调和器.
+type PluginReconciler interface {
+	Reconciler
+
+	// 插件初始化
+	Init(*manifest.Manifest) error
+}
+
 // 只检测冲突，不调和
 type DetectOnlyReconciler interface {
 	DetectOnly() bool
@@ -40,20 +56,4 @@ func RunReconcile(r Reconciler, bar step.Bar) error {
 	default:
 		return fmt.Errorf("reconciler %s does not implement any Reconcile method", r.Name())
 	}
-}
-
-// 有准备阶段的合并编译调和器.
-type Preparer interface {
-	Reconciler
-
-	// 准备工作
-	Prepare() error
-}
-
-// 可以扩展的合并编译调和器插件.
-type PluginReconciler interface {
-	Reconciler
-
-	// 插件初始化
-	Init(m *manifest.Manifest) error
 }

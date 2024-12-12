@@ -80,21 +80,14 @@ func (p *compiler) WithOption(opt CompilerOption) Compiler {
 	return p
 }
 
-func (p *compiler) Init() Compiler {
+func (p *compiler) Init() {
 	if len(p.m.Main.Reconcile.Transformers) > 0 {
 		p.orchestrateReconcilers()
 	} else {
 		p.loadDefaultReconcilers()
 	}
 
-	// Load plugin reconcilers
-	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
-		log.Printf("Error loading plugin reconcilers: %v", err)
-	} else {
-		p.AddReconciler(pluginReconcilers...)
-	}
-
-	return p
+	p.loadPluginReconcilers()
 }
 
 func (p *compiler) loadDefaultReconcilers() {
@@ -122,6 +115,14 @@ func (p *compiler) loadDefaultReconcilers() {
 	p.AddReconciler(NewJavaAstTransformer(p.m))
 }
 
+func (p *compiler) loadPluginReconcilers() {
+	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
+		log.Printf("Error loading plugin reconcilers: %v", err)
+	} else {
+		p.AddReconciler(pluginReconcilers...)
+	}
+}
+
 func (p *compiler) orchestrateReconcilers() {
 	for _, tf := range p.m.Main.Reconcile.Transformers {
 		if rc := p.createReconciler(tf); rc != nil {
@@ -147,23 +148,16 @@ func (p *compiler) Merge() error {
 	}
 
 	if p.dryRun {
-		p.displayDAG()
+		p.showOverview()
 		return nil
-	}
-
-	var steps = []step.Step{
-		step.Step{
-			Name: "Consolidation Plan Landscape",
-			Fn: func(bar step.Bar) {
-				p.displayDAG()
-			}},
 	}
 
 	// 先执行 Preparer
 	steps = p.prepareReconcilers(steps)
 
+	// 再编排内置 Reconciler
 	for _, r := range p.reconcilers {
-		if _, ok := r.(DetectOnlyReconciler); ok && p.silent {
+		if _, skipOnSilent := r.(DetectOnlyReconciler); skipOnSilent && p.silent {
 			continue
 		}
 
@@ -204,10 +198,15 @@ func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
 	return steps
 }
 
-func (p *compiler) displayDAG() {
+func (p *compiler) showOverview() {
 	log.Printf("Reconcilers [ Legend: %s Preparer | %s Plugin ]", color.CyanString("■"), color.GreenString("■"))
 
-	for _, r := range p.reconcilers {
+	for i, r := range p.reconcilers {
+		prefix := "├── "
+		if i == len(p.reconcilers)-1 {
+			prefix = "└── "
+		}
+
 		indicator := "  "
 		if _, ok := r.(Preparer); ok {
 			indicator = color.CyanString("■ ")
@@ -216,8 +215,6 @@ func (p *compiler) displayDAG() {
 			indicator = color.GreenString("■ ")
 		}
 
-		log.Printf("  %s%s%s", "├── ", indicator, r.Name())
+		log.Printf("  %s%s%s", prefix, indicator, r.Name())
 	}
-	// summary is step instead of reconciler
-	log.Printf("  └──   Consolidation Summary Dump to report.json")
 }
