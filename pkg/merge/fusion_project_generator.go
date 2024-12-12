@@ -20,7 +20,7 @@ func NewFusionProjectGenerator(m *manifest.Manifest) *FusionProjectGenerator {
 }
 
 func (f *FusionProjectGenerator) Name() string {
-	return fmt.Sprintf("Generate federated system scaffold files in %s/", f.m.Main.Name)
+	return fmt.Sprintf("Generate scaffold files in %s/", f.m.Main.Name)
 }
 
 func (f *FusionProjectGenerator) Reconcile() error {

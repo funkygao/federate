@@ -32,7 +32,7 @@ type RpcConsumerManager struct {
 
 func NewRpcConsumerManager(m *manifest.Manifest, rpcType string) *RpcConsumerManager {
 	return &RpcConsumerManager{
-		m:                       m,
+		m: m,
 		IntraComponentConflicts: make(map[string][]string),
 		interfaceToComponent:    make(map[string]string),
 		globalReferenceMap:      make(map[string]*etree.Element),
@@ -51,7 +51,7 @@ func (dm *RpcConsumerManager) referenceXmlTags() []string {
 }
 
 func (dm *RpcConsumerManager) Name() string {
-	return fmt.Sprintf("Merge %s Consumer XML to reduce redundant resource consumption", dm.rpcType)
+	return fmt.Sprintf("Merge %s Consumer XML to avoid redundant resource consumption", dm.rpcType)
 }
 
 func (dm *RpcConsumerManager) RPC() string {

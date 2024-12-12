@@ -48,7 +48,7 @@ func NewResourceManager(m *manifest.Manifest) *ResourceManager {
 }
 
 func (rm *ResourceManager) Name() string {
-	return "Flat-Copy & Federated-Copy Components Resources Files"
+	return "Flat-Copy-Merge Components Resources Files"
 }
 
 func (rm *ResourceManager) Reconcile() error {

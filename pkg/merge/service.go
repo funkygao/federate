@@ -18,7 +18,7 @@ func NewServiceManager(m *manifest.Manifest) Reconciler {
 }
 
 func (m *ServiceManager) Name() string {
-	return "Transform Java @Service/@Component for directive 'component.transform.service' and Update XML"
+	return "Transform @Service/@Component for directive 'transform.service' and Update reference XML"
 }
 
 func (m *ServiceManager) Reconcile() error {

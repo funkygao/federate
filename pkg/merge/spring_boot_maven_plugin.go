@@ -19,7 +19,7 @@ func NewSpringBootMavenPluginManager(m *manifest.Manifest) Reconciler {
 }
 
 func (s *springBootMavenPluginManager) Name() string {
-	return "Instrument spring-boot-maven-plugin: Enhancing JAR packaging for dependency utilization"
+	return "Instrument pom.xml spring-boot-maven-plugin"
 }
 
 func (s *springBootMavenPluginManager) Reconcile() error {
