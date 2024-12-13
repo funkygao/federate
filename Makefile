@@ -20,6 +20,8 @@ LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
 EXCLUDE_PACKAGES := /internal/plugin /internal/algorithm internal/javast/
 PACKAGES := $(shell go list ./... | grep -Ev '$(subst $() ,|,$(EXCLUDE_PACKAGES))')
 
+MAVEN = mvn
+
 help:
 	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
@@ -27,9 +29,6 @@ help:
 
 vet:
 	go vet ./...
-
-generate:
-	go generate ./...
 
 fmt:
 	go fmt ./...
@@ -47,7 +46,7 @@ coverage:
 	go test ./... -cover | column -t
 
 clean:
-	find . \( -name prompt.txt -o -name .DS_Store \) -exec rm -f {} \;
+	find . \( -name a -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build cpu_*
 	cd $(JAVAST_DIR) && $(MAVEN) clean -q
 
@@ -186,7 +185,6 @@ flamegraph:profile
 JAVAST_DIR = internal/javast
 JAVAST_JAR= $(JAVAST_DIR)/target/javast.jar
 EMBED_DIR = internal/fs/templates/jar
-MAVEN = mvn
 
 embed-javast:
 	echo "Java AST Transformer packaging ..."
