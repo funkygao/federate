@@ -1,7 +1,6 @@
 package microservice
 
 import (
-	"federate/cmd/explain"
 	"federate/cmd/microservice/optimize"
 	"github.com/spf13/cobra"
 )
@@ -14,7 +13,4 @@ var CmdGroup = &cobra.Command{
 
 func init() {
 	CmdGroup.AddCommand(scaffoldCmd, fusionStartCmd, mergeCmd, optimize.CmdGroup, jdosCmd, manifestCmd)
-	if false {
-		CmdGroup.AddCommand(explain.CmdGroup)
-	}
 }

@@ -15,8 +15,8 @@ import (
 
 // 合并编译器.
 type Compiler interface {
-	// 初始化，注册内置调和器
-	Init() Compiler
+	// 加载调和器
+	Init()
 
 	WithOption(CompilerOption) Compiler
 
@@ -153,7 +153,7 @@ func (p *compiler) Merge() error {
 	}
 
 	// 先执行 PreparableReconciler
-	steps = p.prepareReconcilers(steps)
+	steps := p.prepareReconcilers(nil)
 
 	// 再编排内置 Reconciler
 	for _, r := range p.reconcilers {
@@ -183,6 +183,9 @@ func (p *compiler) Merge() error {
 }
 
 func (p *compiler) prepareReconcilers(steps []step.Step) []step.Step {
+	if steps == nil {
+		steps = make([]step.Step, 0, 20)
+	}
 	for _, r := range p.reconcilers {
 		if p, ok := r.(PreparableReconciler); ok {
 			steps = append(steps, step.Step{

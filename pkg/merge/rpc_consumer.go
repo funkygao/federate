@@ -32,7 +32,7 @@ type RpcConsumerManager struct {
 
 func NewRpcConsumerManager(m *manifest.Manifest, rpcType string) *RpcConsumerManager {
 	return &RpcConsumerManager{
-		m: m,
+		m:                       m,
 		IntraComponentConflicts: make(map[string][]string),
 		interfaceToComponent:    make(map[string]string),
 		globalReferenceMap:      make(map[string]*etree.Element),
