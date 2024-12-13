@@ -9,6 +9,7 @@ import com.github.javaparser.ast.visitor.Visitable;
 
 import java.util.*;
 
+@Deprecated // not used yet: buggy. golang version works fine
 public class TransformerResourceToAutowired extends BaseCodeModifier {
     private static final String RESOURCE = "Resource";
     private static final String AUTOWIRED = "Autowired";

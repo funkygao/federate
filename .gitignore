@@ -4,7 +4,7 @@ classes/
 lsp/
 __pycache__/
 .ipynb_checkpoints/
-*.ipynb
+Untitled.ipynb
 
 # IDEA artifacts and output dirs
 *.iml
