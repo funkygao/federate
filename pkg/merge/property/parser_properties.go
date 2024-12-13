@@ -47,7 +47,7 @@ func (p *propertiesParser) Parse(filePath string, component manifest.ComponentIn
 	return nil
 }
 
-func (p *propertiesParser) Generate(entries map[string]PropertyEntry, rawKeys []string, targetFile string) error {
+func (p *propertiesParser) Generate(entries map[string]PropertyEntry, targetFile string) error {
 	var builder strings.Builder
 
 	for key, entry := range entries {

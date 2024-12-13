@@ -27,7 +27,6 @@ type PropertyReconcileSpec struct {
 	TomcatPort                  int            `yaml:"tomcatPort"`
 	Overrides                   map[string]any `yaml:"override"`
 	ConfigurationPropertiesKeys []string       `yaml:"integral"`
-	RawKeys                     []string       `yaml:"raw"`
 	DryRun                      string         `yaml:"dryrun"`
 }
 

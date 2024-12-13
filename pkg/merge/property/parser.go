@@ -8,5 +8,5 @@ import (
 type PropertyParser interface {
 	Parse(string, manifest.ComponentInfo, *PropertyManager) error
 
-	Generate(entries map[string]PropertyEntry, rawKeys []string, targetFile string) error
+	Generate(entries map[string]PropertyEntry, targetFile string) error
 }

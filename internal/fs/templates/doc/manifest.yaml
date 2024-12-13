@@ -68,10 +68,6 @@ federated:
           app.demo.feature.newFeature.enabled: true
         integral: # 冲突隔离时保证整体性，因为它们被 @ConfigurationProperties 使用
           - wms.datasource
-        raw: # 这些 key 的值不做字符串处理
-          # @Value("#{${strategyCondition.recommendBusinessTypeMap}}")
-          # private Map<String, String> recommendBusinessTypeMap;
-          - strategyCondition.recommendBusinessTypeMap
       singletonBeans: # 这些 bean 只加载1次：资源复用
         - com.jd.jim.cli.ReloadableJimClientFactoryBean
         - com.jdwl.wms.common.redis.jimdb.JimdbClient

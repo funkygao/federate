@@ -385,3 +385,65 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	t.Log("Summary")
 	ledger.Get().ShowSummary()
 }
+
+func TestApplyJSONPatch(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "Simple JSON",
+			input:    `key: '{"name": "value"}'`,
+			expected: `key: {"name": "value"}`,
+		},
+		{
+			name: "Multi-line JSON",
+			input: `key: '{
+  "name": "value",
+  "array": [1, 2, 3]
+}'`,
+			expected: `key: {
+  "name": "value",
+  "array": [1, 2, 3]
+}`,
+		},
+		{
+			name: "JSON with newline in key",
+			input: `strategyConditionKey.replenish.recommendBusinessType: '{"key": "recommendBusinessType",
+  "value": "inventory"}'`,
+			expected: `strategyConditionKey.replenish.recommendBusinessType: {"key": "recommendBusinessType",
+  "value": "inventory"}`,
+		},
+		{
+			name:     "Non-JSON string",
+			input:    `key: 'not a json'`,
+			expected: `key: 'not a json'`,
+		},
+		{
+			name: "Multiple JSON strings",
+			input: `key1: '{"name": "value1"}'
+key2: '{"name": "value2"}'`,
+			expected: `key1: {"name": "value1"}
+key2: {"name": "value2"}`,
+		},
+		{
+			name:     "JSON with nested quotes",
+			input:    `key: '{"quote": "This is a \"quoted\" string"}'`,
+			expected: `key: {"quote": "This is a \"quoted\" string"}`,
+		},
+		{
+			name:     "JSON with special characters",
+			input:    `key: '{"special": "!@#$%^&*()"}'`,
+			expected: `key: {"special": "!@#$%^&*()"}`,
+		},
+	}
+
+	y := newYamlParser().(*yamlParser)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := y.applyJSONPatch(tc.input)
+			assert.Equal(t, tc.expected, result, "processJSONStrings should correctly handle JSON strings")
+		})
+	}
+}

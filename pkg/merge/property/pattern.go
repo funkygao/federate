@@ -32,8 +32,8 @@ func init() {
 		requestMappingRegex: regexp.MustCompile(`(@RequestMapping\s*\(\s*(?:value\s*=)?\s*")([^"]+)("\s*\))`),
 		placeholderRegex:    regexp.MustCompile(`\$\{([^}]+)\}`),
 		parsers: map[string]PropertyParser{
-			".yml":        &yamlParser{},
-			".yaml":       &yamlParser{},
+			".yml":        newYamlParser(),
+			".yaml":       newYamlParser(),
 			".properties": &propertiesParser{},
 		},
 	}
