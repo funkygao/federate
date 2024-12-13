@@ -13,15 +13,17 @@ import (
 	"federate/cmd/util"
 	"federate/cmd/version"
 	"federate/cmd/workload"
-	"federate/pkg/logo"
+	"github.com/fatih/color"
 
 	"github.com/spf13/cobra"
 )
 
+var logo = color.New(color.Bold).Add(color.Underline).Add(color.FgCyan).Sprintf("federate")
+
 var rootCmd = &cobra.Command{
 	Use:   "federate",
 	Short: "federate - A compiler and toolchain for microservices management",
-	Long: logo.Federate() + `: A compiler-centric toolchain engineered for efficient microservices consolidation and seamless deployment.
+	Long: logo + `: A compiler-centric toolchain engineered for efficient microservices consolidation and seamless deployment.
 
   Find more information at: https://joyspace.jd.com/pages/Ksl7N7wr1XxFanCRIR1y
 `,
