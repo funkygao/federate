@@ -234,8 +234,7 @@ func (pm *PropertyManager) generateMergedYamlFile(targetFile string) error {
 		}
 	}
 
-	rawKeys := pm.m.Main.Reconcile.Resources.Property.RawKeys
-	return parser.Generate(entries, rawKeys, targetFile)
+	return parser.Generate(entries, targetFile)
 }
 
 // 写目标文件 federated/application.properties
@@ -256,5 +255,5 @@ func (pm *PropertyManager) generateMergedPropertiesFile(targetFile string) error
 		}
 	}
 
-	return parser.Generate(entries, nil, targetFile)
+	return parser.Generate(entries, targetFile)
 }

@@ -5,13 +5,23 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"federate/pkg/manifest"
 	"gopkg.in/yaml.v2"
 )
 
-type yamlParser struct{}
+type yamlParser struct {
+	re *regexp.Regexp
+}
+
+func newYamlParser() PropertyParser {
+	// 使用正则表达式匹配 '{' 开头 '}' 结尾的字符串，包括跨行的情况
+	return &yamlParser{
+		re: regexp.MustCompile(`(?ms)'(\{.*?\})'`),
+	}
+}
 
 func (y *yamlParser) Parse(filePath string, component manifest.ComponentInfo, pm *PropertyManager) error {
 	return y.recursiveParseFile(filePath, component.SpringProfile, component, pm)
@@ -80,7 +90,7 @@ func (y *yamlParser) flattenYamlMap(data map[any]any, parentKey string, result m
 	}
 }
 
-func (y *yamlParser) Generate(entries map[string]PropertyEntry, rawKeys []string, targetFile string) error {
+func (y *yamlParser) Generate(entries map[string]PropertyEntry, targetFile string) error {
 	mergedYaml := make(map[string]any)
 	for key, entry := range entries {
 		if entry.WasReference() {
@@ -98,15 +108,7 @@ func (y *yamlParser) Generate(entries map[string]PropertyEntry, rawKeys []string
 
 	// 对 YAML 数据进行后处理，移除 raw 值周围的单引号
 	yamlString := string(data)
-	for _, rawKey := range rawKeys {
-		value := mergedYaml[rawKey]
-		if rawValue, ok := value.(string); ok {
-			oldQuotedValue := "'" + rawValue + "'"
-			yamlString = strings.Replace(yamlString, oldQuotedValue, rawValue, -1)
-		} else {
-			log.Printf("Raw key[%s] value is not string, ignored", rawKey)
-		}
-	}
+	yamlString = y.applyJSONPatch(yamlString)
 
 	if err := os.MkdirAll(filepath.Dir(targetFile), 0755); err != nil {
 		return err
@@ -118,4 +120,8 @@ func (y *yamlParser) Generate(entries map[string]PropertyEntry, rawKeys []string
 	}
 
 	return nil
+}
+
+func (y *yamlParser) applyJSONPatch(yamlString string) string {
+	return y.re.ReplaceAllString(yamlString, "$1")
 }
