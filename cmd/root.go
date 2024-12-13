@@ -7,6 +7,7 @@ import (
 	"federate/cmd/chatgpt"
 	"federate/cmd/debug"
 	"federate/cmd/image"
+	"federate/cmd/insight"
 	"federate/cmd/microservice"
 	"federate/cmd/plus"
 	"federate/cmd/util"
@@ -49,6 +50,7 @@ func init() {
 	debug.CmdGroup.GroupID = "utility"
 	image.CmdGroup.GroupID = "utility"
 	util.CmdGroup.GroupID = "utility"
+	insight.CmdGroup.GroupID = "utility"
 
 	version.CmdGroup.GroupID = "system"
 	rootCmd.SetHelpCommandGroupID("system")
@@ -70,7 +72,7 @@ func init() {
 	)
 
 	// utility
-	rootCmd.AddCommand(chatgpt.CmdGroup, image.CmdGroup, debug.CmdGroup, util.CmdGroup)
+	rootCmd.AddCommand(chatgpt.CmdGroup, insight.CmdGroup, image.CmdGroup, debug.CmdGroup, util.CmdGroup)
 
 	// microservice, sorted
 	rootCmd.AddCommand(microservice.CmdGroup)
