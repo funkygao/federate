@@ -6,15 +6,20 @@ import (
 	"os"
 	"regexp"
 	"sort"
+	"strings"
 
 	"federate/pkg/java"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
 
 var (
 	classCamelCaseRegex = regexp.MustCompile(`[A-Z][a-z]+`)
-	minCount            int
+
+	minCount    int
+	useBarChart bool
+	topK        int
 )
 
 var taxonomyCmd = &cobra.Command{
@@ -56,6 +61,12 @@ func extractArchetype(filename string) string {
 	return ""
 }
 
+func init() {
+	taxonomyCmd.Flags().IntVarP(&minCount, "min-count", "m", 10, "Minimum count to display an element")
+	taxonomyCmd.Flags().BoolVarP(&useBarChart, "bar-chart", "b", false, "Use bar chart display")
+	taxonomyCmd.Flags().IntVarP(&topK, "top", "t", 20, "Number of top elements to display in bar chart")
+}
+
 func printArchetypeAnalysis(taxonomy map[string]int) {
 	type archetypeCount struct {
 		name  string
@@ -78,21 +89,53 @@ func printArchetypeAnalysis(taxonomy map[string]int) {
 		width = 80 // 默认宽度
 	}
 
-	fmt.Println("Code Taxonomy")
-	fmt.Println("-------------")
+	if !useBarChart {
+		fmt.Println("Code Taxonomy")
+		fmt.Println("-------------")
 
-	itemWidth := 25 // 每个项目的最大宽度
-	itemsPerLine := width / itemWidth
+		itemWidth := 25 // 每个项目的最大宽度
+		itemsPerLine := width / itemWidth
 
-	for i, cc := range sorted {
-		if i > 0 && i%itemsPerLine == 0 {
-			fmt.Println()
+		for i, cc := range sorted {
+			if i > 0 && i%itemsPerLine == 0 {
+				fmt.Println()
+			}
+			fmt.Printf("%-*s", itemWidth, fmt.Sprintf("%d %s", cc.count, cc.name))
 		}
-		fmt.Printf("%-*s", itemWidth, fmt.Sprintf("%d %s", cc.count, cc.name))
+		fmt.Println()
+		return
 	}
-	fmt.Println()
-}
 
-func init() {
-	taxonomyCmd.Flags().IntVarP(&minCount, "min-count", "m", 10, "Minimum count to display an element")
+	// bar chart
+	fmt.Println("Code Taxonomy (Top", topK, ")")
+	fmt.Println("-----------------------------")
+
+	if topK > len(sorted) {
+		topK = len(sorted)
+	}
+
+	maxCount := sorted[0].count
+	maxNameLength := 0
+	for _, ac := range sorted[:topK] {
+		if len(ac.name) > maxNameLength {
+			maxNameLength = len(ac.name)
+		}
+	}
+
+	barWidth := width - maxNameLength - 8
+	cyan := color.New(color.FgCyan)
+	yellow := color.New(color.FgYellow)
+
+	for i, ac := range sorted[:topK] {
+		barLength := int(float64(ac.count) / float64(maxCount) * float64(barWidth))
+		bar := strings.Repeat("█", barLength)
+
+		fmt.Printf("%-*s %5d ", maxNameLength, ac.name, ac.count)
+		if i%2 == 0 {
+			cyan.Print(bar)
+		} else {
+			yellow.Print(bar)
+		}
+		fmt.Println()
+	}
 }
