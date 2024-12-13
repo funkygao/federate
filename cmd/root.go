@@ -13,8 +13,8 @@ import (
 	"federate/cmd/util"
 	"federate/cmd/version"
 	"federate/cmd/workload"
-	"github.com/fatih/color"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
