@@ -4,7 +4,7 @@ import (
 	"context"
 	"crypto/md5"
 
-	"federate/internal/hacking"
+	"federate/internal/hack"
 	"federate/pkg/code"
 )
 
@@ -40,7 +40,7 @@ func simHash(doc string) (feature uint64) {
 }
 
 func processNgram(ngram string, vectorCounts *[SimHashBits]int64) {
-	ngramHash := md5.Sum(hacking.S2b(ngram))
+	ngramHash := md5.Sum(hack.S2b(ngram))
 
 	for bitIndex := 0; bitIndex < SimHashBits; bitIndex++ {
 		if isBitSet(ngramHash, bitIndex) {

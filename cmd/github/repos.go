@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"strings"
 
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 	"github.com/google/go-github/v38/github"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2"
@@ -98,7 +98,7 @@ func printRepos(repos []*github.Repository) {
 	}
 
 	fmt.Println("Top GitHub Repositories:")
-	tablerender.DisplayTable(header, rows, false)
+	tabular.Display(header, rows, false)
 }
 
 func addThousandsSeparator(n int) string {

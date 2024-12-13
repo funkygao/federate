@@ -1,4 +1,4 @@
-package hacking
+package hack
 
 import (
 	"syscall"

@@ -1,4 +1,4 @@
-package tablerender
+package tabular
 
 import (
 	"log"
@@ -7,8 +7,8 @@ import (
 	"github.com/olekukonko/tablewriter"
 )
 
-// DisplayTable displays a table with the given header and data, sorted by the specified columns.
-func DisplayTable(header []string, data [][]string, autoMergeCells bool, sortByColumns ...int) {
+// Display displays a table with the given header and data, sorted by the specified columns.
+func Display(header []string, data [][]string, autoMergeCells bool, sortByColumns ...int) {
 	if len(data) < 1 {
 		return
 	}

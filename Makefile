@@ -17,7 +17,7 @@ LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
            -X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'
 
 # go build packages
-EXCLUDE_PACKAGES := /internal/plugin /internal/algorithm internal/javast/
+EXCLUDE_PACKAGES := /internal/plugin /internal/algo internal/javast/
 PACKAGES := $(shell go list ./... | grep -Ev '$(subst $() ,|,$(EXCLUDE_PACKAGES))')
 
 MAVEN = mvn

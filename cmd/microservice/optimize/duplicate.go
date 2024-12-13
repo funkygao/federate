@@ -7,7 +7,7 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/similarity"
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -66,7 +66,7 @@ func showDuplicates(m *manifest.Manifest) {
 		{fmt.Sprintf("%d", detector.RecallOps), "Similarity-based Recall OPS", fmt.Sprintf("%s", detector.Phase3)},
 		{fmt.Sprintf("%d", len(similarFiles)), "Similar Java Files Groups", fmt.Sprintf("%s", detector.Phase1+detector.Phase2+detector.Phase3)},
 	}
-	tablerender.DisplayTable(header, cellData, false)
+	tabular.Display(header, cellData, false)
 }
 
 func init() {

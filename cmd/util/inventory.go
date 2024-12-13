@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"federate/pkg/manifest"
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 	"github.com/spf13/cobra"
 )
 
@@ -139,7 +139,7 @@ func printRepoInfoTable(inv *manifest.Inventory, env string) {
 		})
 
 		fmt.Printf("Environment: %s\n", env)
-		tablerender.DisplayTable(header, rows, false, 0)
+		tabular.Display(header, rows, false, 0)
 	} else {
 		fmt.Printf("Environment %s not found\n", env)
 		os.Exit(1)

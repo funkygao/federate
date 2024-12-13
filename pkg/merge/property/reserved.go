@@ -9,7 +9,7 @@ import (
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/primitive"
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 	"github.com/fatih/color"
 )
 
@@ -110,6 +110,6 @@ func (pm *PropertyManager) applyReservedPropertyRules() {
 	if !pm.silent && len(cellData) > 0 {
 		log.Printf("Reserved keys processed:")
 		header := []string{"Reserved Key", "Value"}
-		tablerender.DisplayTable(header, cellData, false, -1)
+		tabular.Display(header, cellData, false, -1)
 	}
 }

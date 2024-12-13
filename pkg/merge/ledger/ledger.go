@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 	"federate/pkg/util"
 	"github.com/fatih/color"
 )
@@ -139,7 +139,7 @@ func (l *Ledger) printMapSection(title, indent string, m map[string]map[string]s
 		}
 	}
 	color.Yellow("%s: %d", title, n)
-	tablerender.DisplayTable(header, cellData, true, -1)
+	tabular.Display(header, cellData, true, -1)
 }
 
 func (l *Ledger) printSection(title, indent string, m map[string]map[string]struct{}) {

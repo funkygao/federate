@@ -7,7 +7,7 @@ import (
 
 	"federate/internal/fs"
 	"federate/pkg/manifest"
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 	"github.com/alecthomas/chroma/formatters"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
@@ -42,7 +42,7 @@ func setupJDOS(m *manifest.Manifest) {
 		{"制品路径", fmt.Sprintf("/source/%s/target", m.Main.Name)},
 	}
 	header := []string{"Item", "Config Value", "Remark"}
-	tablerender.DisplayTable(header, configs, true)
+	tabular.Display(header, configs, true)
 	type module struct {
 		Name   string
 		Module string

@@ -8,7 +8,7 @@ import (
 
 	"federate/pkg/federated"
 	"federate/pkg/manifest"
-	"federate/pkg/tablerender"
+	"federate/pkg/tabular"
 )
 
 type ReconcilePlan struct {
@@ -84,7 +84,7 @@ func (p *ReconcilePlan) ShowConflictReport() {
 	}
 
 	log.Printf("XML Bean id conflicts: %d, files: %d. Reconcile plan:", len(p.beanIdConflicts), len(files))
-	tablerender.DisplayTable(header, data, true, 0)
+	tabular.Display(header, data, true, 0)
 }
 
 // 在内存中构建解决冲突计划
