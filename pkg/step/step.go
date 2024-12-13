@@ -33,8 +33,8 @@ func Run(steps []Step) {
 			progressbar.OptionShowDescriptionAtLineEnd(),
 			progressbar.OptionSetDescription(fmt.Sprintf("[magenta]Step [%d/%d] %s[reset]", i+1, totalSteps, step.Name)),
 			progressbar.OptionSetTheme(progressbar.Theme{
-				Saucer:        "[green]■[reset]",
-				SaucerHead:    "[green]►[reset]",
+				Saucer:        "[green]█[reset]",
+				SaucerHead:    "[green]▏[reset]",
 				SaucerPadding: "-",
 				BarStart:      "[",
 				BarEnd:        "]",
