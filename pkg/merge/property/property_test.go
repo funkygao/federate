@@ -435,6 +435,11 @@ key2: value2`,
 			expected: `key1: value1
 key2: value2`,
 		},
+		{
+			name:     "Escaped JSON",
+			input:    `key: "{\"warehouseNo\":\"all\",\"beanClass\":\"com.goog.wms.stock.app.service.CommonUtilityAppService\"}"`,
+			expected: `key: "{\"warehouseNo\":\"all\",\"beanClass\":\"com.goog.wms.stock.app.service.CommonUtilityAppService\"}"`,
+		},
 	}
 
 	parser := newYamlParser()
