@@ -17,6 +17,6 @@ model += 1 * units_a + 2 * units_b <=  80, "装配时间"
 model.solve()
 
 print("生产计划：")
-print("生产产品 A 单位数：{units_a.value()}")
-print("生产产品 B 单位数：{units_b.value()}")
-print("最大总利润：{model.objective.value()} 元")
+print(f"生产产品 A 单位数：{units_a.value()}")
+print(f"生产产品 B 单位数：{units_b.value()}")
+print(f"最大总利润：{model.objective.value()} 元")
