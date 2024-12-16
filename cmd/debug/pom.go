@@ -71,12 +71,9 @@ func getElementText(element *etree.Element, name string) string {
 }
 
 func printResults(artifacts map[string][]string) {
-	conflicts := 0
 	for coordinates, paths := range artifacts {
 		if len(paths) > 1 {
-			conflicts++
 			fmt.Printf("%s %v\n", coordinates, paths)
 		}
 	}
-	fmt.Printf("%d conflicts found\n", conflicts)
 }
