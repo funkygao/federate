@@ -176,8 +176,8 @@ func (p *compiler) Merge() error {
 
 	if !p.silent {
 		ledger.Get().ShowSummary()
-		ledger.Get().SaveToFile("report.json")
 	}
+	ledger.Get().SaveToFile("report.json")
 
 	return nil
 }

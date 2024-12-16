@@ -20,6 +20,7 @@ type Ledger struct {
 	propertyPlaceholders    map[string]map[string]string
 	requestMappings         map[string]map[string]string
 	envKeys                 map[string]map[string]struct{}
+	ymlJsonKeys             []string
 }
 
 var instance = newLedger()
@@ -46,6 +47,10 @@ func (l *Ledger) TransformRequestMapping(componentName, value, newValue string) 
 
 func (l *Ledger) TransformRegularProperty(componentName, value, newValue string) {
 	l.transform(l.regularProperties, componentName, value, newValue)
+}
+
+func (l *Ledger) TransformJsonKey(key string) {
+	l.ymlJsonKeys = append(l.ymlJsonKeys, key)
 }
 
 func (l *Ledger) TransformConfigurationProperties(componentName, value, newValue string) {
@@ -88,6 +93,7 @@ func (l *Ledger) MarshalJSON() ([]byte, error) {
 		ImportResource          map[string]map[string]string   `json:"@ImportResource 相关源代码改动"`
 		ConfigurationProperties map[string]map[string]string   `json:"@ConfigurationProperties 相关源代码改动"`
 		RequestMappings         map[string]map[string]string   `json:"@RequestMapping 相关源代码改动"`
+		JsonKeys                []string                       `json:"application.yml 里value为JSON的key"`
 	}{
 		Guide:                   "汇总代码和资源文件变更：按照模块分组，左侧是旧值，右侧是新值",
 		Transactions:            l.transactions,
@@ -97,6 +103,7 @@ func (l *Ledger) MarshalJSON() ([]byte, error) {
 		PropertyPlaceholders:    l.propertyPlaceholders,
 		RequestMappings:         l.requestMappings,
 		EnvKeys:                 l.envKeys,
+		JsonKeys:                l.ymlJsonKeys,
 	})
 }
 
@@ -106,7 +113,6 @@ func (l *Ledger) SaveToFile(filename string) error {
 		return err
 	}
 
-	color.Cyan("Summary Writen to: %s", filename)
 	return os.WriteFile(filename, data, 0644)
 }
 

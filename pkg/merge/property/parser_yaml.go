@@ -8,18 +8,20 @@ import (
 	"regexp"
 	"strings"
 
+	"federate/pkg/federated"
 	"federate/pkg/manifest"
+	"federate/pkg/merge/ledger"
 	"gopkg.in/yaml.v2"
 )
 
 type yamlParser struct {
-	re *regexp.Regexp
+	jsonRegexp *regexp.Regexp
 }
 
-func newYamlParser() PropertyParser {
+func newYamlParser() *yamlParser {
 	// 使用正则表达式匹配 '{' 开头 '}' 结尾的字符串，包括跨行的情况
 	return &yamlParser{
-		re: regexp.MustCompile(`(?ms)'(\{.*?\})'`),
+		jsonRegexp: regexp.MustCompile(`(?m)^(\S+):\s*'(\{(?:.|\n)*?\})'`),
 	}
 }
 
@@ -123,5 +125,24 @@ func (y *yamlParser) Generate(entries map[string]PropertyEntry, targetFile strin
 }
 
 func (y *yamlParser) applyJSONPatch(yamlString string) string {
-	return y.re.ReplaceAllString(yamlString, "$1")
+	return y.jsonRegexp.ReplaceAllStringFunc(yamlString, func(match string) string {
+		// 提取 key 和 JSON 字符串
+		parts := y.jsonRegexp.FindStringSubmatch(match)
+		if len(parts) != 3 {
+			return match // 如果没有匹配到预期的格式，返回原字符串
+		}
+
+		key := parts[1]
+		jsonStr := parts[2]
+
+		// 将多行 JSON 合并为一行
+		jsonStr = regexp.MustCompile(`\s+`).ReplaceAllString(jsonStr, " ")
+
+		// 记录被替换的 key
+		ledger.Get().TransformJsonKey(key)
+		log.Printf("[%s/application.yml] Transforming JSON value for key: %s", federated.FederatedDir, key)
+
+		// 返回格式化后的字符串，不包含单引号
+		return fmt.Sprintf("%s: %s", key, jsonStr)
+	})
 }

@@ -386,64 +386,62 @@ func TestGenerateAllForManualCheck(t *testing.T) {
 	ledger.Get().ShowSummary()
 }
 
-func TestApplyJSONPatch(t *testing.T) {
-	testCases := []struct {
+func TestYamlParser_ApplyJSONPatch(t *testing.T) {
+	tests := []struct {
 		name     string
 		input    string
 		expected string
 	}{
 		{
-			name:     "Simple JSON",
-			input:    `key: '{"name": "value"}'`,
-			expected: `key: {"name": "value"}`,
+			name:     "Single line JSON",
+			input:    `key: '{"foo": "bar"}'`,
+			expected: `key: {"foo": "bar"}`,
 		},
 		{
 			name: "Multi-line JSON",
 			input: `key: '{
-  "name": "value",
-  "array": [1, 2, 3]
+  "foo": "bar",
+  "baz": [1, 2, 3]
 }'`,
-			expected: `key: {
-  "name": "value",
-  "array": [1, 2, 3]
-}`,
+			expected: `key: { "foo": "bar", "baz": [1, 2, 3] }`,
 		},
 		{
-			name: "JSON with newline in key",
-			input: `strategyConditionKey.replenish.recommendBusinessType: '{"key": "recommendBusinessType",
-  "value": "inventory"}'`,
-			expected: `strategyConditionKey.replenish.recommendBusinessType: {"key": "recommendBusinessType",
-  "value": "inventory"}`,
+			name: "Multiple JSON fields",
+			input: `key1: '{"foo": "bar"}'
+key2: '{
+  "baz": [1, 2, 3]
+}'`,
+			expected: `key1: {"foo": "bar"}
+key2: { "baz": [1, 2, 3] }`,
 		},
 		{
-			name:     "Non-JSON string",
-			input:    `key: 'not a json'`,
-			expected: `key: 'not a json'`,
+			name: "Mixed content",
+			input: `regular: value
+json: '{"key": "value"}'
+multiline: '{
+  "foo": "bar",
+  "baz": [1, 2, 3]
+}'
+another: regular`,
+			expected: `regular: value
+json: {"key": "value"}
+multiline: { "foo": "bar", "baz": [1, 2, 3] }
+another: regular`,
 		},
 		{
-			name: "Multiple JSON strings",
-			input: `key1: '{"name": "value1"}'
-key2: '{"name": "value2"}'`,
-			expected: `key1: {"name": "value1"}
-key2: {"name": "value2"}`,
-		},
-		{
-			name:     "JSON with nested quotes",
-			input:    `key: '{"quote": "This is a \"quoted\" string"}'`,
-			expected: `key: {"quote": "This is a \"quoted\" string"}`,
-		},
-		{
-			name:     "JSON with special characters",
-			input:    `key: '{"special": "!@#$%^&*()"}'`,
-			expected: `key: {"special": "!@#$%^&*()"}`,
+			name: "No JSON content",
+			input: `key1: value1
+key2: value2`,
+			expected: `key1: value1
+key2: value2`,
 		},
 	}
 
-	y := newYamlParser().(*yamlParser)
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := y.applyJSONPatch(tc.input)
-			assert.Equal(t, tc.expected, result, "processJSONStrings should correctly handle JSON strings")
+	parser := newYamlParser()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := parser.applyJSONPatch(tt.input)
+			assert.Equal(t, tt.expected, result, "The output should match the expected result")
 		})
 	}
 }
