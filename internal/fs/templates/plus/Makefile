@@ -37,7 +37,7 @@ restore-submodules:
 ##@ Plus Development
 
 scaffold: ## Scaffold project structure based on latest manifest.yaml.
-	federate plus scaffold
+	federate wms-plus scaffold
 
 package: ## Compile and package {{.AppName}}.
 	mvn package -T8 -Dmaven.artifact.threads=16

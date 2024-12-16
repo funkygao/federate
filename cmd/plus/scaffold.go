@@ -43,7 +43,7 @@ func doCreate(m *manifest.Manifest) {
 	log.Println(springBoot.Name())
 	merge.RunReconcile(springBoot, step.Bar{})
 
-	color.Green("🍺 Congrat, %s scaffolded!", m.Main.Name)
+	color.Green("🍺 %s scaffolded!", m.Main.Name)
 }
 
 func generatePlusProjectFiles(m *manifest.Manifest) {
