@@ -22,6 +22,11 @@ var (
 	topK        int
 )
 
+type archetypeCount struct {
+	name  string
+	count int
+}
+
 var taxonomyCmd = &cobra.Command{
 	Use:   "taxonomy [dir]",
 	Short: "Create a comprehensive inventory of code elements",
@@ -63,15 +68,11 @@ func extractArchetype(filename string) string {
 
 func init() {
 	taxonomyCmd.Flags().IntVarP(&minCount, "min-count", "m", 10, "Minimum count to display an element")
-	taxonomyCmd.Flags().BoolVarP(&useBarChart, "bar-chart", "b", false, "Use bar chart display")
-	taxonomyCmd.Flags().IntVarP(&topK, "top", "t", 20, "Number of top elements to display in bar chart")
+	taxonomyCmd.Flags().BoolVarP(&useBarChart, "bar-chart", "b", true, "Use bar chart display")
+	taxonomyCmd.Flags().IntVarP(&topK, "top", "t", 30, "Number of top elements to display in bar chart")
 }
 
 func printArchetypeAnalysis(taxonomy map[string]int) {
-	type archetypeCount struct {
-		name  string
-		count int
-	}
 
 	var sorted []archetypeCount
 	for name, count := range taxonomy {
@@ -89,24 +90,26 @@ func printArchetypeAnalysis(taxonomy map[string]int) {
 		width = 80 // 默认宽度
 	}
 
-	if !useBarChart {
-		fmt.Println("Code Taxonomy")
-		fmt.Println("-------------")
+	fmt.Println("Code Taxonomy")
+	fmt.Println("-------------")
 
-		itemWidth := 25 // 每个项目的最大宽度
-		itemsPerLine := width / itemWidth
+	itemWidth := 25 // 每个项目的最大宽度
+	itemsPerLine := width / itemWidth
 
-		for i, cc := range sorted {
-			if i > 0 && i%itemsPerLine == 0 {
-				fmt.Println()
-			}
-			fmt.Printf("%-*s", itemWidth, fmt.Sprintf("%d %s", cc.count, cc.name))
+	for i, cc := range sorted {
+		if i > 0 && i%itemsPerLine == 0 {
+			fmt.Println()
 		}
-		fmt.Println()
-		return
+		fmt.Printf("%-*s", itemWidth, fmt.Sprintf("%d %s", cc.count, cc.name))
 	}
 
-	// bar chart
+	if useBarChart {
+		fmt.Println()
+		printArchetypeBarChart(sorted, width)
+	}
+}
+
+func printArchetypeBarChart(sorted []archetypeCount, width int) {
 	fmt.Println("Code Taxonomy (Top", topK, ")")
 	fmt.Println("-----------------------------")
 
@@ -128,7 +131,7 @@ func printArchetypeAnalysis(taxonomy map[string]int) {
 
 	for i, ac := range sorted[:topK] {
 		barLength := int(float64(ac.count) / float64(maxCount) * float64(barWidth))
-		bar := strings.Repeat("█", barLength)
+		bar := strings.Repeat("■", barLength)
 
 		fmt.Printf("%-*s %5d ", maxNameLength, ac.name, ac.count)
 		if i%2 == 0 {

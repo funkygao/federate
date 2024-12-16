@@ -71,13 +71,16 @@ func getElementText(element *etree.Element, name string) string {
 }
 
 func printResults(artifacts map[string][]string) {
+	conflicts := 0
 	for coordinates, paths := range artifacts {
 		if len(paths) > 1 {
-			color.Yellow("[%s] found in multiple pom.xml files:", coordinates)
+			conflicts++
+			color.Yellow("[%s] found in:", coordinates)
 			for _, path := range paths {
 				fmt.Printf("  - %s\n", path)
 			}
 			fmt.Println()
 		}
 	}
+	fmt.Printf("%d conflicts found\n", conflicts)
 }
