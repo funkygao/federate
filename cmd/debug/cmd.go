@@ -10,5 +10,5 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(beanCmd, refCmd, ymlCmd, wizardCmd)
+	CmdGroup.AddCommand(beanCmd, refCmd, ymlCmd, pomCmd, wizardCmd)
 }
