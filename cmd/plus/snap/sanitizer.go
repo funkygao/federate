@@ -4,7 +4,29 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+
+	"federate/pkg/manifest"
 )
+
+func sanitizeCodeRepo(m *manifest.Manifest) {
+	for _, component := range m.Components {
+		log.Printf("Component: %s", component.RootDir())
+
+		rootPom := filepath.Join(component.RootDir(), "pom.xml")
+		processPom(rootPom, 1)
+
+		for _, module := range component.MavenModules() {
+			processModule(module, 1)
+		}
+
+		// Additional processing for the component
+		removeUnnecessaryFiles(component.RootDir(), 1)
+		removeSensitiveInformation(component.RootDir(), 1)
+		updateConfigurations(component.RootDir(), 1)
+
+		hinted = true
+	}
+}
 
 func processPom(pomPath string, indent int) {
 	if hinted {
@@ -54,7 +76,6 @@ func updateConfigurations(dir string, indent int) {
 }
 
 func finalChecks(indent int) {
-	logIndent(indent, "Performing final checks:")
 	logIndent(indent+1, "- Ensure all sensitive information has been removed")
 	logIndent(indent+1, "- Check that the code is appropriate for customer use")
 	logIndent(indent+1, "- Verify that all necessary documentation is included")
