@@ -42,11 +42,11 @@ restore-submodules:
 scaffold: ## Scaffold project structure based on latest manifest.yaml.
 	federate wms-plus scaffold
 
+run: ## Debug {{.AppName}} locally.
+	env {{.Env}} java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
+
 snap: ## Create a secure, tailored source code snapshot for customer delivery.
 	federate wms-plus snap --yes=true
-
-run: ## Debug {{.AppName}} locally.
-	java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
 package: ## Compile and package {{.AppName}}.
 	mvn package -T 1C -Dmaven.artifact.threads=2C
