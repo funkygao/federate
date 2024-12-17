@@ -2,6 +2,8 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 .SILENT:
 
+MAVEN = mvn
+
 # Variables to be built into the binary
 GIT_COMMIT  := $(shell git rev-parse --short HEAD)
 GIT_BRANCH  := $(shell git rev-parse --abbrev-ref HEAD)
@@ -20,10 +22,14 @@ LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
 EXCLUDE_PACKAGES := /internal/plugin /internal/algo internal/javast/
 PACKAGES := $(shell go list ./... | grep -Ev '$(subst $() ,|,$(EXCLUDE_PACKAGES))')
 
-MAVEN = mvn
+# go build tags
+INCLUDE_PROGUARD ?= 0
+ifeq ($(INCLUDE_PROGUARD),1)
+    BUILD_TAGS += proguard
+endif
 
 help:
-	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
+	awk 'BEGIN {FS = ":.*##"; printf "Usage:\n  make \033[36m<target> INCLUDE_PROGUARD=[0*|1]\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } /^##[^@]/ { printf "%s\n", substr($$0, 4) }' $(MAKEFILE_LIST)
 
 ##@ Build
 
@@ -63,7 +69,7 @@ install: embed-javast test ## Check if Go is installed, install if not, then bui
 		go build -o $(HOMEBREW_PREFIX)/bin/federate -ldflags "$(LDFLAGS)" $(PACKAGES); \
 		echo "🍺 Installed to $(HOMEBREW_PREFIX)/bin/federate"; \
 	else \
-		go install -ldflags "$(LDFLAGS)" $(PACKAGES); \
+		go install -tags "$(BUILD_TAGS)" -ldflags "$(LDFLAGS)" $(PACKAGES); \
 		echo "🍺 Installed to $$(go env GOPATH)/bin/federate"; \
 	fi
 

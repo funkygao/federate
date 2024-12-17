@@ -20,7 +20,8 @@ func createLocalMavenRepo(bar step.Bar) {
 	}
 }
 
-func copyDependenciesToLocalRepo(m *manifest.Manifest) {
+func copyDependenciesToLocalRepo(m *manifest.Manifest, bar step.Bar) {
+	bar.ChangeMax(len(m.Components))
 	for _, component := range m.Components {
 
 		// Change to component directory
@@ -52,6 +53,8 @@ func copyDependenciesToLocalRepo(m *manifest.Manifest) {
 		if err != nil {
 			log.Fatalf("Failed to change back to original directory: %v", err)
 		}
+
+		bar.Add(1)
 	}
 }
 

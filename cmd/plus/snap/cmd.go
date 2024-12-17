@@ -46,10 +46,11 @@ enables customers to build and run the application independently.`,
 }
 
 var (
-	autoYes          bool
-	hinted           = false
-	absLocalRepoPath string
-	relativeRepoPath string
+	autoYes           bool
+	enableObfuscation bool
+	hinted            = false
+	absLocalRepoPath  string
+	relativeRepoPath  string
 )
 
 func runSnap(m *manifest.Manifest) {
@@ -73,7 +74,11 @@ func runSnap(m *manifest.Manifest) {
 		},
 		{
 			Name: fmt.Sprintf("Copy dependency JAR to local Maven repository: %s/", relativeRepoPath),
-			Fn:   func(bar step.Bar) { copyDependenciesToLocalRepo(m) },
+			Fn:   func(bar step.Bar) { copyDependenciesToLocalRepo(m, bar) },
+		},
+		{
+			Name: "Obfuscate JARs in local Maven repository",
+			Fn:   obfuscateJars,
 		},
 		{
 			Name: "Detect JAR version conflicts",
@@ -101,4 +106,5 @@ func runSnap(m *manifest.Manifest) {
 func init() {
 	manifest.RequiredManifestFileFlag(Cmd)
 	Cmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
+	Cmd.Flags().BoolVar(&enableObfuscation, "obfuscate", true, "Enable JAR obfuscation")
 }
