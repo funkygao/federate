@@ -22,6 +22,15 @@
                 <include>**/*.properties</include>
             </includes>
         </fileSet>
+        {{- range .ComponentResourceDirs}}
+        <fileSet>
+            <directory>{{.}}</directory>
+            <outputDirectory>conf</outputDirectory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+        </fileSet>
+        {{- end }}
     </fileSets>
     <dependencySets>
         <dependencySet>

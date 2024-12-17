@@ -51,6 +51,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 	data := struct {
 		ArtifactId            string
 		ComponentDependencies []java.DependencyInfo
+		ComponentResourceDirs []string
 		BasePackage           string
 		BasePackageDir        string
 		SpringXml             string
@@ -62,6 +63,7 @@ func generatePlusProjectFiles(m *manifest.Manifest) {
 	}{
 		ArtifactId:            m.Main.Name,
 		ComponentDependencies: m.ComponentModules(),
+		ComponentResourceDirs: m.ComponentResourceDirs(),
 		BasePackage:           basePackage,
 		BasePackageDir:        java.Pkg2Path(basePackage),
 		SpringXml:             m.Main.Plus.SpringXml,

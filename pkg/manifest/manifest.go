@@ -52,6 +52,16 @@ func (m *Manifest) ComponentModules() []java.DependencyInfo {
 	return dependencies
 }
 
+func (m *Manifest) ComponentResourceDirs() []string {
+	var dirs []string
+	for _, component := range m.Components {
+		for _, module := range component.Modules {
+			dirs = append(dirs, fmt.Sprintf("%s/%s/src/main/resources", component.Name, module.ArtifactId))
+		}
+	}
+	return dirs
+}
+
 func (m *Manifest) RpmByEnv(env string) *RpmSpec {
 	for _, d := range m.Main.Rpms {
 		if d.Env == env {

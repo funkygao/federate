@@ -23,6 +23,7 @@ install: ## Local install WMS6 kernel with src attached for Plus Development.
 	done
 
 clean:restore-submodules
+	mvn clean
 	rm -rf generated
 
 diff:
@@ -42,14 +43,14 @@ restore-submodules:
 scaffold: ## Scaffold project structure based on latest manifest.yaml.
 	federate wms-plus scaffold
 
+package: ## Compile and package {{.AppName}}.
+	mvn package -T 1C -Dmaven.artifact.threads=2C
+
 run: ## Debug {{.AppName}} locally.
-	env {{.Env}} java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
+	java -DappName={{.AppName}} -DLOG_HOME=. -Xss1m -server -classpath target/{{.AppName}}-1.0.0-SNAPSHOT-package/conf:target/{{.AppName}}-1.0.0-SNAPSHOT-package/lib/* {{.ClassName}}
 
 snap: ## Create a secure, tailored source code snapshot for customer delivery.
 	federate wms-plus snap --yes=true
-
-package: ## Compile and package {{.AppName}}.
-	mvn package -T 1C -Dmaven.artifact.threads=2C
 
 rpmdist:package ## Create deployable RPM artifact for {{.AppName}}.
 	federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}
