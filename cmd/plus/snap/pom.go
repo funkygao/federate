@@ -27,7 +27,6 @@ func updatePomFilesForLocalRepo(m *manifest.Manifest) {
 			}
 		}
 	}
-	log.Println("🍺 All pom.xml files updated to use local Maven repository")
 }
 
 func updatePom(pomPath string) error {
@@ -60,7 +59,7 @@ func updatePom(pomPath string) error {
 	if !localRepoExists {
 		repo := repositories.CreateElement("repository")
 		repo.CreateElement("id").SetText("local-maven-repo")
-		repo.CreateElement("url").SetText(fmt.Sprintf("file://${project.basedir}/%s", filepath.Base(localRepoPath)))
+		repo.CreateElement("url").SetText(fmt.Sprintf("file://${project.basedir}/%s", filepath.Base(absLocalRepoPath)))
 		log.Printf("Added local Maven repository reference to %s", pomPath)
 	}
 

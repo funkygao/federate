@@ -22,6 +22,9 @@ install: ## Local install WMS6 kernel with src attached for Plus Development.
 		(cd $$repo && mvn install source:jar install:install -T8 -Dmaven.artifact.threads=16 -Dmaven.test.skip=true -Dfederate.packaging=true) || exit 1; \
 	done
 
+clean:restore-submodules
+	rm -rf generated
+
 diff:
 	git submodule foreach --recursive 'git diff --ignore-space-at-eol -w -b'
 
@@ -39,8 +42,11 @@ restore-submodules:
 scaffold: ## Scaffold project structure based on latest manifest.yaml.
 	federate wms-plus scaffold
 
-package: ## Compile and package {{.AppName}}.
-	mvn package -T8 -Dmaven.artifact.threads=16
+snap: ## Create a secure, tailored source code snapshot for customer delivery
+	federate wms-plus snap --yes=true
 
-rpmdist: ## Create deployable RPM artifact for {{.AppName}}.
+package: ## Compile and package {{.AppName}}.
+	mvn package -T 1C -Dmaven.artifact.threads=2C
+
+rpmdist:package ## Create deployable RPM artifact for {{.AppName}}.
 	federate image build-rpm --app-name {{.AppName}} --app-source-path {{.AppSrc}} --jvm-size {{.JvmSize}} --main-module {{.ClassName}} --tomcat-port {{.TomcatPort}}

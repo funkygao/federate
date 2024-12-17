@@ -1,6 +1,7 @@
 package plus
 
 import (
+	"federate/cmd/plus/snap"
 	"github.com/spf13/cobra"
 )
 
@@ -13,5 +14,5 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(scaffoldCmd, manifestCmd)
+	CmdGroup.AddCommand(scaffoldCmd, snap.Cmd, manifestCmd)
 }
