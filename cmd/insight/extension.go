@@ -71,8 +71,6 @@ func analyzeExtensions(root string) {
 }
 
 func analyzeDirectory(dir string) map[string][]Method {
-	log.Printf("Scan %s ...", dir)
-
 	fileChan, errChan := java.ListJavaMainSourceFilesAsync(dir)
 	extensions := make(map[string][]Method)
 
