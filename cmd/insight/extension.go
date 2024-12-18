@@ -11,17 +11,20 @@ import (
 
 	"federate/internal/hack"
 	"federate/pkg/java"
+	"federate/pkg/tabular"
 	"federate/pkg/util"
 	"github.com/spf13/cobra"
 )
 
 var (
 	interfaceRegex = regexp.MustCompile(`(?s)(?:public\s+)?interface\s+(\w+)\s+extends\s+IDomainExtension`)
+	commentRegex   = regexp.MustCompile(`@\w+(?:\([^)]*\))?`)
 )
 
 type Method struct {
 	Name    string
 	Javadoc string
+	Dir     string
 }
 
 var extensionCmd = &cobra.Command{
@@ -83,7 +86,7 @@ func analyzeDirectory(dir string) map[string][]Method {
 		if interfaceRegex.MatchString(code) {
 			interfaceName := filepath.Base(file.Path)
 			interfaceName = strings.TrimSuffix(interfaceName, ".java")
-			methods := extractMethods(file.Path, code)
+			methods := extractMethods(file.Path, code, dir)
 			if methods != nil {
 				extensions[interfaceName] = methods
 			} else {
@@ -99,7 +102,7 @@ func analyzeDirectory(dir string) map[string][]Method {
 	return extensions
 }
 
-func extractMethods(filePath, code string) []Method {
+func extractMethods(filePath, code, dir string) []Method {
 	lines := strings.Split(code, "\n")
 	var methods []Method
 	var currentJavadoc []string
@@ -128,11 +131,10 @@ func extractMethods(filePath, code string) []Method {
 			if strings.HasPrefix(line, "*/") {
 				inJavadoc = false
 			} else {
-				// 移除行首的 * 和空格
-				line = strings.TrimPrefix(line, "*")
-				line = strings.TrimSpace(line)
-				if line != "" && !strings.HasPrefix(line, "@") {
-					currentJavadoc = append(currentJavadoc, line)
+				trimmedLine := strings.TrimPrefix(line, "*")
+				trimmedLine = strings.TrimSpace(trimmedLine)
+				if trimmedLine != "" && !strings.HasPrefix(trimmedLine, "@") {
+					currentJavadoc = append(currentJavadoc, trimmedLine)
 				}
 			}
 			continue
@@ -145,8 +147,11 @@ func extractMethods(filePath, code string) []Method {
 		if strings.Contains(line, "(") && strings.Contains(line, ")") && strings.HasSuffix(line, ";") {
 			methodName := extractMethodName(line)
 			if methodName != "" {
-				javadoc := strings.TrimSpace(strings.Join(currentJavadoc, " "))
-				methods = append(methods, Method{Name: methodName, Javadoc: javadoc})
+				javadoc := ""
+				if len(currentJavadoc) > 0 {
+					javadoc = currentJavadoc[0]
+				}
+				methods = append(methods, Method{Name: methodName, Javadoc: javadoc, Dir: dir})
 				currentJavadoc = []string{}
 			}
 		}
@@ -161,7 +166,7 @@ func extractMethods(filePath, code string) []Method {
 
 func extractMethodName(line string) string {
 	// 移除注解
-	line = regexp.MustCompile(`@\w+(?:\([^)]*\))?`).ReplaceAllString(line, "")
+	line = commentRegex.ReplaceAllString(line, "")
 
 	// 查找方法名
 	parts := strings.Split(line, "(")
@@ -179,28 +184,16 @@ func extractMethodName(line string) string {
 }
 
 func printExtensionAnalysis(extensions map[string][]Method) {
-	fmt.Println("Java Extension Points Analysis")
-	fmt.Println("-------------------------------")
-
-	totalInterfaces := 0
+	var data [][]string
 	totalMethods := 0
-
 	for interfaceName, methods := range extensions {
-		if len(methods) > 0 {
-			totalInterfaces++
-			fmt.Printf("\nInterface: %s\n", interfaceName)
-			fmt.Println("Methods:")
-			for _, method := range methods {
-				fmt.Printf("  - %s\n", method.Name)
-				if method.Javadoc != "" {
-					fmt.Printf("    %s\n", method.Javadoc)
-				}
-				totalMethods++
-			}
+		for _, method := range methods {
+			data = append(data, []string{method.Dir, interfaceName, util.Truncate(method.Name+" "+method.Javadoc, 100)})
+			totalMethods++
 		}
 	}
 
-	fmt.Printf("\nSummary:\n")
-	fmt.Printf("Total Interfaces with methods: %d\n", totalInterfaces)
-	fmt.Printf("Total Methods: %d\n", totalMethods)
+	header := []string{"模块", "扩展点", "方法"}
+	tabular.Display(header, data, true, 0)
+	fmt.Printf("Total Interfaces: %d, Total Methods: %d\n", len(extensions), totalMethods)
 }

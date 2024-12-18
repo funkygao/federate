@@ -96,7 +96,7 @@ public interface IExampleExt extends IDomainExtension {
     void someMethod();
 }`,
 			expected: []Method{
-				{Name: "someMethod", Javadoc: "Some method description"},
+				{Name: "someMethod", Javadoc: "Some method description", Dir: "foo"},
 			},
 		},
 		{
@@ -124,7 +124,7 @@ public interface AfterLocateOrderSplitterExt extends IDomainExtension{
     Optional<List<LocateSplitOrderGroupVo>> splitOrder(AfterLocateSplitOrderRequestVo requestVo);
 }`,
 			expected: []Method{
-				{Name: "splitOrder", Javadoc: "定位后包裹拆单"},
+				{Name: "splitOrder", Javadoc: "定位后包裹拆单", Dir: "foo"},
 			},
 		},
 		{
@@ -144,7 +144,7 @@ public interface IPrepareOrderExt extends IDomainExtension {
 }
 `,
 			expected: []Method{
-				{Name: "prepare", Javadoc: ""},
+				{Name: "prepare", Javadoc: "", Dir: "foo"},
 			},
 		},
 		{
@@ -179,8 +179,8 @@ public interface ICartonLogicalVolumeExt extends IDomainExtension {
 
 }`,
 			expected: []Method{
-				{Name: "computeVolume", Javadoc: "计算.箱子体积"},
-				{Name: "computeLengthWidthHeight", Javadoc: "计算.箱子长宽高"},
+				{Name: "computeVolume", Javadoc: "计算.箱子体积", Dir: "foo"},
+				{Name: "computeLengthWidthHeight", Javadoc: "计算.箱子长宽高", Dir: "foo"},
 			},
 		},
 		{
@@ -197,7 +197,7 @@ public interface IClaimCheckTaskExt extends IDomainExtension {
 }                
 `,
 			expected: []Method{
-				{Name: "canReadyToCheck", Javadoc: "可以准备开始复核？"},
+				{Name: "canReadyToCheck", Javadoc: "可以准备开始复核？", Dir: "foo"},
 			},
 		},
 		{
@@ -218,14 +218,33 @@ public interface IShippingBySelfExt extends IDomainExtension {
 }
 `,
 			expected: []Method{
-				{Name: "matchOrderBySelfCode", Javadoc: "根据「客户自提码」匹配订单"},
+				{Name: "matchOrderBySelfCode", Javadoc: "根据「客户自提码」匹配订单", Dir: "foo"},
+			},
+		},
+		{
+			name: "4",
+			code: `
+public interface ISplitOrderDetailExt extends IDomainExtension {
+
+    /**
+     * 拆分订单明细
+     *
+     * com.jdwl.wms.taskassign.domain.order.entity.ShipmentOrderDetail#tagPick 标签拣选 是： true  否： false
+     * com.jdwl.wms.taskassign.domain.order.entity.ShipmentOrderDetail#labelSplitType  参考： com.jdwl.wms.taskassign.support.enums.LabelSplitTypeEnum  本次如果拆
+分拣货方式了，并且标签拣选的，应该返回 4
+     * @param shipmentOrder 生产单
+     */
+    void splitOrderDetail(ShipmentOrder shipmentOrder, ComposeContext composeContext);
+}`,
+			expected: []Method{
+				{Name: "splitOrderDetail", Javadoc: "拆分订单明细", Dir: "foo"},
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := extractMethods("test.java", tt.code)
+			result := extractMethods("test.java", tt.code, "foo")
 			assert.Equal(t, tt.expected, result, "extractMethods() result not as expected")
 		})
 	}
