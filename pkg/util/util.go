@@ -3,7 +3,9 @@ package util
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -49,6 +51,26 @@ func CopyFile(sourceFile, targetFile string) error {
 
 	_, err = io.Copy(target, source)
 	return err
+}
+
+func GetSubdirectories(root string) ([]string, error) {
+	var subdirs []string
+	entries, err := ioutil.ReadDir(root)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			name := entry.Name()
+			if len(name) > 2 && strings.HasPrefix(name, ".") {
+				continue
+			}
+			subdirs = append(subdirs, filepath.Join(root, entry.Name()))
+		}
+	}
+
+	return subdirs, nil
 }
 
 func FileExists(filename string) bool {
