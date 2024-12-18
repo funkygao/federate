@@ -68,6 +68,21 @@ public interface IExample {
 }`,
 			expected: false,
 		},
+		{
+			name: "IDomainExtension commented out",
+			code: `
+public interface ISerialSkuVerificationExt /*extends IDomainExtension*/ {
+
+    /**
+     * 校验唯一码不重复
+     *
+     * @param scanReceivingSubmit 扫描收货提交
+     */
+    void verifyUniqueCodeDuplicate(ScanReceivingSubmit scanReceivingSubmit);
+
+}`,
+			expected: false,
+		},
 	}
 
 	for _, tt := range tests {
