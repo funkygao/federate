@@ -193,7 +193,7 @@ func printExtensionAnalysis(extensions map[string][]Method) {
 		}
 	}
 
-	header := []string{"模块", "扩展点", "方法"}
+	header := []string{"模块", "扩展点接口", "具体方法"}
 	tabular.Display(header, data, true, 0)
 	fmt.Printf("Total Interfaces: %d, Total Methods: %d\n", len(extensions), totalMethods)
 }
