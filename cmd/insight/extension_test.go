@@ -255,6 +255,21 @@ public interface ISplitOrderDetailExt extends IDomainExtension {
 				{Name: "splitOrderDetail", Javadoc: "拆分订单明细", Dir: "foo"},
 			},
 		},
+		{
+			name: "5",
+			code: `
+public interface AfterLocateOrderSplitterExt extends IDomainExtension{
+    /**
+     * 定位后包裹拆单
+     * @param requestVo
+     * @return
+     */
+    Optional<List<LocateSplitOrderGroupVo>> splitOrder(AfterLocateSplitOrderRequestVo requestVo);
+}`,
+			expected: []Method{
+				{Name: "splitOrder", Javadoc: "定位后包裹拆单", Dir: "foo"},
+			},
+		},
 	}
 
 	for _, tt := range tests {
