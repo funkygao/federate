@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode/utf8"
 )
 
 func Contains(s string, l []string) bool {
@@ -19,10 +20,12 @@ func Contains(s string, l []string) bool {
 }
 
 func Truncate(s string, maxLen int) string {
-	if len(s) > maxLen {
-		return s[:maxLen] + "..."
+	if utf8.RuneCountInString(s) <= maxLen {
+		return s
 	}
-	return s
+
+	truncated := []rune(s)[:maxLen]
+	return string(truncated) + "..."
 }
 
 func RemoveEmptyLines(s string) string {

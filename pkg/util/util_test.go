@@ -15,6 +15,13 @@ func TestContains(t *testing.T) {
 	assert.False(t, Contains("m", []string{"c", "a", "b"}))
 }
 
+func TestTruncate(t *testing.T) {
+	assert.Equal(t, "你好，世界...", Truncate("你好，世界！Hello, World!", 5))
+	assert.Equal(t, "你好，世...", Truncate("你好，世界！Hello, World!", 4))
+	assert.Equal(t, "你好,...", Truncate("你好,世界！Hello, World!", 3))
+	assert.Equal(t, "你好...", Truncate("你好,世界！Hello, World!", 2))
+}
+
 func TestFileExists(t *testing.T) {
 	assert := assert.New(t)
 

@@ -188,7 +188,7 @@ func printExtensionAnalysis(extensions map[string][]Method) {
 	totalMethods := 0
 	for interfaceName, methods := range extensions {
 		for _, method := range methods {
-			data = append(data, []string{method.Dir, interfaceName, util.Truncate(method.Name+" "+method.Javadoc, 100)})
+			data = append(data, []string{method.Dir, interfaceName, util.Truncate(method.Name+" "+method.Javadoc, 50)})
 			totalMethods++
 		}
 	}
