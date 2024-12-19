@@ -1,0 +1,23 @@
+[
+    {
+        "Key": "1",
+        "Fields": {
+            "name": "Alice",
+            "age": 30,
+            "active": true,
+            "last_login": "2023-10-01T12:00:00Z"
+        },
+        "Timestamp": "2023-10-01T12:00:00Z"
+    },
+    {
+        "Key": "2",
+        "Fields": {
+            "name": "Bob",
+            "age": 25,
+            "active": false,
+            "last_login": "2023-09-30T11:00:00Z"
+        },
+        "Timestamp": "2023-10-01T12:00:00Z"
+    }
+]
+
