@@ -1,4 +1,4 @@
-package util
+package insight
 
 import (
 	"fmt"
@@ -10,7 +10,6 @@ import (
 
 	"federate/pkg/java"
 	"federate/pkg/tabular"
-	"federate/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -162,7 +161,7 @@ func getTopFeatures(tfidf map[string]float64, n int) string {
 
 	var topFeatures []string
 	for i := 0; i < n && i < len(scores); i++ {
-		topFeatures = append(topFeatures, util.Truncate(scores[i].word, 15))
+		topFeatures = append(topFeatures, strings.ReplaceAll(scores[i].word, "\n", ""))
 	}
 
 	return strings.Join(topFeatures, "  ")

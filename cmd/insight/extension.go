@@ -119,7 +119,7 @@ func extractMethods(filePath, code, dir string) []Method {
 			continue
 		}
 
-		if strings.HasPrefix(line, "/**") {
+		if strings.HasPrefix(line, "/*") {
 			inJavadoc = true
 			currentJavadoc = []string{}
 			continue
