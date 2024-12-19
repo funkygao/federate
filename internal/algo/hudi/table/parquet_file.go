@@ -1,8 +1,9 @@
-package main
+package table
 
 import (
-	"github.com/xitongsys/parquet-go/source"
 	"os"
+
+	"github.com/xitongsys/parquet-go/source"
 )
 
 type LocalParquetFile struct {

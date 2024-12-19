@@ -1,14 +1,16 @@
-package main
+package table
 
 import (
 	"os"
 	"path/filepath"
 
+	"federate/internal/algo/hudi/store"
 	"github.com/xitongsys/parquet-go/reader"
 	"github.com/xitongsys/parquet-go/writer"
 )
 
 func (t *Table) WriteParquet(records []Record, filePath string) error {
+	filePath = filepath.Join(t.FS.(*store.LocalFileSystem).RootDir(), filePath)
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err

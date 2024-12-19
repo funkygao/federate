@@ -1,4 +1,4 @@
-package main
+package table
 
 import (
 	"encoding/json"
@@ -25,7 +25,7 @@ func (s *SimpleClusteringStrategy) ShouldCluster(table *Table) bool {
 }
 
 func (s *SimpleClusteringStrategy) PerformClustering(table *Table) error {
-	records, err := table.ReadMergeOnRead()
+	records, err := table.Read()
 	if err != nil {
 		return err
 	}

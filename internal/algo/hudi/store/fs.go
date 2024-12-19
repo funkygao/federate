@@ -1,4 +1,4 @@
-package main
+package store
 
 import (
 	"io/ioutil"
@@ -22,6 +22,10 @@ func NewLocalFileSystem(rootDir string) (*LocalFileSystem, error) {
 		return nil, err
 	}
 	return &LocalFileSystem{rootDir: rootDir}, nil
+}
+
+func (fs *LocalFileSystem) RootDir() string {
+	return fs.rootDir
 }
 
 func (fs *LocalFileSystem) Write(path string, data []byte) error {
