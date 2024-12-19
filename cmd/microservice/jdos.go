@@ -39,7 +39,7 @@ func setupJDOS(m *manifest.Manifest) {
 		{"构建方式", "代码构建", "源码地址：填写你的融合项目代码库"},
 		{"成员管理", "JDOSBOOT", "融合项目代码库需要为该用户分配 Guest 权限"},
 		{"基础镜像", "base_worker/java-jd-centos7-jdk8.0.192-tom8.5.42-ngx197:latest", "包含了 make/java/maven"},
-		{"制品路径", fmt.Sprintf("/source/%s/target", m.Main.Name)},
+		{"制品路径", fmt.Sprintf("/source/%s/target", m.Main.Name), ""},
 	}
 	header := []string{"Item", "Config Value", "Remark"}
 	tabular.Display(header, configs, true)
