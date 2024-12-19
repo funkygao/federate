@@ -1,5 +1,6 @@
 .DS_store
 target/
+data/
 classes/
 lsp/
 __pycache__/
