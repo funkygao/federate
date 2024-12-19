@@ -2,7 +2,6 @@ package table
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -19,46 +18,53 @@ func (t *Table) upsertCopyOnWrite(records []Record) error {
 	mergedRecords := t.mergeRecords(existingRecords, records)
 
 	// Write merged data
-	dataFilePath := filepath.Join(t.Name, "data.parquet")
+	dataFilePath := filepath.Join(t.Name, fmt.Sprintf("data_%d.parquet", time.Now().UnixNano()))
 	if err := t.WriteParquet(mergedRecords, dataFilePath); err != nil {
 		return fmt.Errorf("failed to write merged data: %w", err)
 	}
 
 	// Update index
 	for _, record := range mergedRecords {
-		t.Index.Add(record.Key, dataFilePath)
+		t.Index.Add(record.Key, FileLocation{
+			PartitionPath:  t.Name,
+			FileSliceIndex: 0,
+			IsBaseFile:     true,
+			FilePath:       dataFilePath,
+		})
 	}
 
 	// Update timeline
-	commit := Commit{
+	instant := Instant{
 		Timestamp: time.Now(),
-		Type:      Update,
-		Records:   records,
+		Action:    Commit,
+		State:     "COMPLETED",
 	}
-	t.Timeline.AddCommit(commit)
+	t.Timeline.AddInstant(instant)
 
 	return nil
 }
 
 func (t *Table) readCopyOnWrite() ([]Record, error) {
-	dataFilePath := filepath.Join(t.Name, "data.parquet")
-
-	log.Printf("data parquet: %s", dataFilePath)
-
-	// Check if the data file exists
-	if _, err := t.FS.Read(dataFilePath); err != nil {
+	files, err := t.FS.List(t.Name)
+	if err != nil {
 		return nil, err
 	}
 
-	// Read records from Parquet file
-	records, err := t.ReadParquet(dataFilePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read Parquet file: %w", err)
+	var allRecords []Record
+	for _, file := range files {
+		if filepath.Ext(file) == ".parquet" {
+			records, err := t.ReadParquet(filepath.Join(t.Name, file))
+			if err != nil {
+				return nil, err
+			}
+			allRecords = append(allRecords, records...)
+		}
 	}
-	return records, nil
+
+	return allRecords, nil
 }
 
-func (t *Table) mergeRecords(existingRecords []Record, newRecords []Record) []Record {
+func (t *Table) mergeRecords(existingRecords, newRecords []Record) []Record {
 	recordMap := make(map[string]Record)
 
 	// Add existing records to the map
@@ -84,44 +90,53 @@ func (t *Table) mergeRecords(existingRecords []Record, newRecords []Record) []Re
 }
 
 func (t *Table) deleteCopyOnWrite(keys []string) error {
-	// Step 1: Read existing data
+	// Read existing data
 	existingRecords, err := t.readCopyOnWrite()
-	if err != nil && !os.IsNotExist(err) {
+	if err != nil {
 		return fmt.Errorf("failed to read existing data: %w", err)
 	}
 
-	// Step 2: Remove records matching the keys
-	keySet := make(map[string]struct{})
-	for _, key := range keys {
-		keySet[key] = struct{}{}
-	}
-
+	// Remove records with matching keys
 	updatedRecords := make([]Record, 0)
 	for _, record := range existingRecords {
-		if _, exists := keySet[record.Key]; !exists {
+		shouldDelete := false
+		for _, key := range keys {
+			if record.Key == key {
+				shouldDelete = true
+				break
+			}
+		}
+		if !shouldDelete {
 			updatedRecords = append(updatedRecords, record)
 		}
 	}
 
-	// Step 3: Write updated data
-	dataFilePath := filepath.Join(t.Name, "data.parquet")
+	// Write updated data
+	dataFilePath := filepath.Join(t.Name, fmt.Sprintf("data_%d.parquet", time.Now().UnixNano()))
 	if err := t.WriteParquet(updatedRecords, dataFilePath); err != nil {
 		return fmt.Errorf("failed to write updated data: %w", err)
 	}
 
-	// Step 4: Update index
-	t.Index = NewFSIndex(t)
+	// Update index
+	for _, key := range keys {
+		t.Index.Remove(key)
+	}
 	for _, record := range updatedRecords {
-		t.Index.Add(record.Key, dataFilePath)
+		t.Index.Add(record.Key, FileLocation{
+			PartitionPath:  t.Name,
+			FileSliceIndex: 0,
+			IsBaseFile:     true,
+			FilePath:       dataFilePath,
+		})
 	}
 
-	// Step 5: Update timeline
-	commit := Commit{
+	// Update timeline
+	instant := Instant{
 		Timestamp: time.Now(),
-		Type:      Delete,
-		Records:   nil, // Optionally include deleted records
+		Action:    Commit,
+		State:     "COMPLETED",
 	}
-	t.Timeline.AddCommit(commit)
+	t.Timeline.AddInstant(instant)
 
 	return nil
 }

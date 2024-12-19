@@ -7,6 +7,34 @@ import (
 	"time"
 )
 
+type Record struct {
+	Key       string         `parquet:"name=key, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+	Fields    map[string]any `parquet:"name=fields, type=MAP, convertedtype=MAP, keytype=BYTE_ARRAY, keyconvertedtype=UTF8"`
+	Timestamp time.Time      `parquet:"name=timestamp, type=INT96"`
+}
+
+type TableType int
+
+const (
+	CopyOnWrite TableType = iota
+	MergeOnRead
+)
+
+type InstantType string
+
+const (
+	Commit      InstantType = "COMMIT"
+	DeltaCommit InstantType = "DELTA_COMMIT"
+	Compaction  InstantType = "COMPACTION"
+	Clustering  InstantType = "CLUSTERING"
+)
+
+type Instant struct {
+	Timestamp time.Time
+	Action    InstantType
+	State     string // REQUESTED, INFLIGHT, COMPLETED
+}
+
 type FieldType string
 
 const (

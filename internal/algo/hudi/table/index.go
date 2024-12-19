@@ -1,93 +1,51 @@
 package table
 
 import (
-	"encoding/json"
-	"path/filepath"
+	"github.com/bits-and-blooms/bloom/v3"
 )
 
-type FSIndex struct {
-	table *Table
+type Index interface {
+	Add(key string, location FileLocation) error
+	Get(key string) (FileLocation, bool)
+	Remove(key string) error
 }
 
-func NewFSIndex(table *Table) *FSIndex {
-	return &FSIndex{table: table}
+type FileLocation struct {
+	PartitionPath  string
+	FileSliceIndex int
+	IsBaseFile     bool
+	FilePath       string
 }
 
-func (idx *FSIndex) Add(key, filePath string) error {
-	indexFilePath := filepath.Join(idx.table.Name, "index.json")
-
-	var index map[string]string
-	data, err := idx.table.FS.Read(indexFilePath)
-	if err == nil {
-		if err := json.Unmarshal(data, &index); err != nil {
-			return err
-		}
-	} else {
-		index = make(map[string]string)
-	}
-
-	index[key] = filePath
-
-	updatedData, err := json.Marshal(index)
-	if err != nil {
-		return err
-	}
-
-	return idx.table.FS.Write(indexFilePath, updatedData)
+type BloomFilterIndex struct {
+	filters   map[string]*bloom.BloomFilter
+	locations map[string]FileLocation
 }
 
-func (idx *FSIndex) Get(key string) (string, bool) {
-	indexFilePath := filepath.Join(idx.table.Name, "index.json")
-
-	data, err := idx.table.FS.Read(indexFilePath)
-	if err != nil {
-		return "", false
+func NewBloomFilterIndex() *BloomFilterIndex {
+	return &BloomFilterIndex{
+		filters:   make(map[string]*bloom.BloomFilter),
+		locations: make(map[string]FileLocation),
 	}
-
-	var index map[string]string
-	if err := json.Unmarshal(data, &index); err != nil {
-		return "", false
-	}
-
-	filePath, ok := index[key]
-	return filePath, ok
 }
 
-func (idx *FSIndex) Remove(key string) error {
-	indexFilePath := filepath.Join(idx.table.Name, "index.json")
-
-	data, err := idx.table.FS.Read(indexFilePath)
-	if err != nil {
-		return err
+func (idx *BloomFilterIndex) Add(key string, location FileLocation) error {
+	idx.locations[key] = location
+	filter, exists := idx.filters[location.FilePath]
+	if !exists {
+		filter = bloom.NewWithEstimates(1000, 0.01)
+		idx.filters[location.FilePath] = filter
 	}
-
-	var index map[string]string
-	if err := json.Unmarshal(data, &index); err != nil {
-		return err
-	}
-
-	delete(index, key)
-
-	updatedData, err := json.Marshal(index)
-	if err != nil {
-		return err
-	}
-
-	return idx.table.FS.Write(indexFilePath, updatedData)
+	filter.Add([]byte(key))
+	return nil
 }
 
-func (idx *FSIndex) GetAll() (map[string]string, error) {
-	indexFilePath := filepath.Join(idx.table.Name, "index.json")
+func (idx *BloomFilterIndex) Get(key string) (FileLocation, bool) {
+	location, exists := idx.locations[key]
+	return location, exists
+}
 
-	data, err := idx.table.FS.Read(indexFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var index map[string]string
-	if err := json.Unmarshal(data, &index); err != nil {
-		return nil, err
-	}
-
-	return index, nil
+func (idx *BloomFilterIndex) Remove(key string) error {
+	delete(idx.locations, key)
+	return nil
 }

@@ -1,7 +1,6 @@
 package table
 
 import (
-	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -16,67 +15,103 @@ func NewCompactor(table *Table) *Compactor {
 }
 
 func (c *Compactor) Compact() error {
-	// In a real implementation, this would merge small files and optimize storage
-	// For this example, we'll just create a new commit
-	commit := Commit{
-		Timestamp: time.Now(),
-		Type:      Compacted,
+	for partitionPath, fileGroup := range c.table.FileGroups {
+		for i, slice := range fileGroup.FileSlices {
+			if len(slice.DeltaFiles) >= 5 { // Threshold for compaction
+				newBaseFile, err := c.mergeFileSlice(partitionPath, slice)
+				if err != nil {
+					return err
+				}
+				fileGroup.FileSlices[i] = FileSlice{BaseFile: newBaseFile}
+			}
+		}
 	}
-	c.table.Timeline.AddCommit(commit)
+
+	instant := Instant{
+		Timestamp: time.Now(),
+		Action:    Compaction,
+		State:     "COMPLETED",
+	}
+	c.table.Timeline.AddInstant(instant)
 	return nil
 }
 
+func (c *Compactor) mergeFileSlice(partitionPath string, slice FileSlice) (string, error) {
+	// In a real implementation, this would merge the base file and delta files
+	// For this example, we'll just create a new base file name
+	newBaseFileName := fmt.Sprintf("base_%d.parquet", time.Now().UnixNano())
+	newBaseFilePath := filepath.Join(partitionPath, newBaseFileName)
+
+	// Here you would:
+	// 1. Read records from the base file
+	// 2. Read and apply updates from delta files
+	// 3. Write the merged records to the new base file
+	// 4. Update the table's metadata and index
+
+	// For now, we'll just pretend we did all that
+	return newBaseFilePath, nil
+}
+
 func (c *Compactor) MergeSmallFiles(sizeThreshold int64) error {
-	files, err := c.table.FS.List(c.table.Name)
-	if err != nil {
-		return err
-	}
+	for partitionPath, fileGroup := range c.table.FileGroups {
+		var smallFiles []string
+		var totalSize int64
 
-	var smallFiles []string
-	var allRecords []Record
-
-	for _, file := range files {
-		fullPath := filepath.Join(c.table.Name, file)
-		data, err := c.table.FS.Read(fullPath)
-		if err != nil {
-			return err
-		}
-
-		if int64(len(data)) < sizeThreshold {
-			smallFiles = append(smallFiles, fullPath)
-
-			var records []Record
-			if err := json.Unmarshal(data, &records); err != nil {
+		for _, slice := range fileGroup.FileSlices {
+			size, err := c.getFileSize(slice.BaseFile)
+			if err != nil {
 				return err
 			}
-			allRecords = append(allRecords, records...)
-		}
-	}
 
-	if len(smallFiles) > 1 {
-		mergedFilePath := filepath.Join(c.table.Name, fmt.Sprintf("merged_%d.json", time.Now().UnixNano()))
-		mergedData, err := json.Marshal(allRecords)
-		if err != nil {
-			return err
-		}
+			if size < sizeThreshold {
+				smallFiles = append(smallFiles, slice.BaseFile)
+				totalSize += size
+			}
 
-		if err := c.table.FS.Write(mergedFilePath, mergedData); err != nil {
-			return err
-		}
+			if totalSize >= sizeThreshold || len(smallFiles) > 5 {
+				newBaseFile, err := c.mergeFiles(partitionPath, smallFiles)
+				if err != nil {
+					return err
+				}
 
-		// Delete small files
-		for _, file := range smallFiles {
-			if err := c.table.FS.Delete(file); err != nil {
-				return err
+				// Update file group with new base file
+				fileGroup.FileSlices = append(fileGroup.FileSlices, FileSlice{BaseFile: newBaseFile})
+
+				// Clear small files list
+				smallFiles = nil
+				totalSize = 0
 			}
 		}
-
-		commit := Commit{
-			Timestamp: time.Now(),
-			Type:      Compacted,
-		}
-		c.table.Timeline.AddCommit(commit)
 	}
+
+	instant := Instant{
+		Timestamp: time.Now(),
+		Action:    Compaction,
+		State:     "COMPLETED",
+	}
+	c.table.Timeline.AddInstant(instant)
 
 	return nil
+}
+
+func (c *Compactor) getFileSize(filePath string) (int64, error) {
+	// In a real implementation, this would get the actual file size
+	// For this example, we'll just return a dummy size
+	return 1024 * 1024, nil // 1 MB
+}
+
+func (c *Compactor) mergeFiles(partitionPath string, filePaths []string) (string, error) {
+	// In a real implementation, this would merge the given files
+	// For this example, we'll just create a new base file name
+	newBaseFileName := fmt.Sprintf("merged_%d.parquet", time.Now().UnixNano())
+	newBaseFilePath := filepath.Join(partitionPath, newBaseFileName)
+
+	// Here you would:
+	// 1. Read records from all input files
+	// 2. Merge the records, resolving any conflicts
+	// 3. Write the merged records to the new base file
+	// 4. Update the table's metadata and index
+
+	// For now, we'll just pretend we did all that
+	return newBaseFilePath, nil
 }

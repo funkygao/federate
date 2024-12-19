@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"time"
@@ -38,139 +37,136 @@ func main() {
 		log.Fatalf("Failed to unmarshal records: %v", err)
 	}
 
-	// Run demos for both table types
-	if err := demoCopyOnWrite(fs, schema, initialRecords); err != nil {
-		log.Printf("%v", err)
-	}
-	if err := demoMergeOnRead(fs, schema, initialRecords); err != nil {
+	// Demonstrate Copy-on-Write table
+	log.Println("=== Copy-on-Write Table Demo ===")
+	cowTable := table.NewTable("users_cow", table.CopyOnWrite, fs, schema)
+	if err := demoCopyOnWrite(cowTable, initialRecords); err != nil {
 		log.Printf("%v", err)
 	}
 
-	log.Println("Demos completed")
+	// Demonstrate Merge-on-Read table
+	log.Println("\n=== Merge-on-Read Table Demo ===")
+	morTable := table.NewTable("users_mor", table.MergeOnRead, fs, schema)
+	if err := demoMergeOnRead(morTable, initialRecords); err != nil {
+		log.Printf("%v", err)
+	}
 }
 
-func demoCopyOnWrite(fs store.FileSystem, schema *table.Schema, initialRecords []table.Record) error {
-	log.Println("=== Copy-on-Write Table Demo ===")
-
-	// Create a Copy-on-Write table
-	cowTable := table.NewTable("users_cow", table.CopyOnWrite, fs, schema)
-
-	// Upsert initial records into the Copy-on-Write table
-	if err := cowTable.Upsert(initialRecords); err != nil {
-		return fmt.Errorf("Failed to upsert records into Copy-on-Write table: %v", err)
+func demoCopyOnWrite(t *table.Table, initialRecords []table.Record) error {
+	// Insert initial records
+	if err := t.Upsert(initialRecords); err != nil {
+		return err
 	}
-	log.Println("Upserted initial records into Copy-on-Write table")
+	log.Println("Inserted initial records")
 
-	// Read records from the Copy-on-Write table
-	cowRecords, err := cowTable.Read()
+	// Read records
+	records, err := t.Read()
 	if err != nil {
-		return fmt.Errorf("Failed to read records from Copy-on-Write table: %v", err)
+		return err
 	}
-	log.Println("Records in Copy-on-Write table:")
-	for _, record := range cowRecords {
-		log.Printf("Key: %s, Fields: %v", record.Key, record.Fields)
-	}
+	log.Printf("Read %d records", len(records))
 
-	// Update a record in the Copy-on-Write table
-	updateRecordsCoW := []table.Record{
-		{
-			Key: "1",
-			Fields: map[string]interface{}{
-				"name":       "Alice Smith",
-				"age":        31,
-				"active":     true,
-				"last_login": time.Now().Format(time.RFC3339),
-			},
-			Timestamp: time.Now(),
+	// Update a record
+	updateRecord := table.Record{
+		Key: "1",
+		Fields: map[string]interface{}{
+			"name":       "Alice Smith",
+			"age":        31,
+			"active":     true,
+			"last_login": time.Now().Format(time.RFC3339),
 		},
+		Timestamp: time.Now(),
 	}
-	if err := cowTable.Upsert(updateRecordsCoW); err != nil {
-		return fmt.Errorf("Failed to update records in Copy-on-Write table: %v", err)
+	if err := t.Upsert([]table.Record{updateRecord}); err != nil {
+		return err
 	}
-	log.Println("Updated records in Copy-on-Write table")
+	log.Println("Updated record")
 
-	// Read records again from the Copy-on-Write table
-	cowRecords, err = cowTable.Read()
+	// Read records again
+	records, err = t.Read()
 	if err != nil {
-		return fmt.Errorf("Failed to read records after update from Copy-on-Write table: %v", err)
+		return err
 	}
-	log.Println("Records in Copy-on-Write table after update:")
-	for _, record := range cowRecords {
-		log.Printf("Key: %s, Fields: %v", record.Key, record.Fields)
-	}
+	log.Printf("Read %d records after update", len(records))
 
-	log.Println("=== End of Copy-on-Write Table Demo ===")
+	// Delete a record
+	if err := t.Delete([]string{"2"}); err != nil {
+		return err
+	}
+	log.Println("Deleted record")
+
+	// Read records one last time
+	records, err = t.Read()
+	if err != nil {
+		return err
+	}
+	log.Printf("Read %d records after delete", len(records))
 	return nil
 }
 
-func demoMergeOnRead(fs store.FileSystem, schema *table.Schema, initialRecords []table.Record) error {
-	log.Println("=== Merge-on-Read Table Demo ===")
-
-	// Create a Merge-on-Read table
-	morTable := table.NewTable("users_mor", table.MergeOnRead, fs, schema)
-
-	// Upsert initial records into the Merge-on-Read table
-	if err := morTable.Upsert(initialRecords); err != nil {
-		return fmt.Errorf("Failed to upsert records into Merge-on-Read table: %v", err)
+func demoMergeOnRead(t *table.Table, initialRecords []table.Record) error {
+	// Insert initial records
+	if err := t.Upsert(initialRecords); err != nil {
+		return err
 	}
-	log.Println("Upserted initial records into Merge-on-Read table")
+	log.Println("Inserted initial records")
 
-	// Read records from the Merge-on-Read table
-	morRecords, err := morTable.Read()
+	// Read records
+	records, err := t.Read()
 	if err != nil {
-		return fmt.Errorf("Failed to read records from Merge-on-Read table: %v", err)
+		return err
 	}
-	log.Println("Records in Merge-on-Read table:")
-	for _, record := range morRecords {
-		log.Printf("Key: %s, Fields: %v", record.Key, record.Fields)
-	}
+	log.Printf("Read %d records", len(records))
 
-	// Update a record in the Merge-on-Read table
-	updateRecordsMoR := []table.Record{
-		{
-			Key: "2",
-			Fields: map[string]interface{}{
-				"name":       "Bob Johnson",
-				"age":        26,
-				"active":     false,
-				"last_login": time.Now().Format(time.RFC3339),
-			},
-			Timestamp: time.Now(),
+	// Update a record
+	updateRecord := table.Record{
+		Key: "1",
+		Fields: map[string]interface{}{
+			"name":       "Alice Johnson",
+			"age":        32,
+			"active":     false,
+			"last_login": time.Now().Format(time.RFC3339),
 		},
+		Timestamp: time.Now(),
 	}
-	if err := morTable.Upsert(updateRecordsMoR); err != nil {
-		return fmt.Errorf("Failed to update records in Merge-on-Read table: %v", err)
+	if err := t.Upsert([]table.Record{updateRecord}); err != nil {
+		return err
 	}
-	log.Println("Updated records in Merge-on-Read table")
+	log.Println("Updated record")
 
-	// Read records again from the Merge-on-Read table
-	morRecords, err = morTable.Read()
+	// Read records again
+	records, err = t.Read()
 	if err != nil {
-		return fmt.Errorf("Failed to read records after update from Merge-on-Read table: %v", err)
+		return err
 	}
-	log.Println("Records in Merge-on-Read table after update:")
-	for _, record := range morRecords {
-		log.Printf("Key: %s, Fields: %v", record.Key, record.Fields)
-	}
+	log.Printf("Read %d records after update", len(records))
 
-	// Perform compaction on the Merge-on-Read table
-	compactor := table.NewCompactor(morTable)
-	if err := compactor.MergeSmallFiles(1024); err != nil {
-		return fmt.Errorf("Failed to compact small files in Merge-on-Read table: %v", err)
+	// Perform compaction
+	compactor := table.NewCompactor(t)
+	if err := compactor.Compact(); err != nil {
+		return err
 	}
-	log.Println("Compacted small files in Merge-on-Read table")
+	log.Println("Performed compaction")
 
-	// Read records again after compaction
-	morRecords, err = morTable.Read()
+	// Read records after compaction
+	records, err = t.Read()
 	if err != nil {
-		return fmt.Errorf("Failed to read records after compaction from Merge-on-Read table: %v", err)
+		return err
 	}
-	log.Println("Records in Merge-on-Read table after compaction:")
-	for _, record := range morRecords {
-		log.Printf("Key: %s, Fields: %v", record.Key, record.Fields)
-	}
+	log.Printf("Read %d records after compaction", len(records))
 
-	log.Println("=== End of Merge-on-Read Table Demo ===")
+	// Delete a record
+	if err := t.Delete([]string{"2"}); err != nil {
+		return err
+	}
+	log.Println("Deleted record")
+
+	// Read records one last time
+	records, err = t.Read()
+	if err != nil {
+		return err
+	}
+	log.Printf("Read %d records after delete\n", len(records))
 	return nil
 }
 

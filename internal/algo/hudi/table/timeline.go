@@ -7,32 +7,32 @@ import (
 )
 
 type Timeline struct {
-	mu      sync.RWMutex
-	commits []Commit
+	mu       sync.RWMutex
+	instants []Instant
 }
 
 func NewTimeline() *Timeline {
 	return &Timeline{
-		commits: make([]Commit, 0),
+		instants: make([]Instant, 0),
 	}
 }
 
-func (t *Timeline) AddCommit(commit Commit) {
+func (t *Timeline) AddInstant(instant Instant) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.commits = append(t.commits, commit)
-	sort.Slice(t.commits, func(i, j int) bool {
-		return t.commits[i].Timestamp.Before(t.commits[j].Timestamp)
+	t.instants = append(t.instants, instant)
+	sort.Slice(t.instants, func(i, j int) bool {
+		return t.instants[i].Timestamp.Before(t.instants[j].Timestamp)
 	})
 }
 
-func (t *Timeline) GetCommitsAfter(timestamp time.Time) []Commit {
+func (t *Timeline) GetInstantsAfter(timestamp time.Time) []Instant {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
-	var result []Commit
-	for _, commit := range t.commits {
-		if commit.Timestamp.After(timestamp) {
-			result = append(result, commit)
+	var result []Instant
+	for _, instant := range t.instants {
+		if instant.Timestamp.After(timestamp) {
+			result = append(result, instant)
 		}
 	}
 	return result

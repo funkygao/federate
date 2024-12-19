@@ -2,6 +2,7 @@ package table
 
 import (
 	"fmt"
+	"time"
 
 	"federate/internal/algo/hudi/meta"
 	"federate/internal/algo/hudi/store"
@@ -11,15 +12,17 @@ type Table struct {
 	Name               string
 	Type               TableType
 	FS                 store.FileSystem
-	Index              *FSIndex
+	Index              Index
 	Timeline           *Timeline
 	Metadata           *meta.Metadata
 	Schema             *Schema
 	ClusteringStrategy ClusteringStrategy
+	FileGroups         map[string]FileGroup // Key is partition path
+	LatestCommitTime   time.Time
 }
 
 func NewTable(name string, tableType TableType, fs store.FileSystem, schema *Schema) *Table {
-	table := &Table{
+	return &Table{
 		Name:               name,
 		Type:               tableType,
 		FS:                 fs,
@@ -27,9 +30,9 @@ func NewTable(name string, tableType TableType, fs store.FileSystem, schema *Sch
 		Metadata:           meta.NewMetadata(),
 		Schema:             schema,
 		ClusteringStrategy: &SimpleClusteringStrategy{MaxFileCount: 2},
+		FileGroups:         make(map[string]FileGroup),
+		Index:              NewBloomFilterIndex(),
 	}
-	table.Index = NewFSIndex(table)
-	return table
 }
 
 func (t *Table) Upsert(records []Record) error {
@@ -69,4 +72,14 @@ func (t *Table) Delete(keys []string) error {
 	default:
 		return fmt.Errorf("unsupported table type: %v", t.Type)
 	}
+}
+
+func (t *Table) updateTimeline(action InstantType, records []Record) {
+	instant := Instant{
+		Timestamp: time.Now(),
+		Action:    action,
+		State:     "COMPLETED",
+	}
+	t.Timeline.AddInstant(instant)
+	t.LatestCommitTime = instant.Timestamp
 }
