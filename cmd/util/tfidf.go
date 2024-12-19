@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"federate/pkg/java"
+	"federate/pkg/tabular"
 	"federate/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -22,13 +23,11 @@ var tfidfCmd = &cobra.Command{
 
 Example usage:
   federate util tfidf ./my-maven-project`,
-	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			fmt.Println("Please provide a directory.")
-			return
-		}
 		directory := args[0]
+		if len(args) > 0 {
+			directory = args[0]
+		}
 		showKeyFeatures(directory)
 	},
 }
@@ -52,10 +51,13 @@ func showKeyFeatures(directory string) {
 
 	tfidf := calculateTFIDF(corpus)
 
+	var data [][]string
+	header := []string{"Class", "Features"}
 	for i, file := range files {
 		topFeatures := getTopFeatures(tfidf[i], featureN)
-		fmt.Printf("%s\n  %s\n", java.JavaFile2Class(file), topFeatures)
+		data = append(data, []string{java.JavaFile2Class(file), topFeatures})
 	}
+	tabular.Display(header, data, true, 0)
 }
 
 func calculateTFIDF(corpus []string) []map[string]float64 {
