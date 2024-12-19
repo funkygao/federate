@@ -2,6 +2,7 @@ package util
 
 import (
 	"encoding/json"
+	"golang.org/x/term"
 	"io"
 	"io/ioutil"
 	"os"
@@ -54,6 +55,14 @@ func CopyFile(sourceFile, targetFile string) error {
 
 	_, err = io.Copy(target, source)
 	return err
+}
+
+func TerminalWidth() int {
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil {
+		width = 80 // 默认宽度
+	}
+	return width
 }
 
 func GetSubdirectories(root string) ([]string, error) {

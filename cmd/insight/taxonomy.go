@@ -3,15 +3,14 @@ package insight
 import (
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"sort"
 	"strings"
 
 	"federate/pkg/java"
+	"federate/pkg/util"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var (
@@ -85,15 +84,11 @@ func printArchetypeAnalysis(taxonomy map[string]int) {
 		return sorted[i].count > sorted[j].count
 	})
 
-	width, _, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		width = 80 // 默认宽度
-	}
-
 	fmt.Println("Code Taxonomy")
 	fmt.Println("-------------")
 
 	itemWidth := 25 // 每个项目的最大宽度
+	width := util.TerminalWidth()
 	itemsPerLine := width / itemWidth
 
 	for i, cc := range sorted {
