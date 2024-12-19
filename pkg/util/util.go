@@ -8,7 +8,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 	"unicode/utf8"
+
+	"golang.org/x/text/width"
 )
 
 func Contains(s string, l []string) bool {
@@ -20,13 +23,54 @@ func Contains(s string, l []string) bool {
 	return false
 }
 
-func Truncate(s string, maxLen int) string {
-	if utf8.RuneCountInString(s) <= maxLen {
-		return s
+func TerminalDisplayWidth(s string) int {
+	width := 0
+	for _, r := range s {
+		width += runeWidth(r)
+	}
+	return width
+}
+
+func Truncate(s string, maxWidth int) string {
+	if maxWidth <= 1 {
+		return "…"
 	}
 
-	truncated := []rune(s)[:maxLen]
-	return string(truncated) + "..."
+	width := 0
+	var truncated []rune
+
+	for _, r := range s {
+		charWidth := runeWidth(r)
+
+		if width+charWidth > maxWidth {
+			// 如果添加这个字符会超出最大宽度，停止并添加省略号
+			return string(truncated) + "…"
+		}
+
+		width += charWidth
+		truncated = append(truncated, r)
+	}
+
+	// 如果没有超出最大宽度，返回原始字符串
+	return s
+}
+
+func runeWidth(r rune) int {
+	if r == utf8.RuneError {
+		return 1
+	}
+
+	switch width.LookupRune(r).Kind() {
+	case width.EastAsianWide, width.EastAsianFullwidth:
+		return 3 // 修改为 3，以匹配实际终端行为
+	case width.EastAsianNarrow, width.EastAsianHalfwidth:
+		return 1
+	default:
+		if r > unicode.MaxASCII || unicode.IsControl(r) {
+			return 3 // 对于某些特殊字符，使用 3 个字符宽度
+		}
+		return 1
+	}
 }
 
 func RemoveEmptyLines(s string) string {

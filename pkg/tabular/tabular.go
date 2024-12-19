@@ -4,10 +4,10 @@ import (
 	"log"
 	"sort"
 
+	"federate/pkg/util"
 	"github.com/olekukonko/tablewriter"
 )
 
-// Display displays a table with the given header and data, sorted by the specified columns.
 func Display(header []string, data [][]string, autoMergeCells bool, sortByColumns ...int) {
 	if len(data) < 1 {
 		return
@@ -31,8 +31,66 @@ func Display(header []string, data [][]string, autoMergeCells bool, sortByColumn
 	table.SetAutoWrapText(false)
 	table.SetHeader(header)
 
-	for _, row := range data {
-		table.Append(row)
+	// Calculate column widths
+	termWidth := util.TerminalWidth()
+	colCount := len(header)
+	availableWidth := termWidth - (colCount + 1) // Subtract border characters
+	colWidths := calculateColumnWidths(header, data, colCount, availableWidth)
+
+	// Set column alignments based on calculated widths
+	alignments := make([]int, colCount)
+	for i := range alignments {
+		alignments[i] = tablewriter.ALIGN_LEFT
 	}
+	table.SetColumnAlignment(alignments)
+
+	// Disable auto-formatting for headers
+	table.SetAutoFormatHeaders(false)
+
+	for _, row := range data {
+		newRow := make([]string, colCount)
+		copy(newRow, row)
+		// Truncate only the last column if necessary
+		newRow[colCount-1] = util.Truncate(row[colCount-1], colWidths[colCount-1])
+		table.Append(newRow)
+	}
+
 	table.Render()
+}
+
+func calculateColumnWidths(header []string, data [][]string, colCount, availableWidth int) []int {
+	colWidths := make([]int, colCount)
+	maxWidths := make([]int, colCount)
+
+	// Calculate max width for each column
+	for col := 0; col < colCount; col++ {
+		maxWidths[col] = util.TerminalDisplayWidth(header[col])
+		for _, row := range data {
+			width := util.TerminalDisplayWidth(row[col])
+			if width > maxWidths[col] {
+				maxWidths[col] = width
+			}
+		}
+	}
+
+	// Distribute available width
+	totalMaxWidth := 0
+	for _, width := range maxWidths {
+		totalMaxWidth += width
+	}
+
+	if totalMaxWidth <= availableWidth {
+		// If total max width is less than available width, use max widths
+		copy(colWidths, maxWidths)
+	} else {
+		// Otherwise, distribute width proportionally
+		for col := 0; col < colCount-1; col++ {
+			colWidths[col] = maxWidths[col] * availableWidth / totalMaxWidth
+			availableWidth -= colWidths[col]
+		}
+		// Assign remaining width to the last column
+		colWidths[colCount-1] = availableWidth
+	}
+
+	return colWidths
 }

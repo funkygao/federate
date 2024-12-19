@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
-	"federate/pkg/util"
 	"github.com/fatih/color"
 )
 
@@ -141,7 +140,7 @@ func (l *Ledger) printMapSection(title, indent string, m map[string]map[string]s
 		keys := sortedKeys(m[component])
 		n += len(keys)
 		for _, key := range keys {
-			cellData = append(cellData, []string{component, key, util.Truncate(m[component][key], 60)})
+			cellData = append(cellData, []string{component, key, m[component][key]})
 		}
 	}
 	color.Yellow("%s: %d", title, n)

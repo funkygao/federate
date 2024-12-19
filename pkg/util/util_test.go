@@ -15,11 +15,36 @@ func TestContains(t *testing.T) {
 	assert.False(t, Contains("m", []string{"c", "a", "b"}))
 }
 
+func TestTerminalDisplayWidth(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected int
+	}{
+		{"重量", 6},
+		{"abc", 3},
+		{"…", 3},
+		{"重重x", 7},
+		{"あいうえお", 15},
+		{"Hello, 世界", 13},
+		{"🍎", 3}, // emoji 通常占用 3 个字符宽度
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			assert.Equal(t, tt.expected, TerminalDisplayWidth(tt.input))
+		})
+	}
+}
+
 func TestTruncate(t *testing.T) {
-	assert.Equal(t, "你好，世界...", Truncate("你好，世界！Hello, World!", 5))
-	assert.Equal(t, "你好，世...", Truncate("你好，世界！Hello, World!", 4))
-	assert.Equal(t, "你好,...", Truncate("你好,世界！Hello, World!", 3))
-	assert.Equal(t, "你好...", Truncate("你好,世界！Hello, World!", 2))
+	assert.Equal(t, "你…", Truncate("你好，世界！Hello, World!", 5))
+	assert.Equal(t, "你…", Truncate("你好，世界！Hello, World!", 4))
+	assert.Equal(t, "你…", Truncate("你好,世界！Hello, World!", 3))
+	assert.Equal(t, "…", Truncate("你好,世界！Hello, World!", 2))
+	assert.Equal(t, "abcde", Truncate("abcde", 5))
+	assert.Equal(t, "abcde", Truncate("abcde", 15))
+	assert.Equal(t, "ab…", Truncate("abcde", 2))
+	assert.Equal(t, "abc…", Truncate("abcde", 3))
 }
 
 func TestFileExists(t *testing.T) {
