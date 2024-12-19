@@ -14,6 +14,11 @@ import (
 	"golang.org/x/text/width"
 )
 
+const (
+	ellipsis      = "-"
+	ellipsisWidth = 1
+)
+
 func Contains(s string, l []string) bool {
 	for _, data := range l {
 		if data == s {
@@ -32,26 +37,24 @@ func TerminalDisplayWidth(s string) int {
 }
 
 func Truncate(s string, maxWidth int) string {
-	if maxWidth <= 1 {
-		return "…"
-	}
-
 	width := 0
 	var truncated []rune
-
-	for _, r := range s {
+	for i, r := range s {
 		charWidth := runeWidth(r)
 
-		if width+charWidth > maxWidth {
-			// 如果添加这个字符会超出最大宽度，停止并添加省略号
-			return string(truncated) + "…"
+		if width+charWidth+ellipsisWidth > maxWidth {
+			if i == len(s)-1 && charWidth == 1 {
+				// 最后一个字符了，而且不是中文
+				return string(append(truncated, r))
+			}
+			return string(truncated) + ellipsis
 		}
 
 		width += charWidth
 		truncated = append(truncated, r)
 	}
 
-	// 如果没有超出最大宽度，返回原始字符串
+	// 没有超出最大宽度，返回原始字符串
 	return s
 }
 
@@ -62,12 +65,12 @@ func runeWidth(r rune) int {
 
 	switch width.LookupRune(r).Kind() {
 	case width.EastAsianWide, width.EastAsianFullwidth:
-		return 3 // 修改为 3，以匹配实际终端行为
+		return 3
 	case width.EastAsianNarrow, width.EastAsianHalfwidth:
 		return 1
 	default:
 		if r > unicode.MaxASCII || unicode.IsControl(r) {
-			return 3 // 对于某些特殊字符，使用 3 个字符宽度
+			return 3
 		}
 		return 1
 	}

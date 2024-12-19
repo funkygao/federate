@@ -23,6 +23,7 @@ func TestTerminalDisplayWidth(t *testing.T) {
 		{"重量", 6},
 		{"abc", 3},
 		{"…", 3},
+		{ellipsis, 1},
 		{"重重x", 7},
 		{"あいうえお", 15},
 		{"Hello, 世界", 13},
@@ -37,14 +38,17 @@ func TestTerminalDisplayWidth(t *testing.T) {
 }
 
 func TestTruncate(t *testing.T) {
-	assert.Equal(t, "你…", Truncate("你好，世界！Hello, World!", 5))
-	assert.Equal(t, "你…", Truncate("你好，世界！Hello, World!", 4))
-	assert.Equal(t, "你…", Truncate("你好,世界！Hello, World!", 3))
-	assert.Equal(t, "…", Truncate("你好,世界！Hello, World!", 2))
+	assert.Equal(t, "你好，-", Truncate("你好，世界！Hello, World!", 10))
+	assert.Equal(t, "你好-", Truncate("你好，世界！Hello, World!", 9))
+	assert.Equal(t, "你好,-", Truncate("你好,世界！Hello, World!", 9))
+	assert.Equal(t, "你-", Truncate("你好，世界！Hello, World!", 5))
+	assert.Equal(t, "你-", Truncate("你好，世界！Hello, World!", 4))
+	assert.Equal(t, "-", Truncate("你好,世界！Hello, World!", 3))
+	assert.Equal(t, "-", Truncate("你好,世界！Hello, World!", 2))
 	assert.Equal(t, "abcde", Truncate("abcde", 5))
 	assert.Equal(t, "abcde", Truncate("abcde", 15))
-	assert.Equal(t, "ab…", Truncate("abcde", 2))
-	assert.Equal(t, "abc…", Truncate("abcde", 3))
+	assert.Equal(t, "a-", Truncate("abcde", 2))
+	assert.Equal(t, "ab-", Truncate("abcde", 3))
 }
 
 func TestFileExists(t *testing.T) {
