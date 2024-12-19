@@ -46,7 +46,7 @@ clean:
 			(cd $$repo && git checkout -q .) || echo "Failed to checkout $$repo"; \
 		fi; \
 	done
-	rm -rf {{.FusionProjectName}}
+	rm -rf {{.FusionProjectName}} report.json
 
 checkenv:
 	if [ -z "$(ENV)" ]; then \
