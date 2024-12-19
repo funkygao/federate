@@ -3,7 +3,6 @@ package microservice
 import (
 	"log"
 	"os"
-	"path/filepath"
 
 	"federate/internal/fs"
 	"federate/pkg/federated"
@@ -65,7 +64,7 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	}
 
 	// plugins
-	generateFile("plugin.md", filepath.Join(federated.FederatePluginsDir, "README.md"), data)
+	//generateFile("plugin.md", filepath.Join(federated.FederatePluginsDir, "README.md"), data)
 
 	color.Green("🍺 Fusion project[%s] scaffolded.", m.Main.Name)
 }
