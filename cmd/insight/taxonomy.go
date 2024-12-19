@@ -68,7 +68,7 @@ func extractArchetype(filename string) string {
 func init() {
 	taxonomyCmd.Flags().IntVarP(&minCount, "min-count", "m", 10, "Minimum count to display an element")
 	taxonomyCmd.Flags().BoolVarP(&useBarChart, "bar-chart", "b", true, "Use bar chart display")
-	taxonomyCmd.Flags().IntVarP(&topK, "top", "t", 30, "Number of top elements to display in bar chart")
+	taxonomyCmd.Flags().IntVarP(&topK, "top", "t", 50, "Number of top elements to display in bar chart")
 }
 
 func printArchetypeAnalysis(taxonomy map[string]int) {
