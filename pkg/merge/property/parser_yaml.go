@@ -1,6 +1,7 @@
 package property
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -137,6 +138,12 @@ func (y *yamlParser) applyJSONPatch(yamlString string) string {
 
 		// 将多行 JSON 合并为一行
 		jsonStr = regexp.MustCompile(`\s+`).ReplaceAllString(jsonStr, " ")
+
+		// 验证 JSON 处理合法
+		var data any
+		if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+			log.Fatalf("Invalid json, %s: %s", key, jsonStr)
+		}
 
 		// 记录被替换的 key
 		ledger.Get().TransformJsonKey(key)
