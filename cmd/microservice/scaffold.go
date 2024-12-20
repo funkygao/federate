@@ -55,9 +55,6 @@ func generateMonolithFiles(m *manifest.Manifest) {
 	generateFile("pom.xml", "pom.xml", data)
 	generateFile("gitignore", ".gitignore", data)
 
-	// Add .gitattributes to skip merging specific files
-	generateFile("gitattributes", ".gitattributes", data)
-
 	// create starter dir
 	if err := os.MkdirAll(federated.StarterBaseDir(m.Main.Name), 0755); err != nil {
 		log.Fatalf("Error creating directory: %v", err)
