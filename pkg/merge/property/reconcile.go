@@ -111,14 +111,14 @@ func (pm *PropertyManager) updateXMLPropertyReference(c manifest.ComponentInfo, 
 		newContent := oldContent
 		changed := false
 
-		// 对于每个冲突key，对该XML进行叠加式 prop key reference替换
+		// 对于每个冲突key，对该XML进行叠加式 prop key reference 替换
 		for i, regex := range keyRegexes {
 			matches := regex.FindAllStringSubmatchIndex(oldContent, -1)
 			if len(matches) > 0 {
 				changed = true
 
 				newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-					// do the update
+					// do the replace
 					newKey := Key(conflictKeys[i]).WithNamespace(c.Name)
 					replaced := pm.transformXMLPropertyKeyReference(regex, match, conflictKeys[i], newKey)
 
