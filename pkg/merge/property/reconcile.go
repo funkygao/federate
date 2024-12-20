@@ -118,7 +118,7 @@ func (pm *PropertyManager) updateXMLPropertyReference(c manifest.ComponentInfo, 
 				newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
 					newKey := Key(conflictKeys[i]).WithNamespace(c.Name)
 					// do the update
-					replaced := pm.transformXMLPropertyKeyReference(match, conflictKeys[i], newKey)
+					replaced := pm.transformXMLPropertyKeyReference(regex, match, conflictKeys[i], newKey)
 					dmp := diffmatchpatch.New()
 					diffs := dmp.DiffMain(match, replaced, false)
 					if pm.debug {
@@ -140,14 +140,11 @@ func (pm *PropertyManager) updateXMLPropertyReference(c manifest.ComponentInfo, 
 	return nil
 }
 
-func (pm *PropertyManager) transformXMLPropertyKeyReference(match, key, newKey string) string {
-	parts := strings.Split(match, "${")
-	for i := 1; i < len(parts); i++ {
-		if strings.HasPrefix(parts[i], key) {
-			parts[i] = newKey + strings.TrimPrefix(parts[i], key)
-		}
+func (pm *PropertyManager) transformXMLPropertyKeyReference(re *regexp.Regexp, match, key, newKey string) string {
+	if re == nil {
+		re = P.createXMLPropertyReferenceRegex(key)
 	}
-	return strings.Join(parts, "${")
+	return re.ReplaceAllString(match, "${1}"+newKey+"$2}")
 }
 
 // 修改 @RequestMapping path

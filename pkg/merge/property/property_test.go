@@ -62,7 +62,7 @@ func TestTransformXMLPropertyKeyReference(t *testing.T) {
 
 	m := &PropertyManager{}
 	for _, tt := range tests {
-		result := m.transformXMLPropertyKeyReference(tt.match, tt.key, tt.newKey)
+		result := m.transformXMLPropertyKeyReference(nil, tt.match, tt.key, tt.newKey)
 		assert.Equal(t, tt.expected, result)
 	}
 }
@@ -447,6 +447,103 @@ key2: value2`,
 		t.Run(tt.name, func(t *testing.T) {
 			result := parser.applyJSONPatch(tt.input)
 			assert.Equal(t, tt.expected, result, "The output should match the expected result")
+		})
+	}
+}
+
+func TestTransformXMLPropertyKeyReferenceComplex(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		key      string
+		matched  bool
+		newKey   string
+		expected string
+	}{
+		{
+			name:     "Simple key replacement",
+			input:    `alias="${foo}"`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `alias="${new.foo}"`,
+		},
+		{
+			name:     "Key with prefix",
+			input:    `alias="abc${foo}"`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `alias="abc${new.foo}"`,
+		},
+		{
+			name:     "Key with underscore prefix",
+			input:    `alias="abc_${foo}"`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `alias="abc_${new.foo}"`,
+		},
+		{
+			name:     "Multiple occurrences",
+			input:    `alias="${foo}${bar}${foo}"`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `alias="${new.foo}${bar}${new.foo}"`,
+		},
+		{
+			name:     "No replacement needed",
+			input:    `alias="${bar}"`,
+			key:      "foo",
+			matched:  false,
+			newKey:   "new.foo",
+			expected: `alias="${bar}"`,
+		},
+		{
+			name:     "Concated placeholder",
+			input:    `<dubbo:service id="foo" alias="abc_${foo}" validation="true" serialization="hessian">`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `<dubbo:service id="foo" alias="abc_${new.foo}" validation="true" serialization="hessian">`,
+		},
+		{
+			name:     "Concated placeholder",
+			input:    `<dubbo:service id="foo" alias="worker:abc_${foo}" validation="true" serialization="hessian">`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `<dubbo:service id="foo" alias="worker:abc_${new.foo}" validation="true" serialization="hessian">`,
+		},
+		{
+			name:     "Concated placeholder",
+			input:    `<dubbo:service id="foo" alias="abc${foo}" validation="true" serialization="hessian">`,
+			key:      "foo",
+			matched:  true,
+			newKey:   "new.foo",
+			expected: `<dubbo:service id="foo" alias="abc${new.foo}" validation="true" serialization="hessian">`,
+		},
+		{
+			name:     "Partial key input",
+			input:    `alias="${foobar}"`,
+			key:      "foo",
+			matched:  false,
+			newKey:   "new.foo",
+			expected: `alias="${foobar}"`,
+		},
+	}
+
+	pm := &PropertyManager{}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			re := P.createXMLPropertyReferenceRegex(tc.key)
+			matches := re.FindAllStringSubmatchIndex(tc.input, -1)
+			t.Logf("%v", matches)
+			assert.Equal(t, tc.matched, len(matches) > 0)
+
+			result := pm.transformXMLPropertyKeyReference(nil, tc.input, tc.key, tc.newKey)
+			assert.Equal(t, tc.expected, result, "Transformation result should input expected output")
 		})
 	}
 }

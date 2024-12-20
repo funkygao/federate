@@ -19,7 +19,7 @@ type pattern struct {
 }
 
 func (p *pattern) createXMLPropertyReferenceRegex(key string) *regexp.Regexp {
-	return regexp.MustCompile(`(\w+\s*=\s*"\$\{)` + regexp.QuoteMeta(key) + `(:[^}]*)?\}"`)
+	return regexp.MustCompile(`(\$\{)` + regexp.QuoteMeta(key) + `\b(:[^}]*)?\}`)
 }
 
 func ParserByFile(file string) (parser PropertyParser, supported bool) {
