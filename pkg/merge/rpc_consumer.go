@@ -12,6 +12,8 @@ import (
 	"github.com/beevik/etree"
 )
 
+var _ XMLGenerator = (*RpcConsumerManager)(nil)
+
 // 合并 RPC Consumer xml
 type RpcConsumerManager struct {
 	m *manifest.Manifest
@@ -185,6 +187,10 @@ func (dm *RpcConsumerManager) registerReference(component manifest.ComponentInfo
 
 	dm.globalReferenceMap[interfaceName] = reference
 	dm.interfaceToComponent[interfaceName] = component.Name
+}
+
+func (dm *RpcConsumerManager) GeneratedXML() []string {
+	return []string{dm.TargetFile}
 }
 
 func (dm *RpcConsumerManager) writeMergedXmlToFile(targetDir string) error {

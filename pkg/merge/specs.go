@@ -48,6 +48,10 @@ type DetectOnlyReconciler interface {
 	DetectOnly() bool
 }
 
+type XMLGenerator interface {
+	GeneratedXML() []string
+}
+
 func RunReconcile(r Reconciler, bar step.Bar) error {
 	switch rec := r.(type) {
 	case SimpleReconciler:

@@ -22,6 +22,8 @@ type ReconcileReport struct {
 type PropertyManager struct {
 	m        *manifest.Manifest
 	r        *registry
+	xmlFiles []string
+
 	prepared bool
 
 	silent      bool
@@ -45,6 +47,14 @@ func NewManager(m *manifest.Manifest) *PropertyManager {
 
 func (pm *PropertyManager) Name() string {
 	return "Reconcile Property Conflicts"
+}
+
+func (pm *PropertyManager) AddXML(files []string) {
+	if pm.xmlFiles == nil {
+		pm.xmlFiles = files
+	} else {
+		pm.xmlFiles = append(pm.xmlFiles, files...)
+	}
 }
 
 func (pm *PropertyManager) M() *manifest.Manifest {

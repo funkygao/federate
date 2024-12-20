@@ -113,6 +113,12 @@ func (p *compiler) loadDefaultReconcilers() {
 	p.AddReconciler(NewEnvManager(pm))
 	p.AddReconciler(NewRpcAliasManager(pm))
 	p.AddReconciler(NewJavaAstTransformer(p.m))
+
+	for _, r := range p.reconcilers {
+		if g, ok := r.(XMLGenerator); ok {
+			pm.AddXML(g.GeneratedXML())
+		}
+	}
 }
 
 func (p *compiler) loadPluginReconcilers() {
