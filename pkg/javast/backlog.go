@@ -5,25 +5,19 @@ import (
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
-	"federate/pkg/step"
 )
 
 var backlog []Command
 
-func Instrument(bar step.Bar) error {
-	driver := NewJavastDriver()
-	return driver.Invoke(bar, backlog...)
-}
-
-func TransformResourceInject(component manifest.ComponentInfo) {
+func BacklogTransformResourceInject(component manifest.ComponentInfo) {
 	backlog = append(backlog, Command{CmdTransformResourceInject, component.Name, component.Name})
 }
 
-func TransformImportResource(component manifest.ComponentInfo) {
+func BacklogTransformImportResource(component manifest.ComponentInfo) {
 	backlog = append(backlog, Command{CmdTransformImportResource, component.Name, component.Name})
 }
 
-func TransformComponentBean(component manifest.ComponentInfo) {
+func BacklogTransformComponentBean(component manifest.ComponentInfo) {
 	if len(component.Transform.Services) == 0 {
 		return
 	}
@@ -32,7 +26,7 @@ func TransformComponentBean(component manifest.ComponentInfo) {
 	backlog = append(backlog, Command{CmdReplaceService, component.Name, string(jsonArgs)})
 }
 
-func InjectTransactionManager(component manifest.ComponentInfo) {
+func BacklogInjectTransactionManager(component manifest.ComponentInfo) {
 	if component.Transform.TxManager == "" {
 		return
 	}
@@ -41,7 +35,7 @@ func InjectTransactionManager(component manifest.ComponentInfo) {
 	backlog = append(backlog, Command{CmdInjectTrxManager, component.Name, component.Transform.TxManager})
 }
 
-func UpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]string) {
+func BacklogUpdatePropertyKeys(component manifest.ComponentInfo, keyMapping map[string]string) {
 	if len(keyMapping) == 0 {
 		return
 	}

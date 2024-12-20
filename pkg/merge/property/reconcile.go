@@ -57,7 +57,7 @@ func (pm *PropertyManager) Reconcile(bar step.Bar) (err error) {
 		component := *pm.m.ComponentByName(componentName)
 
 		// 通过 Java AST 修改 Java 源代码里对冲突key的引用
-		javast.UpdatePropertyKeys(component, keyMapping)
+		javast.BacklogUpdatePropertyKeys(component, keyMapping)
 
 		// 为 @RequestMapping 增加路径前缀
 		componentServletContextPath := pm.servletContextPath[componentName]
@@ -111,19 +111,23 @@ func (pm *PropertyManager) updateXMLPropertyReference(c manifest.ComponentInfo, 
 		newContent := oldContent
 		changed := false
 
+		// 对于每个冲突key，对该XML进行叠加式 prop key reference替换
 		for i, regex := range keyRegexes {
 			matches := regex.FindAllStringSubmatchIndex(oldContent, -1)
 			if len(matches) > 0 {
 				changed = true
+
 				newContent = regex.ReplaceAllStringFunc(newContent, func(match string) string {
-					newKey := Key(conflictKeys[i]).WithNamespace(c.Name)
 					// do the update
+					newKey := Key(conflictKeys[i]).WithNamespace(c.Name)
 					replaced := pm.transformXMLPropertyKeyReference(regex, match, conflictKeys[i], newKey)
-					dmp := diffmatchpatch.New()
-					diffs := dmp.DiffMain(match, replaced, false)
+
 					if pm.debug {
+						dmp := diffmatchpatch.New()
+						diffs := dmp.DiffMain(match, replaced, false)
 						log.Printf("[%s] Transforming %s\n%s", c.Name, f.Path, dmp.DiffPrettyText(diffs))
 					}
+
 					return replaced
 				})
 			}

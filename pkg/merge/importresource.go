@@ -25,7 +25,7 @@ func (m *ImportResourceManager) Name() string {
 
 func (m *ImportResourceManager) Reconcile() error {
 	for _, component := range m.m.Components {
-		javast.TransformImportResource(component)
+		javast.BacklogTransformImportResource(component)
 	}
 	return nil
 }

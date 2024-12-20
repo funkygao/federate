@@ -30,7 +30,7 @@ func (m *SpringBeanInjectionManager) Name() string {
 func (m *SpringBeanInjectionManager) Reconcile() error {
 	for _, component := range m.m.Components {
 		if false {
-			javast.TransformResourceInject(component)
+			javast.BacklogTransformResourceInject(component)
 		}
 		if err := m.reconcileComponent(component); err != nil {
 			return err

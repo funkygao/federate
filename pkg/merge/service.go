@@ -25,7 +25,7 @@ func (m *ServiceManager) Reconcile() error {
 	// pass 1: 通过 javast 修改源代码
 	refTransformMap := make(map[string]map[string]string)
 	for _, c := range m.m.Components {
-		javast.TransformComponentBean(c)
+		javast.BacklogTransformComponentBean(c)
 
 		if refTransformMap[c.Name] == nil {
 			refTransformMap[c.Name] = make(map[string]string)
