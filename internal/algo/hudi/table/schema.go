@@ -20,21 +20,6 @@ const (
 	MergeOnRead
 )
 
-type InstantType string
-
-const (
-	Commit      InstantType = "COMMIT"
-	DeltaCommit InstantType = "DELTA_COMMIT"
-	Compaction  InstantType = "COMPACTION"
-	Clustering  InstantType = "CLUSTERING"
-)
-
-type Instant struct {
-	Timestamp time.Time
-	Action    InstantType
-	State     string // REQUESTED, INFLIGHT, COMPLETED
-}
-
 type FieldType string
 
 const (
