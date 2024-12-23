@@ -40,16 +40,16 @@ fmt:
 	go fmt ./...
 
 race: fmt
-	go test -race ./...
+	go test -race $(PACKAGES)
 
 test: fmt
 	go test $(PACKAGES)
 
 stress:
-	go test ./... -test.count 20 -test.failfast
+	go test $(PACKAGES) -test.count 20 -test.failfast
 
 coverage:
-	go test ./... -cover | column -t
+	go test $(PACKAGES) -cover | grep -w ok | column -t
 
 clean:
 	find . \( -name a -o -name .DS_Store \) -exec rm -f {} \;
