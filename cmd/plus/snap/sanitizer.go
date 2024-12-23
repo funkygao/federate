@@ -54,6 +54,7 @@ func removeUnnecessaryFiles(dir string, indent int) {
 	logIndent(indent+1, "- Remove internal documentation")
 	logIndent(indent+1, "- Remove development scripts")
 	logIndent(indent+1, "- Remove any temporary or cache files")
+	logIndent(indent+1, "- Remove logs")
 }
 
 func removeSensitiveInformation(dir string, indent int) {
