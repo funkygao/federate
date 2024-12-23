@@ -54,7 +54,7 @@ func showDuplicates(m *manifest.Manifest) {
 	for file, pairs := range similarFiles {
 		color.Yellow(file)
 		for _, pair := range pairs {
-			log.Printf("  - %.2f%% %s\n", pair.Similarity*100, pair.File2)
+			log.Printf("%s %.2f%%", pair.File2, pair.Similarity*100)
 		}
 		log.Println()
 	}
