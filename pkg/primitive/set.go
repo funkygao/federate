@@ -24,7 +24,7 @@ func (s *StringSet) Items() map[string]struct{} {
 }
 
 func (s *StringSet) Values() []string {
-	r := make([]string, 0, s.Size())
+	r := make([]string, 0, s.Cardinality())
 	for s := range s.items {
 		r = append(r, s)
 	}
@@ -39,6 +39,6 @@ func (s *StringSet) Clear() {
 	s.items = make(map[string]struct{})
 }
 
-func (s *StringSet) Size() int {
+func (s *StringSet) Cardinality() int {
 	return len(s.items)
 }

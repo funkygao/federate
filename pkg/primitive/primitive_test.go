@@ -13,7 +13,7 @@ func TestValues(t *testing.T) {
 	s.Add("1")
 	s.Add("2")
 	s.Add("5")
-	assert.Equal(t, 3, s.Size())
+	assert.Equal(t, 3, s.Cardinality())
 
 	values := s.Values()
 	sort.Strings(values)

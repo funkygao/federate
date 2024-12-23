@@ -87,7 +87,7 @@ func detectVersionConflicts(bar step.Bar) {
 	}
 
 	for artifact, versions := range artifactVersions {
-		if versions.Size() > 1 {
+		if versions.Cardinality() > 1 {
 			color.Yellow("Version conflict detected for %s: %v", artifact, versions.Values())
 		}
 	}
