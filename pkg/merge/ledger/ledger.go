@@ -90,15 +90,15 @@ func (l *Ledger) RegisterEnvKey(componentName, key string) {
 func (l *Ledger) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Guide                   string                         `json:"帮助,omitempty"`
-		RegularProperties       map[string]map[string]string   `json:"属性Key变化"`
-		PropertyPlaceholders    map[string]map[string]string   `json:"属性的引用值变化"`
-		EnvKeys                 map[string]map[string]struct{} `json:"目前使用的环境变量"`
-		Transactions            map[string]string              `json:"@Transactional 相关源代码改动"`
-		ImportResource          map[string]map[string]string   `json:"@ImportResource 相关源代码改动"`
-		ConfigurationProperties map[string]map[string]string   `json:"@ConfigurationProperties 相关源代码改动"`
-		RequestMappings         map[string]map[string]string   `json:"@RequestMapping 相关源代码改动"`
-		JsonKeys                []string                       `json:"application.yml 里value为JSON的key"`
-		ObfuscateFails          []string                       `json:"加混淆失败的JAR"`
+		RegularProperties       map[string]map[string]string   `json:"属性Key变化,omitempty"`
+		PropertyPlaceholders    map[string]map[string]string   `json:"属性的引用值变化,omitempty"`
+		EnvKeys                 map[string]map[string]struct{} `json:"目前使用的环境变量,omitempty"`
+		Transactions            map[string]string              `json:"@Transactional 相关源代码改动,omitempty"`
+		ImportResource          map[string]map[string]string   `json:"@ImportResource 相关源代码改动,omitempty"`
+		ConfigurationProperties map[string]map[string]string   `json:"@ConfigurationProperties 相关源代码改动,omitempty"`
+		RequestMappings         map[string]map[string]string   `json:"@RequestMapping 相关源代码改动,omitempty"`
+		JsonKeys                []string                       `json:"application.yml 里value为JSON的key,omitempty"`
+		ObfuscateFails          []string                       `json:"加混淆失败的JAR,omitempty"`
 	}{
 		Guide:                   "汇总代码和资源文件变更：按照模块分组，左侧是旧值，右侧是新值",
 		Transactions:            l.transactions,

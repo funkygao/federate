@@ -52,13 +52,17 @@ func obfuscateJars(m *manifest.Manifest, bar step.Bar) {
 
 	bar.ChangeMax(len(jars))
 
+	cwd, _ := os.Getwd()
+
 	for _, jarPath := range jars {
 		bar.Describe(fmt.Sprintf("%s %s", oldBarDesc, filepath.Base(jarPath)))
 		err := obfuscateJar(jarPath, proguardJarPath)
 		bar.Add(1)
 		if err != nil {
-			ledger.Get().FailToObfuscateJar(filepath.Base(jarPath))
-			log.Printf("\nFailed to obfuscate JAR %s: %v", jarPath, err)
+			relPath, _ := filepath.Rel(cwd, jarPath)
+			log.Printf("\nFailed to obfuscate JAR %s: %v", relPath, err)
+
+			ledger.Get().FailToObfuscateJar(relPath)
 		}
 	}
 }
