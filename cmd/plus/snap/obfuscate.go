@@ -3,6 +3,7 @@
 package snap
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"text/template"
 
 	"federate/pkg/manifest"
 	"federate/pkg/merge/ledger"
@@ -19,6 +21,9 @@ import (
 
 //go:embed embedded/proguard.jar
 var proguardJar embed.FS
+
+//go:embed embedded/proguard.config
+var proguardConfigTemplate string
 
 func obfuscateJars(m *manifest.Manifest, bar step.Bar) {
 	if !enableObfuscation {
@@ -107,46 +112,33 @@ func obfuscateJar(jarPath, proguardJarPath string) error {
 
 	obfuscatedJarPath := filepath.Join(tempDir, "obfuscated.jar")
 
-	proguardConfig := fmt.Sprintf(`
--injars %s
--outjars %s
--libraryjars <java.home>/lib/rt.jar
--libraryjars <java.home>/lib/jce.jar
--libraryjars <java.home>/lib/jsse.jar
--libraryjars %s/slf4j-api-1.7.30.jar
--dontusemixedcaseclassnames
--keepattributes Signature
--dontwarn **
--keep class ** { *; }
--keep interface ** { *; }
--keep public class * {
-    public protected *;
-}
--keepclassmembernames class * {
-    java.lang.Class class$(java.lang.String);
-    java.lang.Class class$(java.lang.String, boolean);
-}
--keepclasseswithmembernames class * {
-    native <methods>;
-}
--keepclassmembers enum * {
-    public static **[] values();
-    public static ** valueOf(java.lang.String);
-}
--keepclassmembers class * implements java.io.Serializable {
-    static final long serialVersionUID;
-    private static final java.io.ObjectStreamField[] serialPersistentFields;
-    private void writeObject(java.io.ObjectOutputStream);
-    private void readObject(java.io.ObjectInputStream);
-    java.lang.Object writeReplace();
-    java.lang.Object readResolve();
-}
--verbose
-`, jarPath, obfuscatedJarPath, absLocalRepoPath)
+	// 创建一个新的模板
+	tmpl, err := template.New("proguardConfig").Parse(proguardConfigTemplate)
+	if err != nil {
+		return fmt.Errorf("Failed to parse ProGuard config template: %v", err)
+	}
+
+	// 准备模板数据
+	data := struct {
+		InJar   string
+		OutJar  string
+		LibJars string
+	}{
+		InJar:   jarPath,
+		OutJar:  obfuscatedJarPath,
+		LibJars: absLocalRepoPath,
+	}
+
+	// 执行模板
+	var configBuffer bytes.Buffer
+	err = tmpl.Execute(&configBuffer, data)
+	if err != nil {
+		return fmt.Errorf("Failed to execute ProGuard config template: %v", err)
+	}
 
 	// 将配置写入临时文件
 	configPath := filepath.Join(tempDir, "proguard.config")
-	err = os.WriteFile(configPath, []byte(proguardConfig), 0644)
+	err = os.WriteFile(configPath, configBuffer.Bytes(), 0644)
 	if err != nil {
 		return fmt.Errorf("Failed to write ProGuard config: %v", err)
 	}
