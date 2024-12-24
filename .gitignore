@@ -14,6 +14,8 @@ Untitled.ipynb
 *.idea
 *.log
 *.so
+*.dylib
+*.class
 
 # Eclipse artifacts, including WTP generated manifests
 .classpath
