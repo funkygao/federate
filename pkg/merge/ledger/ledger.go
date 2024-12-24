@@ -20,6 +20,7 @@ type Ledger struct {
 	requestMappings         map[string]map[string]string
 	envKeys                 map[string]map[string]struct{}
 	ymlJsonKeys             []string
+	failedObfuscate         []string
 }
 
 var instance = newLedger()
@@ -50,6 +51,10 @@ func (l *Ledger) TransformRegularProperty(componentName, value, newValue string)
 
 func (l *Ledger) TransformJsonKey(key string) {
 	l.ymlJsonKeys = append(l.ymlJsonKeys, key)
+}
+
+func (l *Ledger) FailToObfuscateJar(jar string) {
+	l.failedObfuscate = append(l.failedObfuscate, jar)
 }
 
 func (l *Ledger) TransformConfigurationProperties(componentName, value, newValue string) {
@@ -93,6 +98,7 @@ func (l *Ledger) MarshalJSON() ([]byte, error) {
 		ConfigurationProperties map[string]map[string]string   `json:"@ConfigurationProperties 相关源代码改动"`
 		RequestMappings         map[string]map[string]string   `json:"@RequestMapping 相关源代码改动"`
 		JsonKeys                []string                       `json:"application.yml 里value为JSON的key"`
+		ObfuscateFails          []string                       `json:"加混淆失败的JAR"`
 	}{
 		Guide:                   "汇总代码和资源文件变更：按照模块分组，左侧是旧值，右侧是新值",
 		Transactions:            l.transactions,
@@ -103,6 +109,7 @@ func (l *Ledger) MarshalJSON() ([]byte, error) {
 		RequestMappings:         l.requestMappings,
 		EnvKeys:                 l.envKeys,
 		JsonKeys:                l.ymlJsonKeys,
+		ObfuscateFails:          l.failedObfuscate,
 	})
 }
 

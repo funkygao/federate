@@ -27,6 +27,9 @@ func TestLoad(t *testing.T) {
 	manifest = Load()
 	assert.Equal(t, "com.goog.foo", manifest.Main.GroupId)
 
+	// plus
+	assert.Equal(t, []string{"ant", "zookeeper"}, manifest.Main.Plus.Obfuscate.Jars)
+
 	assert.Equal(t, "wms-inventory-web", manifest.Main.Dependency.Excludes[0].ArtifactId)
 	assert.Equal(t, 1, len(manifest.Main.Reconcile.Resources.Property.Overrides))
 	assert.Equal(t, false, manifest.Main.Reconcile.Resources.Property.IsDryRun())

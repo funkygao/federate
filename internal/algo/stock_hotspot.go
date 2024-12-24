@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"time"
-
-	"github.com/go-redis/redis/v8"
 )
 
 // 实际的预占库存逻辑可能远比这复杂，例如：RPC调用结合DB操作；一个sku有多条库存记录(一盘货)

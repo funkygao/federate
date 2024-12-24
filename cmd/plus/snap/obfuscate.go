@@ -10,19 +10,24 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strings"
 
+	"federate/pkg/manifest"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/step"
+	"federate/pkg/util"
 )
 
 //go:embed embedded/proguard.jar
 var proguardJar embed.FS
 
-func obfuscateJars(bar step.Bar) {
+func obfuscateJars(m *manifest.Manifest, bar step.Bar) {
 	if !enableObfuscation {
 		log.Println("Obfuscation not enabled")
 		return
 	}
+
+	oldBarDesc := bar.State().Description
+	defer bar.Describe(oldBarDesc)
 
 	proguardJarPath, err := extractProGuardJar()
 	if err != nil {
@@ -35,7 +40,7 @@ func obfuscateJars(bar step.Bar) {
 		if err != nil {
 			return err
 		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), ".jar") {
+		if !info.IsDir() && m.Main.Plus.ObfuscateJar(info) {
 			jars = append(jars, path)
 		}
 		return nil
@@ -48,11 +53,13 @@ func obfuscateJars(bar step.Bar) {
 	bar.ChangeMax(len(jars))
 
 	for _, jarPath := range jars {
+		bar.Describe(fmt.Sprintf("%s %s", oldBarDesc, filepath.Base(jarPath)))
 		err := obfuscateJar(jarPath, proguardJarPath)
-		if err != nil {
-			log.Printf("Failed to obfuscate JAR %s: %v", jarPath, err)
-		}
 		bar.Add(1)
+		if err != nil {
+			ledger.Get().FailToObfuscateJar(filepath.Base(jarPath))
+			log.Printf("\nFailed to obfuscate JAR %s: %v", jarPath, err)
+		}
 	}
 }
 
@@ -100,12 +107,14 @@ func obfuscateJar(jarPath, proguardJarPath string) error {
 -injars %s
 -outjars %s
 -libraryjars <java.home>/lib/rt.jar
+-libraryjars <java.home>/lib/jce.jar
+-libraryjars <java.home>/lib/jsse.jar
 -libraryjars %s/slf4j-api-1.7.30.jar
 -dontusemixedcaseclassnames
 -keepattributes Signature
--dontwarn org.slf4j.**
--keep class org.slf4j.** { *; }
--keep interface org.slf4j.** { *; }
+-dontwarn **
+-keep class ** { *; }
+-keep interface ** { *; }
 -keep public class * {
     public protected *;
 }
@@ -142,7 +151,7 @@ func obfuscateJar(jarPath, proguardJarPath string) error {
 	cmd := exec.Command("java", "-jar", proguardJarPath, "@"+configPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("ProGuard failed: %v\nOutput: %s", err, string(output))
+		return fmt.Errorf("ProGuard failed: %v\nOutput: %s", err, util.Truncate(string(output), 8<<10))
 	}
 
 	// 用混淆后的 JAR 替换原始 JAR

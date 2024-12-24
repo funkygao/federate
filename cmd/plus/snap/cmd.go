@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"federate/pkg/manifest"
+	"federate/pkg/merge/ledger"
 	"federate/pkg/step"
 	"github.com/spf13/cobra"
 )
@@ -77,8 +78,8 @@ func runSnap(m *manifest.Manifest) {
 			Fn:   func(bar step.Bar) { copyDependenciesToLocalRepo(m, bar) },
 		},
 		{
-			Name: "Obfuscate JARs in local Maven repository",
-			Fn:   obfuscateJars,
+			Name: "Obfuscate local Maven repository JAR",
+			Fn:   func(bar step.Bar) { obfuscateJars(m, bar) },
 		},
 		{
 			Name: "Detect JAR version conflicts",
@@ -101,6 +102,8 @@ func runSnap(m *manifest.Manifest) {
 	step.AutoConfirm = autoYes
 	step.Run(steps)
 	fmt.Println()
+
+	ledger.Get().SaveToFile("report.json")
 }
 
 func init() {
