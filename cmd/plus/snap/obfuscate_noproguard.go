@@ -8,5 +8,5 @@ import (
 )
 
 func obfuscateJars(bar step.Bar) {
-	color.Red("make install INCLUDE_PROGUARD=1 to Enable JAR Obfuscate")
+	color.Red("'federate', make install INCLUDE_PROGUARD=1 to Enable JAR Obfuscate")
 }

@@ -9,20 +9,27 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// 实际的预占库存逻辑可能远比这复杂，例如：RPC调用结合DB操作；一个sku有多条库存记录(一盘货)，记录流水
+// 实际的预占库存逻辑可能远比这复杂，例如：RPC调用结合DB操作；一个sku有多条库存记录(一盘货)
 // 需要在 lua 里重新再实现一遍
-const luaReserve = `
+const scriptReserve = `
   local stock = redis.call('get', KEYS[1])
   if not stock then
       return {err = "NOT_FOUND"}
   end
+
   stock = tonumber(stock)
   if stock < tonumber(ARGV[1]) then
       return {err = "INSUFFICIENT_STOCK"}
   end
+
+  -- 预占库存
   local new_stock = stock - tonumber(ARGV[1])
-  -- Watch 确保在检查库存和更新库存之间没有其他操作介入，保证了操作的原子性
   redis.call('set', KEYS[1], new_stock)
+
+  -- 记录库存流水
+  local flow_key = KEYS[1] .. ":flow"
+  local flow_id = redis.call('incr', flow_key .. ":id")
+  redis.call('zadd', flow_key, flow_id, string.format("%d|%d|%d|%s", flow_id, os.time(), -quantity, ARGV[2]))
   return {ok = new_stock}
 `
 
@@ -55,25 +62,13 @@ func (s *InventoryService) ReserveInventory(ctx context.Context, sku string, qua
 	return s.reserveInDB(ctx, sku, quantity)
 }
 
-func (s *InventoryService) reserveInCache(ctx context.Context, sku string, quantity int) error {
-	var result map[string]interface{}
-	err := s.cache.Watch(ctx, func(tx *redis.Tx) error {
-		cmd := tx.Eval(ctx, luaReserve, []string{sku}, quantity)
-		if cmd.Err() != nil {
-			return cmd.Err()
-		}
-
-		return cmd.Scan(&result)
-	}, sku)
-
-	// 处理 WATCH 命令的结果
-	if err == redis.TxFailedErr {
-		// 如果事务失败（键被其他客户端修改），则重试：乐观锁
-		// e,g. 用户 A 和用户 B 同时尝试购买最后一件商品, redis.get 都为1，A/B其中1个成功redis.set，另外一个在redis.set时由于 Watch 检测变化而失败
-		return s.reserveInCache(sku, quantity)
-	} else if err != nil {
+func (s *InventoryService) reserveInCache(ctx context.Context, sku string, quantity int) (err error) {
+	var result map[string]any
+	// lua script 同时具备原子性和隔离性，而 redis 事务只有 EXEC 时才真正执行，之前操作可能被其他请求插队，不具备隔离性，才需要 Watch
+	result, err = s.cache.Eval(scriptReserve, []string{sku}, quantity).Result()
+	if err != nil {
 		// redis crash !
-		return err
+		return
 	}
 
 	if errMsg, ok := result["err"]; ok {
@@ -131,6 +126,8 @@ func (s *InventoryService) reserveInDB(ctx context.Context, sku string, quantity
 		return s.reserveInDB(sku, quantity)
 	}
 
+	// 记录库存流水
+
 	return tx.Commit()
 }
 
@@ -173,6 +170,9 @@ func (s *HotSpotRuleServiceImpl) prepareSetCold(ctx context.Context, sku string)
 		if err != nil {
 			return err
 		}
+
+		// tx.Get 与 tx.TxPipelined 之间，可能被其他请求插队，因此需要 Watch 乐观锁保证隔离性
+		// 也可以换成 lua script，就不需要事务了
 
 		// 标记为准备状态，包含更多信息
 		_, err = tx.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
@@ -225,6 +225,7 @@ func (s *HotSpotRuleServiceImpl) rollbackSetCold(ctx context.Context, sku, stock
 }
 
 func (s *HotSpotRuleServiceImpl) recoverIncompleteOperations(ctx context.Context) {
+	// 可以让数据库实现 scan
 	keys, _ := s.cache.Keys(ctx, "*:prepare_cold").Result()
 	for _, key := range keys {
 		sku := strings.TrimSuffix(key, ":prepare_cold")
