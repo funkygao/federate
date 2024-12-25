@@ -7,57 +7,91 @@ import (
 )
 
 func main() {
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
 
-	bk := NewInMemoryBookKeeper()
-	broker := NewPulsarBroker(bk)
+	// 初始化系统组件
+	broker := initializeBroker()
 
-	topic := "test-topic"
-	subName := "test-subscription"
-	sub, err := broker.Subscribe(topic, subName, Shared)
+	// 创建主题
+	topic := createTopic(broker, "test-topic")
+
+	// 创建生产者和消费者
+	producer := createProducer(broker, topic)
+	consumer := createConsumer(broker, topic)
+
+	// 启动消息生产和消费
+	go produceMessages(producer)
+	go consumeMessages(consumer)
+
+	// 运行一段时间后退出
+	time.Sleep(30 * time.Second)
+	log.Println("Shutting down...")
+}
+
+func initializeBroker() Broker {
+	bk := NewInMemoryBookKeeper(3)
+	broker := NewInMemoryBroker(bk)
+	return broker
+}
+
+func createTopic(broker Broker, topicName string) *Topic {
+	topic, err := broker.CreateTopic(topicName)
 	if err != nil {
-		log.Fatalf("Failed to subscribe: %v", err)
+		log.Fatalf("Failed to create topic: %v", err)
 	}
+	log.Printf("Created topic: %s", topicName)
+	return topic
+}
 
-	consumer := NewPulsarConsumer(sub)
+func createProducer(broker Broker, topic *Topic) Producer {
+	producer, err := broker.CreateProducer(topic.Name)
+	if err != nil {
+		log.Fatalf("Failed to create producer: %v", err)
+	}
+	log.Printf("Created producer for topic: %s", topic.Name)
+	return producer
+}
 
-	// 发布消息，包括延迟消息
-	go func() {
-		for i := 0; i < 10; i++ {
-			delay := time.Duration(0)
-			if i%3 == 0 {
-				delay = 5 * time.Second
-			}
-			msg := Message{
-				Content:   fmt.Sprintf("Message %d", i),
-				Timestamp: time.Now(),
-				Delay:     delay,
-			}
-			err := broker.Publish(topic, msg)
-			if err != nil {
-				log.Printf("Failed to publish message: %v", err)
-			}
-			log.Printf("Published [ID:%d-%d] %s, Delay: %v", msg.ID.LedgerID, msg.ID.EntryID, msg.Content, msg.Delay)
-			time.Sleep(time.Second)
+func createConsumer(broker Broker, topic *Topic) Consumer {
+	consumer, err := broker.Subscribe(topic.Name, "test-subscription", Shared)
+	if err != nil {
+		log.Fatalf("Failed to create consumer: %v", err)
+	}
+	log.Printf("Created consumer for topic: %s", topic.Name)
+	return consumer
+}
+
+func produceMessages(producer Producer) {
+	for i := 0; i < 20; i++ {
+		msg := Message{
+			Content:   []byte(fmt.Sprintf("Message %d", i)),
+			Timestamp: time.Now(),
 		}
-	}()
-
-	// 消费消息
-	go func() {
-		for i := 0; i < 10; i++ {
-			msg, err := consumer.Receive()
-			if err != nil {
-				log.Printf("Failed to receive message: %v", err)
-				continue
-			}
-			log.Printf("Received  [ID:%d-%d] %s at %v", msg.ID.LedgerID, msg.ID.EntryID, msg.Content, time.Now().Format("15:04:05.000000"))
-			err = consumer.Acknowledge(msg.ID)
-			if err != nil {
-				log.Printf("Failed to acknowledge message: %v", err)
-			}
+		if i%5 == 0 {
+			msg.Delay = 2 * time.Second
 		}
-	}()
+		err := producer.Send(msg)
+		if err != nil {
+			log.Printf("Failed to send message: %v", err)
+		} else {
+			log.Printf("Sent message: %s", string(msg.Content))
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
+}
 
-	// 等待足够的时间让所有消息被发布和消费
-	time.Sleep(20 * time.Second)
+func consumeMessages(consumer Consumer) {
+	for {
+		msg, err := consumer.Receive()
+		if err != nil {
+			log.Printf("Failed to receive message: %v", err)
+			time.Sleep(time.Second) // 添加短暂的睡眠以避免过于频繁的日志输出
+			continue
+		}
+		log.Printf("Received message: %s", string(msg.Content))
+		err = consumer.Acknowledge(msg.ID)
+		if err != nil {
+			log.Printf("Failed to acknowledge message: %v", err)
+		}
+	}
 }

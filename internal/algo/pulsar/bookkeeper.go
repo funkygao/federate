@@ -1,34 +1,56 @@
 package main
 
+import (
+	"sync"
+)
+
+// Responsible for bookie load balancing by deciding which bookies store which ledgers.
 type BookKeeper interface {
-	AddEntry(ledgerID int64, entry []byte) (int64, error)
-	ReadEntry(ledgerID int64, entryID int64) ([]byte, error)
+	CreateLedger() (Ledger, error)
+	DeleteLedger(ledgerID LedgerID) error
+	OpenLedger(ledgerID LedgerID) (Ledger, error)
 }
 
 type InMemoryBookKeeper struct {
-	entries map[int64]map[int64][]byte
+	bookies []Bookie
+	mu      sync.RWMutex
+
+	// BookKeeper 需要在整个集群范围内保证 LedgerID 的唯一性：通过 zk
+	nextLedgerID LedgerID
 }
 
-func NewInMemoryBookKeeper() *InMemoryBookKeeper {
+func NewInMemoryBookKeeper(numBookies int) *InMemoryBookKeeper {
+	bookies := make([]Bookie, numBookies)
+	for i := 0; i < numBookies; i++ {
+		bookies[i] = NewInMemoryBookie()
+	}
 	return &InMemoryBookKeeper{
-		entries: make(map[int64]map[int64][]byte),
+		bookies:      bookies,
+		nextLedgerID: 1,
 	}
 }
 
-func (bk *InMemoryBookKeeper) AddEntry(ledgerID int64, entry []byte) (int64, error) {
-	if _, ok := bk.entries[ledgerID]; !ok {
-		bk.entries[ledgerID] = make(map[int64][]byte)
-	}
-	entryID := int64(len(bk.entries[ledgerID]))
-	bk.entries[ledgerID][entryID] = entry
-	return entryID, nil
+func (bk *InMemoryBookKeeper) CreateLedger() (Ledger, error) {
+	ledgerID := bk.allocateLedgerID()
+	bookie := bk.selectBookie(ledgerID)
+	return bookie.CreateLedger(ledgerID)
 }
 
-func (bk *InMemoryBookKeeper) ReadEntry(ledgerID int64, entryID int64) ([]byte, error) {
-	if ledger, ok := bk.entries[ledgerID]; ok {
-		if entry, ok := ledger[entryID]; ok {
-			return entry, nil
-		}
-	}
-	return nil, nil
+func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
+	bookie := bk.selectBookie(ledgerID)
+	return bookie.DeleteLedger(ledgerID)
+}
+
+func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
+	bookie := bk.selectBookie(ledgerID)
+	return bookie.GetLedger(ledgerID)
+}
+
+func (bk *InMemoryBookKeeper) allocateLedgerID() LedgerID {
+	return bk.nextLedgerID.Next()
+}
+
+// Load balance Bookies.
+func (bk *InMemoryBookKeeper) selectBookie(ledgerID LedgerID) Bookie {
+	return bk.bookies[0]
 }

@@ -5,20 +5,28 @@ type Consumer interface {
 	Acknowledge(msgID MessageID) error
 }
 
-type PulsarConsumer struct {
-	subscription Subscription
+type InMemoryConsumer struct {
+	subscription *InMemorySubscription
 }
 
-func NewPulsarConsumer(sub Subscription) *PulsarConsumer {
-	consumer := &PulsarConsumer{subscription: sub}
-	sub.AddConsumer(consumer)
-	return consumer
+func NewInMemoryConsumer(sub *InMemorySubscription) *InMemoryConsumer {
+	return &InMemoryConsumer{
+		subscription: sub,
+	}
 }
 
-func (c *PulsarConsumer) Receive() (Message, error) {
-	return c.subscription.Receive()
+func (c *InMemoryConsumer) Receive() (Message, error) {
+	msg, err := c.subscription.Receive()
+	if err != nil {
+		return Message{}, err
+	}
+	return msg, nil
 }
 
-func (c *PulsarConsumer) Acknowledge(msgID MessageID) error {
-	return c.subscription.Acknowledge(msgID)
+func (c *InMemoryConsumer) Acknowledge(msgID MessageID) error {
+	err := c.subscription.Acknowledge(msgID)
+	if err != nil {
+		return err
+	}
+	return nil
 }

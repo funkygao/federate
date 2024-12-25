@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+	"log"
 	"sync"
+	"time"
 )
 
 type SubscriptionType int
@@ -15,60 +18,72 @@ const (
 type Subscription interface {
 	Receive() (Message, error)
 	Acknowledge(msgID MessageID) error
-	AddConsumer(consumer Consumer) error
-	RemoveConsumer(consumer Consumer) error
+	Unsubscribe() error
 }
 
-type PulsarSubscription struct {
+type InMemorySubscription struct {
 	bookKeeper  BookKeeper
+	topic       *Topic
+	name        string
 	subType     SubscriptionType
+	messages    chan Message
+	ackMessages map[MessageID]bool
 	cursor      MessageID
-	newMessages chan Message // 改为 Message 类型
-	consumers   []Consumer
 	mu          sync.Mutex
 }
 
-func NewPulsarSubscription(bk BookKeeper, subType SubscriptionType) *PulsarSubscription {
-	return &PulsarSubscription{
+func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType SubscriptionType) *InMemorySubscription {
+	return &InMemorySubscription{
 		bookKeeper:  bk,
+		topic:       topic,
+		name:        name,
 		subType:     subType,
-		cursor:      MessageID{},
-		newMessages: make(chan Message, 100),
-		consumers:   make([]Consumer, 0),
+		messages:    make(chan Message, 100),
+		ackMessages: make(map[MessageID]bool),
 	}
 }
 
-func (s *PulsarSubscription) Receive() (Message, error) {
-	msg := <-s.newMessages
-	return msg, nil
-}
-
-func (s *PulsarSubscription) Acknowledge(msgID MessageID) error {
+func (s *InMemorySubscription) Acknowledge(msgID MessageID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	if _, exists := s.ackMessages[msgID]; !exists {
+		return fmt.Errorf("message not found")
+	}
+
+	delete(s.ackMessages, msgID)
 	s.cursor = msgID
+
 	return nil
 }
 
-func (s *PulsarSubscription) AddConsumer(consumer Consumer) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.consumers = append(s.consumers, consumer)
+func (s *InMemorySubscription) Unsubscribe() error {
+	// 在实际实现中，这里可能需要清理资源或通知 Broker
+	close(s.messages)
 	return nil
 }
 
-func (s *PulsarSubscription) RemoveConsumer(consumer Consumer) error {
+func (s *InMemorySubscription) AddMessage(msg Message) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for i, c := range s.consumers {
-		if c == consumer {
-			s.consumers = append(s.consumers[:i], s.consumers[i+1:]...)
-			break
-		}
+
+	log.Printf("Adding message to subscription: %s", s.name)
+	s.ackMessages[msg.ID] = false
+	select {
+	case s.messages <- msg:
+		log.Printf("Message added successfully to subscription: %s", s.name)
+	default:
+		log.Printf("Warning: Message channel is full for subscription: %s", s.name)
 	}
-	return nil
 }
 
-func (s *PulsarSubscription) NotifyNewMessage(msg Message) {
-	s.newMessages <- msg
+func (s *InMemorySubscription) Receive() (Message, error) {
+	log.Printf("Attempting to receive message from subscription: %s", s.name)
+	select {
+	case msg := <-s.messages:
+		log.Printf("Message received from subscription: %s", s.name)
+		return msg, nil
+	case <-time.After(5 * time.Second):
+		return Message{}, fmt.Errorf("timeout")
+	}
 }

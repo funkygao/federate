@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// DelayQueue 实现了一个延迟消息队列：最小堆
 type DelayQueue struct {
 	items *delayHeap
 	mu    sync.Mutex
