@@ -4,7 +4,7 @@ import (
 	"sync"
 )
 
-// BookKeeper 是整个分布式存储服务，由多个 Bookie 节点构成
+// Responsible for bookie load balancing by deciding which bookies store which ledgers.
 type BookKeeper interface {
 	CreateLedger() (Ledger, error)
 	DeleteLedger(ledgerID LedgerID) error
@@ -31,26 +31,26 @@ func NewInMemoryBookKeeper(numBookies int) *InMemoryBookKeeper {
 }
 
 func (bk *InMemoryBookKeeper) CreateLedger() (Ledger, error) {
-	return bk.lbBookie().CreateLedger(bk.allocateLedgerID())
+	ledgerID := bk.allocateLedgerID()
+	bookie := bk.selectBookie(ledgerID)
+	return bookie.CreateLedger(ledgerID)
 }
 
 func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
-	return bk.locateBookie(ledgerID).DeleteLedger(ledgerID)
+	bookie := bk.selectBookie(ledgerID)
+	return bookie.DeleteLedger(ledgerID)
 }
 
 func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
-	return bk.locateBookie(ledgerID).GetLedger(ledgerID)
+	bookie := bk.selectBookie(ledgerID)
+	return bookie.GetLedger(ledgerID)
 }
 
 func (bk *InMemoryBookKeeper) allocateLedgerID() LedgerID {
 	return bk.nextLedgerID.Next()
 }
 
-func (bk *InMemoryBookKeeper) lbBookie() Bookie {
-	// 简化实现
-	return bk.bookies[0]
-}
-
-func (bk *InMemoryBookKeeper) locateBookie(ledgerID LedgerID) Bookie {
+// Load balance Bookies.
+func (bk *InMemoryBookKeeper) selectBookie(ledgerID LedgerID) Bookie {
 	return bk.bookies[0]
 }

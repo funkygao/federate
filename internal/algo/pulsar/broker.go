@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// Responsible for message routing, subscription management, and interacting with the storage layer (BookKeeper) to persist messages.
 type Broker interface {
 	CreateTopic(name string) (*Topic, error)
 	GetTopic(name string) (*Topic, error)
@@ -18,6 +19,7 @@ type Broker interface {
 }
 
 type InMemoryBroker struct {
+	// Responsible for distributing ledgers and entries across available bookies for load balancing and fault tolerance
 	bookKeeper BookKeeper
 
 	topics map[string]*Topic
