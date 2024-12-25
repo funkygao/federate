@@ -1,34 +1,105 @@
 package main
 
+import (
+	"fmt"
+	"sync"
+)
+
 type BookKeeper interface {
-	AddEntry(ledgerID int64, entry []byte) (int64, error)
-	ReadEntry(ledgerID int64, entryID int64) ([]byte, error)
+	AddEntry(partitionID PartitionID, segmentID TimeSegmentID, ledgerID LedgerID, entry Payload) (EntryID, error)
+	ReadEntry(partitionID PartitionID, segmentID TimeSegmentID, ledgerID LedgerID, entryID EntryID) (Payload, error)
+	CreateLedger(partitionID PartitionID, segmentID TimeSegmentID) (LedgerID, error)
 }
 
 type InMemoryBookKeeper struct {
-	entries map[int64]map[int64][]byte
+	partitions map[PartitionID]Partition
+	mu         sync.RWMutex
 }
 
 func NewInMemoryBookKeeper() *InMemoryBookKeeper {
 	return &InMemoryBookKeeper{
-		entries: make(map[int64]map[int64][]byte),
+		partitions: make(map[PartitionID]Partition),
 	}
 }
 
-func (bk *InMemoryBookKeeper) AddEntry(ledgerID int64, entry []byte) (int64, error) {
-	if _, ok := bk.entries[ledgerID]; !ok {
-		bk.entries[ledgerID] = make(map[int64][]byte)
-	}
-	entryID := int64(len(bk.entries[ledgerID]))
-	bk.entries[ledgerID][entryID] = entry
-	return entryID, nil
-}
+func (bk *InMemoryBookKeeper) AddEntry(partitionID PartitionID, segmentID TimeSegmentID, ledgerID LedgerID, entry Payload) (EntryID, error) {
+	bk.mu.Lock()
+	defer bk.mu.Unlock()
 
-func (bk *InMemoryBookKeeper) ReadEntry(ledgerID int64, entryID int64) ([]byte, error) {
-	if ledger, ok := bk.entries[ledgerID]; ok {
-		if entry, ok := ledger[entryID]; ok {
-			return entry, nil
+	partition, ok := bk.partitions[partitionID]
+	if !ok {
+		return 0, fmt.Errorf("partition not found")
+	}
+
+	for i, segment := range partition.TimeSegments {
+		if segment.ID == segmentID {
+			for j, ledger := range segment.Ledgers {
+				if ledger.ID == ledgerID {
+					entryID := EntryID(len(ledger.Entries))
+					ledger.Entries[entryID] = entry
+					partition.TimeSegments[i].Ledgers[j] = ledger
+					bk.partitions[partitionID] = partition
+					return entryID, nil
+				}
+			}
+			return 0, fmt.Errorf("ledger not found")
 		}
 	}
-	return nil, nil
+	return 0, fmt.Errorf("segment not found")
+}
+
+func (bk *InMemoryBookKeeper) ReadEntry(partitionID PartitionID, segmentID TimeSegmentID, ledgerID LedgerID, entryID EntryID) (Payload, error) {
+	bk.mu.RLock()
+	defer bk.mu.RUnlock()
+
+	partition, ok := bk.partitions[partitionID]
+	if !ok {
+		return nil, fmt.Errorf("partition not found")
+	}
+
+	for _, segment := range partition.TimeSegments {
+		if segment.ID == segmentID {
+			for _, ledger := range segment.Ledgers {
+				if ledger.ID == ledgerID {
+					entry, ok := ledger.Entries[entryID]
+					if !ok {
+						return nil, fmt.Errorf("entry not found")
+					}
+					return entry, nil
+				}
+			}
+			return nil, fmt.Errorf("ledger not found")
+		}
+	}
+	return nil, fmt.Errorf("segment not found")
+}
+
+func (bk *InMemoryBookKeeper) CreateLedger(partitionID PartitionID, segmentID TimeSegmentID) (LedgerID, error) {
+	bk.mu.Lock()
+	defer bk.mu.Unlock()
+
+	partition, ok := bk.partitions[partitionID]
+	if !ok {
+		partition = Partition{ID: partitionID, TimeSegments: []TimeSegment{}}
+		bk.partitions[partitionID] = partition
+	}
+
+	var segment *TimeSegment
+	for i, seg := range partition.TimeSegments {
+		if seg.ID == segmentID {
+			segment = &partition.TimeSegments[i]
+			break
+		}
+	}
+	if segment == nil {
+		segment = &TimeSegment{ID: segmentID, Ledgers: []Ledger{}}
+		partition.TimeSegments = append(partition.TimeSegments, *segment)
+	}
+
+	ledgerID := LedgerID(len(segment.Ledgers))
+	newLedger := Ledger{ID: ledgerID, Entries: make(map[EntryID]Payload)}
+	segment.Ledgers = append(segment.Ledgers, newLedger)
+
+	bk.partitions[partitionID] = partition
+	return ledgerID, nil
 }

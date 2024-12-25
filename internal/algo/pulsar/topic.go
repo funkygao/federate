@@ -6,21 +6,25 @@ import (
 )
 
 type TopicManager struct {
-	bookKeeper    BookKeeper
-	currentLedger int64
-	nextEntryID   int64
-	subscriptions map[string]Subscription
-	delayedMsgs   *DelayQueue
-	mu            sync.Mutex
+	bookKeeper       BookKeeper
+	currentPartition PartitionID
+	currentSegment   TimeSegmentID
+	currentLedger    LedgerID
+	nextEntryID      EntryID
+	subscriptions    map[string]Subscription
+	delayedMsgs      *DelayQueue
+	mu               sync.Mutex
 }
 
 func NewTopicManager(bk BookKeeper) *TopicManager {
 	tm := &TopicManager{
-		bookKeeper:    bk,
-		currentLedger: 0,
-		nextEntryID:   0,
-		subscriptions: make(map[string]Subscription),
-		delayedMsgs:   NewDelayQueue(),
+		bookKeeper:       bk,
+		currentPartition: 0,
+		currentSegment:   0,
+		currentLedger:    0,
+		nextEntryID:      0,
+		subscriptions:    make(map[string]Subscription),
+		delayedMsgs:      NewDelayQueue(),
 	}
 	go tm.processDelayedMessages()
 	return tm
@@ -28,15 +32,28 @@ func NewTopicManager(bk BookKeeper) *TopicManager {
 
 func (tm *TopicManager) Publish(msg Message) error {
 	tm.mu.Lock()
-	entryID := tm.nextEntryID
-	tm.nextEntryID++
-	tm.mu.Unlock()
+	defer tm.mu.Unlock()
 
-	_, err := tm.bookKeeper.AddEntry(tm.currentLedger, []byte(msg.Content))
+	entryID, err := tm.bookKeeper.AddEntry(tm.currentPartition, tm.currentSegment, tm.currentLedger, msg.Content)
 	if err != nil {
-		return err
+		// 如果添加失败，可能需要创建新的 ledger
+		newLedgerID, err := tm.bookKeeper.CreateLedger(tm.currentPartition, tm.currentSegment)
+		if err != nil {
+			return err
+		}
+		tm.currentLedger = newLedgerID
+		entryID, err = tm.bookKeeper.AddEntry(tm.currentPartition, tm.currentSegment, tm.currentLedger, msg.Content)
+		if err != nil {
+			return err
+		}
 	}
-	msg.ID = MessageID{LedgerID: tm.currentLedger, EntryID: entryID}
+
+	msg.ID = MessageID{
+		LedgerID:      tm.currentLedger,
+		EntryID:       entryID,
+		PartitionID:   tm.currentPartition,
+		TimeSegmentID: tm.currentSegment,
+	}
 
 	if msg.Delay > 0 {
 		tm.delayedMsgs.Add(msg, time.Now().Add(msg.Delay))
