@@ -50,7 +50,6 @@ func (bk *InMemoryBookKeeper) allocateLedgerID() LedgerID {
 	return bk.nextLedgerID.Next()
 }
 
-// Load balance Bookies.
 func (bk *InMemoryBookKeeper) selectBookie(ledgerID LedgerID) Bookie {
 	return bk.bookies[0]
 }

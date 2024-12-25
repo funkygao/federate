@@ -2,7 +2,7 @@ package main
 
 type Consumer interface {
 	Receive() (Message, error)
-	Acknowledge(msgID MessageID) error
+	Ack(msgID MessageID) error
 }
 
 type InMemoryConsumer struct {
@@ -23,6 +23,6 @@ func (c *InMemoryConsumer) Receive() (Message, error) {
 	return msg, nil
 }
 
-func (c *InMemoryConsumer) Acknowledge(msgID MessageID) error {
-	return c.subscription.Acknowledge(msgID)
+func (c *InMemoryConsumer) Ack(msgID MessageID) error {
+	return c.subscription.Ack(msgID)
 }

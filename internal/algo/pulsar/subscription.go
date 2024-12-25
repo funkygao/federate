@@ -17,18 +17,22 @@ const (
 
 type Subscription interface {
 	Receive() (Message, error)
-	Acknowledge(msgID MessageID) error
+	Ack(msgID MessageID) error
 }
 
 type InMemorySubscription struct {
-	bookKeeper  BookKeeper
-	topic       *Topic
-	name        string
-	subType     SubscriptionType
-	messages    chan Message
+	bookKeeper BookKeeper // TODO not used
+
+	topic   *Topic
+	name    string
+	subType SubscriptionType
+
+	messages chan Message
+
 	ackMessages map[MessageID]bool
-	cursor      MessageID
 	mu          sync.Mutex
+
+	cursor MessageID // TODO for delay msg, 1 cursor?
 }
 
 func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType SubscriptionType) *InMemorySubscription {
@@ -42,7 +46,7 @@ func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType S
 	}
 }
 
-func (s *InMemorySubscription) Acknowledge(msgID MessageID) error {
+func (s *InMemorySubscription) Ack(msgID MessageID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -56,6 +60,7 @@ func (s *InMemorySubscription) Acknowledge(msgID MessageID) error {
 	return nil
 }
 
+// TODO kill
 func (s *InMemorySubscription) AddMessage(msg Message) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -72,10 +77,12 @@ func (s *InMemorySubscription) AddMessage(msg Message) {
 
 func (s *InMemorySubscription) Receive() (Message, error) {
 	log.Printf("Attempting to receive message from subscription: %s", s.name)
+
 	select {
 	case msg := <-s.messages:
 		log.Printf("Message received from subscription: %s", s.name)
 		return msg, nil
+
 	case <-time.After(5 * time.Second):
 		return Message{}, fmt.Errorf("timeout")
 	}

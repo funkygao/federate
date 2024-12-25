@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// Bookie 接口定义了 BookKeeper 集群中单个节点的操作
+// Bookie 接口定义了 BookKeeper 集群中单个节点的操作，管理属于自己的 ledgers
 type Bookie interface {
 	CreateLedger(ledgerID LedgerID) (Ledger, error)
 	DeleteLedger(ledgerID LedgerID) error

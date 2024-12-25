@@ -18,5 +18,5 @@ func NewInMemoryProducer(broker Broker, topic *Topic) *InMemoryProducer {
 
 func (p *InMemoryProducer) Send(msg Message) error {
 	msg.Topic = p.topic.Name
-	return p.broker.Publish(p.topic.Name, msg)
+	return p.broker.Publish(msg)
 }

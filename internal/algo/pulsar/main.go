@@ -9,21 +9,16 @@ import (
 func main() {
 	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
 
-	// 初始化系统组件
 	broker := initializeBroker()
 
-	// 创建主题
 	topic := createTopic(broker, "test-topic")
 
-	// 创建生产者和消费者
 	producer := createProducer(broker, topic)
 	consumer := createConsumer(broker, topic)
 
-	// 启动消息生产和消费
-	go produceMessages(producer)
+	go produceMessages(producer, 20)
 	go consumeMessages(consumer)
 
-	// 运行一段时间后退出
 	time.Sleep(30 * time.Second)
 	log.Println("Shutting down...")
 }
@@ -39,6 +34,7 @@ func createTopic(broker Broker, topicName string) *Topic {
 	if err != nil {
 		log.Fatalf("Failed to create topic: %v", err)
 	}
+
 	log.Printf("Created topic: %s", topicName)
 	return topic
 }
@@ -48,6 +44,7 @@ func createProducer(broker Broker, topic *Topic) Producer {
 	if err != nil {
 		log.Fatalf("Failed to create producer: %v", err)
 	}
+
 	log.Printf("Created producer for topic: %s", topic.Name)
 	return producer
 }
@@ -57,12 +54,13 @@ func createConsumer(broker Broker, topic *Topic) Consumer {
 	if err != nil {
 		log.Fatalf("Failed to create consumer: %v", err)
 	}
+
 	log.Printf("Created consumer for topic: %s", topic.Name)
 	return consumer
 }
 
-func produceMessages(producer Producer) {
-	for i := 0; i < 20; i++ {
+func produceMessages(producer Producer, N int) {
+	for i := 0; i < N; i++ {
 		msg := Message{
 			Content:   []byte(fmt.Sprintf("Message %d", i)),
 			Timestamp: time.Now(),
@@ -70,12 +68,13 @@ func produceMessages(producer Producer) {
 		if i%5 == 0 {
 			msg.Delay = 2 * time.Second
 		}
-		err := producer.Send(msg)
-		if err != nil {
+
+		if err := producer.Send(msg); err != nil {
 			log.Printf("Failed to send message: %v", err)
 		} else {
 			log.Printf("Sent message: %s", string(msg.Content))
 		}
+
 		time.Sleep(500 * time.Millisecond)
 	}
 }
@@ -85,13 +84,13 @@ func consumeMessages(consumer Consumer) {
 		msg, err := consumer.Receive()
 		if err != nil {
 			log.Printf("Failed to receive message: %v", err)
-			time.Sleep(time.Second) // 添加短暂的睡眠以避免过于频繁的日志输出
+			time.Sleep(time.Second)
 			continue
 		}
+
 		log.Printf("Received message: %s", string(msg.Content))
-		err = consumer.Acknowledge(msg.ID)
-		if err != nil {
-			log.Printf("Failed to acknowledge message: %v", err)
+		if err = consumer.Ack(msg.ID); err != nil {
+			log.Printf("Failed to ack message: %v", err)
 		}
 	}
 }

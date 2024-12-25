@@ -15,7 +15,7 @@ type Broker interface {
 	CreateProducer(topic string) (Producer, error)
 	CreateConsumer(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
 
-	Publish(topicName string, msg Message) error
+	Publish(msg Message) error
 }
 
 type InMemoryBroker struct {
@@ -85,20 +85,14 @@ func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subT
 	return NewInMemoryConsumer(sub), nil
 }
 
-func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
-	topic, err := b.GetTopic(topicName)
+// TODO Broker hould have Publish?
+func (b *InMemoryBroker) Publish(msg Message) error {
+	topic, err := b.GetTopic(msg.Topic)
 	if err != nil {
 		return nil, err
 	}
 
-	partition := topic.GetParttion(b.selectPartition(msg))
-
-	timeSegment, err := b.getOrCreateTimeSegment(partition)
-	if err != nil {
-		return err
-	}
-
-	ledger, err := b.getOrCreateLedger(timeSegment)
+	partition, timeSegment, ledger, err := b.routeMessage(msg)
 	if err != nil {
 		return err
 	}
@@ -109,7 +103,6 @@ func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
 		return err
 	}
 
-	msg.Topic = topicName
 	msg.ID = MessageID{
 		PartitionID:   partition.ID,
 		TimeSegmentID: timeSegment.ID,
@@ -121,7 +114,7 @@ func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
 		b.delayQueue.Add(msg)
 	} else {
 		// TODO kill deliverMessage, should poll from BookKeeper
-		b.deliverMessage(topicName, msg)
+		b.deliverMessage(msg)
 	}
 
 	// TODO kill
@@ -133,13 +126,28 @@ func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
 	return nil
 }
 
-func (b *InMemoryBroker) deliverMessage(topicName string, msg Message) {
+func (b *InMemoryBroker) routeMessage(msg Message) (partition Partition, timeSegment TimeSegment, ledger Ledger, err error) {
+	partition = topic.GetParttion(b.selectPartition(msg))
+
+	timeSegment, err = b.getOrCreateTimeSegment(partition)
+	if err != nil {
+		return
+	}
+
+	ledger, err = b.getOrCreateLedger(timeSegment)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (b *InMemoryBroker) deliverMessage(msg Message) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	topic, exists := b.topics[topicName]
+	topic, exists := b.topics[msg.Topic]
 	if !exists {
-		log.Printf("Warning: Topic %s not found for message delivery", topicName)
+		log.Printf("Warning: Topic %s not found for message delivery", msg.Topic)
 		return
 	}
 
@@ -154,10 +162,9 @@ func (b *InMemoryBroker) processDelayedMessages() {
 
 	for {
 		select {
-		case <-ticker.C:
-			now := time.Now()
+		case now := <-ticker.C:
 			for {
-				// TODO Peek
+				// TODO Peek，就不用放回队列了
 				msg, ok := b.delayQueue.Poll()
 				if !ok {
 					break
