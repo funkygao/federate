@@ -44,14 +44,6 @@ Topic -> Partition -> TimeSegment -> Ledger -> Entry
 - Ledger: BookKeeper 中的基本存储单元，代表一段连续的消息日志。类似于 Kafka 中的 Segment。
 - Entry: Ledger 中的单个消息或一组消息。
 
-存算分离的优势：
-
-1. 灵活的扩展：存储层和计算层可以独立扩展。
-2. 高性能：Broker 专注于消息处理，BookKeeper 提供高效存储。
-3. 数据持久性和可靠性：多副本存储确保数据安全。
-4. 高效的存储管理：支持分层存储和灵活的数据保留策略。
-5. 多租户支持：不同 Topic 可使用不同存储策略，易于资源隔离。
-
 消息流程：
 
 1. 生产者发送消息到 Broker。

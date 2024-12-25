@@ -43,21 +43,12 @@ package main
 
 import "time"
 
+type PartitionID int
+type TimeSegmentID int64
 type LedgerID int64
 type EntryID int64
-type PartitionID int
-
-// TimeSegmentID 唯一标识一个时间段
-type TimeSegmentID int64
-
-type Payload []byte
 
 // MessageID 唯一标识一条消息在 Pulsar 系统中的位置
-//
-//	结构:
-//	    +--------------+--------------+----------------+-----------+
-//	    | PartitionID  | TimeSegmentID|    LedgerID    |  EntryID  |
-//	    +--------------+--------------+----------------+-----------+
 type MessageID struct {
 	PartitionID   PartitionID
 	TimeSegmentID TimeSegmentID
@@ -65,48 +56,32 @@ type MessageID struct {
 	EntryID       EntryID
 }
 
+// Payload 表示消息的实际内容
+type Payload []byte
+
+// Message 表示一条消息
 type Message struct {
 	ID        MessageID
+	Topic     string
 	Content   Payload
 	Timestamp time.Time
 	Delay     time.Duration
 }
 
-// Partition 表示 Topic 的一个分区，包含多个 TimeSegment
-//
-//	+-------------+
-//	| Partition   |
-//	+-------------+
-//	| ID          |
-//	| TimeSegments|
-//	+-------------+
+type Topic struct {
+	Name          string
+	Partitions    map[PartitionID]*Partition
+	Subscriptions map[string]*InMemorySubscription
+}
+
+// Partition 表示 Topic 的一个分区，比 Kafka 增加更细粒度的 TimeSegment
 type Partition struct {
 	ID           PartitionID
-	TimeSegments []TimeSegment
+	TimeSegments map[TimeSegmentID]*TimeSegment
 }
 
-// TimeSegment 表示一个时间段内的数据，包含多个 Ledger
-//
-//	+-------------+
-//	| TimeSegment |
-//	+-------------+
-//	| ID          |
-//	| Ledgers     |
-//	+-------------+
+// TimeSegment 表示一个时间段内的数据，一个 TimeSegment 必须存放在一个 Bookie
 type TimeSegment struct {
 	ID      TimeSegmentID
-	Ledgers []Ledger
-}
-
-// Ledger 表示 BookKeeper 中的一个账本，包含一系列有序的 Entry
-//
-//	+----------+
-//	| Ledger   |
-//	+----------+
-//	| ID       |
-//	| Entries  |
-//	+----------+
-type Ledger struct {
-	ID      LedgerID
-	Entries map[EntryID]Payload
+	Ledgers []LedgerID
 }
