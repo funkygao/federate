@@ -10,34 +10,35 @@ type Ledger interface {
 	AddEntry(entry Payload) (EntryID, error)
 	ReadEntry(entryID EntryID) (Payload, error)
 
-	GetLastEntryID() (EntryID, error)
+	GetID() LedgerID
 }
 
 type inMemoryLedger struct {
-	id          LedgerID
+	id LedgerID
 
-	entries     map[EntryID]Payload
-	mu          sync.RWMutex
+	entries map[EntryID]Payload
+	mu      sync.RWMutex
 
 	lastEntryID EntryID
 }
 
 func newInMemoryLedger(id LedgerID) *inMemoryLedger {
 	return &inMemoryLedger{
-		id:          id,
-		entries:     make(map[EntryID]Payload),
-		lastEntryID: 0,
+		id:      id,
+		entries: make(map[EntryID]Payload),
 	}
+}
+
+func (l *inMemoryLedger) GetID() LedgerID {
+	return l.id
 }
 
 func (l *inMemoryLedger) AddEntry(entry Payload) (EntryID, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	l.lastEntryID++
-	entryID := l.lastEntryID
+	entryID := l.lastEntryID.Next()
 	l.entries[entryID] = entry
-
 	return entryID, nil
 }
 
@@ -51,11 +52,4 @@ func (l *inMemoryLedger) ReadEntry(entryID EntryID) (Payload, error) {
 	}
 
 	return entry, nil
-}
-
-func (l *inMemoryLedger) GetLastEntryID() (EntryID, error) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-
-	return l.lastEntryID, nil
 }

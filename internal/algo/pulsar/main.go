@@ -29,7 +29,7 @@ func main() {
 }
 
 func initializeBroker() Broker {
-	bk := NewInMemoryBookKeeper()
+	bk := NewInMemoryBookKeeper(3)
 	broker := NewInMemoryBroker(bk)
 	return broker
 }

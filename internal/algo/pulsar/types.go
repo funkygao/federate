@@ -41,12 +41,25 @@ Bookie: BookKeeper 的存储节点，负责存储 Ledger 数据
 
 package main
 
-import "time"
+import (
+	"sync/atomic"
+	"time"
+)
 
 type PartitionID int
 type TimeSegmentID int64
+
 type LedgerID int64
+
+func (id *LedgerID) Next() LedgerID {
+	return LedgerID(atomic.AddInt64((*int64)(id), 1))
+}
+
 type EntryID int64
+
+func (id *EntryID) Next() EntryID {
+	return EntryID(atomic.AddInt64((*int64)(id), 1))
+}
 
 // MessageID 唯一标识一条消息在 Pulsar 系统中的位置
 type MessageID struct {
