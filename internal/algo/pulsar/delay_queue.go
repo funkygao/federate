@@ -51,12 +51,12 @@ func NewDelayQueue() *DelayQueue {
 	}
 }
 
-func (dq *DelayQueue) Add(msg Message, readyTime time.Time) {
+func (dq *DelayQueue) Add(msg Message) {
 	dq.mu.Lock()
 	defer dq.mu.Unlock()
 	item := &delayItem{
 		msg:       msg,
-		readyTime: readyTime,
+		readyTime: msg.ReadyTime(),
 	}
 	heap.Push(dq.items, item)
 }

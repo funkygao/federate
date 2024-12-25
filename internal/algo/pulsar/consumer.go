@@ -6,10 +6,10 @@ type Consumer interface {
 }
 
 type InMemoryConsumer struct {
-	subscription *InMemorySubscription
+	subscription Subscription
 }
 
-func NewInMemoryConsumer(sub *InMemorySubscription) *InMemoryConsumer {
+func NewInMemoryConsumer(sub Subscription) *InMemoryConsumer {
 	return &InMemoryConsumer{
 		subscription: sub,
 	}
@@ -24,9 +24,5 @@ func (c *InMemoryConsumer) Receive() (Message, error) {
 }
 
 func (c *InMemoryConsumer) Acknowledge(msgID MessageID) error {
-	err := c.subscription.Acknowledge(msgID)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.subscription.Acknowledge(msgID)
 }

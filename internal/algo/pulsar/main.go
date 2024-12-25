@@ -53,7 +53,7 @@ func createProducer(broker Broker, topic *Topic) Producer {
 }
 
 func createConsumer(broker Broker, topic *Topic) Consumer {
-	consumer, err := broker.Subscribe(topic.Name, "test-subscription", Shared)
+	consumer, err := broker.CreateConsumer(topic.Name, "test-subscription", Shared)
 	if err != nil {
 		log.Fatalf("Failed to create consumer: %v", err)
 	}

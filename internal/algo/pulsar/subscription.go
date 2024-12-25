@@ -18,7 +18,6 @@ const (
 type Subscription interface {
 	Receive() (Message, error)
 	Acknowledge(msgID MessageID) error
-	Unsubscribe() error
 }
 
 type InMemorySubscription struct {
@@ -54,12 +53,6 @@ func (s *InMemorySubscription) Acknowledge(msgID MessageID) error {
 	delete(s.ackMessages, msgID)
 	s.cursor = msgID
 
-	return nil
-}
-
-func (s *InMemorySubscription) Unsubscribe() error {
-	// 在实际实现中，这里可能需要清理资源或通知 Broker
-	close(s.messages)
 	return nil
 }
 

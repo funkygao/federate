@@ -13,7 +13,7 @@ type Broker interface {
 	GetTopic(name string) (*Topic, error)
 
 	CreateProducer(topic string) (Producer, error)
-	Subscribe(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
+	CreateConsumer(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
 
 	Publish(topicName string, msg Message) error
 }
@@ -66,100 +66,44 @@ func (b *InMemoryBroker) GetTopic(name string) (*Topic, error) {
 	return topic, nil
 }
 
-func (b *InMemoryBroker) CreateProducer(topic string) (Producer, error) {
-	t, err := b.GetTopic(topic)
+func (b *InMemoryBroker) CreateProducer(topicName string) (Producer, error) {
+	topic, err := b.GetTopic(topicName)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewInMemoryProducer(b, t), nil
+	return NewInMemoryProducer(b, topic), nil
 }
 
-func (b *InMemoryBroker) Subscribe(topicName, subscriptionName string, subType SubscriptionType) (Consumer, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	log.Printf("Attempting to subscribe to topic: %s with subscription: %s", topicName, subscriptionName)
-
-	topic, exists := b.topics[topicName]
-	if !exists {
-		return nil, fmt.Errorf("topic not found")
+func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subType SubscriptionType) (Consumer, error) {
+	topic, err := b.GetTopic(topicName)
+	if err != nil {
+		return nil, err
 	}
 
-	sub, exists := topic.Subscriptions[subscriptionName]
-	if !exists {
-		log.Printf("Creating new subscription: %s for topic: %s", subscriptionName, topicName)
-		sub = NewInMemorySubscription(b.bookKeeper, topic, subscriptionName, subType)
-		topic.Subscriptions[subscriptionName] = sub
-	}
-
-	log.Printf("Subscription created/found: %s for topic: %s", subscriptionName, topicName)
+	sub := topic.Subscribe(b.bookKeeper, subscriptionName, subType)
 	return NewInMemoryConsumer(sub), nil
 }
 
-func (b *InMemoryBroker) processDelayedMessages() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			now := time.Now()
-			for {
-				msg, ok := b.delayQueue.Poll()
-				if !ok {
-					break
-				}
-				if msg.Timestamp.After(now) {
-					// 消息还没有准备好，放回队列
-					b.delayQueue.Add(msg, msg.Timestamp)
-					break
-				}
-				// 消息已经准备好，发布到相应的主题
-				err := b.Publish(msg.Topic, msg)
-				if err != nil {
-					log.Printf("Error publishing delayed message: %v", err)
-				}
-			}
-		}
-	}
-}
-
 func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	log.Printf("Attempting to publish message to topic: %s", topicName)
-
-	topic, exists := b.topics[topicName]
-	if !exists {
-		return fmt.Errorf("topic not found")
+	topic, err := b.GetTopic(topicName)
+	if err != nil {
+		return nil, err
 	}
 
-	// 简化：使用单一分区
-	partitionID := PartitionID(0)
-	partition, exists := topic.Partitions[partitionID]
-	if !exists {
-		partition = &Partition{
-			ID:           partitionID,
-			TimeSegments: make(map[TimeSegmentID]*TimeSegment),
-		}
-		topic.Partitions[partitionID] = partition
-	}
+	partition := topic.GetParttion(b.selectPartition(msg))
 
-	// Get or create TimeSegment
 	timeSegment, err := b.getOrCreateTimeSegment(partition)
 	if err != nil {
 		return err
 	}
 
-	// Get or create Ledger
 	ledger, err := b.getOrCreateLedger(timeSegment)
 	if err != nil {
 		return err
 	}
 
-	// 添加消息到 Ledger
+	// TODO replica write
 	entryID, err := ledger.AddEntry(msg.Content)
 	if err != nil {
 		return err
@@ -167,22 +111,20 @@ func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
 
 	msg.Topic = topicName
 	msg.ID = MessageID{
-		PartitionID:   partitionID,
+		PartitionID:   partition.ID,
 		TimeSegmentID: timeSegment.ID,
 		LedgerID:      ledger.GetID(),
 		EntryID:       entryID,
 	}
 
-	// 处理延迟消息
-	if msg.Delay > 0 {
-		b.delayQueue.Add(msg, time.Now().Add(msg.Delay))
+	if msg.IsDelay() {
+		b.delayQueue.Add(msg)
 	} else {
+		// TODO kill deliverMessage, should poll from BookKeeper
 		b.deliverMessage(topicName, msg)
 	}
 
-	log.Printf("Message published successfully to topic: %s", topicName)
-	log.Printf("Delivering message to %d subscriptions", len(topic.Subscriptions))
-
+	// TODO kill
 	for subName, sub := range topic.Subscriptions {
 		log.Printf("Delivering message to subscription: %s", subName)
 		sub.AddMessage(msg)
@@ -204,6 +146,39 @@ func (b *InMemoryBroker) deliverMessage(topicName string, msg Message) {
 	for _, sub := range topic.Subscriptions {
 		sub.AddMessage(msg)
 	}
+}
+
+func (b *InMemoryBroker) processDelayedMessages() {
+	ticker := time.NewTicker(100 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			now := time.Now()
+			for {
+				// TODO Peek
+				msg, ok := b.delayQueue.Poll()
+				if !ok {
+					break
+				}
+				if msg.Timestamp.After(now) {
+					// 消息还没有准备好，放回队列
+					b.delayQueue.Add(msg, msg.Timestamp)
+					break
+				}
+				// 消息已经准备好，发布到相应的主题
+				err := b.Publish(msg.Topic, msg)
+				if err != nil {
+					log.Printf("Error publishing delayed message: %v", err)
+				}
+			}
+		}
+	}
+}
+
+func (b *InMemoryBroker) selectPartition(msg Message) PartitionID {
+	return PartitionID(0)
 }
 
 func (b *InMemoryBroker) getOrCreateLedger(timeSegment *TimeSegment) (Ledger, error) {

@@ -54,10 +54,39 @@ type Message struct {
 	Delay     time.Duration
 }
 
+func (m *Message) IsDelay() bool {
+	return m.Delay > 0
+}
+
+func (m *Message) ReadyTime() time.Time {
+	return time.Now().Add(m.Delay)
+}
+
 type Topic struct {
 	Name          string
 	Partitions    map[PartitionID]*Partition
-	Subscriptions map[string]*InMemorySubscription
+	Subscriptions map[string]Subscription
+}
+
+func (t *Topic) Subscribe(BookKeeper bk, subscriptionName string, subType SubscriptionType) Subscription {
+	sub, exists := t.Subscriptions[subscriptionName]
+	if !exists {
+		sub = NewInMemorySubscription(bk, t, subscriptionName, subType)
+		topic.Subscriptions[subscriptionName] = sub
+	}
+	return sub
+}
+
+func (t *Topic) GetParttion(partitionID PartitionID) *Partition {
+	partition, exists := t.Partitions[partitionID]
+	if !exists {
+		partition = &Partition{
+			ID:           partitionID,
+			TimeSegments: make(map[TimeSegmentID]*TimeSegment),
+		}
+		t.Partitions[partitionID] = partition
+	}
+	return partition
 }
 
 // Partition 表示 Topic 的一个分区，比 Kafka 增加更细粒度的 TimeSegment
