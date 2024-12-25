@@ -6,20 +6,10 @@ import (
 )
 
 // Bookie 接口定义了 BookKeeper 集群中单个节点的操作
-// Bookie 只关心 Ledger 和 Entry 的存储，不关心 Topic/Partition/TimeSegmen
 type Bookie interface {
 	CreateLedger(ledgerID LedgerID) (Ledger, error)
 	DeleteLedger(ledgerID LedgerID) error
 	GetLedger(ledgerID LedgerID) (Ledger, error)
-}
-
-type BookieError struct {
-	Op  string
-	Err error
-}
-
-func (e *BookieError) Error() string {
-	return fmt.Sprintf("bookie %s error: %v", e.Op, e.Err)
 }
 
 type InMemoryBookie struct {

@@ -37,9 +37,13 @@ func (l *inMemoryLedger) AddEntry(entry Payload) (EntryID, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	entryID := l.lastEntryID.Next()
+	entryID := l.allocateEntryID()
 	l.entries[entryID] = entry
 	return entryID, nil
+}
+
+func (l *inMemoryLedger) allocateEntryID() EntryID {
+	return l.lastEntryID.Next()
 }
 
 func (l *inMemoryLedger) ReadEntry(entryID EntryID) (Payload, error) {

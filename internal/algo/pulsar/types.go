@@ -1,42 +1,15 @@
 /*
-Pulsar 核心概念关系图:
+Message Location and Ownership:
 
-Topic
-  |
-  +-- Partition 1
-  |     |
-  |     +-- TimeSegment 1
-  |     |     |
-  |     |     +-- Ledger 1
-  |     |     |     |
-  |     |     |     +-- Entry 1 (Message)
-  |     |     |     +-- Entry 2 (Message)
-  |     |     |     +-- ...
-  |     |     |
-  |     |     +-- Ledger 2
-  |     |     +-- ...
-  |     |
-  |     +-- TimeSegment 2
-  |     +-- ...
-  |
-  +-- Partition 2
-  +-- ...
-
-                存储在
-Ledger 1 ------------------------+
-Ledger 2 -----------------+      |
-Ledger 3 ----------+      |      |
-                   |      |      |
-                   v      v      v
-              +----------+  +----------+  +----------+
-              | Bookie 1 |  | Bookie 2 |  | Bookie 3 |
-              +----------+  +----------+  +----------+
-
-消息定位: Topic -> Partition -> TimeSegment -> Ledger -> Entry
-消息 ID:  PartitionID.TimeSegmentID.LedgerID.EntryID
-
-Broker: 管理 Topic 和 Partition，处理消息的发布和订阅
-Bookie: BookKeeper 的存储节点，负责存储 Ledger 数据
+[Broker]
+ └─ Topic
+     └─ Partition
+         └─ TimeSegment (TimeSegmentID)
+             └─ [BookKeeper]
+                 └─ Ledger (LedgerID)
+                     └─ Entry (EntryID)
+                          |
+                          +--> Stored on [Bookie Nodes]
 */
 
 package main

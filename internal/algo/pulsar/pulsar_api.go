@@ -10,7 +10,6 @@ type Client interface {
 	Subscribe(ConsumerOptions) (Consumer, error)
 	CreateReader(ReaderOptions) (Reader, error)
 	TopicPartitions(topic string) ([]string, error)
-	Close() error
 }
 
 type ProducerOptions struct {
@@ -31,8 +30,6 @@ type Reader interface {
 
 	// HasNext 检查是否还有更多消息
 	HasNext() bool
-
-	Close() error
 }
 
 type ReaderOptions struct {

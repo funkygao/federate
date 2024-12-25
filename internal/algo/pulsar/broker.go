@@ -14,21 +14,12 @@ type Broker interface {
 
 	CreateProducer(topic string) (Producer, error)
 	Subscribe(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
-}
 
-// BrokerError 定义了 Broker 操作可能返回的错误
-type BrokerError struct {
-	Op  string
-	Err error
-}
-
-func (e *BrokerError) Error() string {
-	return fmt.Sprintf("broker %s error: %v", e.Op, e.Err)
+	Publish(topicName string, msg Message) error
 }
 
 type InMemoryBroker struct {
-	bookKeeper   BookKeeper
-	topicManager *TopicManager // TODO not used
+	bookKeeper BookKeeper
 
 	topics map[string]*Topic
 	mu     sync.RWMutex
@@ -38,10 +29,9 @@ type InMemoryBroker struct {
 
 func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
 	broker := &InMemoryBroker{
-		bookKeeper:   bk,
-		topicManager: NewTopicManager(),
-		topics:       make(map[string]*Topic),
-		delayQueue:   NewDelayQueue(),
+		bookKeeper: bk,
+		topics:     make(map[string]*Topic),
+		delayQueue: NewDelayQueue(),
 	}
 	go broker.processDelayedMessages()
 	return broker
@@ -52,7 +42,7 @@ func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
 	defer b.mu.Unlock()
 
 	if _, exists := b.topics[name]; exists {
-		return nil, &BrokerError{Op: "CreateTopic", Err: fmt.Errorf("topic already exists")}
+		return nil, fmt.Errorf("topic already exists")
 	}
 
 	topic := &Topic{
@@ -70,7 +60,7 @@ func (b *InMemoryBroker) GetTopic(name string) (*Topic, error) {
 
 	topic, exists := b.topics[name]
 	if !exists {
-		return nil, &BrokerError{Op: "GetTopic", Err: fmt.Errorf("topic not found")}
+		return nil, fmt.Errorf("topic not found")
 	}
 	return topic, nil
 }
@@ -80,7 +70,7 @@ func (b *InMemoryBroker) DeleteTopic(name string) error {
 	defer b.mu.Unlock()
 
 	if _, exists := b.topics[name]; !exists {
-		return &BrokerError{Op: "DeleteTopic", Err: fmt.Errorf("topic not found")}
+		return fmt.Errorf("topic not found")
 	}
 
 	delete(b.topics, name)
@@ -90,7 +80,7 @@ func (b *InMemoryBroker) DeleteTopic(name string) error {
 func (b *InMemoryBroker) CreateProducer(topic string) (Producer, error) {
 	t, err := b.GetTopic(topic)
 	if err != nil {
-		return nil, &BrokerError{Op: "CreateProducer", Err: err}
+		return nil, err
 	}
 
 	return NewInMemoryProducer(b, t), nil
@@ -104,7 +94,7 @@ func (b *InMemoryBroker) Subscribe(topicName, subscriptionName string, subType S
 
 	topic, exists := b.topics[topicName]
 	if !exists {
-		return nil, &BrokerError{Op: "Subscribe", Err: fmt.Errorf("topic not found")}
+		return nil, fmt.Errorf("topic not found")
 	}
 
 	sub, exists := topic.Subscriptions[subscriptionName]
@@ -138,7 +128,7 @@ func (b *InMemoryBroker) processDelayedMessages() {
 					break
 				}
 				// 消息已经准备好，发布到相应的主题
-				err := b.publishMessage(msg.Topic, msg)
+				err := b.Publish(msg.Topic, msg)
 				if err != nil {
 					log.Printf("Error publishing delayed message: %v", err)
 				}
@@ -147,7 +137,7 @@ func (b *InMemoryBroker) processDelayedMessages() {
 	}
 }
 
-func (b *InMemoryBroker) publishMessage(topicName string, msg Message) error {
+func (b *InMemoryBroker) Publish(topicName string, msg Message) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -155,7 +145,7 @@ func (b *InMemoryBroker) publishMessage(topicName string, msg Message) error {
 
 	topic, exists := b.topics[topicName]
 	if !exists {
-		return &BrokerError{Op: "publishMessage", Err: fmt.Errorf("topic not found")}
+		return fmt.Errorf("topic not found")
 	}
 
 	// 简化：使用单一分区
@@ -169,44 +159,28 @@ func (b *InMemoryBroker) publishMessage(topicName string, msg Message) error {
 		topic.Partitions[partitionID] = partition
 	}
 
-	// 获取或创建当前的 TimeSegment
-	currentTime := TimeSegmentID(time.Now().Unix() / (60 * 60)) // 每小时一个 TimeSegment
-	timeSegment, exists := partition.TimeSegments[currentTime]
-	if !exists {
-		timeSegment = &TimeSegment{
-			ID:      currentTime,
-			Ledgers: []LedgerID{},
-		}
-		partition.TimeSegments[currentTime] = timeSegment
+	// Get or create TimeSegment
+	timeSegment, err := b.getOrCreateTimeSegment(partition)
+	if err != nil {
+		return err
 	}
 
-	// 创建新的 Ledger（如果需要）
-	var ledger Ledger
-	var err error
-	if len(timeSegment.Ledgers) == 0 {
-		ledger, err = b.bookKeeper.CreateLedger()
-		if err != nil {
-			return &BrokerError{Op: "publishMessage", Err: err}
-		}
-		timeSegment.Ledgers = append(timeSegment.Ledgers, ledger.GetID())
-	} else {
-		lastLedgerID := timeSegment.Ledgers[len(timeSegment.Ledgers)-1]
-		ledger, err = b.bookKeeper.OpenLedger(lastLedgerID)
-		if err != nil {
-			return &BrokerError{Op: "publishMessage", Err: err}
-		}
+	// Get or create Ledger
+	ledger, err := b.getOrCreateLedger(timeSegment)
+	if err != nil {
+		return err
 	}
 
 	// 添加消息到 Ledger
 	entryID, err := ledger.AddEntry(msg.Content)
 	if err != nil {
-		return &BrokerError{Op: "publishMessage", Err: err}
+		return err
 	}
 
 	msg.Topic = topicName
 	msg.ID = MessageID{
 		PartitionID:   partitionID,
-		TimeSegmentID: currentTime,
+		TimeSegmentID: timeSegment.ID,
 		LedgerID:      ledger.GetID(),
 		EntryID:       entryID,
 	}
@@ -242,4 +216,47 @@ func (b *InMemoryBroker) deliverMessage(topicName string, msg Message) {
 	for _, sub := range topic.Subscriptions {
 		sub.AddMessage(msg)
 	}
+}
+
+func (b *InMemoryBroker) getOrCreateLedger(timeSegment *TimeSegment) (Ledger, error) {
+	var ledger Ledger
+	var err error
+
+	if len(timeSegment.Ledgers) == 0 {
+		ledger, err = b.bookKeeper.CreateLedger()
+		if err != nil {
+			return nil, err
+		}
+		timeSegment.Ledgers = append(timeSegment.Ledgers, ledger.GetID())
+	} else {
+		lastLedgerID := timeSegment.Ledgers[len(timeSegment.Ledgers)-1]
+		ledger, err = b.bookKeeper.OpenLedger(lastLedgerID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return ledger, nil
+}
+
+func (b *InMemoryBroker) getOrCreateTimeSegment(partition *Partition) (*TimeSegment, error) {
+	currentTimeSegmentID := b.allocateTimeSegmentID()
+
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	timeSegment, exists := partition.TimeSegments[currentTimeSegmentID]
+	if !exists {
+		timeSegment = &TimeSegment{
+			ID:      currentTimeSegmentID,
+			Ledgers: []LedgerID{},
+		}
+		partition.TimeSegments[currentTimeSegmentID] = timeSegment
+	}
+
+	return timeSegment, nil
+}
+
+func (b *InMemoryBroker) allocateTimeSegmentID() TimeSegmentID {
+	return TimeSegmentID(time.Now().Unix() / (60 * 60)) // Segments per hour
 }

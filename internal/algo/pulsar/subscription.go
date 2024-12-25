@@ -21,15 +21,6 @@ type Subscription interface {
 	Unsubscribe() error
 }
 
-type SubscriptionError struct {
-	Op  string
-	Err error
-}
-
-func (e *SubscriptionError) Error() string {
-	return fmt.Sprintf("subscription %s error: %v", e.Op, e.Err)
-}
-
 type InMemorySubscription struct {
 	bookKeeper  BookKeeper
 	topic       *Topic
@@ -57,7 +48,7 @@ func (s *InMemorySubscription) Acknowledge(msgID MessageID) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.ackMessages[msgID]; !exists {
-		return &SubscriptionError{Op: "Acknowledge", Err: fmt.Errorf("message not found")}
+		return fmt.Errorf("message not found")
 	}
 
 	delete(s.ackMessages, msgID)
@@ -93,6 +84,6 @@ func (s *InMemorySubscription) Receive() (Message, error) {
 		log.Printf("Message received from subscription: %s", s.name)
 		return msg, nil
 	case <-time.After(5 * time.Second):
-		return Message{}, &SubscriptionError{Op: "Receive", Err: fmt.Errorf("timeout")}
+		return Message{}, fmt.Errorf("timeout")
 	}
 }

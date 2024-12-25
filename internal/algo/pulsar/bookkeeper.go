@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -10,15 +9,6 @@ type BookKeeper interface {
 	CreateLedger() (Ledger, error)
 	DeleteLedger(ledgerID LedgerID) error
 	OpenLedger(ledgerID LedgerID) (Ledger, error)
-}
-
-type BookKeeperError struct {
-	Op  string
-	Err error
-}
-
-func (e *BookKeeperError) Error() string {
-	return fmt.Sprintf("bookkeeper %s error: %v", e.Op, e.Err)
 }
 
 type InMemoryBookKeeper struct {

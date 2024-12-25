@@ -5,11 +5,11 @@ type Producer interface {
 }
 
 type InMemoryProducer struct {
-	broker *InMemoryBroker
+	broker Broker
 	topic  *Topic
 }
 
-func NewInMemoryProducer(broker *InMemoryBroker, topic *Topic) *InMemoryProducer {
+func NewInMemoryProducer(broker Broker, topic *Topic) *InMemoryProducer {
 	return &InMemoryProducer{
 		broker: broker,
 		topic:  topic,
@@ -18,5 +18,5 @@ func NewInMemoryProducer(broker *InMemoryBroker, topic *Topic) *InMemoryProducer
 
 func (p *InMemoryProducer) Send(msg Message) error {
 	msg.Topic = p.topic.Name
-	return p.broker.publishMessage(p.topic.Name, msg)
+	return p.broker.Publish(p.topic.Name, msg)
 }
