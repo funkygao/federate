@@ -46,6 +46,7 @@ func Load() *Manifest {
 		Main: MainSystem{
 			Version: defaultMainVersion,
 			Reconcile: ReconcileSpec{
+				PluginDir: "plugins",
 				Taint: TaintSpec{
 					LogConfigXml:     defaultLogConfigXml,
 					MybatisConfigXml: defaultMybatisConfigXml,

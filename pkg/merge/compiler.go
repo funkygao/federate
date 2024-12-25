@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"federate/pkg/federated"
 	"federate/pkg/manifest"
 	"federate/pkg/merge/bean"
 	"federate/pkg/merge/ledger"
@@ -121,7 +120,7 @@ func (p *compiler) loadDefaultReconcilers() {
 }
 
 func (p *compiler) loadPluginReconcilers() {
-	if pluginReconcilers, err := LoadPluginReconcilers(federated.FederatePluginsDir, p.m); err != nil {
+	if pluginReconcilers, err := LoadPluginReconcilers(p.m); err != nil {
 		log.Printf("Error loading plugin reconcilers: %v", err)
 	} else {
 		p.AddReconciler(pluginReconcilers...)

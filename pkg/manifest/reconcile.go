@@ -7,6 +7,7 @@ import (
 type ReconcileSpec struct {
 	Transformers        []TransformerSpec `yaml:"transformers"`
 	ExcludedBeanClasses []string          `yaml:"excludeBeans"`
+	PluginDir           string            `yaml:"pluginDir"`
 
 	Taint     TaintSpec              `yaml:"manual"`
 	Resources ResourcesReconcileSpec `yaml:"resources"`

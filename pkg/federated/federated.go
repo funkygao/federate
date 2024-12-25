@@ -9,8 +9,6 @@ const (
 	GeneratedDir = ""
 	FederatedDir = "federated"
 
-	FederatePluginsDir = "plugins"
-
 	starterSuffix = "-starter"
 )
 

@@ -9,8 +9,8 @@ import (
 )
 
 // Load PluginReconcilers from specified dir.
-func LoadPluginReconcilers(pluginDir string, m *manifest.Manifest) (reconcilers []Reconciler, err error) {
-	plugins, err := filepath.Glob(filepath.Join(pluginDir, "*.so"))
+func LoadPluginReconcilers(m *manifest.Manifest) (reconcilers []Reconciler, err error) {
+	plugins, err := filepath.Glob(filepath.Join(m.Main.Reconcile.PluginDir, "*.so"))
 	if err != nil {
 		return nil, fmt.Errorf("error loading plugins: %v", err)
 	}
