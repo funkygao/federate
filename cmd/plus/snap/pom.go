@@ -59,7 +59,7 @@ func updatePom(pomPath string) error {
 	if !localRepoExists {
 		repo := repositories.CreateElement("repository")
 		repo.CreateElement("id").SetText("local-maven-repo")
-		repo.CreateElement("url").SetText(fmt.Sprintf("file://${project.basedir}/%s", filepath.Base(absLocalRepoPath)))
+		repo.CreateElement("url").SetText(fmt.Sprintf("file://${project.basedir}/generated/%s", filepath.Base(absLocalRepoPath)))
 		log.Printf("Added local Maven repository reference to %s", pomPath)
 	}
 
