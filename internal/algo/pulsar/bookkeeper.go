@@ -15,8 +15,7 @@ type InMemoryBookKeeper struct {
 	bookies []Bookie
 	mu      sync.RWMutex
 
-	// LedgerID 是由 BookKeeper 服务管理的，而不是单个的 Bookie
-	// BookKeeper 需要在整个集群范围内保证 LedgerID 的唯一性
+	// BookKeeper 需要在整个集群范围内保证 LedgerID 的唯一性：通过 zk
 	nextLedgerID LedgerID
 }
 
@@ -31,20 +30,27 @@ func NewInMemoryBookKeeper(numBookies int) *InMemoryBookKeeper {
 	}
 }
 
+func (bk *InMemoryBookKeeper) CreateLedger() (Ledger, error) {
+	return bk.lbBookie().CreateLedger(bk.allocateLedgerID())
+}
+
+func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
+	return bk.locateBookie(ledgerID).DeleteLedger(ledgerID)
+}
+
+func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
+	return bk.locateBookie(ledgerID).GetLedger(ledgerID)
+}
+
 func (bk *InMemoryBookKeeper) allocateLedgerID() LedgerID {
 	return bk.nextLedgerID.Next()
 }
 
-func (bk *InMemoryBookKeeper) CreateLedger() (Ledger, error) {
-	// 简化实现：只在第一个 bookie 上创建 ledger
-	ledgerID := bk.allocateLedgerID()
-	return bk.bookies[0].CreateLedger(ledgerID)
+func (bk *InMemoryBookKeeper) lbBookie() Bookie {
+	// 简化实现
+	return bk.bookies[0]
 }
 
-func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
-	return bk.bookies[0].DeleteLedger(ledgerID)
-}
-
-func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
-	return bk.bookies[0].GetLedger(ledgerID)
+func (bk *InMemoryBookKeeper) locateBookie(ledgerID LedgerID) Bookie {
+	return bk.bookies[0]
 }

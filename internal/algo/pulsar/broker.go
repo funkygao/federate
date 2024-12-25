@@ -10,7 +10,6 @@ import (
 type Broker interface {
 	CreateTopic(name string) (*Topic, error)
 	GetTopic(name string) (*Topic, error)
-	DeleteTopic(name string) error
 
 	CreateProducer(topic string) (Producer, error)
 	Subscribe(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
@@ -65,18 +64,6 @@ func (b *InMemoryBroker) GetTopic(name string) (*Topic, error) {
 	return topic, nil
 }
 
-func (b *InMemoryBroker) DeleteTopic(name string) error {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	if _, exists := b.topics[name]; !exists {
-		return fmt.Errorf("topic not found")
-	}
-
-	delete(b.topics, name)
-	return nil
-}
-
 func (b *InMemoryBroker) CreateProducer(topic string) (Producer, error) {
 	t, err := b.GetTopic(topic)
 	if err != nil {
@@ -119,7 +106,6 @@ func (b *InMemoryBroker) processDelayedMessages() {
 			for {
 				msg, ok := b.delayQueue.Poll()
 				if !ok {
-					// 队列为空或没有准备好的消息
 					break
 				}
 				if msg.Timestamp.After(now) {
