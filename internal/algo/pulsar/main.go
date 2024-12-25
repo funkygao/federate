@@ -9,7 +9,8 @@ import (
 func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 
-	bk := NewInMemoryBookKeeper()
+	// 创建一个有 3 个 Bookie 的 BookKeeper 服务
+	bk := NewInMemoryBookKeeperService(3)
 	broker := NewPulsarBroker(bk)
 
 	topic := "test-topic"

@@ -6,7 +6,7 @@ import (
 )
 
 type TopicManager struct {
-	bookKeeper       BookKeeper
+	bookKeeper       BookKeeperService
 	currentPartition PartitionID
 	currentSegment   TimeSegmentID
 	currentLedger    LedgerID
@@ -16,7 +16,7 @@ type TopicManager struct {
 	mu               sync.Mutex
 }
 
-func NewTopicManager(bk BookKeeper) *TopicManager {
+func NewTopicManager(bk BookKeeperService) *TopicManager {
 	tm := &TopicManager{
 		bookKeeper:       bk,
 		currentPartition: 0,
