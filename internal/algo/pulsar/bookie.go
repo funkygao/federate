@@ -46,7 +46,7 @@ type InMemoryBookie struct {
 	mu          sync.RWMutex
 	nextEntryID EntryID
 
-	journal *Journal
+	journal Journal
 
 	entryLogs      map[LedgerID][]*EntryLog
 	activeLogs     map[LedgerID]*EntryLog
@@ -54,12 +54,17 @@ type InMemoryBookie struct {
 }
 
 func NewInMemoryBookie(id int) Bookie {
+	journal, err := NewFileJournal("journal/")
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	return &InMemoryBookie{
 		id:             id,
 		entries:        make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
-		journal:        &Journal{entries: []JournalEntry{}},
+		journal:        journal,
 		nextEntryLogID: 0,
 		nextEntryID:    0,
 	}
@@ -75,7 +80,7 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 	log.Printf("Bookie[%d] AddEntry(LedgerID = %d): allocate EntryID %d for Payload: %s", b.id, ledgerID, entryID, string(data))
 
 	// Write to journal first
-	if err := b.journal.Append(ledgerID, entryID, data); err != nil {
+	if err := b.journal.Append(JournalEntry{ledgerID, entryID, data}); err != nil {
 		return entryID, err
 	}
 

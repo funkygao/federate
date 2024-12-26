@@ -2,6 +2,7 @@
 target/
 data/
 classes/
+journal/
 lsp/
 __pycache__/
 .ipynb_checkpoints/
