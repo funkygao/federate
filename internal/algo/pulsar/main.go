@@ -12,7 +12,7 @@ func main() {
 	broker := initializeBroker()
 	broker.Start()
 
-	topic := createTopic(broker, "test-topic")
+	topic := createTopic(broker, "OrderCreated")
 
 	producer := createProducer(broker, topic)
 	consumer := createConsumer(broker, topic)
@@ -40,7 +40,6 @@ func createTopic(broker Broker, topicName string) *Topic {
 		log.Fatalf("Failed to create topic: %v", err)
 	}
 
-	log.Printf("Created topic: %s", topicName)
 	return topic
 }
 
@@ -50,7 +49,6 @@ func createProducer(broker Broker, topic *Topic) Producer {
 		log.Fatalf("Failed to create producer: %v", err)
 	}
 
-	log.Printf("Created producer for topic: %s", topic.Name)
 	return producer
 }
 
@@ -60,14 +58,13 @@ func createConsumer(broker Broker, topic *Topic) Consumer {
 		log.Fatalf("Failed to create consumer: %v", err)
 	}
 
-	log.Printf("Created consumer for topic: %s", topic.Name)
 	return consumer
 }
 
 func produceMessages(producer Producer, N int) {
 	for i := 0; i < N; i++ {
 		msg := Message{
-			Content:   []byte(fmt.Sprintf("Message %d", i)),
+			Content:   []byte(fmt.Sprintf("Order[%d]", i)),
 			Timestamp: time.Now(),
 		}
 		if i%5 == 0 {
@@ -77,7 +74,7 @@ func produceMessages(producer Producer, N int) {
 		if err := producer.Send(msg); err != nil {
 			log.Printf("Failed to send message: %v", err)
 		} else {
-			log.Printf("Sent message: %s", string(msg.Content))
+			log.Printf("Sent message: %s", msg)
 		}
 
 		time.Sleep(500 * time.Millisecond)
@@ -93,7 +90,7 @@ func consumeMessages(consumer Consumer) {
 			continue
 		}
 
-		log.Printf("Received message: %s", string(msg.Content))
+		log.Printf("Received message: %s", msg)
 		if err = consumer.Ack(msg.ID); err != nil {
 			log.Printf("Failed to ack message: %v", err)
 		}

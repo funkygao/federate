@@ -41,6 +41,7 @@ type Bookie interface {
 }
 
 type InMemoryBookie struct {
+	id          int
 	entries     map[LedgerID]map[EntryID]Payload
 	mu          sync.RWMutex
 	nextEntryID EntryID
@@ -52,8 +53,9 @@ type InMemoryBookie struct {
 	nextEntryLogID EntryLogID
 }
 
-func NewInMemoryBookie() Bookie {
+func NewInMemoryBookie(id int) Bookie {
 	return &InMemoryBookie{
+		id:             id,
 		entries:        make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
@@ -70,10 +72,14 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 	// Assign EntryID based on last EntryID
 	entryID := b.allocateEntryID(ledgerID)
 
+	log.Printf("Bookie[%d] AddEntry(LedgerID = %d): allocate EntryID %d for Payload: %s", b.id, ledgerID, entryID, string(data))
+
 	// Write to journal first
 	if err := b.journal.Append(ledgerID, entryID, data); err != nil {
 		return entryID, err
 	}
+
+	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d): Journal written", b.id, ledgerID, entryID)
 
 	// Then update in-memory entries
 	if _, exists := b.entries[ledgerID]; !exists {
@@ -81,13 +87,15 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 	}
 	b.entries[ledgerID][entryID] = data
 
+	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d): MemTable updated", b.id, ledgerID, entryID)
+
 	// Handle EntryLog, rotation, etc.
 	entryLog, err := b.getOrCreateEntryLog(ledgerID)
 	if err != nil {
 		return entryID, err
 	}
 
-	log.Printf("AddEntry/%d [L:%d,E:%d]", entryLog.ID, ledgerID, entryID)
+	log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog written", b.id, entryLog.ID, ledgerID, entryID)
 	entryLog.Write(data)
 
 	// Check if we need to rotate the EntryLog
@@ -95,6 +103,7 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 		if err := b.rotateEntryLog(ledgerID); err != nil {
 			return entryID, err
 		}
+		log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog rotated", b.id, entryLog.ID, ledgerID, entryID)
 	}
 
 	return entryID, nil
@@ -114,6 +123,7 @@ func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload,
 		return nil, fmt.Errorf("entry %d not found", entryID)
 	}
 
+	log.Printf("Bookie[%d] ReadEntry(LedgerID:%d, EntryID:%d): entry loaded", b.id, ledgerID, entryID)
 	return entry, nil
 }
 

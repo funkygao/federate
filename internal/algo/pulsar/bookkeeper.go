@@ -29,7 +29,7 @@ type InMemoryBookKeeper struct {
 func NewInMemoryBookKeeper(clusterSize int) *InMemoryBookKeeper {
 	bookies := make([]Bookie, clusterSize)
 	for i := 0; i < clusterSize; i++ {
-		bookies[i] = NewInMemoryBookie()
+		bookies[i] = NewInMemoryBookie(i)
 	}
 	return &InMemoryBookKeeper{
 		bookies:       bookies,

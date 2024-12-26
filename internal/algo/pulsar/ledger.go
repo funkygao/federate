@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"sync"
 )
 
@@ -42,6 +43,8 @@ func (l *inMemoryLedger) AddEntry(data Payload, option LedgerOption) (EntryID, e
 	// Broker initiates the write operation but doesn't directly handle replication details.
 	for i := 0; i < option.WriteQuorum; i++ {
 		// 实际上是并发写，each bookie is peer node, coordination is on client/Ledger side
+		log.Printf("Ledger[%d] AddEntry to bookie[%d] with WriteQuorum: %d", l.id, i, option.WriteQuorum)
+
 		entryID, err := l.bookies[i].AddEntry(l.id, data)
 		if err != nil {
 			return 0, err
@@ -62,6 +65,9 @@ func (l *inMemoryLedger) ReadEntry(entryID EntryID) (Payload, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
+	log.Printf("Ledger[%d] ReadEntry(%d)", l.id, entryID)
+
+	// 实际上是并发读，取最快的
 	return l.bookies[0].ReadEntry(l.id, entryID)
 }
 

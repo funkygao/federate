@@ -75,6 +75,10 @@ func (m *Message) ReadyTime() time.Time {
 	return time.Now().Add(m.Delay)
 }
 
+func (m Message) String() string {
+	return string(m.Content)
+}
+
 type Topic struct {
 	Name          string
 	Partitions    map[PartitionID]*Partition

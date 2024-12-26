@@ -21,6 +21,8 @@ type Broker interface {
 }
 
 type InMemoryBroker struct {
+	info BrokerInfo
+
 	// BookKeeper 暴露给 Broker 的RPC服务
 	bookKeeper BookKeeper
 
@@ -44,12 +46,14 @@ func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
 }
 
 func (b *InMemoryBroker) Start() error {
-	info := BrokerInfo{
+	b.info = BrokerInfo{
 		ID:   "1",
 		Host: "localhost",
 		Port: 9988,
 	}
-	b.zk.RegisterBroker(info)
+	b.zk.RegisterBroker(b.info)
+
+	log.Printf("Broker%+v started, zk registered", b.info)
 	return nil
 }
 
@@ -67,6 +71,8 @@ func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
 		Subscriptions: make(map[string]Subscription),
 	}
 	b.topics[name] = topic
+
+	log.Printf("%s CreateTopic(%s)", b.logIdent(), name)
 	return topic, nil
 }
 
@@ -78,6 +84,8 @@ func (b *InMemoryBroker) GetTopic(name string) (*Topic, error) {
 	if !exists {
 		return nil, fmt.Errorf("topic not found")
 	}
+
+	log.Printf("%s GetTopic(%s): %+v", b.logIdent(), name, *topic)
 	return topic, nil
 }
 
@@ -87,6 +95,7 @@ func (b *InMemoryBroker) CreateProducer(topicName string) (Producer, error) {
 		return nil, err
 	}
 
+	log.Printf("%s CreateProducer for topic: %s", b.logIdent(), topicName)
 	return NewInMemoryProducer(b, topic), nil
 }
 
@@ -97,6 +106,8 @@ func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subT
 	}
 
 	sub := topic.Subscribe(b.bookKeeper, subscriptionName, subType)
+
+	log.Printf("%s CreateConsumerfor topic: %s, subscription: %+v", b.logIdent(), topicName, sub)
 	return NewInMemoryConsumer(sub), nil
 }
 
@@ -111,6 +122,8 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 		return err
 	}
 
+	log.Printf("%s Publish, routing info: {partition: %+v, ledger %+v}", b.logIdent(), partition, ledger)
+
 	entryID, err := ledger.AddEntry(msg.Content, b.bookKeeper.LedgerOption(ledger.GetLedgerID()))
 	if err != nil {
 		return err
@@ -123,6 +136,7 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 	}
 
 	if msg.IsDelay() {
+		log.Printf("%s Publish got delay message, ready at: %v", b.logIdent(), msg.ReadyTime())
 		b.delayQueue.Add(msg)
 	}
 
@@ -154,6 +168,7 @@ func (b *InMemoryBroker) processDelayedMessages() {
 				}
 
 				// 消息已经准备好，发布到相应的主题
+				log.Printf("%s delay message is due", b.logIdent())
 				if err := b.Publish(msg); err != nil {
 					log.Printf("Error publishing delayed message: %v", err)
 				}
@@ -214,4 +229,8 @@ func (b *InMemoryBroker) createNewLedger(partition *Partition) (Ledger, error) {
 func (b *InMemoryBroker) shouldRolloverLedger(ledger Ledger) bool {
 	// For example, based on the number of entries or age of the ledger
 	return false
+}
+
+func (b *InMemoryBroker) logIdent() string {
+	return "Broker[" + b.info.ID + "]"
 }
