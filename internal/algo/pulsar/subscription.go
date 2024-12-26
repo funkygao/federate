@@ -13,6 +13,7 @@ const (
 	Failover
 )
 
+// Subscription: Manages message acknowledgment and cursor positions.
 type Subscription interface {
 	Fetch() (Message, error)
 	Ack(msgID MessageID) error

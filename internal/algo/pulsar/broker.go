@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Responsible for message routing, subscription management, and interacting with the storage layer (BookKeeper) to persist messages.
+// Broker: Manages topics, producers, consumers, message routing, and interacts with the storage layer.
 type Broker interface {
 	CreateTopic(name string) (*Topic, error)
 	GetTopic(name string) (*Topic, error)

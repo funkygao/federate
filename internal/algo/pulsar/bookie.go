@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Bookie interface defines the operations that a bookie should support.
+// Bookie: Stores entries for ledgers.
 // The physical storage layout of a Bookie on a file system typically looks like this:
 //
 //	/bookie-data/
@@ -36,13 +36,16 @@ import (
 // - Entries are grouped into entry logs for efficiency.
 // - Ledgers are grouped into subdirectories to avoid too many files in a single directory.
 type Bookie interface {
-	AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) error
+	AddEntry(ledgerID LedgerID, data Payload) (EntryID, error)
 	ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error)
 }
 
 type InMemoryBookie struct {
-	entries map[LedgerID]map[EntryID]Payload
-	mu      sync.RWMutex
+	entries     map[LedgerID]map[EntryID]Payload
+	mu          sync.RWMutex
+	nextEntryID EntryID
+
+	journal *Journal
 
 	entryLogs      map[LedgerID][]*EntryLog
 	activeLogs     map[LedgerID]*EntryLog
@@ -54,23 +57,34 @@ func NewInMemoryBookie() Bookie {
 		entries:        make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
+		journal:        &Journal{entries: []JournalEntry{}},
 		nextEntryLogID: 0,
+		nextEntryID:    0,
 	}
 }
 
-func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) error {
+func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
+	// Assign EntryID based on last EntryID
+	entryID := b.allocateEntryID(ledgerID)
+
+	// Write to journal first
+	if err := b.journal.Append(ledgerID, entryID, data); err != nil {
+		return entryID, err
+	}
+
+	// Then update in-memory entries
 	if _, exists := b.entries[ledgerID]; !exists {
 		b.entries[ledgerID] = make(map[EntryID]Payload)
 	}
 	b.entries[ledgerID][entryID] = data
 
-	// EntryLog
+	// Handle EntryLog, rotation, etc.
 	entryLog, err := b.getOrCreateEntryLog(ledgerID)
 	if err != nil {
-		return err
+		return entryID, err
 	}
 
 	log.Printf("AddEntry/%d [L:%d,E:%d]", entryLog.ID, ledgerID, entryID)
@@ -79,11 +93,11 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Paylo
 	// Check if we need to rotate the EntryLog
 	if entryLog.Size >= DefaultEntryLogSize || time.Since(entryLog.CreatedAt) >= DefaultRotationInterval {
 		if err := b.rotateEntryLog(ledgerID); err != nil {
-			return err
+			return entryID, err
 		}
 	}
 
-	return nil
+	return entryID, nil
 }
 
 func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) {
@@ -101,6 +115,10 @@ func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload,
 	}
 
 	return entry, nil
+}
+
+func (b *InMemoryBookie) allocateEntryID(ledgerID LedgerID) EntryID {
+	return b.nextEntryID.Next()
 }
 
 func (b *InMemoryBookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, error) {

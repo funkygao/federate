@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-// Responsible for bookie load balancing by deciding which bookies store which ledgers.
+// BookKeeper: Manages ledgers and coordinates with bookies for storage.
 type BookKeeper interface {
 	CreateLedger(LedgerOption) (Ledger, error)
 	DeleteLedger(ledgerID LedgerID) error

@@ -19,6 +19,19 @@ import (
 	"time"
 )
 
+var (
+	_ PartitionLB = (*InMemoryBroker)(nil)
+	_ BrokerLB    = (*InMemoryBrokerCluster)(nil)
+	_ BookieLB    = (*InMemoryBookKeeper)(nil)
+
+	_ TimeSegmentAllocator = (*InMemoryBroker)(nil)
+
+	// Ledger IDs are typically managed by BookKeeper, and uniqueness is ensured cluster-wide (often with the help of ZooKeeper).
+	_ LedgerIDAllocator = (*InMemoryBookKeeper)(nil)
+
+	_ EntryIDAllocator = (*InMemoryBookie)(nil)
+)
+
 type PartitionID int
 type TimeSegmentID int64
 
@@ -103,4 +116,28 @@ type Partition struct {
 type TimeSegment struct {
 	ID      TimeSegmentID
 	Ledgers []LedgerID
+}
+
+type BrokerLB interface {
+	selectBroker() Broker
+}
+
+type PartitionLB interface {
+	selectPartition(msg Message) PartitionID
+}
+
+type LedgerIDAllocator interface {
+	allocateLedgerID() LedgerID
+}
+
+type EntryIDAllocator interface {
+	allocateEntryID(LedgerID) EntryID
+}
+
+type TimeSegmentAllocator interface {
+	allocateTimeSegmentID() TimeSegmentID
+}
+
+type BookieLB interface {
+	selectBookies(ensembleSize int) []Bookie
 }

@@ -11,7 +11,7 @@ type LedgerOption struct {
 	AckQuorum    int
 }
 
-// Ledger 表示一个连续的日志条目序列
+// Ledger: Represents a sequence of entries.
 type Ledger interface {
 	AddEntry(Payload) (EntryID, error)
 	ReadEntry(EntryID) (Payload, error)
@@ -38,23 +38,24 @@ func (l *inMemoryLedger) AddEntry(data Payload) (EntryID, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	entryID := l.allocateEntryID()
-
 	options := l.bookKeeper.ledgerOptions[l.id]
+	var entryIDs []EntryID
+
 	for i := 0; i < options.WriteQuorum; i++ {
-		err := l.bookies[i].AddEntry(l.id, entryID, data)
+		entryID, err := l.bookies[i].AddEntry(l.id, data)
 		if err != nil {
 			return 0, err
 		}
+
+		entryIDs = append(entryIDs, entryID)
 	}
 
-	l.lastConfirmed = entryID
+	// Ensure all entryIDs are the same across bookies
+	// or handle discrepancies due to failures
 
-	return entryID, nil
-}
+	l.lastConfirmed = entryIDs[0]
 
-func (l *inMemoryLedger) allocateEntryID() EntryID {
-	return l.lastConfirmed.Next()
+	return l.lastConfirmed, nil
 }
 
 func (l *inMemoryLedger) ReadEntry(entryID EntryID) (Payload, error) {
