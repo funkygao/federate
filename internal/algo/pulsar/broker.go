@@ -11,6 +11,7 @@ import (
 type Broker interface {
 	Start() error
 
+	// Broker is owner of topics
 	CreateTopic(name string) (*Topic, error)
 	GetTopic(name string) (*Topic, error)
 
@@ -18,6 +19,9 @@ type Broker interface {
 	CreateConsumer(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
 
 	Publish(msg Message) error
+}
+
+type TailCache interface {
 }
 
 type InMemoryBroker struct {
@@ -32,6 +36,9 @@ type InMemoryBroker struct {
 	mu     sync.RWMutex
 
 	delayQueue *DelayQueue
+
+	// 消费尾部消息时，不必访问 BK
+	tailCache TailCache
 }
 
 func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
@@ -72,7 +79,9 @@ func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
 	}
 	b.topics[name] = topic
 
-	log.Printf("%s CreateTopic(%s)", b.logIdent(), name)
+	b.zk.RegisterTopic(topic)
+
+	log.Printf("%s CreateTopic(%s), zk registered", b.logIdent(), name)
 	return topic, nil
 }
 

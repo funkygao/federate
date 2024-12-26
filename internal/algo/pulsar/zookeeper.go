@@ -2,6 +2,7 @@ package main
 
 type ZooKeeper interface {
 	RegisterBroker(BrokerInfo) error
+	RegisterTopic(Topic) error
 	RegisterLedger(LedgerMetadata) error
 }
 
@@ -23,6 +24,10 @@ type InMemoryZooKeeper struct {
 }
 
 func (zk *InMemoryZooKeeper) RegisterBroker(BrokerInfo) error {
+	return nil
+}
+
+func (zk *InMemoryZooKeeper) RegisterTopic(Topic) error {
 	return nil
 }
 
