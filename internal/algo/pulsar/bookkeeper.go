@@ -6,16 +6,17 @@ import (
 )
 
 // BookKeeper: Manages ledgers and coordinates with bookies for storage.
+// Its storage RPC Client for Broker.
 type BookKeeper interface {
 	CreateLedger(LedgerOption) (Ledger, error)
-	DeleteLedger(ledgerID LedgerID) error
 	OpenLedger(ledgerID LedgerID) (Ledger, error)
 
 	LedgerOption(LedgerID) LedgerOption
 }
 
-type InMemoryBookKeeper struct {
-	bookies       []Bookie
+type bookKeeper struct {
+	bookies []Bookie
+
 	ledgers       map[LedgerID]Ledger
 	ledgerOptions map[LedgerID]LedgerOption
 	mu            sync.RWMutex
@@ -26,12 +27,12 @@ type InMemoryBookKeeper struct {
 	zk ZooKeeper
 }
 
-func NewInMemoryBookKeeper(clusterSize int) *InMemoryBookKeeper {
+func NewBookKeeper(clusterSize int) *bookKeeper {
 	bookies := make([]Bookie, clusterSize)
 	for i := 0; i < clusterSize; i++ {
-		bookies[i] = NewInMemoryBookie(i)
+		bookies[i] = NewBookie(i)
 	}
-	return &InMemoryBookKeeper{
+	return &bookKeeper{
 		bookies:       bookies,
 		ledgers:       make(map[LedgerID]Ledger),
 		ledgerOptions: make(map[LedgerID]LedgerOption),
@@ -40,22 +41,20 @@ func NewInMemoryBookKeeper(clusterSize int) *InMemoryBookKeeper {
 	}
 }
 
-func (bk *InMemoryBookKeeper) CreateLedger(opt LedgerOption) (ledger Ledger, err error) {
+func (bk *bookKeeper) CreateLedger(opt LedgerOption) (ledger Ledger, err error) {
 	ledgerID := bk.allocateLedgerID()
 	ledger = &inMemoryLedger{
 		id:            ledgerID,
-		bookies:       bk.selectBookies(opt.EnsembleSize),
+		bookies:       bk.selectBookies(ledgerID, opt),
 		lastConfirmed: -1,
 	}
 	bk.ledgers[ledgerID] = ledger
 	bk.ledgerOptions[ledgerID] = opt
 
-	bk.zk.RegisterLedger(LedgerMetadata{ID: ledgerID})
-
 	return
 }
 
-func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
+func (bk *bookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
 	bk.mu.RLock()
 	defer bk.mu.RUnlock()
 
@@ -66,31 +65,24 @@ func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
 	return ledger, nil
 }
 
-func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
-	bk.mu.Lock()
-	defer bk.mu.Unlock()
-
-	if _, exists := bk.ledgers[ledgerID]; !exists {
-		return fmt.Errorf("ledger %d not found", ledgerID)
-	}
-
-	delete(bk.ledgers, ledgerID)
-	delete(bk.ledgerOptions, ledgerID)
-	return nil
-}
-
-func (bk *InMemoryBookKeeper) LedgerOption(ledgerID LedgerID) LedgerOption {
+func (bk *bookKeeper) LedgerOption(ledgerID LedgerID) LedgerOption {
 	return bk.ledgerOptions[ledgerID]
 }
 
-func (bk *InMemoryBookKeeper) allocateLedgerID() LedgerID {
+func (bk *bookKeeper) allocateLedgerID() LedgerID {
+	// 实际情况是每个 Parttion 一个 ledger id 空间
 	return bk.nextLedgerID.Next()
 }
 
-func (bk *InMemoryBookKeeper) selectBookies(ensembleSize int) []Bookie {
-	selected := make([]Bookie, ensembleSize)
-	for i := 0; i < ensembleSize; i++ {
+func (bk *bookKeeper) selectBookies(ledgerID LedgerID, opt LedgerOption) []Bookie {
+	// 实际会考虑负载等策略进行选择
+	selected := make([]Bookie, opt.EnsembleSize)
+	for i := 0; i < opt.EnsembleSize; i++ {
 		selected[i] = bk.bookies[i%len(bk.bookies)]
 	}
+
+	// 选择后不能变了，除非节点崩溃
+	bk.zk.RegisterLedger(LedgerInfo{ledgerID, opt, selected})
+
 	return selected
 }

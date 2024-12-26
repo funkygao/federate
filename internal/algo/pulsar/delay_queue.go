@@ -52,6 +52,7 @@ func NewDelayQueue() *DelayQueue {
 func (dq *DelayQueue) Add(msg Message) {
 	dq.mu.Lock()
 	defer dq.mu.Unlock()
+
 	item := &delayItem{msg: msg}
 	heap.Push(dq.items, item)
 }
@@ -59,6 +60,7 @@ func (dq *DelayQueue) Add(msg Message) {
 func (dq *DelayQueue) Poll() (Message, bool) {
 	dq.mu.Lock()
 	defer dq.mu.Unlock()
+
 	if dq.items.Len() == 0 {
 		return Message{}, false
 	}
@@ -69,5 +71,6 @@ func (dq *DelayQueue) Poll() (Message, bool) {
 		heap.Push(dq.items, item)
 		return Message{}, false
 	}
+
 	return item.msg, true
 }

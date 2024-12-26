@@ -4,12 +4,10 @@ Message Location and Ownership:
 [Broker]
  └─ Topic
      └─ Partition
-         └─ Ledgers []LedgerID
-             └─ [BookKeeper]
-                 └─ Ledger (LedgerID)
-                     └─ Entry (EntryID)
-                          |
-                          +--> Stored on [Bookie Nodes]
+         └─ [BookKeeper]
+             └─ Ledger
+                 └─ [Bookie]
+                      └─ Entry
 */
 
 package main
@@ -20,13 +18,10 @@ import (
 )
 
 var (
-	_ PartitionLB = (*InMemoryBroker)(nil)
-	_ BookieLB    = (*InMemoryBookKeeper)(nil)
-
-	// Ledger IDs are typically managed by BookKeeper, and uniqueness is ensured cluster-wide (often with the help of ZooKeeper).
-	_ LedgerIDAllocator = (*InMemoryBookKeeper)(nil)
-
-	_ EntryIDAllocator = (*InMemoryBookie)(nil)
+	_ PartitionLB       = (*broker)(nil)
+	_ BookieLB          = (*bookKeeper)(nil)
+	_ LedgerIDAllocator = (*bookKeeper)(nil)
+	_ EntryIDAllocator  = (*bookie)(nil)
 )
 
 type PartitionID int
@@ -87,7 +82,7 @@ type Topic struct {
 func (t *Topic) Subscribe(bk BookKeeper, subscriptionName string, subType SubscriptionType) Subscription {
 	sub, exists := t.Subscriptions[subscriptionName]
 	if !exists {
-		sub = NewInMemorySubscription(bk, t, subscriptionName, subType)
+		sub = NewSubscription(bk, t, subscriptionName, subType)
 		t.Subscriptions[subscriptionName] = sub
 	}
 	return sub

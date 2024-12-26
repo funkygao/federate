@@ -15,11 +15,11 @@ const (
 )
 
 type Subscription interface {
-	Fetch() (Message, error)
+	Receive() (Message, error)
 	Ack(msgID MessageID) error
 }
 
-type InMemorySubscription struct {
+type subscription struct {
 	bookKeeper  BookKeeper
 	topic       *Topic
 	name        string
@@ -29,8 +29,8 @@ type InMemorySubscription struct {
 	cursor      MessageID
 }
 
-func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType SubscriptionType) *InMemorySubscription {
-	return &InMemorySubscription{
+func NewSubscription(bk BookKeeper, topic *Topic, name string, subType SubscriptionType) *subscription {
+	return &subscription{
 		bookKeeper:  bk,
 		topic:       topic,
 		name:        name,
@@ -44,7 +44,7 @@ func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType S
 	}
 }
 
-func (s *InMemorySubscription) Ack(msgID MessageID) error {
+func (s *subscription) Ack(msgID MessageID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -58,7 +58,7 @@ func (s *InMemorySubscription) Ack(msgID MessageID) error {
 	return nil
 }
 
-func (s *InMemorySubscription) Fetch() (Message, error) {
+func (s *subscription) Receive() (Message, error) {
 	partition := s.topic.GetPartition(s.cursor.PartitionID)
 
 	for {
@@ -87,7 +87,7 @@ func (s *InMemorySubscription) Fetch() (Message, error) {
 	}
 }
 
-func (s *InMemorySubscription) initializeCursorIfNeeded(partition *Partition) error {
+func (s *subscription) initializeCursorIfNeeded(partition *Partition) error {
 	if s.cursor.LedgerID == 0 {
 		if len(partition.Ledgers) == 0 {
 			time.Sleep(100 * time.Millisecond)
@@ -99,7 +99,7 @@ func (s *InMemorySubscription) initializeCursorIfNeeded(partition *Partition) er
 	return nil
 }
 
-func (s *InMemorySubscription) tryReadNextEntry(ledger Ledger) (Message, bool, error) {
+func (s *subscription) tryReadNextEntry(ledger Ledger) (Message, bool, error) {
 	lastConfirmed := ledger.GetLastAddConfirmed()
 	nextEntryID := s.cursor.EntryID + 1
 
@@ -127,7 +127,7 @@ func (s *InMemorySubscription) tryReadNextEntry(ledger Ledger) (Message, bool, e
 	return Message{}, false, nil
 }
 
-func (s *InMemorySubscription) moveToNextLedgerIfAvailable(partition *Partition) bool {
+func (s *subscription) moveToNextLedgerIfAvailable(partition *Partition) bool {
 	ledgerIndex := indexOfLedger(partition.Ledgers, s.cursor.LedgerID)
 	if ledgerIndex+1 < len(partition.Ledgers) {
 		s.cursor.LedgerID = partition.Ledgers[ledgerIndex+1]

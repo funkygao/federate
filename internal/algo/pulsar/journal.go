@@ -26,6 +26,31 @@ type JournalEntry struct {
 	Data     Payload
 }
 
+func (entry *JournalEntry) HeaderSize() int {
+	return 20
+}
+
+func (entry *JournalEntry) TotalSize() int {
+	return entry.HeaderSize() + len(entry.Data)
+}
+
+func (entry *JournalEntry) Marshal() []byte {
+	buf := make([]byte, entry.TotalSize())
+	binary.BigEndian.PutUint64(buf[0:8], uint64(entry.LedgerID))
+	binary.BigEndian.PutUint64(buf[8:16], uint64(entry.EntryID))
+	binary.BigEndian.PutUint32(buf[16:20], uint32(len(entry.Data)))
+	copy(buf[entry.HeaderSize():], entry.Data)
+	return buf
+}
+
+func (entry *JournalEntry) UnmarshalFromHeader(header []byte) {
+	entry.LedgerID = LedgerID(binary.BigEndian.Uint64(header[0:8]))
+	entry.EntryID = EntryID(binary.BigEndian.Uint64(header[8:16]))
+
+	dataLen := binary.BigEndian.Uint32(header[16:20])
+	entry.Data = make([]byte, dataLen)
+}
+
 type FileJournal struct {
 	dir            string
 	w              *os.File
@@ -84,16 +109,11 @@ func NewFileJournal(dir string) (Journal, error) {
 }
 
 func (j *FileJournal) Append(entry JournalEntry) error {
-	buf := make([]byte, 20+len(entry.Data))
-	binary.BigEndian.PutUint64(buf[0:8], uint64(entry.LedgerID))
-	binary.BigEndian.PutUint64(buf[8:16], uint64(entry.EntryID))
-	binary.BigEndian.PutUint32(buf[16:20], uint32(len(entry.Data)))
-	copy(buf[20:], entry.Data)
-
-	n, err := j.w.Write(buf)
+	n, err := j.w.Write(entry.Marshal())
 	if err != nil {
 		return err
 	}
+
 	newPosition := atomic.AddInt64(&j.position, int64(n))
 	log.Printf("Appended entry. New position: %d", newPosition)
 	return nil
@@ -111,31 +131,26 @@ func (j *FileJournal) Read(startPosition int64, maxEntries int) ([]JournalEntry,
 			break
 		}
 
-		header := make([]byte, 20)
-		_, err := j.r.ReadAt(header, position)
-		if err != nil {
+		var entry JournalEntry
+
+		// 反序列化头部
+		header := make([]byte, entry.HeaderSize())
+		if _, err := j.r.ReadAt(header, position); err != nil {
 			log.Printf("Error reading header at position %d: %v", position, err)
 			return entries, err
 		}
 
-		ledgerID := LedgerID(binary.BigEndian.Uint64(header[0:8]))
-		entryID := EntryID(binary.BigEndian.Uint64(header[8:16]))
-		dataLen := binary.BigEndian.Uint32(header[16:20])
+		entry.UnmarshalFromHeader(header)
 
-		data := make([]byte, dataLen)
-		_, err = j.r.ReadAt(data, position+20)
+		// 反序列化正文
+		_, err = j.r.ReadAt(entry.Data, position+entry.HeaderSize())
 		if err != nil {
 			log.Printf("Error reading data at position %d: %v", position+20, err)
 			return entries, err
 		}
 
-		entries = append(entries, JournalEntry{
-			LedgerID: ledgerID,
-			EntryID:  entryID,
-			Data:     data,
-		})
-
-		position += int64(20 + dataLen)
+		entries = append(entries, entry)
+		position += int64(entry.TotalSize())
 	}
 
 	log.Printf("Read %d entries", len(entries))

@@ -9,81 +9,45 @@ import (
 func main() {
 	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
 
-	broker := initializeBroker()
+	broker := NewBroker(NewBookKeeper(3))
 	broker.Start()
 
-	topic := createTopic(broker, "OrderCreated")
+	topic, _ := broker.CreateTopic("OrderCreated")
 
-	producer := createProducer(broker, topic)
-	consumer := createConsumer(broker, topic)
+	producer, _ := broker.CreateProducer(topic.Name)
+	consumer, _ := broker.CreateConsumer(topic.Name, "test-subscription", Shared)
 
-	go produceMessages(producer, 20)
+	go produceMessages(producer, 50, 4)
 
 	// Delay starting the consumer
-	time.Sleep(1 * time.Second)
+	time.Sleep(2 * time.Second)
 
 	go consumeMessages(consumer)
 
-	time.Sleep(30 * time.Second)
+	time.Sleep(20 * time.Second)
 	log.Println("Shutting down...")
 }
 
-func initializeBroker() Broker {
-	bk := NewInMemoryBookKeeper(3)
-	broker := NewInMemoryBroker(bk)
-	return broker
-}
-
-func createTopic(broker Broker, topicName string) *Topic {
-	topic, err := broker.CreateTopic(topicName)
-	if err != nil {
-		log.Fatalf("Failed to create topic: %v", err)
-	}
-
-	return topic
-}
-
-func createProducer(broker Broker, topic *Topic) Producer {
-	producer, err := broker.CreateProducer(topic.Name)
-	if err != nil {
-		log.Fatalf("Failed to create producer: %v", err)
-	}
-
-	return producer
-}
-
-func createConsumer(broker Broker, topic *Topic) Consumer {
-	consumer, err := broker.CreateConsumer(topic.Name, "test-subscription", Shared)
-	if err != nil {
-		log.Fatalf("Failed to create consumer: %v", err)
-	}
-
-	return consumer
-}
-
-func produceMessages(producer Producer, N int) {
+func produceMessages(producer Producer, N, delayGap int) {
 	for i := 0; i < N; i++ {
-		msg := Message{
-			Content:   []byte(fmt.Sprintf("Order[%d]", i)),
-			Timestamp: time.Now(),
-		}
-		if i%5 == 0 {
+		msg := Message{Content: []byte(fmt.Sprintf("Order[%d]", i))}
+		if i%delayGap == 0 {
 			msg.Delay = 2 * time.Second
 		}
 
 		if err := producer.Send(msg); err != nil {
-			log.Printf("Failed to send message: %v", err)
+			log.Printf("[%d] Failed to send message: %v", i, err)
 		} else {
-			log.Printf("Sent message: %s", msg)
+			log.Printf("[%d] Sent message: %s", i, msg)
 		}
 
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
 func consumeMessages(consumer Consumer) {
 	for {
-		msg, err := consumer.Fetch()
+		msg, err := consumer.Receive()
 		if err != nil {
 			log.Printf("Failed to receive message: %v", err)
 			time.Sleep(100 * time.Millisecond)
@@ -91,6 +55,7 @@ func consumeMessages(consumer Consumer) {
 		}
 
 		log.Printf("Received message: %s", msg)
+
 		if err = consumer.Ack(msg.ID); err != nil {
 			log.Printf("Failed to ack message: %v", err)
 		}

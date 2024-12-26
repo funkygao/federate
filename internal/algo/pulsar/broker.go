@@ -22,9 +22,11 @@ type Broker interface {
 }
 
 type TailCache interface {
+	Put(Topic, Message)
+	Get(Topic) Message
 }
 
-type InMemoryBroker struct {
+type broker struct {
 	info BrokerInfo
 
 	// BookKeeper 暴露给 Broker 的RPC服务
@@ -41,8 +43,8 @@ type InMemoryBroker struct {
 	tailCache TailCache
 }
 
-func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
-	broker := &InMemoryBroker{
+func NewBroker(bk BookKeeper) *broker {
+	broker := &broker{
 		bkClient:   bk,
 		topics:     make(map[string]*Topic),
 		delayQueue: NewDelayQueue(),
@@ -52,19 +54,20 @@ func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
 	return broker
 }
 
-func (b *InMemoryBroker) Start() error {
+func (b *broker) Start() error {
 	b.info = BrokerInfo{
 		ID:   "1",
 		Host: "localhost",
 		Port: 9988,
 	}
+
 	b.zk.RegisterBroker(b.info)
 
 	log.Printf("Broker%+v started, zk registered", b.info)
 	return nil
 }
 
-func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
+func (b *broker) CreateTopic(name string) (*Topic, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -85,7 +88,7 @@ func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
 	return topic, nil
 }
 
-func (b *InMemoryBroker) GetTopic(name string) (*Topic, error) {
+func (b *broker) GetTopic(name string) (*Topic, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
@@ -98,17 +101,17 @@ func (b *InMemoryBroker) GetTopic(name string) (*Topic, error) {
 	return topic, nil
 }
 
-func (b *InMemoryBroker) CreateProducer(topicName string) (Producer, error) {
+func (b *broker) CreateProducer(topicName string) (Producer, error) {
 	topic, err := b.GetTopic(topicName)
 	if err != nil {
 		return nil, err
 	}
 
 	log.Printf("%s CreateProducer for topic: %s", b.logIdent(), topicName)
-	return NewInMemoryProducer(b, topic), nil
+	return NewProducer(b, topic), nil
 }
 
-func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subType SubscriptionType) (Consumer, error) {
+func (b *broker) CreateConsumer(topicName, subscriptionName string, subType SubscriptionType) (Consumer, error) {
 	topic, err := b.GetTopic(topicName)
 	if err != nil {
 		return nil, err
@@ -117,10 +120,10 @@ func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subT
 	sub := topic.Subscribe(b.bkClient, subscriptionName, subType)
 
 	log.Printf("%s CreateConsumerfor topic: %s, subscription: %+v", b.logIdent(), topicName, sub)
-	return NewInMemoryConsumer(sub), nil
+	return NewConsumer(sub), nil
 }
 
-func (b *InMemoryBroker) Publish(msg Message) error {
+func (b *broker) Publish(msg Message) error {
 	topic, err := b.GetTopic(msg.Topic)
 	if err != nil {
 		return err
@@ -144,6 +147,11 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 		EntryID:     entryID,
 	}
 
+	// Append Tail Cache
+	if b.tailCache != nil {
+		b.tailCache.Put(*topic, msg)
+	}
+
 	if msg.IsDelay() {
 		log.Printf("%s Publish got delay message, ready at: %v", b.logIdent(), msg.ReadyTime())
 		b.delayQueue.Add(msg)
@@ -152,17 +160,16 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 	return nil
 }
 
-func (b *InMemoryBroker) routeMessage(topic *Topic, msg Message) (partition *Partition, ledger Ledger, err error) {
-	partition = topic.GetPartition(b.selectPartition(msg))
+func (b *broker) routeMessage(topic *Topic, msg Message) (partition *Partition, ledger Ledger, err error) {
+	// 先分区
+	partition = topic.GetPartition(b.selectPartition(topic, msg))
 
+	// 再分ledger，ledger 是 pulsar 比 Kafka 更灵活的最根本设计
 	ledger, err = b.getOrCreateLedger(partition)
-	if err != nil {
-		return
-	}
 	return
 }
 
-func (b *InMemoryBroker) processDelayedMessages() {
+func (b *broker) processDelayedMessages() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
@@ -186,16 +193,17 @@ func (b *InMemoryBroker) processDelayedMessages() {
 	}
 }
 
-func (b *InMemoryBroker) selectPartition(msg Message) PartitionID {
+func (b *broker) selectPartition(topic *Topic, msg Message) PartitionID {
+	// 实际上类似 Kafka Partitioner，可能根据消息key分区
 	return PartitionID(0)
 }
 
-func (b *InMemoryBroker) getOrCreateLedger(partition *Partition) (Ledger, error) {
+func (b *broker) getOrCreateLedger(partition *Partition) (Ledger, error) {
 	var ledger Ledger
 	var err error
 
 	if len(partition.Ledgers) == 0 {
-		// getOrCreateLedger
+		// Initialize
 		ledger, err = b.createNewLedger(partition)
 		if err != nil {
 			return nil, err
@@ -221,7 +229,7 @@ func (b *InMemoryBroker) getOrCreateLedger(partition *Partition) (Ledger, error)
 	return ledger, nil
 }
 
-func (b *InMemoryBroker) createNewLedger(partition *Partition) (Ledger, error) {
+func (b *broker) createNewLedger(partition *Partition) (Ledger, error) {
 	ledger, err := b.bkClient.CreateLedger(LedgerOption{
 		EnsembleSize: 3,
 		WriteQuorum:  2,
@@ -235,11 +243,11 @@ func (b *InMemoryBroker) createNewLedger(partition *Partition) (Ledger, error) {
 	return ledger, nil
 }
 
-func (b *InMemoryBroker) shouldRolloverLedger(ledger Ledger) bool {
-	// For example, based on the number of entries or age of the ledger
+func (b *broker) shouldRolloverLedger(ledger Ledger) bool {
+	// e,g. based on the number of entries or age of the ledger
 	return false
 }
 
-func (b *InMemoryBroker) logIdent() string {
+func (b *broker) logIdent() string {
 	return "Broker[" + b.info.ID + "]"
 }

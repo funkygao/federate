@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-// Bookie: Stores entries for ledgers.
+// Bookie: Stores entries for ledgers, know nothing about topics: just kv storage.
 // The physical storage layout of a Bookie on a file system typically looks like this:
 //
 //	/bookie-data/
@@ -40,11 +40,12 @@ type Bookie interface {
 	ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error)
 }
 
-type InMemoryBookie struct {
-	id          int
+type bookie struct {
+	id int
+
 	memtable    map[LedgerID]map[EntryID]Payload
+	nextEntryID map[LedgerID]EntryID
 	mu          sync.RWMutex
-	nextEntryID EntryID
 
 	journal Journal
 
@@ -53,38 +54,34 @@ type InMemoryBookie struct {
 	nextEntryLogID EntryLogID
 }
 
-func NewInMemoryBookie(id int) Bookie {
+func NewBookie(id int) Bookie {
 	journal, err := NewFileJournal("journal/")
 	if err != nil {
 		log.Fatalf("%v", err)
 	}
 
-	return &InMemoryBookie{
+	return &bookie{
 		id:             id,
 		memtable:       make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
 		journal:        journal,
 		nextEntryLogID: 0,
-		nextEntryID:    0,
+		nextEntryID:    make(map[LedgerID]EntryID),
 	}
 }
 
-func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, error) {
+func (b *bookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
 	// Assign EntryID based on last EntryID
 	entryID := b.allocateEntryID(ledgerID)
 
-	log.Printf("Bookie[%d] AddEntry(LedgerID = %d): allocate EntryID %d for Payload: %s", b.id, ledgerID, entryID, string(data))
-
 	// Write to journal first
 	if err := b.journal.Append(JournalEntry{ledgerID, entryID, data}); err != nil {
 		return entryID, err
 	}
-
-	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d): Journal written", b.id, ledgerID, entryID)
 
 	// Then update write cache
 	if _, exists := b.memtable[ledgerID]; !exists {
@@ -92,7 +89,7 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 	}
 	b.memtable[ledgerID][entryID] = data
 
-	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d): MemTable updated", b.id, ledgerID, entryID)
+	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d), data: %s", b.id, ledgerID, entryID, string(data))
 
 	// Async Write EntryLog, ACK Request ASAP
 	go b.addEntryLog(ledgerID, entryID, data)
@@ -100,7 +97,7 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 	return entryID, nil
 }
 
-func (b *InMemoryBookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) error {
+func (b *bookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) error {
 	entryLog, err := b.getOrCreateEntryLog(ledgerID)
 	if err != nil {
 		return err
@@ -121,10 +118,11 @@ func (b *InMemoryBookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Pa
 	return nil
 }
 
-func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) {
+func (b *bookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
+	// 先从内存取，没有再 EntryLog
 	ledger, exists := b.memtable[ledgerID]
 	if !exists {
 		return nil, fmt.Errorf("ledger %d not found", ledgerID)
@@ -135,15 +133,21 @@ func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload,
 		return nil, fmt.Errorf("entry %d not found", entryID)
 	}
 
+	// read from entry log
+
 	log.Printf("Bookie[%d] ReadEntry(LedgerID:%d, EntryID:%d): entry loaded", b.id, ledgerID, entryID)
 	return entry, nil
 }
 
-func (b *InMemoryBookie) allocateEntryID(ledgerID LedgerID) EntryID {
-	return b.nextEntryID.Next()
+func (b *bookie) allocateEntryID(ledgerID LedgerID) EntryID {
+	if _, ok := b.nextEntryID[ledgerID]; !ok {
+		b.nextEntryID[ledgerID] = 0
+	}
+
+	return b.nextEntryID[ledgerID].Next()
 }
 
-func (b *InMemoryBookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, error) {
+func (b *bookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, error) {
 	if currentLog, exists := b.activeLogs[ledgerID]; exists {
 		return currentLog, nil
 	}
@@ -160,7 +164,7 @@ func (b *InMemoryBookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, erro
 	return newLog, nil
 }
 
-func (b *InMemoryBookie) rotateEntryLog(ledgerID LedgerID) error {
+func (b *bookie) rotateEntryLog(ledgerID LedgerID) error {
 	newLog, err := b.getOrCreateEntryLog(ledgerID)
 	if err != nil {
 		return err

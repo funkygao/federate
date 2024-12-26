@@ -22,18 +22,18 @@ type Ledger interface {
 	GetLedgerID() LedgerID
 }
 
-type inMemoryLedger struct {
+type ledger struct {
 	id            LedgerID
 	bookies       []Bookie
 	mu            sync.RWMutex
 	lastConfirmed EntryID
 }
 
-func (l *inMemoryLedger) GetLedgerID() LedgerID {
+func (l *ledger) GetLedgerID() LedgerID {
 	return l.id
 }
 
-func (l *inMemoryLedger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
+func (l *ledger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
@@ -61,7 +61,7 @@ func (l *inMemoryLedger) AddEntry(data Payload, option LedgerOption) (EntryID, e
 	return l.lastConfirmed, nil
 }
 
-func (l *inMemoryLedger) ReadEntry(entryID EntryID) (Payload, error) {
+func (l *ledger) ReadEntry(entryID EntryID) (Payload, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
@@ -71,7 +71,7 @@ func (l *inMemoryLedger) ReadEntry(entryID EntryID) (Payload, error) {
 	return l.bookies[0].ReadEntry(l.id, entryID)
 }
 
-func (l *inMemoryLedger) ReadLastEntry() (EntryID, Payload, error) {
+func (l *ledger) ReadLastEntry() (EntryID, Payload, error) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
 
@@ -86,6 +86,6 @@ func (l *inMemoryLedger) ReadLastEntry() (EntryID, Payload, error) {
 	return l.lastConfirmed, data, nil
 }
 
-func (l *inMemoryLedger) GetLastAddConfirmed() EntryID {
+func (l *ledger) GetLastAddConfirmed() EntryID {
 	return l.lastConfirmed
 }

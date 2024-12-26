@@ -3,7 +3,7 @@ package main
 type ZooKeeper interface {
 	RegisterBroker(BrokerInfo) error
 	RegisterTopic(Topic) error
-	RegisterLedger(LedgerMetadata) error
+	RegisterLedger(LedgerInfo) error
 }
 
 type BrokerInfo struct {
@@ -12,25 +12,27 @@ type BrokerInfo struct {
 	Port int
 }
 
-type LedgerMetadata struct {
-	ID LedgerID
+type LedgerInfo struct {
+	LedgerID     LedgerID
+	LedgerOption LedgerOption
+	Bookies      []Bookie
 }
 
 func getZooKeeper() ZooKeeper {
-	return &InMemoryZooKeeper{}
+	return &zooKeeper{}
 }
 
-type InMemoryZooKeeper struct {
+type zooKeeper struct {
 }
 
-func (zk *InMemoryZooKeeper) RegisterBroker(BrokerInfo) error {
+func (zk *zooKeeper) RegisterBroker(BrokerInfo) error {
 	return nil
 }
 
-func (zk *InMemoryZooKeeper) RegisterTopic(Topic) error {
+func (zk *zooKeeper) RegisterTopic(Topic) error {
 	return nil
 }
 
-func (zk *InMemoryZooKeeper) RegisterLedger(LedgerMetadata) error {
+func (zk *zooKeeper) RegisterLedger(LedgerInfo) error {
 	return nil
 }

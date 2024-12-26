@@ -24,5 +24,16 @@ type EntryLog struct {
 
 func (l *EntryLog) Write(data Payload) error {
 	l.Size += int64(len(data))
+
+	if false {
+		if err := l.sync(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (l *EntryLog) sync() error {
 	return nil
 }
