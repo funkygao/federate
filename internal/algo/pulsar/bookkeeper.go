@@ -35,7 +35,7 @@ func NewInMemoryBookKeeper(clusterSize int) *InMemoryBookKeeper {
 		bookies:       bookies,
 		ledgers:       make(map[LedgerID]Ledger),
 		ledgerOptions: make(map[LedgerID]LedgerOption),
-		nextLedgerID:  1,
+		nextLedgerID:  0,
 		zk:            getZooKeeper(),
 	}
 }
@@ -61,7 +61,7 @@ func (bk *InMemoryBookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
 
 	ledger, exists := bk.ledgers[ledgerID]
 	if !exists {
-		return nil, fmt.Errorf("ledger not found")
+		return nil, fmt.Errorf("ledger %d not found", ledgerID)
 	}
 	return ledger, nil
 }
@@ -71,7 +71,7 @@ func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
 	defer bk.mu.Unlock()
 
 	if _, exists := bk.ledgers[ledgerID]; !exists {
-		return fmt.Errorf("ledger not found")
+		return fmt.Errorf("ledger %d not found", ledgerID)
 	}
 
 	delete(bk.ledgers, ledgerID)

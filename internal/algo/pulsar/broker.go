@@ -21,7 +21,7 @@ type Broker interface {
 }
 
 type InMemoryBroker struct {
-	// Responsible for distributing ledgers and entries across available bookies for load balancing and fault tolerance
+	// BookKeeper 暴露给 Broker 的RPC服务
 	bookKeeper BookKeeper
 
 	zk ZooKeeper
@@ -106,22 +106,20 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 		return err
 	}
 
-	partition, timeSegment, ledger, err := b.routeMessage(topic, msg)
+	partition, ledger, err := b.routeMessage(topic, msg)
 	if err != nil {
 		return err
 	}
 
-	// TODO replica write
 	entryID, err := ledger.AddEntry(msg.Content, b.bookKeeper.LedgerOption(ledger.GetLedgerID()))
 	if err != nil {
 		return err
 	}
 
 	msg.ID = MessageID{
-		PartitionID:   partition.ID,
-		TimeSegmentID: timeSegment.ID,
-		LedgerID:      ledger.GetLedgerID(),
-		EntryID:       entryID,
+		PartitionID: partition.ID,
+		LedgerID:    ledger.GetLedgerID(),
+		EntryID:     entryID,
 	}
 
 	if msg.IsDelay() {
@@ -131,15 +129,10 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 	return nil
 }
 
-func (b *InMemoryBroker) routeMessage(topic *Topic, msg Message) (partition *Partition, timeSegment *TimeSegment, ledger Ledger, err error) {
-	partition = topic.GetParttion(b.selectPartition(msg))
+func (b *InMemoryBroker) routeMessage(topic *Topic, msg Message) (partition *Partition, ledger Ledger, err error) {
+	partition = topic.GetPartition(b.selectPartition(msg))
 
-	timeSegment, err = b.getOrCreateTimeSegment(partition)
-	if err != nil {
-		return
-	}
-
-	ledger, err = b.getOrCreateLedger(timeSegment)
+	ledger, err = b.getOrCreateLedger(partition)
 	if err != nil {
 		return
 	}
@@ -173,49 +166,52 @@ func (b *InMemoryBroker) selectPartition(msg Message) PartitionID {
 	return PartitionID(0)
 }
 
-func (b *InMemoryBroker) getOrCreateLedger(timeSegment *TimeSegment) (Ledger, error) {
+func (b *InMemoryBroker) getOrCreateLedger(partition *Partition) (Ledger, error) {
 	var ledger Ledger
 	var err error
 
-	if len(timeSegment.Ledgers) == 0 {
-		ledger, err = b.bookKeeper.CreateLedger(LedgerOption{
-			EnsembleSize: 3,
-			WriteQuorum:  2,
-			AckQuorum:    2,
-		})
+	if len(partition.Ledgers) == 0 {
+		// getOrCreateLedger
+		ledger, err = b.createNewLedger(partition)
 		if err != nil {
 			return nil, err
 		}
-		timeSegment.Ledgers = append(timeSegment.Ledgers, ledger.GetLedgerID())
 	} else {
-		lastLedgerID := timeSegment.Ledgers[len(timeSegment.Ledgers)-1]
+		// Get the last ledger
+		lastLedgerID := partition.Ledgers[len(partition.Ledgers)-1]
 		ledger, err = b.bookKeeper.OpenLedger(lastLedgerID)
 		if err != nil {
 			return nil, err
+		}
+
+		// Check if we need to roll over to a new ledger
+		if b.shouldRolloverLedger(ledger) {
+			// Close the current ledger if necessary
+			ledger, err = b.createNewLedger(partition)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
 	return ledger, nil
 }
 
-func (b *InMemoryBroker) getOrCreateTimeSegment(partition *Partition) (*TimeSegment, error) {
-	currentTimeSegmentID := b.allocateTimeSegmentID()
-
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	timeSegment, exists := partition.TimeSegments[currentTimeSegmentID]
-	if !exists {
-		timeSegment = &TimeSegment{
-			ID:      currentTimeSegmentID,
-			Ledgers: []LedgerID{},
-		}
-		partition.TimeSegments[currentTimeSegmentID] = timeSegment
+func (b *InMemoryBroker) createNewLedger(partition *Partition) (Ledger, error) {
+	ledger, err := b.bookKeeper.CreateLedger(LedgerOption{
+		EnsembleSize: 3,
+		WriteQuorum:  2,
+		AckQuorum:    2,
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return timeSegment, nil
+	partition.Ledgers = append(partition.Ledgers, ledger.GetLedgerID())
+	return ledger, nil
 }
 
-func (b *InMemoryBroker) allocateTimeSegmentID() TimeSegmentID {
-	return TimeSegmentID(time.Now().Unix() / (60 * 60)) // Segments per hour
+func (b *InMemoryBroker) shouldRolloverLedger(ledger Ledger) bool {
+	// For example, based on the number of entries or age of the ledger
+	return false
 }

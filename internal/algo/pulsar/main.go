@@ -18,6 +18,10 @@ func main() {
 	consumer := createConsumer(broker, topic)
 
 	go produceMessages(producer, 20)
+
+	// Delay starting the consumer
+	time.Sleep(1 * time.Second)
+
 	go consumeMessages(consumer)
 
 	time.Sleep(30 * time.Second)
@@ -85,7 +89,7 @@ func consumeMessages(consumer Consumer) {
 		msg, err := consumer.Fetch()
 		if err != nil {
 			log.Printf("Failed to receive message: %v", err)
-			time.Sleep(time.Second)
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 

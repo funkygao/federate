@@ -4,7 +4,7 @@ Message Location and Ownership:
 [Broker]
  └─ Topic
      └─ Partition
-         └─ TimeSegment (TimeSegmentID)
+         └─ Ledgers []LedgerID
              └─ [BookKeeper]
                  └─ Ledger (LedgerID)
                      └─ Entry (EntryID)
@@ -24,8 +24,6 @@ var (
 	_ BrokerLB    = (*InMemoryBrokerCluster)(nil)
 	_ BookieLB    = (*InMemoryBookKeeper)(nil)
 
-	_ TimeSegmentAllocator = (*InMemoryBroker)(nil)
-
 	// Ledger IDs are typically managed by BookKeeper, and uniqueness is ensured cluster-wide (often with the help of ZooKeeper).
 	_ LedgerIDAllocator = (*InMemoryBookKeeper)(nil)
 
@@ -33,7 +31,6 @@ var (
 )
 
 type PartitionID int
-type TimeSegmentID int64
 
 type LedgerID int64
 
@@ -49,10 +46,9 @@ func (id *EntryID) Next() EntryID {
 
 // MessageID 唯一标识一条消息在 Pulsar 系统中的位置
 type MessageID struct {
-	PartitionID   PartitionID
-	TimeSegmentID TimeSegmentID
-	LedgerID      LedgerID
-	EntryID       EntryID
+	PartitionID PartitionID
+	LedgerID    LedgerID
+	EntryID     EntryID
 }
 
 // Payload 表示消息的实际内容
@@ -94,27 +90,21 @@ func (t *Topic) Subscribe(bk BookKeeper, subscriptionName string, subType Subscr
 	return sub
 }
 
-func (t *Topic) GetParttion(partitionID PartitionID) *Partition {
+func (t *Topic) GetPartition(partitionID PartitionID) *Partition {
 	partition, exists := t.Partitions[partitionID]
 	if !exists {
 		partition = &Partition{
-			ID:           partitionID,
-			TimeSegments: make(map[TimeSegmentID]*TimeSegment),
+			ID:      partitionID,
+			Ledgers: []LedgerID{},
 		}
 		t.Partitions[partitionID] = partition
 	}
 	return partition
 }
 
-// Partition 表示 Topic 的一个分区，比 Kafka 增加更细粒度的 TimeSegment
+// Partition 表示 Topic 的一个分区，比 Kafka 增加更细粒度的 Ledger
 type Partition struct {
-	ID           PartitionID
-	TimeSegments map[TimeSegmentID]*TimeSegment
-}
-
-// TimeSegment 表示一个时间段内的数据，一个 TimeSegment 必须存放在一个 Bookie
-type TimeSegment struct {
-	ID      TimeSegmentID
+	ID      PartitionID
 	Ledgers []LedgerID
 }
 
@@ -132,10 +122,6 @@ type LedgerIDAllocator interface {
 
 type EntryIDAllocator interface {
 	allocateEntryID(LedgerID) EntryID
-}
-
-type TimeSegmentAllocator interface {
-	allocateTimeSegmentID() TimeSegmentID
 }
 
 type BookieLB interface {

@@ -106,12 +106,12 @@ func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload,
 
 	ledger, exists := b.entries[ledgerID]
 	if !exists {
-		return nil, fmt.Errorf("ledger not found")
+		return nil, fmt.Errorf("ledger %d not found", ledgerID)
 	}
 
 	entry, exists := ledger[entryID]
 	if !exists {
-		return nil, fmt.Errorf("entry not found")
+		return nil, fmt.Errorf("entry %d not found", entryID)
 	}
 
 	return entry, nil

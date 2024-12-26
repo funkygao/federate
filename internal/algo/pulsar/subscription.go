@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 type SubscriptionType int
@@ -29,7 +30,7 @@ type InMemorySubscription struct {
 	ackMessages map[MessageID]bool
 	mu          sync.Mutex
 
-	cursor MessageID // TODO for delay msg, 1 cursor?
+	cursor MessageID
 }
 
 func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType SubscriptionType) *InMemorySubscription {
@@ -39,6 +40,11 @@ func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType S
 		name:        name,
 		subType:     subType,
 		ackMessages: make(map[MessageID]bool),
+		cursor: MessageID{
+			PartitionID: 0,
+			LedgerID:    0,
+			EntryID:     0,
+		},
 	}
 }
 
@@ -47,7 +53,7 @@ func (s *InMemorySubscription) Ack(msgID MessageID) error {
 	defer s.mu.Unlock()
 
 	if _, exists := s.ackMessages[msgID]; !exists {
-		return fmt.Errorf("message not found")
+		return fmt.Errorf("message %+v not found", msgID)
 	}
 
 	delete(s.ackMessages, msgID)
@@ -57,29 +63,83 @@ func (s *InMemorySubscription) Ack(msgID MessageID) error {
 }
 
 func (s *InMemorySubscription) Fetch() (Message, error) {
-	// 从 BookKeeper 获取下一条消息
-	ledger, err := s.bookKeeper.OpenLedger(s.cursor.LedgerID)
-	if err != nil {
-		return Message{}, err
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	for {
+		// If the cursor's LedgerID is 0 (uninitialized), try to initialize it
+		if s.cursor.LedgerID == 0 {
+			partition := s.topic.GetPartition(s.cursor.PartitionID)
+			if len(partition.Ledgers) == 0 {
+				// No ledgers available yet, wait and retry
+				s.mu.Unlock()
+				time.Sleep(100 * time.Millisecond)
+				s.mu.Lock()
+				continue
+			}
+			// Set the cursor to the first ledger and EntryID to 0
+			s.cursor.LedgerID = partition.Ledgers[0]
+			s.cursor.EntryID = 0
+		}
+
+		// Open the ledger
+		ledger, err := s.bookKeeper.OpenLedger(s.cursor.LedgerID)
+		if err != nil {
+			// Ledger not found, reset cursor and wait
+			s.cursor.LedgerID = 0
+			s.cursor.EntryID = 0
+			s.mu.Unlock()
+			time.Sleep(100 * time.Millisecond)
+			s.mu.Lock()
+			continue
+		}
+
+		// Get the last confirmed entry ID
+		lastConfirmed := ledger.GetLastAddConfirmed()
+
+		// Calculate the next entry to read
+		nextEntryID := s.cursor.EntryID + 1
+
+		if nextEntryID > lastConfirmed {
+			// No new entries yet, wait and retry
+			s.mu.Unlock()
+			time.Sleep(100 * time.Millisecond)
+			s.mu.Lock()
+			continue
+		}
+
+		// Read the entry
+		payload, err := ledger.ReadEntry(nextEntryID)
+		if err != nil {
+			// If entry not found due to ledger rollover, move to next ledger
+			partition := s.topic.GetPartition(s.cursor.PartitionID)
+			ledgerIndex := indexOfLedger(partition.Ledgers, s.cursor.LedgerID)
+			if ledgerIndex+1 < len(partition.Ledgers) {
+				// Move to the next ledger
+				s.cursor.LedgerID = partition.Ledgers[ledgerIndex+1]
+				s.cursor.EntryID = 0
+				continue
+			} else {
+				// No new ledger yet, wait and retry
+				s.mu.Unlock()
+				time.Sleep(100 * time.Millisecond)
+				s.mu.Lock()
+				continue
+			}
+		}
+
+		// Successfully read an entry, update the cursor
+		s.cursor.EntryID = nextEntryID
+
+		msg := Message{
+			ID: MessageID{
+				PartitionID: s.cursor.PartitionID,
+				LedgerID:    s.cursor.LedgerID,
+				EntryID:     s.cursor.EntryID,
+			},
+			Content: payload,
+		}
+
+		return msg, nil
 	}
-
-	entry, err := ledger.ReadEntry(s.cursor.EntryID + 1)
-	if err != nil {
-		return Message{}, err
-	}
-
-	msg := Message{
-		ID: MessageID{
-			PartitionID:   s.cursor.PartitionID,
-			TimeSegmentID: s.cursor.TimeSegmentID,
-			LedgerID:      s.cursor.LedgerID,
-			EntryID:       s.cursor.EntryID + 1,
-		},
-		Content: entry,
-	}
-
-	// 更新游标
-	s.cursor = msg.ID
-
-	return msg, nil
 }

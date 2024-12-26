@@ -38,7 +38,8 @@ func (l *inMemoryLedger) AddEntry(data Payload, option LedgerOption) (EntryID, e
 
 	var entryIDs []EntryID
 
-	// Ledger is responsible for writing entries to multiple bookies according to the write quorum and acknowledgment quorum requirements
+	// Ledger ensures data durability and consistency by managing replicas across different bookies.
+	// Broker initiates the write operation but doesn't directly handle replication details.
 	for i := 0; i < option.WriteQuorum; i++ {
 		// 实际上是并发写，each bookie is peer node, coordination is on client/Ledger side
 		entryID, err := l.bookies[i].AddEntry(l.id, data)
@@ -81,4 +82,13 @@ func (l *inMemoryLedger) ReadLastEntry() (EntryID, Payload, error) {
 
 func (l *inMemoryLedger) GetLastAddConfirmed() EntryID {
 	return l.lastConfirmed
+}
+
+func indexOfLedger(ledgers []LedgerID, ledgerID LedgerID) int {
+	for i, id := range ledgers {
+		if id == ledgerID {
+			return i
+		}
+	}
+	return -1
 }
