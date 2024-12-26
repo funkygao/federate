@@ -2,7 +2,6 @@ package util
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -124,7 +123,6 @@ func useTLAplus(specFile string) {
 func generateDemo() {
 	files := []string{"SimpleCounter.tla", "SimpleCounter.cfg"}
 	for _, f := range files {
-		log.Printf("Generated: %s", f)
 		fs.GenerateFileFromTmpl(filepath.Join("templates", "tla", f), f, nil)
 	}
 }
