@@ -10,6 +10,8 @@ type BookKeeper interface {
 	CreateLedger(LedgerOption) (Ledger, error)
 	DeleteLedger(ledgerID LedgerID) error
 	OpenLedger(ledgerID LedgerID) (Ledger, error)
+
+	LedgerOption(LedgerID) LedgerOption
 }
 
 type InMemoryBookKeeper struct {
@@ -20,6 +22,8 @@ type InMemoryBookKeeper struct {
 
 	// BookKeeper 需要在整个集群范围内保证 LedgerID 的唯一性：通过 zk
 	nextLedgerID LedgerID
+
+	zk ZooKeeper
 }
 
 func NewInMemoryBookKeeper(clusterSize int) *InMemoryBookKeeper {
@@ -32,6 +36,7 @@ func NewInMemoryBookKeeper(clusterSize int) *InMemoryBookKeeper {
 		ledgers:       make(map[LedgerID]Ledger),
 		ledgerOptions: make(map[LedgerID]LedgerOption),
 		nextLedgerID:  1,
+		zk:            getZooKeeper(),
 	}
 }
 
@@ -41,10 +46,12 @@ func (bk *InMemoryBookKeeper) CreateLedger(opt LedgerOption) (ledger Ledger, err
 		id:            ledgerID,
 		bookies:       bk.selectBookies(opt.EnsembleSize),
 		lastConfirmed: -1,
-		bookKeeper:    bk,
 	}
 	bk.ledgers[ledgerID] = ledger
 	bk.ledgerOptions[ledgerID] = opt
+
+	bk.zk.RegisterLedger(LedgerMetadata{ID: ledgerID})
+
 	return
 }
 
@@ -70,6 +77,10 @@ func (bk *InMemoryBookKeeper) DeleteLedger(ledgerID LedgerID) error {
 	delete(bk.ledgers, ledgerID)
 	delete(bk.ledgerOptions, ledgerID)
 	return nil
+}
+
+func (bk *InMemoryBookKeeper) LedgerOption(ledgerID LedgerID) LedgerOption {
+	return bk.ledgerOptions[ledgerID]
 }
 
 func (bk *InMemoryBookKeeper) allocateLedgerID() LedgerID {

@@ -1,12 +1,31 @@
 package main
 
 type ZooKeeper interface {
-	RegisterBroker(brokerID string, info BrokerInfo) error
-	GetBrokers() (map[string]BrokerInfo, error)
+	RegisterBroker(BrokerInfo) error
+	RegisterLedger(LedgerMetadata) error
+}
 
-	RegisterLedger(ledgerID LedgerID, metadata LedgerMetadata) error
-	GetLedgerMetadata(ledgerID LedgerID) (LedgerMetadata, error)
+type BrokerInfo struct {
+	ID   string
+	Host string
+	Port int
+}
+
+type LedgerMetadata struct {
+	ID LedgerID
+}
+
+func getZooKeeper() ZooKeeper {
+	return &InMemoryZooKeeper{}
 }
 
 type InMemoryZooKeeper struct {
+}
+
+func (zk *InMemoryZooKeeper) RegisterBroker(BrokerInfo) error {
+	return nil
+}
+
+func (zk *InMemoryZooKeeper) RegisterLedger(LedgerMetadata) error {
+	return nil
 }

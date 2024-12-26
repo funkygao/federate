@@ -13,7 +13,7 @@ type LedgerOption struct {
 
 // Ledger: Represents a sequence of entries.
 type Ledger interface {
-	AddEntry(Payload) (EntryID, error)
+	AddEntry(Payload, LedgerOption) (EntryID, error)
 	ReadEntry(EntryID) (Payload, error)
 	ReadLastEntry() (EntryID, Payload, error)
 	GetLastAddConfirmed() EntryID
@@ -26,22 +26,21 @@ type inMemoryLedger struct {
 	bookies       []Bookie
 	mu            sync.RWMutex
 	lastConfirmed EntryID
-
-	bookKeeper *InMemoryBookKeeper
 }
 
 func (l *inMemoryLedger) GetLedgerID() LedgerID {
 	return l.id
 }
 
-func (l *inMemoryLedger) AddEntry(data Payload) (EntryID, error) {
+func (l *inMemoryLedger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	options := l.bookKeeper.ledgerOptions[l.id]
 	var entryIDs []EntryID
 
-	for i := 0; i < options.WriteQuorum; i++ {
+	// Ledger is responsible for writing entries to multiple bookies according to the write quorum and acknowledgment quorum requirements
+	for i := 0; i < option.WriteQuorum; i++ {
+		// 实际上是并发写，each bookie is peer node, coordination is on client/Ledger side
 		entryID, err := l.bookies[i].AddEntry(l.id, data)
 		if err != nil {
 			return 0, err

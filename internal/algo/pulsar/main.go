@@ -10,6 +10,7 @@ func main() {
 	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
 
 	broker := initializeBroker()
+	broker.Start()
 
 	topic := createTopic(broker, "test-topic")
 

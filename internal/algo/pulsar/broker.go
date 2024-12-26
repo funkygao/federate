@@ -9,6 +9,8 @@ import (
 
 // Broker: Manages topics, producers, consumers, message routing, and interacts with the storage layer.
 type Broker interface {
+	Start() error
+
 	CreateTopic(name string) (*Topic, error)
 	GetTopic(name string) (*Topic, error)
 
@@ -22,6 +24,8 @@ type InMemoryBroker struct {
 	// Responsible for distributing ledgers and entries across available bookies for load balancing and fault tolerance
 	bookKeeper BookKeeper
 
+	zk ZooKeeper
+
 	topics map[string]*Topic
 	mu     sync.RWMutex
 
@@ -33,9 +37,20 @@ func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
 		bookKeeper: bk,
 		topics:     make(map[string]*Topic),
 		delayQueue: NewDelayQueue(),
+		zk:         getZooKeeper(),
 	}
 	go broker.processDelayedMessages()
 	return broker
+}
+
+func (b *InMemoryBroker) Start() error {
+	info := BrokerInfo{
+		ID:   "1",
+		Host: "localhost",
+		Port: 9988,
+	}
+	b.zk.RegisterBroker(info)
+	return nil
 }
 
 func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
@@ -97,7 +112,7 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 	}
 
 	// TODO replica write
-	entryID, err := ledger.AddEntry(msg.Content)
+	entryID, err := ledger.AddEntry(msg.Content, b.bookKeeper.LedgerOption(ledger.GetLedgerID()))
 	if err != nil {
 		return err
 	}
