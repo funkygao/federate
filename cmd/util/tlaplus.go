@@ -51,7 +51,7 @@ func useTLAplus(specFile string) {
 	}
 
 	// 初始化 Java 参数
-	javaArgs := []string{fmt.Sprintf("-Xmx%dg", maxHeapSize)}
+	javaArgs := []string{fmt.Sprintf("-Xmx%dG", maxHeapSize)}
 
 	// 处理 classpath
 	sysClasspath := os.Getenv("CLASSPATH")
@@ -129,7 +129,7 @@ func generateDemo() {
 
 func init() {
 	tlaplusCmd.Flags().StringVarP(&tla2ToolsPath, "tla2tools", "t", "tla2tools.jar", "Path to tla2tools.jar (default: use system CLASSPATH)")
-	tlaplusCmd.Flags().IntVarP(&maxHeapSize, "max-heap", "m", 75, "Maximum heap size in GB")
+	tlaplusCmd.Flags().IntVarP(&maxHeapSize, "max-heap", "m", 8, "Maximum heap size in GB")
 	tlaplusCmd.Flags().StringSliceVarP(&invariants, "invariant", "i", []string{}, "Invariants to check")
 	tlaplusCmd.Flags().BoolVarP(&collectCoverage, "coverage", "c", false, "Collect coverage information")
 	tlaplusCmd.Flags().BoolVarP(&verboseMode, "verbose", "v", false, "Verbose mode")
