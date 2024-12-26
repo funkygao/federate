@@ -21,7 +21,6 @@ import (
 
 var (
 	_ PartitionLB = (*InMemoryBroker)(nil)
-	_ BrokerLB    = (*InMemoryBrokerCluster)(nil)
 	_ BookieLB    = (*InMemoryBookKeeper)(nil)
 
 	// Ledger IDs are typically managed by BookKeeper, and uniqueness is ensured cluster-wide (often with the help of ZooKeeper).
@@ -110,10 +109,6 @@ func (t *Topic) GetPartition(partitionID PartitionID) *Partition {
 type Partition struct {
 	ID      PartitionID
 	Ledgers []LedgerID
-}
-
-type BrokerLB interface {
-	selectBroker() Broker
 }
 
 type PartitionLB interface {
