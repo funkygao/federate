@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"sync"
-	"time"
 )
 
 type SubscriptionType int
@@ -16,18 +14,16 @@ const (
 )
 
 type Subscription interface {
-	Receive() (Message, error)
+	Fetch() (Message, error)
 	Ack(msgID MessageID) error
 }
 
 type InMemorySubscription struct {
-	bookKeeper BookKeeper // TODO not used
+	bookKeeper BookKeeper
 
 	topic   *Topic
 	name    string
 	subType SubscriptionType
-
-	messages chan Message
 
 	ackMessages map[MessageID]bool
 	mu          sync.Mutex
@@ -41,7 +37,6 @@ func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType S
 		topic:       topic,
 		name:        name,
 		subType:     subType,
-		messages:    make(chan Message, 100),
 		ackMessages: make(map[MessageID]bool),
 	}
 }
@@ -60,30 +55,30 @@ func (s *InMemorySubscription) Ack(msgID MessageID) error {
 	return nil
 }
 
-// TODO kill
-func (s *InMemorySubscription) AddMessage(msg Message) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	log.Printf("Adding message to subscription: %s", s.name)
-	s.ackMessages[msg.ID] = false
-	select {
-	case s.messages <- msg:
-		log.Printf("Message added successfully to subscription: %s", s.name)
-	default:
-		log.Printf("Warning: Message channel is full for subscription: %s", s.name)
+func (s *InMemorySubscription) Fetch() (Message, error) {
+	// 从 BookKeeper 获取下一条消息
+	ledger, err := s.bookKeeper.OpenLedger(s.cursor.LedgerID)
+	if err != nil {
+		return Message{}, err
 	}
-}
 
-func (s *InMemorySubscription) Receive() (Message, error) {
-	log.Printf("Attempting to receive message from subscription: %s", s.name)
-
-	select {
-	case msg := <-s.messages:
-		log.Printf("Message received from subscription: %s", s.name)
-		return msg, nil
-
-	case <-time.After(5 * time.Second):
-		return Message{}, fmt.Errorf("timeout")
+	entry, err := ledger.ReadEntry(s.cursor.EntryID + 1)
+	if err != nil {
+		return Message{}, err
 	}
+
+	msg := Message{
+		ID: MessageID{
+			PartitionID:   s.cursor.PartitionID,
+			TimeSegmentID: s.cursor.TimeSegmentID,
+			LedgerID:      s.cursor.LedgerID,
+			EntryID:       s.cursor.EntryID + 1,
+		},
+		Content: entry,
+	}
+
+	// 更新游标
+	s.cursor = msg.ID
+
+	return msg, nil
 }

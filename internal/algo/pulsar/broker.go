@@ -49,7 +49,7 @@ func (b *InMemoryBroker) CreateTopic(name string) (*Topic, error) {
 	topic := &Topic{
 		Name:          name,
 		Partitions:    make(map[PartitionID]*Partition),
-		Subscriptions: make(map[string]*InMemorySubscription),
+		Subscriptions: make(map[string]Subscription),
 	}
 	b.topics[name] = topic
 	return topic, nil
@@ -85,14 +85,13 @@ func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subT
 	return NewInMemoryConsumer(sub), nil
 }
 
-// TODO Broker hould have Publish?
 func (b *InMemoryBroker) Publish(msg Message) error {
 	topic, err := b.GetTopic(msg.Topic)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	partition, timeSegment, ledger, err := b.routeMessage(msg)
+	partition, timeSegment, ledger, err := b.routeMessage(topic, msg)
 	if err != nil {
 		return err
 	}
@@ -106,27 +105,18 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 	msg.ID = MessageID{
 		PartitionID:   partition.ID,
 		TimeSegmentID: timeSegment.ID,
-		LedgerID:      ledger.GetID(),
+		LedgerID:      ledger.GetLedgerID(),
 		EntryID:       entryID,
 	}
 
 	if msg.IsDelay() {
 		b.delayQueue.Add(msg)
-	} else {
-		// TODO kill deliverMessage, should poll from BookKeeper
-		b.deliverMessage(msg)
-	}
-
-	// TODO kill
-	for subName, sub := range topic.Subscriptions {
-		log.Printf("Delivering message to subscription: %s", subName)
-		sub.AddMessage(msg)
 	}
 
 	return nil
 }
 
-func (b *InMemoryBroker) routeMessage(msg Message) (partition Partition, timeSegment TimeSegment, ledger Ledger, err error) {
+func (b *InMemoryBroker) routeMessage(topic *Topic, msg Message) (partition *Partition, timeSegment *TimeSegment, ledger Ledger, err error) {
 	partition = topic.GetParttion(b.selectPartition(msg))
 
 	timeSegment, err = b.getOrCreateTimeSegment(partition)
@@ -141,42 +131,22 @@ func (b *InMemoryBroker) routeMessage(msg Message) (partition Partition, timeSeg
 	return
 }
 
-func (b *InMemoryBroker) deliverMessage(msg Message) {
-	b.mu.RLock()
-	defer b.mu.RUnlock()
-
-	topic, exists := b.topics[msg.Topic]
-	if !exists {
-		log.Printf("Warning: Topic %s not found for message delivery", msg.Topic)
-		return
-	}
-
-	for _, sub := range topic.Subscriptions {
-		sub.AddMessage(msg)
-	}
-}
-
 func (b *InMemoryBroker) processDelayedMessages() {
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 
 	for {
 		select {
-		case now := <-ticker.C:
+		case <-ticker.C:
+			// 一个时间周期内处理尽可能多的延迟消息
 			for {
-				// TODO Peek，就不用放回队列了
-				msg, ok := b.delayQueue.Poll()
-				if !ok {
+				msg, hasDueMsg := b.delayQueue.Poll()
+				if !hasDueMsg {
 					break
 				}
-				if msg.Timestamp.After(now) {
-					// 消息还没有准备好，放回队列
-					b.delayQueue.Add(msg, msg.Timestamp)
-					break
-				}
+
 				// 消息已经准备好，发布到相应的主题
-				err := b.Publish(msg.Topic, msg)
-				if err != nil {
+				if err := b.Publish(msg); err != nil {
 					log.Printf("Error publishing delayed message: %v", err)
 				}
 			}
@@ -193,11 +163,15 @@ func (b *InMemoryBroker) getOrCreateLedger(timeSegment *TimeSegment) (Ledger, er
 	var err error
 
 	if len(timeSegment.Ledgers) == 0 {
-		ledger, err = b.bookKeeper.CreateLedger()
+		ledger, err = b.bookKeeper.CreateLedger(LedgerOption{
+			EnsembleSize: 3,
+			WriteQuorum:  2,
+			AckQuorum:    2,
+		})
 		if err != nil {
 			return nil, err
 		}
-		timeSegment.Ledgers = append(timeSegment.Ledgers, ledger.GetID())
+		timeSegment.Ledgers = append(timeSegment.Ledgers, ledger.GetLedgerID())
 	} else {
 		lastLedgerID := timeSegment.Ledgers[len(timeSegment.Ledgers)-1]
 		ledger, err = b.bookKeeper.OpenLedger(lastLedgerID)

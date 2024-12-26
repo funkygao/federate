@@ -81,7 +81,7 @@ func produceMessages(producer Producer, N int) {
 
 func consumeMessages(consumer Consumer) {
 	for {
-		msg, err := consumer.Receive()
+		msg, err := consumer.Fetch()
 		if err != nil {
 			log.Printf("Failed to receive message: %v", err)
 			time.Sleep(time.Second)

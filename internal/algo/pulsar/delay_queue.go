@@ -3,7 +3,6 @@ package main
 import (
 	"container/heap"
 	"sync"
-	"time"
 )
 
 // DelayQueue 实现了一个延迟消息队列：最小堆
@@ -13,15 +12,14 @@ type DelayQueue struct {
 }
 
 type delayItem struct {
-	msg       Message
-	readyTime time.Time
-	index     int
+	msg   Message
+	index int
 }
 
 type delayHeap []*delayItem
 
 func (h delayHeap) Len() int           { return len(h) }
-func (h delayHeap) Less(i, j int) bool { return h[i].readyTime.Before(h[j].readyTime) }
+func (h delayHeap) Less(i, j int) bool { return h[i].msg.ReadyTime().Before(h[j].msg.ReadyTime()) }
 func (h delayHeap) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 	h[i].index = i
@@ -54,10 +52,7 @@ func NewDelayQueue() *DelayQueue {
 func (dq *DelayQueue) Add(msg Message) {
 	dq.mu.Lock()
 	defer dq.mu.Unlock()
-	item := &delayItem{
-		msg:       msg,
-		readyTime: msg.ReadyTime(),
-	}
+	item := &delayItem{msg: msg}
 	heap.Push(dq.items, item)
 }
 
@@ -67,8 +62,10 @@ func (dq *DelayQueue) Poll() (Message, bool) {
 	if dq.items.Len() == 0 {
 		return Message{}, false
 	}
+
 	item := heap.Pop(dq.items).(*delayItem)
-	if time.Now().Before(item.readyTime) {
+	if !item.msg.IsDue() {
+		// 没到时间，放回去
 		heap.Push(dq.items, item)
 		return Message{}, false
 	}

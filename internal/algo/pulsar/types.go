@@ -58,6 +58,10 @@ func (m *Message) IsDelay() bool {
 	return m.Delay > 0
 }
 
+func (m *Message) IsDue() bool {
+	return !time.Now().Before(m.ReadyTime())
+}
+
 func (m *Message) ReadyTime() time.Time {
 	return time.Now().Add(m.Delay)
 }
@@ -68,11 +72,11 @@ type Topic struct {
 	Subscriptions map[string]Subscription
 }
 
-func (t *Topic) Subscribe(BookKeeper bk, subscriptionName string, subType SubscriptionType) Subscription {
+func (t *Topic) Subscribe(bk BookKeeper, subscriptionName string, subType SubscriptionType) Subscription {
 	sub, exists := t.Subscriptions[subscriptionName]
 	if !exists {
 		sub = NewInMemorySubscription(bk, t, subscriptionName, subType)
-		topic.Subscriptions[subscriptionName] = sub
+		t.Subscriptions[subscriptionName] = sub
 	}
 	return sub
 }

@@ -1,7 +1,7 @@
 package main
 
 type Consumer interface {
-	Receive() (Message, error)
+	Fetch() (Message, error)
 	Ack(msgID MessageID) error
 }
 
@@ -15,8 +15,8 @@ func NewInMemoryConsumer(sub Subscription) *InMemoryConsumer {
 	}
 }
 
-func (c *InMemoryConsumer) Receive() (Message, error) {
-	msg, err := c.subscription.Receive()
+func (c *InMemoryConsumer) Fetch() (Message, error) {
+	msg, err := c.subscription.Fetch()
 	if err != nil {
 		return Message{}, err
 	}
