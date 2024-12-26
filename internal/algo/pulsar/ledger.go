@@ -83,12 +83,3 @@ func (l *inMemoryLedger) ReadLastEntry() (EntryID, Payload, error) {
 func (l *inMemoryLedger) GetLastAddConfirmed() EntryID {
 	return l.lastConfirmed
 }
-
-func indexOfLedger(ledgers []LedgerID, ledgerID LedgerID) int {
-	for i, id := range ledgers {
-		if id == ledgerID {
-			return i
-		}
-	}
-	return -1
-}

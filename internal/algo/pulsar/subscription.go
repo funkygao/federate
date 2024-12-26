@@ -14,23 +14,19 @@ const (
 	Failover
 )
 
-// Subscription: Manages message acknowledgment and cursor positions.
 type Subscription interface {
 	Fetch() (Message, error)
 	Ack(msgID MessageID) error
 }
 
 type InMemorySubscription struct {
-	bookKeeper BookKeeper
-
-	topic   *Topic
-	name    string
-	subType SubscriptionType
-
+	bookKeeper  BookKeeper
+	topic       *Topic
+	name        string
+	subType     SubscriptionType
 	ackMessages map[MessageID]bool
 	mu          sync.Mutex
-
-	cursor MessageID
+	cursor      MessageID
 }
 
 func NewInMemorySubscription(bk BookKeeper, topic *Topic, name string, subType SubscriptionType) *InMemorySubscription {
@@ -63,83 +59,89 @@ func (s *InMemorySubscription) Ack(msgID MessageID) error {
 }
 
 func (s *InMemorySubscription) Fetch() (Message, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	partition := s.topic.GetPartition(s.cursor.PartitionID)
 
 	for {
-		// If the cursor's LedgerID is 0 (uninitialized), try to initialize it
-		if s.cursor.LedgerID == 0 {
-			partition := s.topic.GetPartition(s.cursor.PartitionID)
-			if len(partition.Ledgers) == 0 {
-				// No ledgers available yet, wait and retry
-				s.mu.Unlock()
-				time.Sleep(100 * time.Millisecond)
-				s.mu.Lock()
-				continue
-			}
-			// Set the cursor to the first ledger and EntryID to 0
-			s.cursor.LedgerID = partition.Ledgers[0]
-			s.cursor.EntryID = 0
+		if err := s.initializeCursorIfNeeded(partition); err != nil {
+			continue
 		}
 
-		// Open the ledger
 		ledger, err := s.bookKeeper.OpenLedger(s.cursor.LedgerID)
 		if err != nil {
-			// Ledger not found, reset cursor and wait
-			s.cursor.LedgerID = 0
-			s.cursor.EntryID = 0
-			s.mu.Unlock()
-			time.Sleep(100 * time.Millisecond)
-			s.mu.Lock()
+			return Message{}, fmt.Errorf("failed to open ledger: %v", err)
+		}
+
+		msg, found, err := s.tryReadNextEntry(ledger)
+		if err != nil {
+			return Message{}, err
+		}
+		if found {
+			return msg, nil
+		}
+
+		if s.moveToNextLedgerIfAvailable(partition) {
 			continue
 		}
 
-		// Get the last confirmed entry ID
-		lastConfirmed := ledger.GetLastAddConfirmed()
+		time.Sleep(100 * time.Millisecond)
+	}
+}
 
-		// Calculate the next entry to read
-		nextEntryID := s.cursor.EntryID + 1
-
-		if nextEntryID > lastConfirmed {
-			// No new entries yet, wait and retry
-			s.mu.Unlock()
+func (s *InMemorySubscription) initializeCursorIfNeeded(partition *Partition) error {
+	if s.cursor.LedgerID == 0 {
+		if len(partition.Ledgers) == 0 {
 			time.Sleep(100 * time.Millisecond)
-			s.mu.Lock()
-			continue
+			return fmt.Errorf("no ledgers available")
 		}
+		s.cursor.LedgerID = partition.Ledgers[0]
+		s.cursor.EntryID = 0
+	}
+	return nil
+}
 
-		// Read the entry
+func (s *InMemorySubscription) tryReadNextEntry(ledger Ledger) (Message, bool, error) {
+	lastConfirmed := ledger.GetLastAddConfirmed()
+	nextEntryID := s.cursor.EntryID + 1
+
+	if nextEntryID <= lastConfirmed {
 		payload, err := ledger.ReadEntry(nextEntryID)
 		if err != nil {
-			// If entry not found due to ledger rollover, move to next ledger
-			partition := s.topic.GetPartition(s.cursor.PartitionID)
-			ledgerIndex := indexOfLedger(partition.Ledgers, s.cursor.LedgerID)
-			if ledgerIndex+1 < len(partition.Ledgers) {
-				// Move to the next ledger
-				s.cursor.LedgerID = partition.Ledgers[ledgerIndex+1]
-				s.cursor.EntryID = 0
-				continue
-			} else {
-				// No new ledger yet, wait and retry
-				s.mu.Unlock()
-				time.Sleep(100 * time.Millisecond)
-				s.mu.Lock()
-				continue
-			}
+			return Message{}, false, fmt.Errorf("failed to read entry: %v", err)
 		}
-
-		// Successfully read an entry, update the cursor
-		s.cursor.EntryID = nextEntryID
 
 		msg := Message{
 			ID: MessageID{
 				PartitionID: s.cursor.PartitionID,
 				LedgerID:    s.cursor.LedgerID,
-				EntryID:     s.cursor.EntryID,
+				EntryID:     nextEntryID,
 			},
 			Content: payload,
 		}
 
-		return msg, nil
+		s.ackMessages[msg.ID] = true
+		s.cursor.EntryID = nextEntryID
+
+		return msg, true, nil
 	}
+
+	return Message{}, false, nil
+}
+
+func (s *InMemorySubscription) moveToNextLedgerIfAvailable(partition *Partition) bool {
+	ledgerIndex := indexOfLedger(partition.Ledgers, s.cursor.LedgerID)
+	if ledgerIndex+1 < len(partition.Ledgers) {
+		s.cursor.LedgerID = partition.Ledgers[ledgerIndex+1]
+		s.cursor.EntryID = 0
+		return true
+	}
+	return false
+}
+
+func indexOfLedger(ledgers []LedgerID, ledgerID LedgerID) int {
+	for i, id := range ledgers {
+		if id == ledgerID {
+			return i
+		}
+	}
+	return -1
 }
