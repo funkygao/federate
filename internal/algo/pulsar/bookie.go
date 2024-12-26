@@ -42,7 +42,7 @@ type Bookie interface {
 
 type InMemoryBookie struct {
 	id          int
-	entries     map[LedgerID]map[EntryID]Payload
+	memtable    map[LedgerID]map[EntryID]Payload
 	mu          sync.RWMutex
 	nextEntryID EntryID
 
@@ -61,7 +61,7 @@ func NewInMemoryBookie(id int) Bookie {
 
 	return &InMemoryBookie{
 		id:             id,
-		entries:        make(map[LedgerID]map[EntryID]Payload),
+		memtable:       make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
 		journal:        journal,
@@ -86,21 +86,29 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 
 	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d): Journal written", b.id, ledgerID, entryID)
 
-	// Then update in-memory entries
-	if _, exists := b.entries[ledgerID]; !exists {
-		b.entries[ledgerID] = make(map[EntryID]Payload)
+	// Then update write cache
+	if _, exists := b.memtable[ledgerID]; !exists {
+		b.memtable[ledgerID] = make(map[EntryID]Payload)
 	}
-	b.entries[ledgerID][entryID] = data
+	b.memtable[ledgerID][entryID] = data
 
 	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d): MemTable updated", b.id, ledgerID, entryID)
 
-	// Handle EntryLog, rotation, etc.
+	// Async Write EntryLog, ACK Request ASAP
+	go b.addEntryLog(ledgerID, entryID, data)
+
+	return entryID, nil
+}
+
+func (b *InMemoryBookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) error {
 	entryLog, err := b.getOrCreateEntryLog(ledgerID)
 	if err != nil {
-		return entryID, err
+		return err
 	}
 
 	log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog written", b.id, entryLog.ID, ledgerID, entryID)
+
+	// 定时刷盘
 	entryLog.Write(data)
 
 	// Check if we need to rotate the EntryLog
@@ -110,15 +118,14 @@ func (b *InMemoryBookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, err
 		}
 		log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog rotated", b.id, entryLog.ID, ledgerID, entryID)
 	}
-
-	return entryID, nil
+	return nil
 }
 
 func (b *InMemoryBookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) {
 	b.mu.RLock()
 	defer b.mu.RUnlock()
 
-	ledger, exists := b.entries[ledgerID]
+	ledger, exists := b.memtable[ledgerID]
 	if !exists {
 		return nil, fmt.Errorf("ledger %d not found", ledgerID)
 	}
