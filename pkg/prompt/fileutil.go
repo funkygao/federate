@@ -116,6 +116,10 @@ func readDirContentWithStructure(dir string) (string, error) {
 			}
 			contentBuilder.WriteString(fmt.Sprintf("File: %s\nContent:\n```\n%s\n```\n\n", path, string(content)))
 		} else {
+			if path == "." {
+				cwd, _ := os.Getwd()
+				path = filepath.Base(cwd)
+			}
 			contentBuilder.WriteString(fmt.Sprintf("Dir: %s\n", path))
 		}
 		return nil
