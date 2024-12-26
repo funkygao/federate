@@ -24,7 +24,7 @@ type InMemoryBroker struct {
 	info BrokerInfo
 
 	// BookKeeper 暴露给 Broker 的RPC服务
-	bookKeeper BookKeeper
+	bkClient BookKeeper
 
 	zk ZooKeeper
 
@@ -36,7 +36,7 @@ type InMemoryBroker struct {
 
 func NewInMemoryBroker(bk BookKeeper) *InMemoryBroker {
 	broker := &InMemoryBroker{
-		bookKeeper: bk,
+		bkClient:   bk,
 		topics:     make(map[string]*Topic),
 		delayQueue: NewDelayQueue(),
 		zk:         getZooKeeper(),
@@ -105,7 +105,7 @@ func (b *InMemoryBroker) CreateConsumer(topicName, subscriptionName string, subT
 		return nil, err
 	}
 
-	sub := topic.Subscribe(b.bookKeeper, subscriptionName, subType)
+	sub := topic.Subscribe(b.bkClient, subscriptionName, subType)
 
 	log.Printf("%s CreateConsumerfor topic: %s, subscription: %+v", b.logIdent(), topicName, sub)
 	return NewInMemoryConsumer(sub), nil
@@ -124,7 +124,7 @@ func (b *InMemoryBroker) Publish(msg Message) error {
 
 	log.Printf("%s Publish, routing info: {partition: %+v, ledger %+v}", b.logIdent(), partition, ledger)
 
-	entryID, err := ledger.AddEntry(msg.Content, b.bookKeeper.LedgerOption(ledger.GetLedgerID()))
+	entryID, err := ledger.AddEntry(msg.Content, b.bkClient.LedgerOption(ledger.GetLedgerID()))
 	if err != nil {
 		return err
 	}
@@ -194,7 +194,7 @@ func (b *InMemoryBroker) getOrCreateLedger(partition *Partition) (Ledger, error)
 	} else {
 		// Get the last ledger
 		lastLedgerID := partition.Ledgers[len(partition.Ledgers)-1]
-		ledger, err = b.bookKeeper.OpenLedger(lastLedgerID)
+		ledger, err = b.bkClient.OpenLedger(lastLedgerID)
 		if err != nil {
 			return nil, err
 		}
@@ -213,7 +213,7 @@ func (b *InMemoryBroker) getOrCreateLedger(partition *Partition) (Ledger, error)
 }
 
 func (b *InMemoryBroker) createNewLedger(partition *Partition) (Ledger, error) {
-	ledger, err := b.bookKeeper.CreateLedger(LedgerOption{
+	ledger, err := b.bkClient.CreateLedger(LedgerOption{
 		EnsembleSize: 3,
 		WriteQuorum:  2,
 		AckQuorum:    2,
