@@ -12,7 +12,9 @@ type LedgerOption struct {
 	AckQuorum    int
 }
 
-// Ledger: Represents a sequence of entries.
+// Ledgers serve a similar role to segments in Kafka: but not bound to physical Parition.
+// They are units of storage that can be individually managed, rolled over, and deleted.
+// Each ledger contains a sequence of entries (messages) and is written to a set of Bookies.
 type Ledger interface {
 	AddEntry(Payload, LedgerOption) (EntryID, error)
 	ReadEntry(EntryID) (Payload, error)
