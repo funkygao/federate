@@ -12,10 +12,7 @@ type producer struct {
 }
 
 func NewProducer(broker Broker, topic *Topic) *producer {
-	return &producer{
-		broker: broker,
-		topic:  topic,
-	}
+	return &producer{broker, topic}
 }
 
 func (p *producer) Send(msg Message) error {

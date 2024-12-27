@@ -85,6 +85,10 @@ type Topic struct {
 	Subscriptions map[string]Subscription
 }
 
+func (t *Topic) GetSubscription(subscriptionName string) Subscription {
+	return t.Subscriptions[subscriptionName]
+}
+
 func (t *Topic) Subscribe(bk BookKeeper, subscriptionName string, subType SubscriptionType) Subscription {
 	sub, exists := t.Subscriptions[subscriptionName]
 	if !exists {
@@ -110,6 +114,15 @@ func (t *Topic) GetPartition(partitionID PartitionID) *Partition {
 type Partition struct {
 	ID      PartitionID
 	Ledgers []LedgerID
+}
+
+func (p *Partition) IndexOfLedger(ledgerID LedgerID) int {
+	for i, id := range p.Ledgers {
+		if id == ledgerID {
+			return i
+		}
+	}
+	return -1
 }
 
 type PartitionLB interface {

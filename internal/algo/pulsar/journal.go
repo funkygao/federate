@@ -132,7 +132,7 @@ func (j *FileJournal) Append(entry JournalEntry) error {
 	}
 
 	newPosition := atomic.AddInt64(&j.position, int64(n))
-	log.Printf("Bookie[%d] Appended entry. New position: %d", j.b.ID(), newPosition)
+	log.Printf("Bookie[%d] Appended entry {LedgerID:%d EntryID:%d Data:%s}. New position: %d", j.b.ID(), entry.LedgerID, entry.EntryID, entry.Data, newPosition)
 	return nil
 }
 

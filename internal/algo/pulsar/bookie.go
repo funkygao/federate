@@ -7,34 +7,7 @@ import (
 	"time"
 )
 
-// Bookie: Stores entries for ledgers, know nothing about topics: just kv storage.
-// The physical storage layout of a Bookie on a file system typically looks like this:
-//
-//	/bookie-data/
-//	│
-//	├── journal/
-//	│   ├── current/
-//	│   │   └── ${journal-id}  (mmap)
-//	│   └── ${journal-id}.txn
-//	│
-//	├── ledgers/
-//	│   ├── ${ledger-id-group1}/
-//	│   │   ├── ${ledger-id1}/
-//	│   │   │   ├── entry-log-${entrylog-id}  (Similar to Kafka's segment)
-//	│   │   │   └── index
-//	│   │   └── ${ledger-id2}/
-//	│   │       ├── entry-log-${entrylog-id}
-//	│   │       └── index
-//	│   │
-//	│   └── ${ledger-id-group2}/
-//	│       └── ...
-//	│
-//	└── meta/
-//	    └── ${ledger-id}.meta  (Metadata for each ledger)
-//
-// Note:
-// - Entries are grouped into entry logs for efficiency.
-// - Ledgers are grouped into subdirectories to avoid too many files in a single directory.
+// Bookie: Stores entries for ledgers, knows nothing about topics: just kv storage.
 type Bookie interface {
 	ID() int
 
@@ -65,7 +38,7 @@ func NewBookie(id int) Bookie {
 		memtable:       make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
-		nextEntryLogID: 0,
+		nextEntryLogID: 0, // 启动时需要从 Journal 获取
 		indexCache:     NewIndexCache(10000),
 		nextEntryID:    make(map[LedgerID]*EntryID),
 	}

@@ -19,6 +19,7 @@ type Broker interface {
 	CreateConsumer(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
 
 	Publish(msg Message) error
+	Receive(topic string, subscriptionName string) (Message, error)
 }
 
 type TailCache interface {
@@ -52,6 +53,7 @@ func NewBroker(bk BookKeeper) *broker {
 	}
 	go broker.processDelayedMessages()
 	go broker.manageLedgerRetention()
+	go broker.rebalance()
 	return broker
 }
 
@@ -64,7 +66,7 @@ func (b *broker) Start() error {
 
 	b.zk.RegisterBroker(b.info)
 
-	log.Printf("Broker%+v started, zk registered", b.info)
+	log.Printf("Broker%+v started", b.info)
 	return nil
 }
 
@@ -85,7 +87,7 @@ func (b *broker) CreateTopic(name string) (*Topic, error) {
 
 	b.zk.RegisterTopic(*topic)
 
-	log.Printf("%s CreateTopic(%s), zk registered", b.logIdent(), name)
+	log.Printf("%s CreateTopic(%s)", b.logIdent(), name)
 	return topic, nil
 }
 
@@ -98,7 +100,6 @@ func (b *broker) GetTopic(name string) (*Topic, error) {
 		return nil, fmt.Errorf("topic not found")
 	}
 
-	log.Printf("%s GetTopic(%s): %+v", b.logIdent(), name, *topic)
 	return topic, nil
 }
 
@@ -121,7 +122,7 @@ func (b *broker) CreateConsumer(topicName, subscriptionName string, subType Subs
 	sub := topic.Subscribe(b.bkClient, subscriptionName, subType)
 
 	log.Printf("%s CreateConsumerfor topic: %s, subscription: %+v", b.logIdent(), topicName, sub)
-	return NewConsumer(sub), nil
+	return NewConsumer(b, topic, sub), nil
 }
 
 func (b *broker) Publish(msg Message) error {
@@ -161,6 +162,101 @@ func (b *broker) Publish(msg Message) error {
 	return nil
 }
 
+func (b *broker) Receive(topicName string, subscriptionName string) (msg Message, err error) {
+	var topic *Topic
+	topic, err = b.GetTopic(topicName)
+	if err != nil {
+		return
+	}
+
+	sub := topic.GetSubscription(subscriptionName)
+	if sub == nil {
+		err = fmt.Errorf("subscription not found")
+		return
+	}
+
+	return b.readNextMessage(topic, sub.(*subscription))
+}
+
+func (b *broker) readNextMessage(topic *Topic, sub *subscription) (Message, error) {
+	partition := topic.GetPartition(sub.Cursor().PartitionID)
+
+	for {
+		if err := b.initializeCursorIfNeeded(partition, sub); err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+
+		ledger, err := b.bkClient.OpenLedger(sub.cursor.LedgerID)
+		if err != nil {
+			return Message{}, fmt.Errorf("failed to open ledger: %v", err)
+		}
+
+		msg, found, err := b.tryReadNextEntry(ledger, sub)
+		if err != nil {
+			return Message{}, err
+		}
+		if found {
+			return msg, nil
+		}
+
+		if b.moveToNextLedgerIfAvailable(partition, sub) {
+			continue
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func (b *broker) initializeCursorIfNeeded(partition *Partition, sub *subscription) error {
+	if sub.cursor.LedgerID == 0 {
+		if len(partition.Ledgers) == 0 {
+			return fmt.Errorf("no ledgers available")
+		}
+		sub.cursor.LedgerID = partition.Ledgers[0]
+		sub.cursor.EntryID = 0
+	}
+	return nil
+}
+
+func (b *broker) tryReadNextEntry(ledger Ledger, sub *subscription) (Message, bool, error) {
+	lastConfirmed := ledger.GetLastAddConfirmed()
+	nextEntryID := sub.cursor.EntryID + 1
+
+	if nextEntryID <= lastConfirmed {
+		payload, err := ledger.ReadEntry(nextEntryID)
+		if err != nil {
+			return Message{}, false, fmt.Errorf("failed to read entry: %v", err)
+		}
+
+		msg := Message{
+			ID: MessageID{
+				PartitionID: sub.cursor.PartitionID,
+				LedgerID:    sub.cursor.LedgerID,
+				EntryID:     nextEntryID,
+			},
+			Content: payload,
+		}
+
+		sub.ackMessages[msg.ID] = true
+		sub.cursor.EntryID = nextEntryID
+
+		return msg, true, nil
+	}
+
+	return Message{}, false, nil
+}
+
+func (b *broker) moveToNextLedgerIfAvailable(partition *Partition, sub *subscription) bool {
+	ledgerIndex := partition.IndexOfLedger(sub.cursor.LedgerID)
+	if ledgerIndex+1 < len(partition.Ledgers) {
+		sub.cursor.LedgerID = partition.Ledgers[ledgerIndex+1]
+		sub.cursor.EntryID = 0
+		return true
+	}
+	return false
+}
+
 func (b *broker) routeMessage(topic *Topic, msg Message) (partition *Partition, ledger Ledger, err error) {
 	// 先分区
 	partition = topic.GetPartition(b.selectPartition(topic, msg))
@@ -185,7 +281,7 @@ func (b *broker) processDelayedMessages() {
 				}
 
 				// 消息已经准备好，发布到相应的主题
-				log.Printf("%s delay message is due", b.logIdent())
+				log.Printf("%s delay message is due: %v", b.logIdent(), msg)
 				if err := b.Publish(msg); err != nil {
 					log.Printf("Error publishing delayed message: %v", err)
 				}
@@ -290,6 +386,9 @@ func (b *broker) createNewLedger(partition *Partition) (Ledger, error) {
 func (b *broker) shouldRolloverLedger(ledger Ledger) bool {
 	// e,g. based on the number of entries or age of the ledger
 	return false
+}
+
+func (b *broker) rebalance() {
 }
 
 func (b *broker) logIdent() string {

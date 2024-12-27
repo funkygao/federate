@@ -8,15 +8,17 @@ type Consumer interface {
 }
 
 type consumer struct {
+	broker       Broker
+	topic        *Topic
 	subscription Subscription
 }
 
-func NewConsumer(sub Subscription) *consumer {
-	return &consumer{sub}
+func NewConsumer(b Broker, t *Topic, sub Subscription) *consumer {
+	return &consumer{b, t, sub}
 }
 
 func (c *consumer) Receive() (Message, error) {
-	msg, err := c.subscription.Receive()
+	msg, err := c.broker.Receive(c.topic.Name, c.subscription.Name())
 	if err != nil {
 		return Message{}, err
 	}

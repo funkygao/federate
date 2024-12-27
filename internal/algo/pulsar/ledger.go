@@ -19,7 +19,6 @@ type LedgerOption struct {
 type Ledger interface {
 	AddEntry(Payload, LedgerOption) (EntryID, error)
 	ReadEntry(EntryID) (Payload, error)
-	ReadLastEntry() (EntryID, Payload, error)
 	GetLastAddConfirmed() EntryID
 
 	// Close后就不能写入了，这对 rebalance/failover 重要
@@ -76,7 +75,7 @@ func (l *ledger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
 	results := make(chan error, option.WriteQuorum)
 	for i := 0; i < option.WriteQuorum; i++ {
 		go func(b Bookie) {
-			log.Printf("Ledger[%d] AddEntry to bookie[%d] with WriteQuorum: %d", l.id, i, option.WriteQuorum)
+			log.Printf("Ledger[%d] AddEntry:%d on bookie[%d] with %+v", l.id, entryID, b.ID(), option)
 			results <- b.AddEntry(l.id, entryID, data)
 		}(l.bookies[i])
 	}
@@ -140,21 +139,6 @@ func (l *ledger) ReadEntry(entryID EntryID) (Payload, error) {
 	}
 
 	return nil, fmt.Errorf("failed to read entry %d from all bookies: %v", entryID, lastError)
-}
-
-func (l *ledger) ReadLastEntry() (EntryID, Payload, error) {
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-
-	if l.lastConfirmed == -1 {
-		return 0, nil, fmt.Errorf("ledger is empty")
-	}
-
-	data, err := l.bookies[0].ReadEntry(l.id, l.lastConfirmed)
-	if err != nil {
-		return 0, nil, err
-	}
-	return l.lastConfirmed, data, nil
 }
 
 func (l *ledger) GetLastAddConfirmed() EntryID {

@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 )
 
 func main() {
+	log.SetOutput(os.Stdout)
 	log.SetFlags(log.Lshortfile | log.Lmicroseconds)
 
 	broker := NewBroker(NewBookKeeper(3))
