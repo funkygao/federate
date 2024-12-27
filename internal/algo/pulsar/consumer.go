@@ -2,6 +2,8 @@ package main
 
 type Consumer interface {
 	Receive() (Message, error)
+
+	// Kafka ack offet, while pulsar ack (LedgerID, EntryID)
 	Ack(msgID MessageID) error
 }
 
