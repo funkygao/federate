@@ -13,7 +13,7 @@ type EntryIndex interface {
 	Put(ledgerID LedgerID, entryID EntryID, entry IndexValue)
 }
 
-// 保存(LedgerId, EntryId)到Offset的映射关系
+// 保存(LedgerId, EntryId)到Offset的映射关系，实际上用的是 RocksDB
 type entryIndex struct {
 	cache map[LedgerID]map[EntryID]IndexValue
 	mu    sync.RWMutex

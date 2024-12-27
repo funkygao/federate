@@ -20,7 +20,9 @@ type Bookie interface {
 type bookie struct {
 	id int
 
-	memtable    map[LedgerID]map[EntryID]Payload
+	// memtable is for trailing reads
+	memtable map[LedgerID]map[EntryID]Payload
+
 	nextEntryID map[LedgerID]*EntryID
 	mu          sync.RWMutex
 
