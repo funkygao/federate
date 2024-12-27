@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -43,12 +44,25 @@ func (entry *JournalEntry) Marshal() []byte {
 	return buf
 }
 
-func (entry *JournalEntry) UnmarshalFromHeader(header []byte) {
+func (entry *JournalEntry) UnmarshalFrom(r io.ReaderAt, position *int64) error {
+	// header
+	header := make([]byte, entry.HeaderSize())
+	if _, err := r.ReadAt(header, *position); err != nil {
+		return err
+	}
+
 	entry.LedgerID = LedgerID(binary.BigEndian.Uint64(header[0:8]))
 	entry.EntryID = EntryID(binary.BigEndian.Uint64(header[8:16]))
 
+	// body
 	dataLen := binary.BigEndian.Uint32(header[16:20])
 	entry.Data = make([]byte, dataLen)
+	if _, err := r.ReadAt(entry.Data, *position+int64(entry.HeaderSize())); err != nil {
+		return err
+	}
+
+	*position += int64(entry.TotalSize())
+	return nil
 }
 
 type FileJournal struct {
@@ -58,12 +72,14 @@ type FileJournal struct {
 	position       int64
 	checkpointFile string
 	stopChan       chan struct{}
+
+	b Bookie
 }
 
-func NewFileJournal(dir string) (Journal, error) {
+func NewFileJournal(dir string, b Bookie) (Journal, error) {
 	// Ensure the directory exists
+	dir = filepath.Join(dir, fmt.Sprintf("%d", b.ID()))
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		log.Printf("Error creating directory: %v", err)
 		return nil, err
 	}
 
@@ -87,6 +103,7 @@ func NewFileJournal(dir string) (Journal, error) {
 	}
 
 	j := &FileJournal{
+		b:              b,
 		dir:            dir,
 		w:              w,
 		r:              r,
@@ -95,7 +112,7 @@ func NewFileJournal(dir string) (Journal, error) {
 		stopChan:       make(chan struct{}),
 	}
 
-	log.Printf("Initial journal position: %d", j.position)
+	log.Printf("Bookie[%d] Initial journal path: %s, position: %d", j.b.ID(), dir, j.position)
 
 	if err = j.Recover(); err != nil {
 		w.Close()
@@ -115,45 +132,32 @@ func (j *FileJournal) Append(entry JournalEntry) error {
 	}
 
 	newPosition := atomic.AddInt64(&j.position, int64(n))
-	log.Printf("Appended entry. New position: %d", newPosition)
+	log.Printf("Bookie[%d] Appended entry. New position: %d", j.b.ID(), newPosition)
 	return nil
 }
 
 func (j *FileJournal) Read(startPosition int64, maxEntries int) ([]JournalEntry, error) {
-	log.Printf("Reading from position %d, max entries: %d", startPosition, maxEntries)
+	log.Printf("Bookie[%d] Reading from position %d, max entries: %d", j.b.ID(), startPosition, maxEntries)
 
 	entries := make([]JournalEntry, 0, maxEntries)
 	position := startPosition
 
 	for i := 0; i < maxEntries; i++ {
 		if position >= atomic.LoadInt64(&j.position) {
-			log.Printf("Reached end of journal at position %d", position)
+			log.Printf("Bookie[%d] Reached end of journal at position %d", j.b.ID(), position)
 			break
 		}
 
 		var entry JournalEntry
-
-		// 反序列化头部
-		header := make([]byte, entry.HeaderSize())
-		if _, err := j.r.ReadAt(header, position); err != nil {
-			log.Printf("Error reading header at position %d: %v", position, err)
-			return entries, err
-		}
-
-		entry.UnmarshalFromHeader(header)
-
-		// 反序列化正文
-		_, err = j.r.ReadAt(entry.Data, position+entry.HeaderSize())
-		if err != nil {
-			log.Printf("Error reading data at position %d: %v", position+20, err)
+		if err := entry.UnmarshalFrom(j.r, &position); err != nil {
+			log.Printf("Bookie[%d] Error reading data at position %d: %v", j.b.ID(), position, err)
 			return entries, err
 		}
 
 		entries = append(entries, entry)
-		position += int64(entry.TotalSize())
 	}
 
-	log.Printf("Read %d entries", len(entries))
+	log.Printf("Bookie[%d] Read %d entries", j.b.ID(), len(entries))
 	return entries, nil
 }
 
@@ -176,7 +180,7 @@ func (j *FileJournal) Close() error {
 }
 
 func (j *FileJournal) Checkpoint() error {
-	log.Println("Creating checkpoint")
+	log.Println("Bookie[%d] Creating checkpoint", j.b.ID())
 
 	tempFile := j.checkpointFile + ".tmp"
 	f, err := os.Create(tempFile)
@@ -199,12 +203,12 @@ func (j *FileJournal) Checkpoint() error {
 		return err
 	}
 
-	log.Printf("Checkpoint created at position %d", currentPosition)
+	log.Printf("Bookie[%d] Checkpoint created at position %d", j.b.ID(), currentPosition)
 	return nil
 }
 
 func (j *FileJournal) Recover() error {
-	log.Println("Starting recovery process")
+	log.Printf("Bookie[%d] Starting recovery process", j.b.ID())
 
 	f, err := os.Open(j.checkpointFile)
 	if os.IsNotExist(err) {
@@ -235,7 +239,7 @@ func (j *FileJournal) Recover() error {
 	}
 
 	atomic.StoreInt64(&j.position, checkpointPosition)
-	log.Printf("Recovered to position %d", checkpointPosition)
+	log.Printf("Bookie[%d] Recovered to position %d", j.b.ID(), checkpointPosition)
 	return nil
 }
 
@@ -247,7 +251,7 @@ func (j *FileJournal) checkpointManager() {
 		select {
 		case <-ticker.C:
 			if err := j.Checkpoint(); err != nil {
-				log.Printf("Error during scheduled checkpoint: %v", err)
+				log.Printf("Bookie[%d] Error during scheduled checkpoint: %v", j.b.ID(), err)
 			}
 		case <-j.stopChan:
 			return

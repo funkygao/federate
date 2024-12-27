@@ -82,7 +82,7 @@ func (b *broker) CreateTopic(name string) (*Topic, error) {
 	}
 	b.topics[name] = topic
 
-	b.zk.RegisterTopic(topic)
+	b.zk.RegisterTopic(*topic)
 
 	log.Printf("%s CreateTopic(%s), zk registered", b.logIdent(), name)
 	return topic, nil

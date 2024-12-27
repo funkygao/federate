@@ -36,7 +36,9 @@ import (
 // - Entries are grouped into entry logs for efficiency.
 // - Ledgers are grouped into subdirectories to avoid too many files in a single directory.
 type Bookie interface {
-	AddEntry(ledgerID LedgerID, data Payload) (EntryID, error)
+	ID() int
+
+	AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) error
 	ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error)
 }
 
@@ -44,7 +46,7 @@ type bookie struct {
 	id int
 
 	memtable    map[LedgerID]map[EntryID]Payload
-	nextEntryID map[LedgerID]EntryID
+	nextEntryID map[LedgerID]*EntryID
 	mu          sync.RWMutex
 
 	journal Journal
@@ -55,32 +57,35 @@ type bookie struct {
 }
 
 func NewBookie(id int) Bookie {
-	journal, err := NewFileJournal("journal/")
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-
-	return &bookie{
+	b := &bookie{
 		id:             id,
 		memtable:       make(map[LedgerID]map[EntryID]Payload),
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
-		journal:        journal,
 		nextEntryLogID: 0,
-		nextEntryID:    make(map[LedgerID]EntryID),
+		nextEntryID:    make(map[LedgerID]*EntryID),
 	}
+
+	journal, err := NewFileJournal("journal/", b)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+	b.journal = journal
+
+	return b
 }
 
-func (b *bookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, error) {
+func (b *bookie) ID() int {
+	return b.id
+}
+
+func (b *bookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) error {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Assign EntryID based on last EntryID
-	entryID := b.allocateEntryID(ledgerID)
-
 	// Write to journal first
 	if err := b.journal.Append(JournalEntry{ledgerID, entryID, data}); err != nil {
-		return entryID, err
+		return err
 	}
 
 	// Then update write cache
@@ -94,7 +99,7 @@ func (b *bookie) AddEntry(ledgerID LedgerID, data Payload) (EntryID, error) {
 	// Async Write EntryLog, ACK Request ASAP
 	go b.addEntryLog(ledgerID, entryID, data)
 
-	return entryID, nil
+	return nil
 }
 
 func (b *bookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) error {
@@ -111,7 +116,7 @@ func (b *bookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) e
 	// Check if we need to rotate the EntryLog
 	if entryLog.Size >= DefaultEntryLogSize || time.Since(entryLog.CreatedAt) >= DefaultRotationInterval {
 		if err := b.rotateEntryLog(ledgerID); err != nil {
-			return entryID, err
+			return err
 		}
 		log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog rotated", b.id, entryLog.ID, ledgerID, entryID)
 	}
@@ -137,14 +142,6 @@ func (b *bookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) 
 
 	log.Printf("Bookie[%d] ReadEntry(LedgerID:%d, EntryID:%d): entry loaded", b.id, ledgerID, entryID)
 	return entry, nil
-}
-
-func (b *bookie) allocateEntryID(ledgerID LedgerID) EntryID {
-	if _, ok := b.nextEntryID[ledgerID]; !ok {
-		b.nextEntryID[ledgerID] = 0
-	}
-
-	return b.nextEntryID[ledgerID].Next()
 }
 
 func (b *bookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, error) {

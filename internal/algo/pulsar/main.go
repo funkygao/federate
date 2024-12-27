@@ -41,7 +41,7 @@ func produceMessages(producer Producer, N, delayGap int) {
 			log.Printf("[%d] Sent message: %s", i, msg)
 		}
 
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 	}
 }
 

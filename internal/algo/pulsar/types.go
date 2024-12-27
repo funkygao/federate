@@ -18,10 +18,12 @@ import (
 )
 
 var (
+	prodEnv = false
+
 	_ PartitionLB       = (*broker)(nil)
 	_ BookieLB          = (*bookKeeper)(nil)
 	_ LedgerIDAllocator = (*bookKeeper)(nil)
-	_ EntryIDAllocator  = (*bookie)(nil)
+	_ EntryIDAllocator  = (*ledger)(nil)
 )
 
 type PartitionID int
@@ -107,7 +109,7 @@ type Partition struct {
 }
 
 type PartitionLB interface {
-	selectPartition(msg Message) PartitionID
+	selectPartition(*Topic, Message) PartitionID
 }
 
 type LedgerIDAllocator interface {
@@ -115,9 +117,9 @@ type LedgerIDAllocator interface {
 }
 
 type EntryIDAllocator interface {
-	allocateEntryID(LedgerID) EntryID
+	allocateEntryID() EntryID
 }
 
 type BookieLB interface {
-	selectBookies(ensembleSize int) []Bookie
+	selectBookies(LedgerID, LedgerOption) []Bookie
 }

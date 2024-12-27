@@ -41,14 +41,14 @@ func NewBookKeeper(clusterSize int) *bookKeeper {
 	}
 }
 
-func (bk *bookKeeper) CreateLedger(opt LedgerOption) (ledger Ledger, err error) {
+func (bk *bookKeeper) CreateLedger(opt LedgerOption) (l Ledger, err error) {
 	ledgerID := bk.allocateLedgerID()
-	ledger = &inMemoryLedger{
+	l = &ledger{
 		id:            ledgerID,
 		bookies:       bk.selectBookies(ledgerID, opt),
 		lastConfirmed: -1,
 	}
-	bk.ledgers[ledgerID] = ledger
+	bk.ledgers[ledgerID] = l
 	bk.ledgerOptions[ledgerID] = opt
 
 	return
@@ -70,7 +70,10 @@ func (bk *bookKeeper) LedgerOption(ledgerID LedgerID) LedgerOption {
 }
 
 func (bk *bookKeeper) allocateLedgerID() LedgerID {
-	// 实际情况是每个 Parttion 一个 ledger id 空间
+	if prodEnv {
+		return bk.zk.NextLedgerID()
+	}
+
 	return bk.nextLedgerID.Next()
 }
 
