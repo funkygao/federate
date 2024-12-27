@@ -50,6 +50,10 @@ type MessageID struct {
 // Payload 表示消息的实际内容
 type Payload []byte
 
+func (p Payload) Size() int64 {
+	return int64(len(p))
+}
+
 // Message 表示一条消息
 type Message struct {
 	ID        MessageID

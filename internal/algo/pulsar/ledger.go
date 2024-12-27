@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"time"
 )
 
 type LedgerOption struct {
@@ -24,19 +25,21 @@ type Ledger interface {
 	// Close后就不能写入了，这对 rebalance/failover 重要
 	Close()
 
+	Age() time.Duration
+	Size() int64
+
 	GetLedgerID() LedgerID
+	Bookies() []Bookie
 }
 
 type ledger struct {
-	id      LedgerID
-	bookies []Bookie
-	mu      sync.RWMutex
-
-	// EntryID 是在 Ledger 级别维护和生成的，而不是由单个 Bookie 生成
-	// 集中式管理：让 Ledger 管理 EntryID 可以确保在分布式系统中的一致性
-	// 避免冲突：如果让每个 Bookie 独立生成 EntryID，可能会导致冲突和不一致
-	// 简化恢复过程：easier to determine the last confirmed entry and continue from there
+	id            LedgerID
+	bookies       []Bookie
+	mu            sync.RWMutex
 	lastConfirmed EntryID
+
+	createdAt time.Time
+	size      int64
 }
 
 func (l *ledger) GetLedgerID() LedgerID {
@@ -44,13 +47,29 @@ func (l *ledger) GetLedgerID() LedgerID {
 }
 
 func (l *ledger) Close() {
+	log.Printf("Ledger[%d] is closed", l.id)
+}
+
+func (l *ledger) Bookies() []Bookie {
+	return l.bookies
+}
+
+func (l *ledger) Age() time.Duration {
+	return time.Since(l.createdAt)
+}
+
+func (l *ledger) Size() int64 {
+	return l.size
 }
 
 func (l *ledger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 
-	// ledger 维护 ledger 范围内的 entryID
+	// EntryID 是在 Ledger 级别维护和生成的，而不是由单个 Bookie 生成
+	// 集中式管理：让 Ledger 管理 EntryID 可以确保在分布式系统中的一致性
+	// 避免冲突：如果让每个 Bookie 独立生成 EntryID，可能会导致冲突和不一致
+	// 简化恢复过程：easier to determine the last confirmed entry and continue from there
 	entryID := l.allocateEntryID()
 
 	// Write to bookies concurrently
@@ -75,6 +94,7 @@ func (l *ledger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
 		if successCount >= option.AckQuorum {
 			// bingo!
 			l.lastConfirmed = entryID
+			l.size += data.Size()
 			return entryID, nil
 		}
 

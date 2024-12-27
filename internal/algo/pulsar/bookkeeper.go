@@ -2,13 +2,16 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"sync"
+	"time"
 )
 
 // BookKeeper: Manages ledgers and coordinates with bookies for storage.
 // Its storage RPC Client for Broker.
 type BookKeeper interface {
 	CreateLedger(LedgerOption) (Ledger, error)
+	DeleteLedger(ledgerID LedgerID) error
 	OpenLedger(ledgerID LedgerID) (Ledger, error)
 
 	LedgerOption(LedgerID) LedgerOption
@@ -41,17 +44,48 @@ func NewBookKeeper(clusterSize int) *bookKeeper {
 	}
 }
 
-func (bk *bookKeeper) CreateLedger(opt LedgerOption) (l Ledger, err error) {
+func (bk *bookKeeper) CreateLedger(opt LedgerOption) (Ledger, error) {
 	ledgerID := bk.allocateLedgerID()
-	l = &ledger{
+	l := &ledger{
 		id:            ledgerID,
 		bookies:       bk.selectBookies(ledgerID, opt),
 		lastConfirmed: -1,
+		createdAt:     time.Now(),
+		size:          0,
 	}
 	bk.ledgers[ledgerID] = l
 	bk.ledgerOptions[ledgerID] = opt
 
-	return
+	// 选择后不能变了，除非节点崩溃
+	bk.zk.RegisterLedger(LedgerInfo{ledgerID, opt, l.bookies})
+
+	return l, nil
+}
+
+func (bk *bookKeeper) DeleteLedger(ledgerID LedgerID) error {
+	bk.mu.Lock()
+	defer bk.mu.Unlock()
+
+	ledger, exists := bk.ledgers[ledgerID]
+	if !exists {
+		return fmt.Errorf("ledger %d not found", ledgerID)
+	}
+
+	// Instruct all bookies to delete ledger data
+	for _, bookie := range ledger.Bookies() {
+		if err := bookie.DeleteLedgerData(ledgerID); err != nil {
+			log.Printf("Failed to delete ledger data on bookie %d: %v", bookie.ID(), err)
+		}
+	}
+
+	ledger.Close()
+
+	delete(bk.ledgers, ledgerID)
+	delete(bk.ledgerOptions, ledgerID)
+
+	bk.zk.DeleteLedger(ledgerID)
+
+	return nil
 }
 
 func (bk *bookKeeper) OpenLedger(ledgerID LedgerID) (Ledger, error) {
@@ -83,9 +117,6 @@ func (bk *bookKeeper) selectBookies(ledgerID LedgerID, opt LedgerOption) []Booki
 	for i := 0; i < opt.EnsembleSize; i++ {
 		selected[i] = bk.bookies[i%len(bk.bookies)]
 	}
-
-	// 选择后不能变了，除非节点崩溃
-	bk.zk.RegisterLedger(LedgerInfo{ledgerID, opt, selected})
 
 	return selected
 }

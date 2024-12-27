@@ -40,6 +40,8 @@ type Bookie interface {
 
 	AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) error
 	ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error)
+
+	DeleteLedgerData(LedgerID) error
 }
 
 type bookie struct {
@@ -142,6 +144,21 @@ func (b *bookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) 
 
 	log.Printf("Bookie[%d] ReadEntry(LedgerID:%d, EntryID:%d): entry loaded", b.id, ledgerID, entryID)
 	return entry, nil
+}
+
+func (b *bookie) DeleteLedgerData(ledgerID LedgerID) error {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if _, exists := b.memtable[ledgerID]; exists {
+		delete(b.memtable, ledgerID)
+		log.Printf("Bookie[%d] Deleted data for ledger %d", b.id, ledgerID)
+	}
+
+	// Delete entry logs and other files associated with the ledger
+	// Implement file deletion logic here if you have persisted data to disk
+
+	return nil
 }
 
 func (b *bookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, error) {

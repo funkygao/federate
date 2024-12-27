@@ -4,6 +4,7 @@ type ZooKeeper interface {
 	RegisterBroker(BrokerInfo) error
 	RegisterTopic(Topic) error
 	RegisterLedger(LedgerInfo) error
+	DeleteLedger(LedgerID)
 
 	NextLedgerID() LedgerID
 }
@@ -37,6 +38,9 @@ func (zk *zooKeeper) RegisterTopic(Topic) error {
 
 func (zk *zooKeeper) RegisterLedger(LedgerInfo) error {
 	return nil
+}
+
+func (zk *zooKeeper) DeleteLedger(LedgerID) {
 }
 
 func (zk *zooKeeper) NextLedgerID() LedgerID {
