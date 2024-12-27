@@ -8,22 +8,22 @@ type IndexValue struct {
 	Offset int64
 }
 
-type EntryIndex interface {
+type EntryIndexer interface {
 	Get(ledgerID LedgerID, entryID EntryID) (IndexValue, bool)
 	Put(ledgerID LedgerID, entryID EntryID, entry IndexValue)
 }
 
 // 保存(LedgerId, EntryId)到Offset的映射关系，实际上用的是 RocksDB
-type entryIndex struct {
+type entryIndexer struct {
 	cache map[LedgerID]map[EntryID]IndexValue
 	mu    sync.RWMutex
 }
 
-func NewEntryIndex() EntryIndex {
-	return &entryIndex{cache: make(map[LedgerID]map[EntryID]IndexValue)}
+func NewEntryIndexer() EntryIndexer {
+	return &entryIndexer{cache: make(map[LedgerID]map[EntryID]IndexValue)}
 }
 
-func (c *entryIndex) Get(ledgerID LedgerID, entryID EntryID) (IndexValue, bool) {
+func (c *entryIndexer) Get(ledgerID LedgerID, entryID EntryID) (IndexValue, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
@@ -35,7 +35,7 @@ func (c *entryIndex) Get(ledgerID LedgerID, entryID EntryID) (IndexValue, bool) 
 	return IndexValue{}, false
 }
 
-func (c *entryIndex) Put(ledgerID LedgerID, entryID EntryID, entry IndexValue) {
+func (c *entryIndexer) Put(ledgerID LedgerID, entryID EntryID, entry IndexValue) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 

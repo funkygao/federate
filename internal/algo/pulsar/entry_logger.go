@@ -20,12 +20,12 @@ type EntryLogger interface {
 }
 
 type entryLogger struct {
-	size       int64
-	entryIndex EntryIndex
+	size         int64
+	entryIndexer EntryIndexer
 }
 
 func NewEntryLogger() EntryLogger {
-	return &entryLogger{0, NewEntryIndex()}
+	return &entryLogger{0, NewEntryIndexer()}
 }
 
 func (l *entryLogger) Write(ledgerID LedgerID, log EntryLog) error {
@@ -34,7 +34,7 @@ func (l *entryLogger) Write(ledgerID LedgerID, log EntryLog) error {
 	// Write disk
 
 	// Write index
-	l.entryIndex.Put(ledgerID, log.EntryID, IndexValue{Offset: l.size})
+	l.entryIndexer.Put(ledgerID, log.EntryID, IndexValue{Offset: l.size})
 
 	// Check if we need to rotate the EntryLog
 	if l.size >= DefaultEntryLogSize || time.Since(log.CreatedAt) >= DefaultRotationInterval {
