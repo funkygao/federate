@@ -51,7 +51,8 @@ type bookie struct {
 	nextEntryID map[LedgerID]*EntryID
 	mu          sync.RWMutex
 
-	journal Journal
+	journal    Journal
+	indexCache IndexCache
 
 	entryLogs      map[LedgerID][]*EntryLog
 	activeLogs     map[LedgerID]*EntryLog
@@ -65,6 +66,7 @@ func NewBookie(id int) Bookie {
 		entryLogs:      make(map[LedgerID][]*EntryLog),
 		activeLogs:     make(map[LedgerID]*EntryLog),
 		nextEntryLogID: 0,
+		indexCache:     NewIndexCache(10000),
 		nextEntryID:    make(map[LedgerID]*EntryID),
 	}
 
@@ -95,6 +97,9 @@ func (b *bookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) erro
 		b.memtable[ledgerID] = make(map[EntryID]Payload)
 	}
 	b.memtable[ledgerID][entryID] = data
+
+	var offset int64
+	b.indexCache.Put(ledgerID, entryID, IndexValue{Offset: offset, Size: int32(len(data))})
 
 	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d), data: %s", b.id, ledgerID, entryID, string(data))
 
