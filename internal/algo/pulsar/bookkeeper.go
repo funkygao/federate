@@ -11,8 +11,8 @@ import (
 // Its storage RPC Client for Broker.
 type BookKeeper interface {
 	CreateLedger(LedgerOption) (Ledger, error)
-	DeleteLedger(ledgerID LedgerID) error
-	OpenLedger(ledgerID LedgerID) (Ledger, error)
+	DeleteLedger(LedgerID) error
+	OpenLedger(LedgerID) (Ledger, error)
 
 	LedgerOption(LedgerID) LedgerOption
 }

@@ -16,6 +16,7 @@ type EntryLog struct {
 	CreatedAt time.Time
 }
 
+// Ledger disk file 相当于 Kafka Segment，但它增加了 LedgerID，没有绑定死 Broker，就避免了搬迁数据.
 type EntryLogger interface {
 	Write(LedgerID, EntryLog) error
 	Read(LedgerID, EntryID) (Payload, error)

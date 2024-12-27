@@ -18,7 +18,7 @@ type Broker interface {
 	CreateProducer(topic string) (Producer, error)
 	CreateConsumer(topic, subscriptionName string, subType SubscriptionType) (Consumer, error)
 
-	Publish(msg Message) error
+	Publish(Message) error
 	Receive(topic string, subscriptionName string) (Message, error)
 	Ack(topic string, subscriptionName string, msgID MessageID) error
 }

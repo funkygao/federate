@@ -9,8 +9,8 @@ type IndexValue struct {
 }
 
 type EntryIndexer interface {
-	Get(ledgerID LedgerID, entryID EntryID) (IndexValue, bool)
-	Put(ledgerID LedgerID, entryID EntryID, entry IndexValue)
+	Put(LedgerID, EntryID, IndexValue)
+	Get(LedgerID, EntryID) (IndexValue, bool)
 }
 
 // 保存(LedgerId, EntryId)到Offset的映射关系，实际上用的是 RocksDB

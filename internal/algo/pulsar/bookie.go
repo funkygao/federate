@@ -11,8 +11,8 @@ import (
 type Bookie interface {
 	ID() int
 
-	AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) error
-	ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error)
+	AddEntry(LedgerID, EntryID, Payload) error
+	ReadEntry(LedgerID, EntryID) (Payload, error)
 
 	DeleteLedgerData(LedgerID) error
 }

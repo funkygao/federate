@@ -14,11 +14,10 @@ import (
 // Journal is WAL for durability.
 // 一个 bookie 上所有 topic 共享N个 journal disk(LedgerID mod N)，建议使用 PMEM，ns 级 latency，10GB+/s throughput
 type Journal interface {
-	Append(entry JournalEntry) error
+	Append(JournalEntry) error
 	Read(startPosition int64, maxEntries int) ([]JournalEntry, error)
-	Sync() error
-	Close() error
 
+	Close() error
 	Checkpoint() error
 	Recover() error
 }
@@ -161,10 +160,6 @@ func (j *FileJournal) Read(startPosition int64, maxEntries int) ([]JournalEntry,
 
 	log.Printf("Bookie[%d] Read %d entries", j.b.ID(), len(entries))
 	return entries, nil
-}
-
-func (j *FileJournal) Sync() error {
-	return j.w.Sync()
 }
 
 func (j *FileJournal) Close() error {

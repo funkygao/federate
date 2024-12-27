@@ -19,6 +19,7 @@ type LedgerOption struct {
 type Ledger interface {
 	AddEntry(Payload, LedgerOption) (EntryID, error)
 	ReadEntry(EntryID) (Payload, error)
+
 	GetLastAddConfirmed() EntryID
 
 	// Close后就不能写入了，这对 rebalance/failover 重要

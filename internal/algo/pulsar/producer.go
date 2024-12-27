@@ -3,7 +3,7 @@ package main
 import "time"
 
 type Producer interface {
-	Send(msg Message) error
+	Send(Message) error
 }
 
 type producer struct {
