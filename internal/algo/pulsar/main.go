@@ -19,10 +19,10 @@ func main() {
 	producer, _ := broker.CreateProducer(topic.Name)
 	consumer, _ := broker.CreateConsumer(topic.Name, "test-subscription", Shared)
 
-	go produceMessages(producer, 50, 4)
+	go produceMessages(producer, 12, 3)
 
 	// Delay starting the consumer
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
 	go consumeMessages(consumer)
 
@@ -43,7 +43,7 @@ func produceMessages(producer Producer, N, delayGap int) {
 			log.Printf("[%d] Sent message: %s", i, msg)
 		}
 
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(1200 * time.Millisecond)
 	}
 }
 

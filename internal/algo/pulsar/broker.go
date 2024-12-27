@@ -20,11 +20,7 @@ type Broker interface {
 
 	Publish(msg Message) error
 	Receive(topic string, subscriptionName string) (Message, error)
-}
-
-type TailCache interface {
-	Put(Topic, Message)
-	Get(Topic) Message
+	Ack(topic string, subscriptionName string, msgID MessageID) error
 }
 
 type broker struct {
@@ -42,14 +38,17 @@ type broker struct {
 
 	// 消费尾部消息时，不必访问 BK
 	tailCache TailCache
+
+	cursorStore CursorStore
 }
 
 func NewBroker(bk BookKeeper) *broker {
 	broker := &broker{
-		bkClient:   bk,
-		topics:     make(map[string]*Topic),
-		delayQueue: NewDelayQueue(),
-		zk:         getZooKeeper(),
+		bkClient:    bk,
+		topics:      make(map[string]*Topic),
+		delayQueue:  NewDelayQueue(),
+		zk:          getZooKeeper(),
+		cursorStore: NewCursorStore(bk),
 	}
 	go broker.processDelayedMessages()
 	go broker.manageLedgerRetention()
@@ -136,7 +135,7 @@ func (b *broker) Publish(msg Message) error {
 		return err
 	}
 
-	log.Printf("%s Publish, routing info: {partition: %+v, ledger %+v}", b.logIdent(), partition, ledger)
+	log.Printf("%s Publish(%s), routing info: {PartitionID:%d, LedgerID:%d}", b.logIdent(), msg.Content, partition.ID, ledger.GetLedgerID())
 
 	entryID, err := ledger.AddEntry(msg.Content, b.bkClient.LedgerOption(ledger.GetLedgerID()))
 	if err != nil {
@@ -162,32 +161,49 @@ func (b *broker) Publish(msg Message) error {
 	return nil
 }
 
-func (b *broker) Receive(topicName string, subscriptionName string) (msg Message, err error) {
-	var topic *Topic
-	topic, err = b.GetTopic(topicName)
+func (b *broker) Ack(topicName string, subscriptionName string, msgID MessageID) error {
+	_, sub, err := b.getSubscription(topicName, subscriptionName)
 	if err != nil {
-		return
+		return err
 	}
 
-	sub := topic.GetSubscription(subscriptionName)
-	if sub == nil {
-		err = fmt.Errorf("subscription not found")
-		return
+	// 更新游标
+	err = sub.MoveCursor(msgID)
+	if err != nil {
+		return err
 	}
 
-	return b.readNextMessage(topic, sub.(*subscription))
+	// 异步持久化游标
+	go func() {
+		if err := b.cursorStore.SaveCursor(topicName, subscriptionName, msgID); err != nil {
+			log.Printf("Failed to persist cursor: %v", err)
+		}
+	}()
+
+	return nil
 }
 
-func (b *broker) readNextMessage(topic *Topic, sub *subscription) (Message, error) {
+func (b *broker) Receive(topicName string, subscriptionName string) (Message, error) {
+	topic, sub, err := b.getSubscription(topicName, subscriptionName)
+	if err != nil {
+		return Message{}, err
+	}
+
 	partition := topic.GetPartition(sub.Cursor().PartitionID)
 
 	for {
-		if err := b.initializeCursorIfNeeded(partition, sub); err != nil {
-			time.Sleep(100 * time.Millisecond)
-			continue
+		cursor := sub.Cursor()
+		if cursor.LedgerID == 0 {
+			// 初始化游标
+			newCursor, err := b.cursorStore.LoadCursor(topicName, subscriptionName, partition)
+			if err != nil {
+				return Message{}, err
+			}
+			sub.MoveCursor(newCursor)
+			cursor = newCursor
 		}
 
-		ledger, err := b.bkClient.OpenLedger(sub.cursor.LedgerID)
+		ledger, err := b.bkClient.OpenLedger(cursor.LedgerID)
 		if err != nil {
 			return Message{}, fmt.Errorf("failed to open ledger: %v", err)
 		}
@@ -197,31 +213,44 @@ func (b *broker) readNextMessage(topic *Topic, sub *subscription) (Message, erro
 			return Message{}, err
 		}
 		if found {
+			sub.MoveCursor(msg.ID)
 			return msg, nil
 		}
 
-		if b.moveToNextLedgerIfAvailable(partition, sub) {
+		// 如果当前 ledger 读完，尝试移动到下一个 ledger
+		nextLedgerIndex := partition.IndexOfLedger(cursor.LedgerID) + 1
+		if nextLedgerIndex < len(partition.Ledgers) {
+			newCursor := MessageID{
+				PartitionID: cursor.PartitionID,
+				LedgerID:    partition.Ledgers[nextLedgerIndex],
+				EntryID:     0,
+			}
+			sub.MoveCursor(newCursor)
 			continue
 		}
 
+		// 如果没有更多的 ledger，等待新消息
 		time.Sleep(100 * time.Millisecond)
 	}
 }
 
-func (b *broker) initializeCursorIfNeeded(partition *Partition, sub *subscription) error {
-	if sub.cursor.LedgerID == 0 {
-		if len(partition.Ledgers) == 0 {
-			return fmt.Errorf("no ledgers available")
-		}
-		sub.cursor.LedgerID = partition.Ledgers[0]
-		sub.cursor.EntryID = 0
+func (b *broker) getSubscription(topicName, subscriptionName string) (*Topic, Subscription, error) {
+	topic, err := b.GetTopic(topicName)
+	if err != nil {
+		return nil, nil, err
 	}
-	return nil
+
+	sub := topic.GetSubscription(subscriptionName)
+	if sub == nil {
+		return nil, nil, fmt.Errorf("subscription not found")
+	}
+
+	return topic, sub, nil
 }
 
-func (b *broker) tryReadNextEntry(ledger Ledger, sub *subscription) (Message, bool, error) {
+func (b *broker) tryReadNextEntry(ledger Ledger, sub Subscription) (Message, bool, error) {
 	lastConfirmed := ledger.GetLastAddConfirmed()
-	nextEntryID := sub.cursor.EntryID + 1
+	nextEntryID := sub.Cursor().EntryID + 1
 
 	if nextEntryID <= lastConfirmed {
 		payload, err := ledger.ReadEntry(nextEntryID)
@@ -231,30 +260,17 @@ func (b *broker) tryReadNextEntry(ledger Ledger, sub *subscription) (Message, bo
 
 		msg := Message{
 			ID: MessageID{
-				PartitionID: sub.cursor.PartitionID,
-				LedgerID:    sub.cursor.LedgerID,
+				PartitionID: sub.Cursor().PartitionID,
+				LedgerID:    sub.Cursor().LedgerID,
 				EntryID:     nextEntryID,
 			},
 			Content: payload,
 		}
 
-		sub.ackMessages[msg.ID] = true
-		sub.cursor.EntryID = nextEntryID
-
 		return msg, true, nil
 	}
 
 	return Message{}, false, nil
-}
-
-func (b *broker) moveToNextLedgerIfAvailable(partition *Partition, sub *subscription) bool {
-	ledgerIndex := partition.IndexOfLedger(sub.cursor.LedgerID)
-	if ledgerIndex+1 < len(partition.Ledgers) {
-		sub.cursor.LedgerID = partition.Ledgers[ledgerIndex+1]
-		sub.cursor.EntryID = 0
-		return true
-	}
-	return false
 }
 
 func (b *broker) routeMessage(topic *Topic, msg Message) (partition *Partition, ledger Ledger, err error) {
@@ -264,73 +280,6 @@ func (b *broker) routeMessage(topic *Topic, msg Message) (partition *Partition, 
 	// 再分ledger，ledger 是 pulsar 比 Kafka 更灵活的最根本设计
 	ledger, err = b.getOrCreateLedger(partition)
 	return
-}
-
-func (b *broker) processDelayedMessages() {
-	ticker := time.NewTicker(100 * time.Millisecond)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			// 一个时间周期内处理尽可能多的延迟消息
-			for {
-				msg, hasDueMsg := b.delayQueue.Poll()
-				if !hasDueMsg {
-					break
-				}
-
-				// 消息已经准备好，发布到相应的主题
-				log.Printf("%s delay message is due: %v", b.logIdent(), msg)
-				if err := b.Publish(msg); err != nil {
-					log.Printf("Error publishing delayed message: %v", err)
-				}
-			}
-		}
-	}
-}
-
-func (b *broker) manageLedgerRetention() {
-	ticker := time.NewTicker(1 * time.Hour)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			b.cleanupExpiredLedgers()
-		}
-	}
-}
-
-func (b *broker) cleanupExpiredLedgers() {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	retentionMaxAge := 48 * time.Hour
-	cutoffTime := time.Now().Add(retentionMaxAge)
-	log.Printf("%s Starting ledger retention cleanup, cutoff time: %v", b.logIdent(), cutoffTime)
-
-	for _, topic := range b.topics {
-		for _, partition := range topic.Partitions {
-			var activeLedgers []LedgerID
-			for _, ledgerID := range partition.Ledgers {
-				ledger, err := b.bkClient.OpenLedger(ledgerID)
-				if err != nil {
-					log.Printf("%s Failed to open ledger %d for retention check: %v", b.logIdent(), ledgerID, err)
-					continue
-				}
-
-				if ledger.Age() > retentionMaxAge {
-					ledger.Close()
-					b.bkClient.DeleteLedger(ledgerID)
-				} else {
-					activeLedgers = append(activeLedgers, ledgerID)
-				}
-			}
-
-			partition.Ledgers = activeLedgers
-		}
-	}
 }
 
 func (b *broker) selectPartition(topic *Topic, msg Message) PartitionID {
@@ -386,9 +335,6 @@ func (b *broker) createNewLedger(partition *Partition) (Ledger, error) {
 func (b *broker) shouldRolloverLedger(ledger Ledger) bool {
 	// e,g. based on the number of entries or age of the ledger
 	return false
-}
-
-func (b *broker) rebalance() {
 }
 
 func (b *broker) logIdent() string {

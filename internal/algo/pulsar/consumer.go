@@ -26,5 +26,5 @@ func (c *consumer) Receive() (Message, error) {
 }
 
 func (c *consumer) Ack(msgID MessageID) error {
-	return c.subscription.Ack(msgID)
+	return c.broker.Ack(c.topic.Name, c.subscription.Name(), msgID)
 }

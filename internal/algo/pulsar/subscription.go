@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -14,10 +13,10 @@ const (
 )
 
 type Subscription interface {
-	Ack(msgID MessageID) error
-
 	Name() string
+
 	Cursor() MessageID
+	MoveCursor(MessageID) error
 }
 
 type subscription struct {
@@ -57,16 +56,10 @@ func (s *subscription) Cursor() MessageID {
 	return s.cursor
 }
 
-func (s *subscription) Ack(msgID MessageID) error {
+func (s *subscription) MoveCursor(msgID MessageID) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if _, exists := s.ackMessages[msgID]; !exists {
-		return fmt.Errorf("message %+v not found", msgID)
-	}
-
-	delete(s.ackMessages, msgID)
 	s.cursor = msgID
-
 	return nil
 }
