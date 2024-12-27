@@ -91,8 +91,33 @@ func (l *ledger) ReadEntry(entryID EntryID) (Payload, error) {
 
 	log.Printf("Ledger[%d] ReadEntry(%d)", l.id, entryID)
 
-	// 实际上是并发读，取最快的
-	return l.bookies[0].ReadEntry(l.id, entryID)
+	type readReult struct {
+		payload Payload
+		err     error
+	}
+
+	// Scatter
+	resultChan := make(chan readReult, len(l.bookies))
+	for i, bookie := range l.bookies {
+		go func(b Bookie, bookieIndex int) {
+			payload, err := b.ReadEntry(l.id, entryID)
+			resultChan <- readReult{payload, err}
+			log.Printf("Ledger[%d] ReadEntry(%d) from Bookie[%d] completed", l.id, entryID, bookieIndex)
+		}(bookie, i)
+	}
+
+	// Gather
+	var lastError error
+	for i := 0; i < len(l.bookies); i++ {
+		result := <-resultChan
+		if result.err == nil {
+			// 成功读取，立即返回结果
+			return result.payload, nil
+		}
+		lastError = result.err
+	}
+
+	return nil, fmt.Errorf("failed to read entry %d from all bookies: %v", entryID, lastError)
 }
 
 func (l *ledger) ReadLastEntry() (EntryID, Payload, error) {
