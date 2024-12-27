@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type EntryLog struct {
 
 type EntryLogger interface {
 	Write(LedgerID, EntryLog) error
+	Read(LedgerID, EntryID) (Payload, error)
 }
 
 type entryLogger struct {
@@ -50,6 +52,10 @@ func (l *entryLogger) Write(ledgerID LedgerID, log EntryLog) error {
 	}
 
 	return nil
+}
+
+func (l *entryLogger) Read(ledgerID LedgerID, entryID EntryID) (Payload, error) {
+	return nil, fmt.Errorf("Read operation not implemented")
 }
 
 func (l *entryLogger) rotate() error {

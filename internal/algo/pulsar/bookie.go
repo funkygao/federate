@@ -104,12 +104,14 @@ func (b *bookie) ReadEntry(ledgerID LedgerID, entryID EntryID) (Payload, error) 
 		return nil, fmt.Errorf("ledger %d not found", ledgerID)
 	}
 
+	// for test only
 	entry, exists := ledger[entryID]
 	if !exists {
 		return nil, fmt.Errorf("entry %d not found", entryID)
 	}
 
 	// read from entry log
+	b.entryLogger.Read(ledgerID, entryID)
 
 	log.Printf("Bookie[%d] ReadEntry(LedgerID:%d, EntryID:%d): entry loaded", b.id, ledgerID, entryID)
 	return entry, nil
