@@ -20,25 +20,18 @@ type Bookie interface {
 type bookie struct {
 	id int
 
-	// memtable is for trailing reads
-	memtable map[LedgerID]map[EntryID]Payload
-
 	nextEntryID map[LedgerID]*EntryID
 	mu          sync.RWMutex
 
-	journal     Journal
+	journal     EntryJournal
+	memtable    map[LedgerID]map[EntryID]Payload // for trailing reads
 	entryLogger EntryLogger
-
-	entryLogs  map[LedgerID][]*EntryLog
-	activeLogs map[LedgerID]*EntryLog
 }
 
 func NewBookie(id int) Bookie {
 	b := &bookie{
 		id:          id,
 		memtable:    make(map[LedgerID]map[EntryID]Payload),
-		entryLogs:   make(map[LedgerID][]*EntryLog),
-		activeLogs:  make(map[LedgerID]*EntryLog),
 		entryLogger: NewEntryLogger(),
 		nextEntryID: make(map[LedgerID]*EntryID),
 	}
