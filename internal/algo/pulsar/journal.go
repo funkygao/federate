@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// Journal is WAL for durability.
+// 一个 bookie 上所有 topic 共享N个 journal disk(LedgerID mod N)，建议使用 PMEM，ns 级 latency，10GB+/s throughput
 type Journal interface {
 	Append(entry JournalEntry) error
 	Read(startPosition int64, maxEntries int) ([]JournalEntry, error)

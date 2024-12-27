@@ -24,23 +24,21 @@ type bookie struct {
 	nextEntryID map[LedgerID]*EntryID
 	mu          sync.RWMutex
 
-	journal    Journal
-	indexCache IndexCache
+	journal     Journal
+	entryLogger EntryLogger
 
-	entryLogs      map[LedgerID][]*EntryLog
-	activeLogs     map[LedgerID]*EntryLog
-	nextEntryLogID EntryLogID
+	entryLogs  map[LedgerID][]*EntryLog
+	activeLogs map[LedgerID]*EntryLog
 }
 
 func NewBookie(id int) Bookie {
 	b := &bookie{
-		id:             id,
-		memtable:       make(map[LedgerID]map[EntryID]Payload),
-		entryLogs:      make(map[LedgerID][]*EntryLog),
-		activeLogs:     make(map[LedgerID]*EntryLog),
-		nextEntryLogID: 0, // 启动时需要从 Journal 获取
-		indexCache:     NewIndexCache(10000),
-		nextEntryID:    make(map[LedgerID]*EntryID),
+		id:          id,
+		memtable:    make(map[LedgerID]map[EntryID]Payload),
+		entryLogs:   make(map[LedgerID][]*EntryLog),
+		activeLogs:  make(map[LedgerID]*EntryLog),
+		entryLogger: NewEntryLogger(),
+		nextEntryID: make(map[LedgerID]*EntryID),
 	}
 
 	journal, err := NewFileJournal("journal/", b)
@@ -60,7 +58,7 @@ func (b *bookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) erro
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
-	// Write to journal first
+	// Write to journal first: WAL
 	if err := b.journal.Append(JournalEntry{ledgerID, entryID, data}); err != nil {
 		return err
 	}
@@ -71,9 +69,6 @@ func (b *bookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) erro
 	}
 	b.memtable[ledgerID][entryID] = data
 
-	var offset int64
-	b.indexCache.Put(ledgerID, entryID, IndexValue{Offset: offset, Size: int32(len(data))})
-
 	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d), data: %s", b.id, ledgerID, entryID, string(data))
 
 	// Async Write EntryLog, ACK Request ASAP
@@ -83,23 +78,17 @@ func (b *bookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) erro
 }
 
 func (b *bookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) error {
-	entryLog, err := b.getOrCreateEntryLog(ledgerID)
-	if err != nil {
-		return err
+	entryLog := EntryLog{
+		EntryID:   entryID,
+		Content:   data,
+		CreatedAt: time.Now(),
 	}
 
-	log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog written", b.id, entryLog.ID, ledgerID, entryID)
+	log.Printf("Bookie[%d] AddEntry (LedgerID:%d, EntryID:%d): EntryLog written", b.id, ledgerID, entryID)
 
 	// 定时刷盘
-	entryLog.Write(data)
+	b.entryLogger.Write(ledgerID, entryLog)
 
-	// Check if we need to rotate the EntryLog
-	if entryLog.Size >= DefaultEntryLogSize || time.Since(entryLog.CreatedAt) >= DefaultRotationInterval {
-		if err := b.rotateEntryLog(ledgerID); err != nil {
-			return err
-		}
-		log.Printf("Bookie[%d] AddEntry (EntryLog:%d, LedgerID:%d, EntryID:%d): EntryLog rotated", b.id, entryLog.ID, ledgerID, entryID)
-	}
 	return nil
 }
 
@@ -136,32 +125,5 @@ func (b *bookie) DeleteLedgerData(ledgerID LedgerID) error {
 	// Delete entry logs and other files associated with the ledger
 	// Implement file deletion logic here if you have persisted data to disk
 
-	return nil
-}
-
-func (b *bookie) getOrCreateEntryLog(ledgerID LedgerID) (*EntryLog, error) {
-	if currentLog, exists := b.activeLogs[ledgerID]; exists {
-		return currentLog, nil
-	}
-
-	newLog := &EntryLog{
-		ID:        b.nextEntryLogID,
-		CreatedAt: time.Now(),
-	}
-	b.nextEntryLogID.Next()
-
-	b.entryLogs[ledgerID] = append(b.entryLogs[ledgerID], newLog)
-	b.activeLogs[ledgerID] = newLog
-
-	return newLog, nil
-}
-
-func (b *bookie) rotateEntryLog(ledgerID LedgerID) error {
-	newLog, err := b.getOrCreateEntryLog(ledgerID)
-	if err != nil {
-		return err
-	}
-
-	b.activeLogs[ledgerID] = newLog
 	return nil
 }

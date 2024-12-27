@@ -72,6 +72,7 @@ func (l *ledger) AddEntry(data Payload, option LedgerOption) (EntryID, error) {
 	entryID := l.allocateEntryID()
 
 	// Write to bookies concurrently
+	// 比主从复制快，但要处理单节点分发失败补偿的问题
 	results := make(chan error, option.WriteQuorum)
 	for i := 0; i < option.WriteQuorum; i++ {
 		go func(b Bookie) {
