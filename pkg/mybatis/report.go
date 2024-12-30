@@ -104,6 +104,7 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
 		"Distinct Queries":    sa.DistinctQueries,
 		"Order By Operations": sa.OrderByOperations,
 		"Limit Operations":    sa.LimitOperations,
+		"Union Operations":    sa.UnionOperations,
 	}
 	cellData := sortMapByValue(metrics)
 	tabular.Display(header, cellData, false, -1)

@@ -21,6 +21,7 @@ type SQLAnalyzer struct {
 	Fields               map[string]int
 	ComplexQueries       int
 	JoinOperations       int
+	UnionOperations      int
 	SubQueries           int
 	AggregationFuncs     map[string]int // count, min, max, etc
 	DistinctQueries      int
@@ -60,27 +61,15 @@ func (sa *SQLAnalyzer) Analyze(filePath, id, sql string) {
 
 	switch stmt := stmt.(type) {
 	case *sqlparser.Select:
-		sa.SQLTypes["SELECT"]++
-		sa.analyzeTables(stmt.From)
-		sa.analyzeFields(stmt.SelectExprs)
-		sa.analyzeComplexity(stmt)
-
+		sa.analyzeSelect(stmt)
 	case *sqlparser.Insert:
-		sa.SQLTypes["INSERT"]++
-		sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
-			Expr: stmt.Table,
-		})
-		sa.analyzeColumns(stmt.Columns)
-
+		sa.analyzeInsert(stmt)
 	case *sqlparser.Update:
-		sa.SQLTypes["UPDATE"]++
-		sa.analyzeTables(stmt.TableExprs)
-		sa.analyzeUpdateExprs(stmt.Exprs)
-
+		sa.analyzeUpdate(stmt)
 	case *sqlparser.Delete:
-		sa.SQLTypes["DELETE"]++
-		sa.analyzeTables(stmt.TableExprs)
-
+		sa.analyzeDelete(stmt)
+	case *sqlparser.Union:
+		sa.analyzeUnion(stmt)
 	default:
 		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, sql)
 	}
@@ -90,6 +79,39 @@ func (sa *SQLAnalyzer) Analyze(filePath, id, sql string) {
 		delete(sa.AggregationFuncs, k)
 		sa.AggregationFuncs[strings.ToUpper(k)] = v
 	}
+}
+
+func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select) {
+	sa.SQLTypes["SELECT"]++
+	sa.analyzeTables(stmt.From)
+	sa.analyzeFields(stmt.SelectExprs)
+	sa.analyzeComplexity(stmt)
+}
+
+func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert) {
+	sa.SQLTypes["INSERT"]++
+	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
+		Expr: stmt.Table,
+	})
+	sa.analyzeColumns(stmt.Columns)
+}
+
+func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update) {
+	sa.SQLTypes["UPDATE"]++
+	sa.analyzeTables(stmt.TableExprs)
+	sa.analyzeUpdateExprs(stmt.Exprs)
+}
+
+func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete) {
+	sa.SQLTypes["DELETE"]++
+	sa.analyzeTables(stmt.TableExprs)
+}
+
+func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union) {
+	sa.SQLTypes["UNION"]++
+	sa.UnionOperations++
+	sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
+	sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
 }
 
 func (sa *SQLAnalyzer) IgnoreTag(elemTag string) {
@@ -141,7 +163,8 @@ func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs) {
 
 func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 	if stmt.Where != nil || stmt.GroupBy != nil || stmt.Having != nil ||
-		stmt.OrderBy != nil || stmt.Limit != nil || len(stmt.From) > 1 {
+		stmt.OrderBy != nil || stmt.Limit != nil || len(stmt.From) > 1 ||
+		sa.UnionOperations > 0 {
 		sa.ComplexQueries++
 	}
 
