@@ -16,11 +16,15 @@ var (
 	whereRegex     = regexp.MustCompile(`<where>(?s)(.*?)</where>`)
 	chooseRegex    = regexp.MustCompile(`<choose>(?s)(.*?)</choose>`)
 	whenRegex      = regexp.MustCompile(`<when[^>]*>(?s)(.*?)</when>`)
+	ifRegex        = regexp.MustCompile(`<if[^>]*>(?s)(.*?)</if>`)
 	otherwiseRegex = regexp.MustCompile(`<otherwise>(?s)(.*?)</otherwise>`)
 	foreachRegex   = regexp.MustCompile(`<foreach[^>]*>(?s)(.*?)</foreach>`)
 	dollarVarRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
 	hashVarRegex   = regexp.MustCompile(`#\{([^}]+)\}`)
 	tagRegex       = regexp.MustCompile(`</?[^>]+>`)
+
+	jsonOperatorRegex      = regexp.MustCompile(`(\w+)\s*->>\s*#\{[^}]+\}\s*=\s*#\{[^}]+\}`)
+	variableInForeachRegex = regexp.MustCompile(`#\{[^}]+\}`)
 )
 
 type MyBatisProcessor struct {
@@ -75,15 +79,25 @@ func (mp *MyBatisProcessor) extractSQLRecursive(elem *etree.Element, sql *string
 	}
 }
 
+func (mp *MyBatisProcessor) processIncludes(sql string) string {
+	for includeRegex.MatchString(sql) {
+		sql = includeRegex.ReplaceAllStringFunc(sql, func(match string) string {
+			refID := includeRegex.FindStringSubmatch(match)[1]
+			return mp.processIncludes(mp.fragments[refID])
+		})
+	}
+	return sql
+}
+
 func (mp *MyBatisProcessor) preprocessRawSQL(rawSQL string) string {
 	// 处理 <include> 标签
-	rawSQL = includeRegex.ReplaceAllStringFunc(rawSQL, func(match string) string {
-		refID := includeRegex.FindStringSubmatch(match)[1]
-		return mp.fragments[refID]
-	})
+	rawSQL = mp.processIncludes(rawSQL)
 
 	// 处理 <where> 标签
-	rawSQL = whereRegex.ReplaceAllString(rawSQL, "WHERE 1=1 $1")
+	rawSQL = whereRegex.ReplaceAllStringFunc(rawSQL, func(match string) string {
+		inner := whereRegex.FindStringSubmatch(match)[1]
+		return "WHERE " + strings.TrimSpace(inner)
+	})
 
 	// 处理 <choose> 标签
 	rawSQL = chooseRegex.ReplaceAllStringFunc(rawSQL, func(match string) string {
@@ -99,11 +113,25 @@ func (mp *MyBatisProcessor) preprocessRawSQL(rawSQL string) string {
 		return "?"
 	})
 
-	// 处理 <foreach> 标签
-	rawSQL = foreachRegex.ReplaceAllString(rawSQL, "(...)")
+	// 处理 <if> 标签
+	rawSQL = ifRegex.ReplaceAllString(rawSQL, "$1")
 
-	// 替换变量
-	rawSQL = dollarVarRegex.ReplaceAllString(rawSQL, "''")
+	// 处理 <foreach> 标签，保留 JSON 操作符
+	rawSQL = foreachRegex.ReplaceAllStringFunc(rawSQL, func(match string) string {
+		innerContent := foreachRegex.FindStringSubmatch(match)[1]
+		if strings.Contains(innerContent, "VALUES") || strings.Contains(innerContent, "values") {
+			return "(?, ?, ?, ?), (?, ?, ?, ?)"
+		}
+		if strings.Contains(innerContent, "->>") {
+			// 保留 JSON 操作符，替换变量，并保持括号
+			return "(" + jsonOperatorRegex.ReplaceAllString(innerContent, "$1 ->> ? = ?") + ")"
+		}
+		return "(?)"
+	})
+
+	// 替换变量，保留 JSON 操作符
+	rawSQL = jsonOperatorRegex.ReplaceAllString(rawSQL, "$1 ->> ? = ?")
+	rawSQL = dollarVarRegex.ReplaceAllString(rawSQL, "?")
 	rawSQL = hashVarRegex.ReplaceAllString(rawSQL, "?")
 
 	// 移除所有剩余的 XML 标签

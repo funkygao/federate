@@ -119,17 +119,17 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Batch insert statement",
 			id:       "batchInsert",
-			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES (...)`,
+			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES (?, ?, ?, ?), (?, ?, ?, ?)`,
 		},
 		{
 			name:     "Select statement with include",
 			id:       "selectByUuid",
-			expected: `SELECT id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version FROM st_stock_stream WHERE 1=1 deleted = 0 AND uuid = ? AND warehouse_no = ? LIMIT 1`,
+			expected: `SELECT id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version FROM st_stock_stream WHERE deleted = 0 AND uuid = ? AND warehouse_no = ? LIMIT 1`,
 		},
 		{
 			name:     "Complex select statement with if and foreach",
 			id:       "foo",
-			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN (?) AND (extend_content ->> ? = ?)`,
+			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN (?) AND ( extend_content ->> ? = ? )`,
 		},
 	}
 
