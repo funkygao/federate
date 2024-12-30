@@ -56,7 +56,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) {
 			SQL:      preprocessedSQL,
 			Error:    err,
 		})
-		//log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
+		log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
 		return
 	}
 

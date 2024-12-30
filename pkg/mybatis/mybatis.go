@@ -12,7 +12,7 @@ type SQLFragments map[string]string
 var (
 	RootTag = "mapper"
 
-	includeRegex   = regexp.MustCompile(`<include\s+refid="([^"]+)"\s*/>`)
+	includeRegex   = regexp.MustCompile(`<include\s+refid="([^"]+)"(?:\s*/>|[^>]*>\s*</include>)`)
 	whereRegex     = regexp.MustCompile(`<where>(?s)(.*?)</where>`)
 	chooseRegex    = regexp.MustCompile(`<choose>(?s)(.*?)</choose>`)
 	whenRegex      = regexp.MustCompile(`<when[^>]*>(?s)(.*?)</when>`)
@@ -34,8 +34,7 @@ func NewMyBatisProcessor() *MyBatisProcessor {
 func (mp *MyBatisProcessor) ExtractSQLFragments(root *etree.Element) {
 	for _, elem := range root.ChildElements() {
 		if elem.Tag == "sql" {
-			id := elem.SelectAttrValue("id", "")
-			if id != "" {
+			if id := elem.SelectAttrValue("id", ""); id != "" {
 				mp.fragments[id] = mp.extractRawSQL(elem)
 			}
 		}
