@@ -73,6 +73,26 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
         </where>
         LIMIT 1
     </select>
+
+    <select id="foo" parameterType="com.goog.wms.stock.domain.capacity.entity.query.ZoneRecommendQuery" resultType="com.jdwl.wms.stock.infrastructure.jdbc.capacity.po.ZoneSkuPo">
+        SELECT
+          DISTINCT
+          sku,
+          zone_no AS zoneNo
+        FROM st_stock
+        WHERE deleted = 0
+          AND warehouse_no = #{warehouseNo, jdbcType=VARCHAR}
+          <if test="null != zoneNoList and !zoneNoList.empty">
+              AND zone_no IN
+              <foreach collection="zoneNoList" item="item" index="index" open="(" separator="," close=")">
+                  #{item, jdbcType=VARCHAR}
+              </foreach>
+          </if>
+        AND
+        <foreach collection="skuAttributePairs" item="item" open="(" close=")" separator="AND">
+            extend_content ->> #{item.jsonKey} = #{item.value}
+        </foreach>
+    </select>
 </mapper>`
 
 func TestSQLAnalyzer(t *testing.T) {
@@ -105,6 +125,11 @@ func TestSQLAnalyzer(t *testing.T) {
 			name:     "Select statement with include",
 			id:       "selectByUuid",
 			expected: `SELECT id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version FROM st_stock_stream WHERE 1=1 deleted = 0 AND uuid = ? AND warehouse_no = ? LIMIT 1`,
+		},
+		{
+			name:     "Complex select statement with if and foreach",
+			id:       "foo",
+			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN (?) AND (extend_content ->> ? = ?)`,
 		},
 	}
 

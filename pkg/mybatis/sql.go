@@ -47,7 +47,7 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 	}
 }
 
-func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) {
+func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) error {
 	stmt, err := sqlparser.Parse(preprocessedSQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
@@ -57,7 +57,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) {
 			Error:    err,
 		})
 		log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
-		return
+		return err
 	}
 
 	switch stmt := stmt.(type) {
@@ -80,6 +80,8 @@ func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) {
 		delete(sa.AggregationFuncs, k)
 		sa.AggregationFuncs[strings.ToUpper(k)] = v
 	}
+
+	return nil
 }
 
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select) {
