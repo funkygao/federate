@@ -210,6 +210,21 @@ func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
 	}, where.Expr)
 }
 
+func (sa *SQLAnalyzer) analyzeWhereForIndexRecommendations(where *sqlparser.Where) {
+	if where == nil {
+		return
+	}
+	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+		switch node := node.(type) {
+		case *sqlparser.ComparisonExpr:
+			if colName, ok := node.Left.(*sqlparser.ColName); ok {
+				sa.IndexRecommendations[colName.Name.String()]++
+			}
+		}
+		return true, nil
+	}, where.Expr)
+}
+
 func (sa *SQLAnalyzer) analyzeGroupBy(groupBy sqlparser.GroupBy) {
 	for _, expr := range groupBy {
 		if funcExpr, ok := expr.(*sqlparser.FuncExpr); ok {
@@ -229,12 +244,6 @@ func (sa *SQLAnalyzer) analyzeSelectExprs(exprs sqlparser.SelectExprs) {
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeExprs(exprs sqlparser.UpdateExprs) {
-	for _, expr := range exprs {
-		sa.Fields[expr.Name.Name.String()]++
-	}
-}
-
 func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) {
 	for _, table := range tables {
 		switch t := table.(type) {
@@ -242,19 +251,4 @@ func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) {
 			sa.JoinTypes[t.Join]++
 		}
 	}
-}
-
-func (sa *SQLAnalyzer) analyzeWhereForIndexRecommendations(where *sqlparser.Where) {
-	if where == nil {
-		return
-	}
-	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
-		switch node := node.(type) {
-		case *sqlparser.ComparisonExpr:
-			if colName, ok := node.Left.(*sqlparser.ColName); ok {
-				sa.IndexRecommendations[colName.Name.String()]++
-			}
-		}
-		return true, nil
-	}, where.Expr)
 }
