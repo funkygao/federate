@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"federate/pkg/primitive"
 )
 
 type FileInfo struct {
@@ -24,6 +26,10 @@ func ListJavaMainSourceFilesAsync(root string) (<-chan FileInfo, <-chan error) {
 }
 
 func ListFilesAsync(root string, predicate func(info os.FileInfo, path string) bool) (<-chan FileInfo, <-chan error) {
+	return ListFilesAsync2(root, predicate, walkDir)
+}
+
+func ListFilesAsync2(root string, predicate func(info os.FileInfo, path string) bool, dirWalk func(info os.FileInfo) error) (<-chan FileInfo, <-chan error) {
 	fileChan := make(chan FileInfo)
 	errChan := make(chan error, 1)
 
@@ -34,7 +40,7 @@ func ListFilesAsync(root string, predicate func(info os.FileInfo, path string) b
 			}
 
 			if info.IsDir() {
-				return walkDir(info)
+				return dirWalk(info)
 			}
 
 			if predicate(info, path) {
@@ -56,12 +62,10 @@ func ListFilesAsync(root string, predicate func(info os.FileInfo, path string) b
 	return fileChan, errChan
 }
 
-var empty = struct{}{}
-
 var skippedDirs = map[string]struct{}{
-	"target":  empty,
-	"mappers": empty, // mybatis mapper xml files
-	"test":    empty,
+	"target":  primitive.Empty,
+	"mappers": primitive.Empty, // mybatis mapper xml files
+	"test":    primitive.Empty,
 }
 
 func walkDir(info os.FileInfo) error {

@@ -1,0 +1,176 @@
+package mybatis
+
+import (
+	"federate/pkg/primitive"
+	"github.com/xwb1989/sqlparser"
+)
+
+type SQLAnalyzer struct {
+	SQLTypes          map[string]int
+	Tables            map[string]int
+	Fields            map[string]int
+	ComplexQueries    int
+	JoinOperations    int
+	SubQueries        int
+	AggregationFuncs  map[string]int
+	DistinctQueries   int
+	OrderByOperations int
+	LimitOperations   int
+
+	IgnoredTags *primitive.StringSet
+}
+
+func NewSQLAnalyzer() *SQLAnalyzer {
+	return &SQLAnalyzer{
+		SQLTypes:         make(map[string]int),
+		Tables:           make(map[string]int),
+		Fields:           make(map[string]int),
+		AggregationFuncs: make(map[string]int),
+		IgnoredTags:      primitive.NewStringSet(),
+	}
+}
+
+func (sa *SQLAnalyzer) Analyze(sql string) {
+	stmt, err := sqlparser.Parse(sql)
+	if err != nil {
+		return
+	}
+
+	switch stmt := stmt.(type) {
+	case *sqlparser.Select:
+		sa.SQLTypes["SELECT"]++
+		sa.analyzeTables(stmt.From)
+		sa.analyzeFields(stmt.SelectExprs)
+		sa.analyzeComplexity(stmt)
+	case *sqlparser.Insert:
+		sa.SQLTypes["INSERT"]++
+		sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
+			Expr: stmt.Table,
+		})
+		sa.analyzeColumns(stmt.Columns)
+	case *sqlparser.Update:
+		sa.SQLTypes["UPDATE"]++
+		sa.analyzeSingleTable(stmt.TableExprs[0])
+		sa.analyzeUpdateExprs(stmt.Exprs)
+	case *sqlparser.Delete:
+		sa.SQLTypes["DELETE"]++
+		sa.analyzeSingleTable(stmt.TableExprs[0])
+	}
+}
+
+func (sa *SQLAnalyzer) IgnoreTag(elemTag string) {
+	sa.IgnoredTags.Add(elemTag)
+}
+
+func (sa *SQLAnalyzer) analyzeSingleTable(tableExpr sqlparser.TableExpr) {
+	switch t := tableExpr.(type) {
+	case *sqlparser.AliasedTableExpr:
+		if name, ok := t.Expr.(sqlparser.TableName); ok {
+			sa.Tables[name.Name.String()]++
+		}
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeColumns(columns sqlparser.Columns) {
+	for _, col := range columns {
+		sa.Fields[col.String()]++
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeUpdateExprs(exprs sqlparser.UpdateExprs) {
+	for _, expr := range exprs {
+		sa.Fields[expr.Name.Name.String()]++
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeTables(tables sqlparser.TableExprs) {
+	for _, table := range tables {
+		switch t := table.(type) {
+		case *sqlparser.AliasedTableExpr:
+			if name, ok := t.Expr.(sqlparser.TableName); ok {
+				sa.Tables[name.Name.String()]++
+			}
+		}
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs) {
+	for _, expr := range exprs {
+		switch e := expr.(type) {
+		case *sqlparser.AliasedExpr:
+			if col, ok := e.Expr.(*sqlparser.ColName); ok {
+				sa.Fields[col.Name.String()]++
+			}
+		}
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
+	if stmt.Where != nil || stmt.GroupBy != nil || stmt.Having != nil ||
+		stmt.OrderBy != nil || stmt.Limit != nil || len(stmt.From) > 1 {
+		sa.ComplexQueries++
+	}
+
+	if len(stmt.From) > 1 {
+		sa.JoinOperations += len(stmt.From) - 1
+	}
+
+	if stmt.Where != nil {
+		sa.analyzeWhere(stmt.Where)
+	}
+
+	if stmt.GroupBy != nil {
+		sa.analyzeGroupBy(stmt.GroupBy)
+	}
+
+	if stmt.OrderBy != nil {
+		sa.OrderByOperations++
+	}
+
+	if stmt.Limit != nil {
+		sa.LimitOperations++
+	}
+
+	if stmt.Distinct != "" {
+		sa.DistinctQueries++
+	}
+
+	sa.analyzeSelectExprs(stmt.SelectExprs)
+}
+
+func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
+	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+		switch node := node.(type) {
+		case *sqlparser.Subquery:
+			sa.SubQueries++
+		case *sqlparser.FuncExpr:
+			sa.AggregationFuncs[node.Name.String()]++
+		}
+		return true, nil
+	}, where.Expr)
+}
+
+func (sa *SQLAnalyzer) analyzeGroupBy(groupBy sqlparser.GroupBy) {
+	for _, expr := range groupBy {
+		if funcExpr, ok := expr.(*sqlparser.FuncExpr); ok {
+			sa.AggregationFuncs[funcExpr.Name.String()]++
+		}
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeSelectExprs(exprs sqlparser.SelectExprs) {
+	for _, expr := range exprs {
+		switch expr := expr.(type) {
+		case *sqlparser.AliasedExpr:
+			if funcExpr, ok := expr.Expr.(*sqlparser.FuncExpr); ok {
+				sa.AggregationFuncs[funcExpr.Name.String()]++
+			}
+		}
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeExprs(exprs sqlparser.UpdateExprs) {
+	for _, expr := range exprs {
+		sa.Fields[expr.Name.Name.String()]++
+	}
+}
