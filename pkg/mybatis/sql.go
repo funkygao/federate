@@ -10,7 +10,7 @@ import (
 
 type UnparsableSQL struct {
 	FilePath string
-	ID       string
+	StmtID   string
 	SQL      string
 	Error    error
 }
@@ -47,16 +47,17 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 	}
 }
 
-func (sa *SQLAnalyzer) Analyze(filePath, id, sql string) {
-	stmt, err := sqlparser.Parse(sql)
+func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) error {
+	stmt, err := sqlparser.Parse(preprocessedSQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
 			FilePath: filePath,
-			ID:       id,
-			SQL:      sql,
+			StmtID:   stmtID,
+			SQL:      preprocessedSQL,
 			Error:    err,
 		})
-		return
+		log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
+		return err
 	}
 
 	switch stmt := stmt.(type) {
@@ -71,7 +72,7 @@ func (sa *SQLAnalyzer) Analyze(filePath, id, sql string) {
 	case *sqlparser.Union:
 		sa.analyzeUnion(stmt)
 	default:
-		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, sql)
+		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, preprocessedSQL)
 	}
 
 	// Unify aggregation function names to uppercase
@@ -79,6 +80,8 @@ func (sa *SQLAnalyzer) Analyze(filePath, id, sql string) {
 		delete(sa.AggregationFuncs, k)
 		sa.AggregationFuncs[strings.ToUpper(k)] = v
 	}
+
+	return nil
 }
 
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select) {

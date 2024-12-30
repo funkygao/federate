@@ -1,47 +1,41 @@
 package mybatis
 
-import (
-	"strings"
-
-	"github.com/beevik/etree"
-)
-
 type Analyzer struct {
-	XMLAnalyzer *XMLAnalyzer
-	SQLAnalyzer *SQLAnalyzer
-
-	ReportGenerator *ReportGenerator
+	XMLAnalyzer      *XMLAnalyzer
+	SQLAnalyzer      *SQLAnalyzer
+	MyBatisProcessor *MyBatisProcessor
+	ReportGenerator  *ReportGenerator
 }
 
 func NewAnalyzer() *Analyzer {
 	return &Analyzer{
-		XMLAnalyzer:     NewXMLAnalyzer(),
-		SQLAnalyzer:     NewSQLAnalyzer(),
-		ReportGenerator: NewReportGenerator(),
+		XMLAnalyzer:      NewXMLAnalyzer(),
+		SQLAnalyzer:      NewSQLAnalyzer(),
+		MyBatisProcessor: NewMyBatisProcessor(),
+		ReportGenerator:  NewReportGenerator(),
 	}
 }
 
 func (a *Analyzer) AnalyzeFile(filePath string) error {
-	doc := etree.NewDocument()
-	if err := doc.ReadFromFile(filePath); err != nil {
+	if err := a.XMLAnalyzer.AnalyzeFile(filePath); err != nil {
 		return err
 	}
 
-	root := doc.SelectElement("mapper")
+	root := a.XMLAnalyzer.GetRoot()
 	if root == nil {
 		return nil // 不是 MyBatis mapper 文件
 	}
 
-	a.XMLAnalyzer.Analyze(root)
-	for _, elem := range root.ChildElements() {
-		switch elem.Tag {
+	a.MyBatisProcessor.ExtractSQLFragments(root)
+
+	for _, stmt := range root.ChildElements() {
+		switch stmt.Tag {
 		case "select", "insert", "update", "delete":
-			sql := extractSQL(elem)
-			id := elem.SelectAttrValue("id", "")
-			a.SQLAnalyzer.Analyze(filePath, id, sql)
+			_, preprocessedSQL, stmtID := a.MyBatisProcessor.PreprocessStmt(stmt)
+			a.SQLAnalyzer.AnalyzeStmt(filePath, stmtID, preprocessedSQL)
 
 		default:
-			a.SQLAnalyzer.IgnoreTag(elem.Tag)
+			a.SQLAnalyzer.IgnoreTag(stmt.Tag)
 		}
 	}
 
@@ -50,19 +44,4 @@ func (a *Analyzer) AnalyzeFile(filePath string) error {
 
 func (a *Analyzer) GenerateReport() {
 	a.ReportGenerator.Generate(a.XMLAnalyzer, a.SQLAnalyzer)
-}
-
-func extractSQL(elem *etree.Element) string {
-	var sql strings.Builder
-	for _, child := range elem.Child {
-		switch v := child.(type) {
-		case *etree.CharData:
-			sql.WriteString(v.Data)
-		case *etree.Element:
-			if v.Tag == "![CDATA[" {
-				sql.WriteString(v.Text())
-			}
-		}
-	}
-	return strings.TrimSpace(sql.String())
 }
