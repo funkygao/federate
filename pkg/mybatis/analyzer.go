@@ -1,15 +1,8 @@
 package mybatis
 
-import (
-	"strings"
-
-	"github.com/beevik/etree"
-)
-
 type Analyzer struct {
-	XMLAnalyzer *XMLAnalyzer
-	SQLAnalyzer *SQLAnalyzer
-
+	XMLAnalyzer     *XMLAnalyzer
+	SQLAnalyzer     *SQLAnalyzer
 	ReportGenerator *ReportGenerator
 }
 
@@ -22,23 +15,29 @@ func NewAnalyzer() *Analyzer {
 }
 
 func (a *Analyzer) AnalyzeFile(filePath string) error {
-	doc := etree.NewDocument()
-	if err := doc.ReadFromFile(filePath); err != nil {
+	err := a.XMLAnalyzer.ReadFile(filePath)
+	if err != nil {
 		return err
 	}
 
-	root := doc.SelectElement("mapper")
+	a.XMLAnalyzer.Analyze()
+
+	root := a.XMLAnalyzer.GetRoot()
 	if root == nil {
 		return nil // 不是 MyBatis mapper 文件
 	}
 
-	a.XMLAnalyzer.Analyze(root)
+	fragments, err := a.XMLAnalyzer.ExtractSQLFragments()
+	if err != nil {
+		return err
+	}
+
 	for _, elem := range root.ChildElements() {
 		switch elem.Tag {
 		case "select", "insert", "update", "delete":
-			sql := extractSQL(elem)
+			sql := a.XMLAnalyzer.extractSQL(elem)
 			id := elem.SelectAttrValue("id", "")
-			a.SQLAnalyzer.Analyze(filePath, id, sql)
+			a.SQLAnalyzer.AnalyzeStmt(root, filePath, id, sql, fragments)
 
 		default:
 			a.SQLAnalyzer.IgnoreTag(elem.Tag)
@@ -50,19 +49,4 @@ func (a *Analyzer) AnalyzeFile(filePath string) error {
 
 func (a *Analyzer) GenerateReport() {
 	a.ReportGenerator.Generate(a.XMLAnalyzer, a.SQLAnalyzer)
-}
-
-func extractSQL(elem *etree.Element) string {
-	var sql strings.Builder
-	for _, child := range elem.Child {
-		switch v := child.(type) {
-		case *etree.CharData:
-			sql.WriteString(v.Data)
-		case *etree.Element:
-			if v.Tag == "![CDATA[" {
-				sql.WriteString(v.Text())
-			}
-		}
-	}
-	return strings.TrimSpace(sql.String())
 }

@@ -1,12 +1,16 @@
 package mybatis
 
 import (
+	"strings"
+
 	"github.com/beevik/etree"
 )
 
 type XMLAnalyzer struct {
 	Namespaces         map[string]int
 	DynamicSQLElements map[string]int
+	Doc                *etree.Document
+	root               *etree.Element
 }
 
 func NewXMLAnalyzer() *XMLAnalyzer {
@@ -16,11 +20,39 @@ func NewXMLAnalyzer() *XMLAnalyzer {
 	}
 }
 
-func (xa *XMLAnalyzer) Analyze(root *etree.Element) {
-	xa.analyzeNamespace(root)
-	for _, elem := range root.ChildElements() {
-		xa.analyzeDynamicSQLElements(elem)
+func (xa *XMLAnalyzer) ReadFile(filePath string) error {
+	xa.Doc = etree.NewDocument()
+	return xa.Doc.ReadFromFile(filePath)
+}
+
+func (xa *XMLAnalyzer) ReadFromString(xmlContent string) error {
+	xa.Doc = etree.NewDocument()
+	return xa.Doc.ReadFromString(xmlContent)
+}
+
+func (xa *XMLAnalyzer) Analyze() {
+	root := xa.Doc.SelectElement(RootTag)
+	if root == nil {
+		return // 不是 MyBatis mapper 文件
 	}
+
+	xa.root = root
+	xa.analyzeNamespace(root)
+	xa.analyzeDynamicSQLElements(root)
+}
+
+func (xa *XMLAnalyzer) ExtractSQLFragments() (SQLFragments, error) {
+	fragments := make(SQLFragments)
+	for _, elem := range xa.root.ChildElements() {
+		if elem.Tag == "sql" {
+			id := elem.SelectAttrValue("id", "")
+			if id != "" {
+				fragments[id] = strings.TrimSpace(elem.Text())
+			}
+		}
+	}
+
+	return fragments, nil
 }
 
 func (xa *XMLAnalyzer) analyzeNamespace(root *etree.Element) {
@@ -28,9 +60,49 @@ func (xa *XMLAnalyzer) analyzeNamespace(root *etree.Element) {
 	xa.Namespaces[namespace]++
 }
 
-func (xa *XMLAnalyzer) analyzeDynamicSQLElements(elem *etree.Element) {
+func (xa *XMLAnalyzer) analyzeDynamicSQLElements(root *etree.Element) {
 	dynamicElements := []string{"if", "choose", "when", "otherwise", "foreach"}
-	for _, tag := range dynamicElements {
-		xa.DynamicSQLElements[tag] += len(elem.FindElements(".//" + tag))
+
+	for _, elem := range root.ChildElements() {
+		if elem.Tag == "select" || elem.Tag == "update" || elem.Tag == "insert" || elem.Tag == "delete" {
+			xa.countDynamicElements(elem, dynamicElements)
+		}
 	}
+}
+
+func (xa *XMLAnalyzer) countDynamicElements(elem *etree.Element, dynamicElements []string) {
+	for _, child := range elem.ChildElements() {
+		if contains(dynamicElements, child.Tag) {
+			xa.DynamicSQLElements[child.Tag]++
+		}
+		xa.countDynamicElements(child, dynamicElements)
+	}
+}
+
+func contains(slice []string, item string) bool {
+	for _, a := range slice {
+		if a == item {
+			return true
+		}
+	}
+	return false
+}
+
+func (xa *XMLAnalyzer) extractSQL(elem *etree.Element) string {
+	var sql strings.Builder
+	for _, child := range elem.Child {
+		switch v := child.(type) {
+		case *etree.CharData:
+			sql.WriteString(v.Data)
+		case *etree.Element:
+			if v.Tag == "![CDATA[" {
+				sql.WriteString(v.Text())
+			}
+		}
+	}
+	return strings.TrimSpace(sql.String())
+}
+
+func (xa *XMLAnalyzer) GetRoot() *etree.Element {
+	return xa.root
 }
