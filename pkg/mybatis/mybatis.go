@@ -91,13 +91,13 @@ func (mp *MyBatisProcessor) preprocessRawSQL(rawSQL string) string {
 		whenMatches := whenRegex.FindAllStringSubmatch(match, -1)
 		for _, whenMatch := range whenMatches {
 			if len(whenMatch) > 1 {
-				return strings.TrimSpace(whenMatch[1])
+				return "?"
 			}
 		}
 		if otherwiseMatch := otherwiseRegex.FindStringSubmatch(match); len(otherwiseMatch) > 1 {
 			return strings.TrimSpace(otherwiseMatch[1])
 		}
-		return ""
+		return "?"
 	})
 
 	// 处理 <foreach> 标签
