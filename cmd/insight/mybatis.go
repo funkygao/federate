@@ -1,4 +1,4 @@
-package debug
+package insight
 
 import (
 	"log"
@@ -44,13 +44,12 @@ func walkDir(info os.FileInfo) error {
 func analyzeMybatisMapperXML(dir string) {
 	analyzer := mybatis.NewAnalyzer()
 
-	fileChan, _ := java.ListFilesAsync2(dir, java.IsXML, walkDir)
+	fileChan, _ := java.ListFilesAsync_(dir, java.IsXML, walkDir)
 	for f := range fileChan {
 		if err := analyzer.AnalyzeFile(f.Path); err != nil {
 			log.Printf("Error analyzing file %s: %v", f.Path, err)
 		}
 	}
 
-	report := analyzer.GenerateReport()
-	log.Println(report)
+	analyzer.GenerateReport()
 }

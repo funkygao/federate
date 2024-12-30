@@ -26,10 +26,10 @@ func ListJavaMainSourceFilesAsync(root string) (<-chan FileInfo, <-chan error) {
 }
 
 func ListFilesAsync(root string, predicate func(info os.FileInfo, path string) bool) (<-chan FileInfo, <-chan error) {
-	return ListFilesAsync2(root, predicate, walkDir)
+	return ListFilesAsync_(root, predicate, walkDir)
 }
 
-func ListFilesAsync2(root string, predicate func(info os.FileInfo, path string) bool, dirWalk func(info os.FileInfo) error) (<-chan FileInfo, <-chan error) {
+func ListFilesAsync_(root string, predicate func(info os.FileInfo, path string) bool, dirWalk func(info os.FileInfo) error) (<-chan FileInfo, <-chan error) {
 	fileChan := make(chan FileInfo)
 	errChan := make(chan error, 1)
 

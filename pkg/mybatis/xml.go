@@ -18,7 +18,9 @@ func NewXMLAnalyzer() *XMLAnalyzer {
 
 func (xa *XMLAnalyzer) Analyze(root *etree.Element) {
 	xa.analyzeNamespace(root)
-	xa.analyzeDynamicSQLElements(root)
+	for _, elem := range root.ChildElements() {
+		xa.analyzeDynamicSQLElements(elem)
+	}
 }
 
 func (xa *XMLAnalyzer) analyzeNamespace(root *etree.Element) {
@@ -27,11 +29,8 @@ func (xa *XMLAnalyzer) analyzeNamespace(root *etree.Element) {
 }
 
 func (xa *XMLAnalyzer) analyzeDynamicSQLElements(elem *etree.Element) {
-	// TODO foreach is under root?
 	dynamicElements := []string{"if", "choose", "when", "otherwise", "foreach"}
 	for _, tag := range dynamicElements {
-		if elem.FindElements(".//"+tag) != nil {
-			xa.DynamicSQLElements[tag]++
-		}
+		xa.DynamicSQLElements[tag] += len(elem.FindElements(".//" + tag))
 	}
 }

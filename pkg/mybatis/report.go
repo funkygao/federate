@@ -2,9 +2,12 @@ package mybatis
 
 import (
 	"fmt"
-	"strings"
+	"log"
+	"path/filepath"
+	"sort"
 
 	"federate/pkg/primitive"
+	"federate/pkg/tabular"
 )
 
 type ReportGenerator struct{}
@@ -13,91 +16,145 @@ func NewReportGenerator() *ReportGenerator {
 	return &ReportGenerator{}
 }
 
-func (rg *ReportGenerator) Generate(xa *XMLAnalyzer, sa *SQLAnalyzer) string {
-	var report strings.Builder
+func (rg *ReportGenerator) Generate(xa *XMLAnalyzer, sa *SQLAnalyzer) {
+	//rg.writeUnparsableSQL(sa.UnparsableSQL)
+	rg.writeIgnoredTags(sa.IgnoredTags)
+	rg.writeSQLTypes(sa.SQLTypes)
+	//rg.writeMostUsedTables(sa.Tables)
+	//rg.writeMostUsedFields(sa.Fields)
+	rg.writeComplexityMetrics(sa)
+	rg.writeAggregationFunctions(sa.AggregationFuncs)
+	rg.writeDynamicSQLElements(xa.DynamicSQLElements)
 
-	report.WriteString("MyBatis Mapper Analysis Report\n")
-	report.WriteString("==============================\n\n")
+	topK := 20
 
-	rg.writeIgnoredTags(&report, sa.IgnoredTags)
-	rg.writeNamespaces(&report, xa.Namespaces)
-	rg.writeSQLTypes(&report, sa.SQLTypes)
-	rg.writeMostUsedTables(&report, sa.Tables)
-	rg.writeMostUsedFields(&report, sa.Fields)
-	rg.writeComplexityMetrics(&report, sa)
-	rg.writeAggregationFunctions(&report, sa.AggregationFuncs)
-	rg.writeDynamicSQLElements(&report, xa.DynamicSQLElements)
+	log.Printf("Join types:")
+	printTopN(sa.JoinTypes, topK, []string{"Joint Type", "Count"})
 
-	return report.String()
+	log.Printf("Top %d most used tables:", topK)
+	printTopN(sa.Tables, topK, []string{"Table", "Count"})
+
+	log.Printf("Top %d most used fields:", topK)
+	printTopN(sa.Fields, topK, []string{"Field", "Count"})
+
+	log.Printf("Top %d index recommendations:", topK)
+	printTopN(sa.IndexRecommendations, topK, []string{"Field", "Count"})
 }
 
-func (rg *ReportGenerator) writeIgnoredTags(report *strings.Builder, ignored *primitive.StringSet) {
-	report.WriteString("Ignored Tags:\n")
+func (rg *ReportGenerator) writeIgnoredTags(ignored *primitive.StringSet) {
+	log.Println("Ignored Tags:")
+	header := []string{"Tag"}
+	var cellData [][]string
 	for _, tag := range ignored.Values() {
-		report.WriteString(fmt.Sprintf("  <%s>\n", tag))
+		cellData = append(cellData, []string{tag})
 	}
-	report.WriteString("\n")
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
 }
 
-func (rg *ReportGenerator) writeNamespaces(report *strings.Builder, namespaces map[string]int) {
-	report.WriteString("Namespaces:\n")
-	for ns, count := range namespaces {
-		report.WriteString(fmt.Sprintf("  %s: %d\n", ns, count))
-	}
-	report.WriteString("\n")
-}
-
-func (rg *ReportGenerator) writeSQLTypes(report *strings.Builder, sqlTypes map[string]int) {
-	report.WriteString("SQL Types:\n")
-	for sqlType, count := range sqlTypes {
-		report.WriteString(fmt.Sprintf("  %s: %d\n", sqlType, count))
-	}
-	report.WriteString("\n")
-}
-
-func (rg *ReportGenerator) writeMostUsedTables(report *strings.Builder, tables map[string]int) {
-	report.WriteString("Most Used Tables:\n")
-	for table, count := range tables {
-		if count > 1 {
-			report.WriteString(fmt.Sprintf("  %s: %d\n", table, count))
+func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL) {
+	if len(unparsableSQL) > 0 {
+		log.Println("Unparsable SQL Statements:")
+		header := []string{"File", "ID", "SQL"}
+		var cellData [][]string
+		for _, sql := range unparsableSQL {
+			cellData = append(cellData, []string{
+				filepath.Base(sql.FilePath),
+				sql.ID,
+				sql.SQL,
+			})
 		}
+		tabular.Display(header, cellData, false, -1)
+		log.Printf("%d statements failed", len(unparsableSQL))
+		log.Println()
 	}
-	report.WriteString("\n")
 }
 
-func (rg *ReportGenerator) writeMostUsedFields(report *strings.Builder, fields map[string]int) {
-	report.WriteString("Most Used Fields:\n")
-	for field, count := range fields {
-		if count > 2 {
-			report.WriteString(fmt.Sprintf("  %s: %d\n", field, count))
-		}
-	}
-	report.WriteString("\n")
+func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
+	log.Println("SQL Types:")
+	header := []string{"Type", "Count"}
+	cellData := sortMapByValue(sqlTypes)
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
 }
 
-func (rg *ReportGenerator) writeComplexityMetrics(report *strings.Builder, sa *SQLAnalyzer) {
-	report.WriteString("Complexity Metrics:\n")
-	report.WriteString(fmt.Sprintf("  Complex Queries: %d\n", sa.ComplexQueries))
-	report.WriteString(fmt.Sprintf("  Join Operations: %d\n", sa.JoinOperations))
-	report.WriteString(fmt.Sprintf("  Subqueries: %d\n", sa.SubQueries))
-	report.WriteString(fmt.Sprintf("  Distinct Queries: %d\n", sa.DistinctQueries))
-	report.WriteString(fmt.Sprintf("  Order By Operations: %d\n", sa.OrderByOperations))
-	report.WriteString(fmt.Sprintf("  Limit Operations: %d\n", sa.LimitOperations))
-	report.WriteString("\n")
+func (rg *ReportGenerator) writeMostUsedTables(tables map[string]int) {
+	log.Println("Most Used Tables:")
+	header := []string{"Table", "Count"}
+	cellData := sortMapByValue(tables)
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
 }
 
-func (rg *ReportGenerator) writeAggregationFunctions(report *strings.Builder, aggFuncs map[string]int) {
-	report.WriteString("Aggregation Functions:\n")
-	for func_, count := range aggFuncs {
-		report.WriteString(fmt.Sprintf("  %s: %d\n", func_, count))
-	}
-	report.WriteString("\n")
+func (rg *ReportGenerator) writeMostUsedFields(fields map[string]int) {
+	log.Println("Most Used Fields:")
+	header := []string{"Field", "Count"}
+	cellData := sortMapByValue(fields)
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
 }
 
-func (rg *ReportGenerator) writeDynamicSQLElements(report *strings.Builder, elements map[string]int) {
-	report.WriteString("Dynamic SQL Elements:\n")
-	for element, count := range elements {
-		report.WriteString(fmt.Sprintf("  %s: %d\n", element, count))
+func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
+	log.Println("Complexity Metrics:")
+	header := []string{"Metric", "Count"}
+	metrics := map[string]int{
+		"Complex Queries":     sa.ComplexQueries,
+		"Join Operations":     sa.JoinOperations,
+		"Subqueries":          sa.SubQueries,
+		"Distinct Queries":    sa.DistinctQueries,
+		"Order By Operations": sa.OrderByOperations,
+		"Limit Operations":    sa.LimitOperations,
 	}
-	report.WriteString("\n")
+	cellData := sortMapByValue(metrics)
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
+}
+
+func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]int) {
+	log.Println("Aggregation Functions:")
+	header := []string{"Function", "Count"}
+	cellData := sortMapByValue(aggFuncs)
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
+}
+
+func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
+	log.Println("Dynamic SQL Elements:")
+	header := []string{"Element", "Count"}
+	cellData := sortMapByValue(elements)
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
+}
+
+func sortMapByValue(m map[string]int) [][]string {
+	type kv struct {
+		Key   string
+		Value int
+	}
+
+	var ss []kv
+	for k, v := range m {
+		ss = append(ss, kv{k, v})
+	}
+
+	sort.Slice(ss, func(i, j int) bool {
+		return ss[i].Value > ss[j].Value
+	})
+
+	var result [][]string
+	for _, kv := range ss {
+		result = append(result, []string{kv.Key, fmt.Sprintf("%d", kv.Value)})
+	}
+
+	return result
+}
+
+func printTopN(m map[string]int, topK int, header []string) {
+	if len(m) < topK {
+		topK = len(m)
+	}
+
+	cellData := sortMapByValue(m)[:topK]
+	tabular.Display(header, cellData, false, -1)
+	log.Println()
 }

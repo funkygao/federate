@@ -1,38 +1,60 @@
 package mybatis
 
 import (
+	"log"
+	"strings"
+
 	"federate/pkg/primitive"
 	"github.com/xwb1989/sqlparser"
 )
 
-type SQLAnalyzer struct {
-	SQLTypes          map[string]int
-	Tables            map[string]int
-	Fields            map[string]int
-	ComplexQueries    int
-	JoinOperations    int
-	SubQueries        int
-	AggregationFuncs  map[string]int
-	DistinctQueries   int
-	OrderByOperations int
-	LimitOperations   int
+type UnparsableSQL struct {
+	FilePath string
+	ID       string
+	SQL      string
+	Error    error
+}
 
-	IgnoredTags *primitive.StringSet
+type SQLAnalyzer struct {
+	SQLTypes             map[string]int
+	Tables               map[string]int
+	Fields               map[string]int
+	ComplexQueries       int
+	JoinOperations       int
+	SubQueries           int
+	AggregationFuncs     map[string]int // count, min, max, etc
+	DistinctQueries      int
+	OrderByOperations    int
+	LimitOperations      int
+	JoinTypes            map[string]int
+	IndexRecommendations map[string]int
+
+	IgnoredTags   *primitive.StringSet
+	UnparsableSQL []UnparsableSQL
 }
 
 func NewSQLAnalyzer() *SQLAnalyzer {
 	return &SQLAnalyzer{
-		SQLTypes:         make(map[string]int),
-		Tables:           make(map[string]int),
-		Fields:           make(map[string]int),
-		AggregationFuncs: make(map[string]int),
-		IgnoredTags:      primitive.NewStringSet(),
+		SQLTypes:             make(map[string]int),
+		Tables:               make(map[string]int),
+		Fields:               make(map[string]int),
+		AggregationFuncs:     make(map[string]int),
+		JoinTypes:            make(map[string]int),
+		IndexRecommendations: make(map[string]int),
+		UnparsableSQL:        []UnparsableSQL{},
+		IgnoredTags:          primitive.NewStringSet(),
 	}
 }
 
-func (sa *SQLAnalyzer) Analyze(sql string) {
+func (sa *SQLAnalyzer) Analyze(filePath, id, sql string) {
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
+		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
+			FilePath: filePath,
+			ID:       id,
+			SQL:      sql,
+			Error:    err,
+		})
 		return
 	}
 
@@ -42,19 +64,31 @@ func (sa *SQLAnalyzer) Analyze(sql string) {
 		sa.analyzeTables(stmt.From)
 		sa.analyzeFields(stmt.SelectExprs)
 		sa.analyzeComplexity(stmt)
+
 	case *sqlparser.Insert:
 		sa.SQLTypes["INSERT"]++
 		sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
 			Expr: stmt.Table,
 		})
 		sa.analyzeColumns(stmt.Columns)
+
 	case *sqlparser.Update:
 		sa.SQLTypes["UPDATE"]++
-		sa.analyzeSingleTable(stmt.TableExprs[0])
+		sa.analyzeTables(stmt.TableExprs)
 		sa.analyzeUpdateExprs(stmt.Exprs)
+
 	case *sqlparser.Delete:
 		sa.SQLTypes["DELETE"]++
-		sa.analyzeSingleTable(stmt.TableExprs[0])
+		sa.analyzeTables(stmt.TableExprs)
+
+	default:
+		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, sql)
+	}
+
+	// Unify aggregation function names to uppercase
+	for k, v := range sa.AggregationFuncs {
+		delete(sa.AggregationFuncs, k)
+		sa.AggregationFuncs[strings.ToUpper(k)] = v
 	}
 }
 
@@ -136,6 +170,9 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 	}
 
 	sa.analyzeSelectExprs(stmt.SelectExprs)
+
+	sa.analyzeJoins(stmt.From)
+	sa.analyzeWhereForIndexRecommendations(stmt.Where)
 }
 
 func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
@@ -173,4 +210,28 @@ func (sa *SQLAnalyzer) analyzeExprs(exprs sqlparser.UpdateExprs) {
 	for _, expr := range exprs {
 		sa.Fields[expr.Name.Name.String()]++
 	}
+}
+
+func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) {
+	for _, table := range tables {
+		switch t := table.(type) {
+		case *sqlparser.JoinTableExpr:
+			sa.JoinTypes[t.Join]++
+		}
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeWhereForIndexRecommendations(where *sqlparser.Where) {
+	if where == nil {
+		return
+	}
+	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+		switch node := node.(type) {
+		case *sqlparser.ComparisonExpr:
+			if colName, ok := node.Left.(*sqlparser.ColName); ok {
+				sa.IndexRecommendations[colName.Name.String()]++
+			}
+		}
+		return true, nil
+	}, where.Expr)
 }
