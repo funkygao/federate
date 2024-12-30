@@ -12,7 +12,7 @@ type Broker interface {
 	Start() error
 
 	// Broker is owner of topics
-	CreateTopic(name string) (*Topic, error)
+	CreateTopic(name string, ledgerOption LedgerOption) (*Topic, error)
 	GetTopic(name string) (*Topic, error)
 
 	CreateProducer(topic string) (Producer, error)
@@ -69,7 +69,7 @@ func (b *broker) Start() error {
 	return nil
 }
 
-func (b *broker) CreateTopic(name string) (*Topic, error) {
+func (b *broker) CreateTopic(name string, ledgerOption LedgerOption) (*Topic, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 
@@ -79,6 +79,7 @@ func (b *broker) CreateTopic(name string) (*Topic, error) {
 
 	topic := &Topic{
 		Name:          name,
+		LedgerOption:  ledgerOption,
 		Partitions:    make(map[PartitionID]*Partition),
 		Subscriptions: make(map[string]Subscription),
 	}
@@ -278,7 +279,7 @@ func (b *broker) routeMessage(topic *Topic, msg Message) (partition *Partition, 
 	partition = topic.GetPartition(b.selectPartition(topic, msg))
 
 	// 再分ledger，ledger 是 pulsar 比 Kafka 更灵活的最根本设计
-	ledger, err = b.getOrCreateLedger(partition)
+	ledger, err = b.getOrCreateLedger(topic, partition)
 	return
 }
 
@@ -287,13 +288,13 @@ func (b *broker) selectPartition(topic *Topic, msg Message) PartitionID {
 	return PartitionID(0)
 }
 
-func (b *broker) getOrCreateLedger(partition *Partition) (Ledger, error) {
+func (b *broker) getOrCreateLedger(topic *Topic, partition *Partition) (Ledger, error) {
 	var ledger Ledger
 	var err error
 
 	if len(partition.Ledgers) == 0 {
 		// Initialize
-		ledger, err = b.createNewLedger(partition)
+		ledger, err = b.createNewLedger(topic, partition)
 		if err != nil {
 			return nil, err
 		}
@@ -308,7 +309,7 @@ func (b *broker) getOrCreateLedger(partition *Partition) (Ledger, error) {
 		// Check if we need to roll over to a new ledger
 		if b.shouldRolloverLedger(ledger) {
 			// Close the current ledger if necessary
-			ledger, err = b.createNewLedger(partition)
+			ledger, err = b.createNewLedger(topic, partition)
 			if err != nil {
 				return nil, err
 			}
@@ -318,12 +319,8 @@ func (b *broker) getOrCreateLedger(partition *Partition) (Ledger, error) {
 	return ledger, nil
 }
 
-func (b *broker) createNewLedger(partition *Partition) (Ledger, error) {
-	ledger, err := b.bkClient.CreateLedger(LedgerOption{
-		EnsembleSize: 3,
-		WriteQuorum:  2,
-		AckQuorum:    2,
-	})
+func (b *broker) createNewLedger(topic *Topic, partition *Partition) (Ledger, error) {
+	ledger, err := b.bkClient.CreateLedger(topic.LedgerOption)
 	if err != nil {
 		return nil, err
 	}

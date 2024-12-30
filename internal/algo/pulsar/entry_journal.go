@@ -77,7 +77,7 @@ type FileJournal struct {
 	b Bookie
 }
 
-func NewFileJournal(dir string, b Bookie) (Journal, error) {
+func NewFileJournal(dir string, b Bookie) (EntryJournal, error) {
 	// Ensure the directory exists
 	dir = filepath.Join(dir, fmt.Sprintf("%d", b.ID()))
 	if err := os.MkdirAll(dir, 0755); err != nil {

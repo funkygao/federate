@@ -14,7 +14,11 @@ func main() {
 	broker := NewBroker(NewBookKeeper(3))
 	broker.Start()
 
-	topic, _ := broker.CreateTopic("OrderCreated")
+	topic, _ := broker.CreateTopic("OrderCreated", LedgerOption{
+		EnsembleSize: 3,
+		WriteQuorum:  2,
+		AckQuorum:    2,
+	})
 
 	producer, _ := broker.CreateProducer(topic.Name)
 	consumer, _ := broker.CreateConsumer(topic.Name, "test-subscription", Shared)

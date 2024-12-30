@@ -81,6 +81,7 @@ func (m Message) String() string {
 
 type Topic struct {
 	Name          string
+	LedgerOption  LedgerOption
 	Partitions    map[PartitionID]*Partition
 	Subscriptions map[string]Subscription
 }
