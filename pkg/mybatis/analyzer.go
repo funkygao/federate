@@ -35,9 +35,9 @@ func (a *Analyzer) AnalyzeFile(filePath string) error {
 	for _, elem := range root.ChildElements() {
 		switch elem.Tag {
 		case "select", "insert", "update", "delete":
-			sql := a.XMLAnalyzer.extractSQL(elem)
-			id := elem.SelectAttrValue("id", "")
-			a.SQLAnalyzer.AnalyzeStmt(root, filePath, id, sql, fragments)
+			sql := a.XMLAnalyzer.extractRawSQL(elem)
+			stmtID := elem.SelectAttrValue("id", "")
+			a.SQLAnalyzer.AnalyzeStmt(root, filePath, stmtID, sql, fragments)
 
 		default:
 			a.SQLAnalyzer.IgnoreTag(elem.Tag)

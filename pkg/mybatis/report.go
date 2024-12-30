@@ -60,7 +60,7 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL) {
 		for _, sql := range unparsableSQL {
 			cellData = append(cellData, []string{
 				filepath.Base(sql.FilePath),
-				sql.ID,
+				sql.StmtID,
 				sql.SQL,
 			})
 		}

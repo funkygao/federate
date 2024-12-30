@@ -47,7 +47,7 @@ func (xa *XMLAnalyzer) ExtractSQLFragments() (SQLFragments, error) {
 		if elem.Tag == "sql" {
 			id := elem.SelectAttrValue("id", "")
 			if id != "" {
-				fragments[id] = strings.TrimSpace(elem.Text())
+				fragments[id] = xa.extractRawSQL(elem)
 			}
 		}
 	}
@@ -88,8 +88,17 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
-func (xa *XMLAnalyzer) extractSQL(elem *etree.Element) string {
+func (xa *XMLAnalyzer) GetRoot() *etree.Element {
+	return xa.root
+}
+
+func (xa *XMLAnalyzer) extractRawSQL(elem *etree.Element) string {
 	var sql strings.Builder
+	xa.extractSQLRecursive(elem, &sql)
+	return strings.TrimSpace(sql.String())
+}
+
+func (xa *XMLAnalyzer) extractSQLRecursive(elem *etree.Element, sql *strings.Builder) {
 	for _, child := range elem.Child {
 		switch v := child.(type) {
 		case *etree.CharData:
@@ -97,12 +106,15 @@ func (xa *XMLAnalyzer) extractSQL(elem *etree.Element) string {
 		case *etree.Element:
 			if v.Tag == "![CDATA[" {
 				sql.WriteString(v.Text())
+			} else {
+				sql.WriteString("<" + v.Tag)
+				for _, attr := range v.Attr {
+					sql.WriteString(" " + attr.Key + "=\"" + attr.Value + "\"")
+				}
+				sql.WriteString(">")
+				xa.extractSQLRecursive(v, sql)
+				sql.WriteString("</" + v.Tag + ">")
 			}
 		}
 	}
-	return strings.TrimSpace(sql.String())
-}
-
-func (xa *XMLAnalyzer) GetRoot() *etree.Element {
-	return xa.root
 }

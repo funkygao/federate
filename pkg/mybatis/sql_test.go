@@ -90,29 +90,19 @@ func TestSQLAnalyzer(t *testing.T) {
 		expected string
 	}{
 		{
-			name: "Insert statement",
-			id:   "singleInsert",
-			expected: `INSERT INTO st_stock_stream (
-            tenant_code, remark, version, deleted
-        ) VALUES (
-            ?, ?, 0, ?
-        )`,
+			name:     "Insert statement",
+			id:       "singleInsert",
+			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES ( ?, ?, 0, ? )`,
 		},
 		{
-			name: "Batch insert statement",
-			id:   "batchInsert",
-			expected: `INSERT INTO st_stock_stream (
-            tenant_code, remark, version, deleted
-        ) VALUES (...)`,
+			name:     "Batch insert statement",
+			id:       "batchInsert",
+			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES (...)`,
 		},
 		{
-			name: "Select statement with include",
-			id:   "selectByUuid",
-			expected: `SELECT
-        id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version
-        FROM st_stock_stream
-        WHERE 1=1 deleted = 0 AND uuid = ? AND warehouse_no = ?
-        LIMIT 1`,
+			name:     "Select statement with include",
+			id:       "selectByUuid",
+			expected: `SELECT id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version FROM st_stock_stream WHERE 1=1 deleted = 0 AND uuid = ? AND warehouse_no = ? LIMIT 1`,
 		},
 	}
 
@@ -126,11 +116,9 @@ func TestSQLAnalyzer(t *testing.T) {
 			elem := root.FindElement(".//*[@id='" + tc.id + "']")
 			assert.NotNil(t, elem)
 
-			sql := elem.Text()
-			t.Logf("Original SQL:\n%s", sql)
-
+			sql := xml.extractRawSQL(elem)
 			preprocessedSQL := preprocessMyBatisXML(sql, fragments)
-			t.Logf("Preprocessed SQL:\n%s", preprocessedSQL)
+			t.Logf("Original SQL:\n%s\nPreprocessed SQL:\n%s", sql, preprocessedSQL)
 			assert.Equal(t, tc.expected, strings.TrimSpace(preprocessedSQL))
 
 			analyzer.AnalyzeStmt(root, "fn", tc.id, sql, fragments)

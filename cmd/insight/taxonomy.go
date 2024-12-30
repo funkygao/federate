@@ -18,6 +18,7 @@ var (
 
 	minCount    int
 	useBarChart bool
+	suffix      bool
 	topK        int
 )
 
@@ -58,9 +59,12 @@ func analyzeTaxonomy(root string) {
 func extractArchetype(filename string) string {
 	className := java.JavaFile2Class(filename)
 	parts := classCamelCaseRegex.FindAllString(className, -1)
+	var idx = len(parts) - 1
+	if !suffix {
+		idx = 0
+	}
 	if len(parts) > 0 {
-		// 取最后1个
-		return parts[len(parts)-1]
+		return parts[idx]
 	}
 	return ""
 }
@@ -68,11 +72,11 @@ func extractArchetype(filename string) string {
 func init() {
 	taxonomyCmd.Flags().IntVarP(&minCount, "min-count", "m", 10, "Minimum count to display an element")
 	taxonomyCmd.Flags().BoolVarP(&useBarChart, "bar-chart", "b", true, "Use bar chart display")
+	taxonomyCmd.Flags().BoolVarP(&suffix, "suffix", "s", true, "Use suffix as archeType, else prefix")
 	taxonomyCmd.Flags().IntVarP(&topK, "top", "t", 50, "Number of top elements to display in bar chart")
 }
 
 func printArchetypeAnalysis(taxonomy map[string]int) {
-
 	var sorted []archetypeCount
 	for name, count := range taxonomy {
 		if count >= minCount {

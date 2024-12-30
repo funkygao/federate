@@ -11,7 +11,7 @@ import (
 
 type UnparsableSQL struct {
 	FilePath string
-	ID       string
+	StmtID   string
 	SQL      string
 	Error    error
 }
@@ -48,17 +48,17 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 	}
 }
 
-func (sa *SQLAnalyzer) AnalyzeStmt(root *etree.Element, filePath, id, myBatisRawSQL string, fragments SQLFragments) {
+func (sa *SQLAnalyzer) AnalyzeStmt(root *etree.Element, filePath, stmtID, myBatisRawSQL string, fragments SQLFragments) {
 	preprocessedSQL := preprocessMyBatisXML(myBatisRawSQL, fragments)
 	stmt, err := sqlparser.Parse(preprocessedSQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
 			FilePath: filePath,
-			ID:       id,
+			StmtID:   stmtID,
 			SQL:      preprocessedSQL,
 			Error:    err,
 		})
-		//log.Printf("%s %s\n%s\n%v", filePath, id, preprocessedSQL, err)
+		//log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
 		return
 	}
 

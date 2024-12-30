@@ -18,7 +18,7 @@ var (
 	foreachRegex   = regexp.MustCompile(`<foreach[^>]*>(?s)(.*?)</foreach>`)
 	dollarVarRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
 	hashVarRegex   = regexp.MustCompile(`#\{([^}]+)\}`)
-	tagRegex       = regexp.MustCompile(`<[^>]+>`)
+	tagRegex       = regexp.MustCompile(`</?[^>]+>`)
 )
 
 func preprocessMyBatisXML(xmlContent string, fragments SQLFragments) string {
@@ -33,11 +33,14 @@ func preprocessMyBatisXML(xmlContent string, fragments SQLFragments) string {
 
 	// 处理 <choose> 标签
 	xmlContent = chooseRegex.ReplaceAllStringFunc(xmlContent, func(match string) string {
-		if whenMatch := whenRegex.FindStringSubmatch(match); len(whenMatch) > 1 {
-			return whenMatch[1]
+		whenMatches := whenRegex.FindAllStringSubmatch(match, -1)
+		for _, whenMatch := range whenMatches {
+			if len(whenMatch) > 1 {
+				return strings.TrimSpace(whenMatch[1])
+			}
 		}
 		if otherwiseMatch := otherwiseRegex.FindStringSubmatch(match); len(otherwiseMatch) > 1 {
-			return otherwiseMatch[1]
+			return strings.TrimSpace(otherwiseMatch[1])
 		}
 		return ""
 	})
@@ -51,6 +54,9 @@ func preprocessMyBatisXML(xmlContent string, fragments SQLFragments) string {
 
 	// 移除所有剩余的 XML 标签
 	xmlContent = tagRegex.ReplaceAllString(xmlContent, "")
+
+	// 清理多余的空白字符
+	xmlContent = strings.Join(strings.Fields(xmlContent), " ")
 
 	return strings.TrimSpace(xmlContent)
 }
