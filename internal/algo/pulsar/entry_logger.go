@@ -10,7 +10,7 @@ const (
 	DefaultRotationInterval = 24 * time.Hour
 )
 
-type EntryLog struct {
+type LedgerEntry struct {
 	EntryID   EntryID
 	Content   Payload
 	CreatedAt time.Time
@@ -18,7 +18,7 @@ type EntryLog struct {
 
 // Ledger disk file 相当于 Kafka Segment，但它增加了 LedgerID，没有绑定死 Broker，就避免了搬迁数据.
 type EntryLogger interface {
-	Write(LedgerID, EntryLog) error
+	Write(LedgerID, LedgerEntry) error
 	Read(LedgerID, EntryID) (Payload, error)
 }
 
@@ -31,7 +31,7 @@ func NewEntryLogger() EntryLogger {
 	return &entryLogger{0, NewEntryIndexer()}
 }
 
-func (l *entryLogger) Write(ledgerID LedgerID, log EntryLog) error {
+func (l *entryLogger) Write(ledgerID LedgerID, log LedgerEntry) error {
 	l.size += log.Content.Size()
 
 	// Write disk

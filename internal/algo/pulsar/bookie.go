@@ -66,23 +66,23 @@ func (b *bookie) AddEntry(ledgerID LedgerID, entryID EntryID, data Payload) erro
 
 	log.Printf("Bookie[%d] AddEntry(LedgerID = %d, EntryID = %d), data: %s", b.id, ledgerID, entryID, string(data))
 
-	// Async Write EntryLog, ACK Request ASAP
-	go b.addEntryLog(ledgerID, entryID, data)
+	// Async Write LedgerEntry, ACK Request ASAP
+	go b.addLedgerEntry(ledgerID, entryID, data)
 
 	return nil
 }
 
-func (b *bookie) addEntryLog(ledgerID LedgerID, entryID EntryID, data Payload) error {
-	entryLog := EntryLog{
+func (b *bookie) addLedgerEntry(ledgerID LedgerID, entryID EntryID, data Payload) error {
+	ledgerEntry := LedgerEntry{
 		EntryID:   entryID,
 		Content:   data,
 		CreatedAt: time.Now(),
 	}
 
-	log.Printf("Bookie[%d] AddEntry (LedgerID:%d, EntryID:%d): EntryLog written", b.id, ledgerID, entryID)
+	log.Printf("Bookie[%d] AddEntry (LedgerID:%d, EntryID:%d): LedgerEntry written", b.id, ledgerID, entryID)
 
 	// 定时刷盘
-	b.entryLogger.Write(ledgerID, entryLog)
+	b.entryLogger.Write(ledgerID, ledgerEntry)
 
 	return nil
 }

@@ -19,11 +19,6 @@ import (
 
 var (
 	prodEnv = false
-
-	_ PartitionLB       = (*broker)(nil)
-	_ BookieLB          = (*bookKeeper)(nil)
-	_ LedgerIDAllocator = (*bookKeeper)(nil)
-	_ EntryIDAllocator  = (*ledger)(nil)
 )
 
 type PartitionID int
@@ -124,20 +119,4 @@ func (p *Partition) IndexOfLedger(ledgerID LedgerID) int {
 		}
 	}
 	return -1
-}
-
-type PartitionLB interface {
-	selectPartition(*Topic, Message) PartitionID
-}
-
-type LedgerIDAllocator interface {
-	allocateLedgerID() LedgerID
-}
-
-type EntryIDAllocator interface {
-	allocateEntryID() EntryID
-}
-
-type BookieLB interface {
-	selectBookies(LedgerID, LedgerOption) []Bookie
 }
