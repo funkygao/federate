@@ -13,6 +13,8 @@ type LedgerOption struct {
 	AckQuorum    int
 }
 
+// In pulsar implementation, Ledger is ManagedLedger.
+//
 // Ledgers serve a similar role to segments in Kafka: but not bound to physical Parition.
 // They are units of storage that can be individually managed, rolled over, and deleted.
 // Each ledger contains a sequence of entries (messages) and is written to a set of Bookies.
