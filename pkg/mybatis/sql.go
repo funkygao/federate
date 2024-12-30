@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"federate/pkg/primitive"
-	"github.com/beevik/etree"
 	"github.com/xwb1989/sqlparser"
 )
 
@@ -48,8 +47,7 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 	}
 }
 
-func (sa *SQLAnalyzer) AnalyzeStmt(root *etree.Element, filePath, stmtID, myBatisRawSQL string, fragments SQLFragments) {
-	preprocessedSQL := preprocessMyBatisXML(myBatisRawSQL, fragments)
+func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) {
 	stmt, err := sqlparser.Parse(preprocessedSQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
@@ -74,7 +72,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(root *etree.Element, filePath, stmtID, myBati
 	case *sqlparser.Union:
 		sa.analyzeUnion(stmt)
 	default:
-		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, myBatisRawSQL)
+		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, preprocessedSQL)
 	}
 
 	// Unify aggregation function names to uppercase

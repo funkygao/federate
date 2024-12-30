@@ -77,12 +77,14 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
 
 func TestSQLAnalyzer(t *testing.T) {
 	xml := NewXMLAnalyzer()
-	err := xml.ReadFromString(testXML)
+	err := xml.AnalyzeString(testXML)
 	assert.NoError(t, err)
 
-	xml.Analyze()
 	root := xml.GetRoot()
 	assert.NotNil(t, root)
+
+	processor := NewMyBatisProcessor()
+	processor.ExtractSQLFragments(root)
 
 	testCases := []struct {
 		name     string
@@ -106,22 +108,16 @@ func TestSQLAnalyzer(t *testing.T) {
 		},
 	}
 
-	fragments, err := xml.ExtractSQLFragments()
-	assert.NoError(t, err)
-	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version", fragments["queryColumns"])
+	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version", processor.fragments["queryColumns"])
 
-	analyzer := NewSQLAnalyzer()
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			elem := root.FindElement(".//*[@id='" + tc.id + "']")
-			assert.NotNil(t, elem)
+			stmt := root.FindElement(".//*[@id='" + tc.id + "']")
+			assert.NotNil(t, stmt)
 
-			sql := xml.extractRawSQL(elem)
-			preprocessedSQL := preprocessMyBatisXML(sql, fragments)
-			t.Logf("Original SQL:\n%s\nPreprocessed SQL:\n%s", sql, preprocessedSQL)
+			rawSQL, preprocessedSQL, _ := processor.PreprocessStmt(stmt)
+			t.Logf("Original SQL:\n%s\nPreprocessed SQL:\n%s", rawSQL, preprocessedSQL)
 			assert.Equal(t, tc.expected, strings.TrimSpace(preprocessedSQL))
-
-			analyzer.AnalyzeStmt(root, "fn", tc.id, sql, fragments)
 		})
 	}
 }

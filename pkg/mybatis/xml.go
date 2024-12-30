@@ -1,8 +1,6 @@
 package mybatis
 
 import (
-	"strings"
-
 	"github.com/beevik/etree"
 )
 
@@ -20,17 +18,31 @@ func NewXMLAnalyzer() *XMLAnalyzer {
 	}
 }
 
-func (xa *XMLAnalyzer) ReadFile(filePath string) error {
-	xa.Doc = etree.NewDocument()
-	return xa.Doc.ReadFromFile(filePath)
+func (xa *XMLAnalyzer) GetRoot() *etree.Element {
+	return xa.root
 }
 
-func (xa *XMLAnalyzer) ReadFromString(xmlContent string) error {
+func (xa *XMLAnalyzer) AnalyzeFile(filePath string) error {
 	xa.Doc = etree.NewDocument()
-	return xa.Doc.ReadFromString(xmlContent)
+	if err := xa.Doc.ReadFromFile(filePath); err != nil {
+		return err
+	}
+
+	xa.analyze()
+	return nil
 }
 
-func (xa *XMLAnalyzer) Analyze() {
+func (xa *XMLAnalyzer) AnalyzeString(xmlContent string) error {
+	xa.Doc = etree.NewDocument()
+	if err := xa.Doc.ReadFromString(xmlContent); err != nil {
+		return err
+	}
+
+	xa.analyze()
+	return nil
+}
+
+func (xa *XMLAnalyzer) analyze() {
 	root := xa.Doc.SelectElement(RootTag)
 	if root == nil {
 		return // 不是 MyBatis mapper 文件
@@ -39,20 +51,6 @@ func (xa *XMLAnalyzer) Analyze() {
 	xa.root = root
 	xa.analyzeNamespace(root)
 	xa.analyzeDynamicSQLElements(root)
-}
-
-func (xa *XMLAnalyzer) ExtractSQLFragments() (SQLFragments, error) {
-	fragments := make(SQLFragments)
-	for _, elem := range xa.root.ChildElements() {
-		if elem.Tag == "sql" {
-			id := elem.SelectAttrValue("id", "")
-			if id != "" {
-				fragments[id] = xa.extractRawSQL(elem)
-			}
-		}
-	}
-
-	return fragments, nil
 }
 
 func (xa *XMLAnalyzer) analyzeNamespace(root *etree.Element) {
@@ -86,35 +84,4 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
-}
-
-func (xa *XMLAnalyzer) GetRoot() *etree.Element {
-	return xa.root
-}
-
-func (xa *XMLAnalyzer) extractRawSQL(elem *etree.Element) string {
-	var sql strings.Builder
-	xa.extractSQLRecursive(elem, &sql)
-	return strings.TrimSpace(sql.String())
-}
-
-func (xa *XMLAnalyzer) extractSQLRecursive(elem *etree.Element, sql *strings.Builder) {
-	for _, child := range elem.Child {
-		switch v := child.(type) {
-		case *etree.CharData:
-			sql.WriteString(v.Data)
-		case *etree.Element:
-			if v.Tag == "![CDATA[" {
-				sql.WriteString(v.Text())
-			} else {
-				sql.WriteString("<" + v.Tag)
-				for _, attr := range v.Attr {
-					sql.WriteString(" " + attr.Key + "=\"" + attr.Value + "\"")
-				}
-				sql.WriteString(">")
-				xa.extractSQLRecursive(v, sql)
-				sql.WriteString("</" + v.Tag + ">")
-			}
-		}
-	}
 }

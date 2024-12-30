@@ -1,46 +1,41 @@
 package mybatis
 
 type Analyzer struct {
-	XMLAnalyzer     *XMLAnalyzer
-	SQLAnalyzer     *SQLAnalyzer
-	ReportGenerator *ReportGenerator
+	XMLAnalyzer      *XMLAnalyzer
+	SQLAnalyzer      *SQLAnalyzer
+	MyBatisProcessor *MyBatisProcessor
+	ReportGenerator  *ReportGenerator
 }
 
 func NewAnalyzer() *Analyzer {
 	return &Analyzer{
-		XMLAnalyzer:     NewXMLAnalyzer(),
-		SQLAnalyzer:     NewSQLAnalyzer(),
-		ReportGenerator: NewReportGenerator(),
+		XMLAnalyzer:      NewXMLAnalyzer(),
+		SQLAnalyzer:      NewSQLAnalyzer(),
+		MyBatisProcessor: NewMyBatisProcessor(),
+		ReportGenerator:  NewReportGenerator(),
 	}
 }
 
 func (a *Analyzer) AnalyzeFile(filePath string) error {
-	err := a.XMLAnalyzer.ReadFile(filePath)
-	if err != nil {
+	if err := a.XMLAnalyzer.AnalyzeFile(filePath); err != nil {
 		return err
 	}
-
-	a.XMLAnalyzer.Analyze()
 
 	root := a.XMLAnalyzer.GetRoot()
 	if root == nil {
 		return nil // 不是 MyBatis mapper 文件
 	}
 
-	fragments, err := a.XMLAnalyzer.ExtractSQLFragments()
-	if err != nil {
-		return err
-	}
+	a.MyBatisProcessor.ExtractSQLFragments(root)
 
-	for _, elem := range root.ChildElements() {
-		switch elem.Tag {
+	for _, stmt := range root.ChildElements() {
+		switch stmt.Tag {
 		case "select", "insert", "update", "delete":
-			sql := a.XMLAnalyzer.extractRawSQL(elem)
-			stmtID := elem.SelectAttrValue("id", "")
-			a.SQLAnalyzer.AnalyzeStmt(root, filePath, stmtID, sql, fragments)
+			_, preprocessedSQL, stmtID := a.MyBatisProcessor.PreprocessStmt(stmt)
+			a.SQLAnalyzer.AnalyzeStmt(filePath, stmtID, preprocessedSQL)
 
 		default:
-			a.SQLAnalyzer.IgnoreTag(elem.Tag)
+			a.SQLAnalyzer.IgnoreTag(stmt.Tag)
 		}
 	}
 
