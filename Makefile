@@ -73,6 +73,10 @@ install: embed-javast test ## Check if Go is installed, install if not, then bui
 		echo "🍺 Installed to $$(go env GOPATH)/bin/federate"; \
 	fi
 
+quick-install:fmt
+	go install -tags "$(BUILD_TAGS)" -ldflags "$(LDFLAGS)" $(PACKAGES)
+	echo "🍺 Installed to $$(go env GOPATH)/bin/federate"
+
 completion: ## Install shell completion for federate on MacOS.
 	if [ "$$(uname)" != "Darwin" ]; then \
 		echo "This target is only for MacOS users."; \

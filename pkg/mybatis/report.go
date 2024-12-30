@@ -95,16 +95,16 @@ func (rg *ReportGenerator) writeMostUsedFields(fields map[string]int) {
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
-	log.Println("Complexity Metrics:")
+	log.Println("Complexity Operation Metrics:")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
-		"Complex Queries":     sa.ComplexQueries,
-		"Join Operations":     sa.JoinOperations,
-		"Subqueries":          sa.SubQueries,
-		"Distinct Queries":    sa.DistinctQueries,
-		"Order By Operations": sa.OrderByOperations,
-		"Limit Operations":    sa.LimitOperations,
-		"Union Operations":    sa.UnionOperations,
+		"Complex Queries": sa.ComplexQueries,
+		"JOIN":            sa.JoinOperations,
+		"SubQueries":      sa.SubQueries,
+		"DISTINCT":        sa.DistinctQueries,
+		"ORDER BY":        sa.OrderByOperations,
+		"LIMIT":           sa.LimitOperations,
+		"UNION":           sa.UnionOperations,
 	}
 	cellData := sortMapByValue(metrics)
 	tabular.Display(header, cellData, false, -1)
