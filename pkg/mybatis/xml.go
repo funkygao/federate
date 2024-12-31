@@ -70,6 +70,7 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 		}
 	}
 
+	// Post process SQL
 	for _, stmt := range b.Statements {
 		stmt.Filename = b.Filename
 		stmt.ParseableSQL = b.postProcessSQL(stmt.SQL)
