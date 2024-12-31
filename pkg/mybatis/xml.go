@@ -55,15 +55,14 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 
 	b.Namespace = root.SelectAttrValue("namespace", "")
 
-	// Parse SQL fragments
+	// 首先解析所有的 <sql> 标签
 	for _, sqlElem := range root.SelectElements("sql") {
-		id := sqlElem.SelectAttrValue("id", "")
-		if id != "" {
-			b.SqlFragments[id] = b.processDynamicSql(sqlElem)
+		if id := sqlElem.SelectAttrValue("id", ""); id != "" {
+			b.SqlFragments[id] = b.processSqlFragment(sqlElem)
 		}
 	}
 
-	// Parse statements
+	// 然后解析其他语句
 	for _, elem := range root.ChildElements() {
 		switch elem.Tag {
 		case "select", "insert", "update", "delete", "replace":
@@ -83,6 +82,26 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	}
 
 	return b.Statements, nil
+}
+
+func (b *XMLMapperBuilder) processSqlFragment(elem *etree.Element) string {
+	var sql strings.Builder
+	for _, child := range elem.Child {
+		switch v := child.(type) {
+		case *etree.CharData:
+			sql.WriteString(v.Data)
+		case *etree.Element:
+			if v.Tag == "include" {
+				refid := v.SelectAttrValue("refid", "")
+				if fragment, ok := b.SqlFragments[refid]; ok {
+					sql.WriteString(fragment)
+				}
+			} else {
+				sql.WriteString(b.processDynamicSql(v))
+			}
+		}
+	}
+	return sql.String()
 }
 
 // recursively process SQL
