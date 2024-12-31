@@ -2,6 +2,8 @@ package mybatis
 
 import (
 	"fmt"
+	"log"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -34,6 +36,10 @@ func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
 		Statements:   make(map[string]*Statement),
 		SqlFragments: make(map[string]string),
 	}
+}
+
+func (b *XMLMapperBuilder) BaseName() string {
+	return filepath.Base(b.Filename)
 }
 
 func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
@@ -87,23 +93,30 @@ func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
 		switch v := child.(type) {
 		case *etree.CharData:
 			sql.WriteString(v.Data)
+
 		case *etree.Element:
 			switch v.Tag {
 			case "if":
 				sql.WriteString(b.processDynamicSql(v))
+
 			case "choose":
 				whenElem := v.SelectElement("when")
 				if whenElem != nil {
 					sql.WriteString(b.processDynamicSql(whenElem))
 				}
+
 			case "trim", "where", "set":
 				sql.WriteString(b.processWhereTrimSet(v))
+
 			case "foreach":
 				sql.WriteString(b.processForeach(v))
+
 			case "include":
 				refid := v.SelectAttrValue("refid", "")
 				if sqlFragment, ok := b.SqlFragments[refid]; ok {
 					sql.WriteString(sqlFragment)
+				} else if refid != "" {
+					log.Printf("[%s] %s include external[%s] not supported yet", b.BaseName(), elem.SelectAttrValue("id", ""), refid)
 				}
 			}
 		}
