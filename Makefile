@@ -55,6 +55,7 @@ clean:
 	find . \( -name a -o -name .DS_Store \) -exec rm -f {} \;
 	rm -rf build cpu_*
 	cd $(JAVAST_DIR) && $(MAVEN) clean -q
+	cd $(MYBATIS_DIR) && $(MAVEN) clean -q
 
 install:embed-javast embed-mybatis test ## Check if Go is installed, install if not, then build and install federate.
 	if ! command -v go >/dev/null 2>&1; then \
