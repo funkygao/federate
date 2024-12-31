@@ -16,6 +16,9 @@ func (a *Analyzer) AnalyzeFile(filePath string) error {
 	builder := NewXMLMapperBuilder(filePath)
 	stmts, err := builder.Parse()
 	if err != nil {
+		if err == ErrNotMapperXML {
+			return nil
+		}
 		return err
 	}
 

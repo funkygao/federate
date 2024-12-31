@@ -10,6 +10,7 @@ import (
 
 var (
 	hashPlaceHolder = regexp.MustCompile(`#\{[^}]+\}`)
+	ErrNotMapperXML = fmt.Errorf("root element 'mapper' not found")
 )
 
 type Statement struct {
@@ -43,7 +44,7 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 
 	root := doc.SelectElement("mapper")
 	if root == nil {
-		return nil, fmt.Errorf("root element 'mapper' not found")
+		return nil, ErrNotMapperXML
 	}
 
 	b.Namespace = root.SelectAttrValue("namespace", "")
