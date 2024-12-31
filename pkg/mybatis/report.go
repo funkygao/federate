@@ -16,7 +16,7 @@ func NewReportGenerator() *ReportGenerator {
 	return &ReportGenerator{}
 }
 
-func (rg *ReportGenerator) Generate(xa *XMLAnalyzer, sa *SQLAnalyzer) {
+func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	//rg.writeUnparsableSQL(sa.UnparsableSQL)
 	rg.writeIgnoredTags(sa.IgnoredTags)
 	rg.writeSQLTypes(sa.SQLTypes)
@@ -24,7 +24,6 @@ func (rg *ReportGenerator) Generate(xa *XMLAnalyzer, sa *SQLAnalyzer) {
 	//rg.writeMostUsedFields(sa.Fields)
 	rg.writeComplexityMetrics(sa)
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
-	rg.writeDynamicSQLElements(xa.DynamicSQLElements)
 
 	topK := 20
 

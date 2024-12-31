@@ -1,47 +1,47 @@
 package mybatis
 
+import (
+	"github.com/xwb1989/sqlparser"
+	"log"
+)
+
 type Analyzer struct {
-	XMLAnalyzer      *XMLAnalyzer
-	SQLAnalyzer      *SQLAnalyzer
-	MyBatisProcessor *MyBatisProcessor
-	ReportGenerator  *ReportGenerator
+	ok   int
+	fail int
+
+	SQLAnalyzer     *SQLAnalyzer
+	ReportGenerator *ReportGenerator
 }
 
 func NewAnalyzer() *Analyzer {
 	return &Analyzer{
-		XMLAnalyzer:      NewXMLAnalyzer(),
-		SQLAnalyzer:      NewSQLAnalyzer(),
-		MyBatisProcessor: NewMyBatisProcessor(),
-		ReportGenerator:  NewReportGenerator(),
+		SQLAnalyzer:     NewSQLAnalyzer(),
+		ReportGenerator: NewReportGenerator(),
 	}
 }
 
 func (a *Analyzer) AnalyzeFile(filePath string) error {
-	if err := a.XMLAnalyzer.AnalyzeFile(filePath); err != nil {
+	builder := NewXMLMapperBuilder(filePath)
+	if err := builder.Parse(); err != nil {
 		return err
 	}
 
-	root := a.XMLAnalyzer.GetRoot()
-	if root == nil {
-		return nil // 不是 MyBatis mapper 文件
-	}
-
-	a.MyBatisProcessor.ExtractSQLFragments(root)
-
-	for _, stmt := range root.ChildElements() {
-		switch stmt.Tag {
-		case "select", "insert", "update", "delete":
-			_, preprocessedSQL, stmtID := a.MyBatisProcessor.PreprocessStmt(stmt)
-			a.SQLAnalyzer.AnalyzeStmt(filePath, stmtID, preprocessedSQL)
-
-		default:
-			a.SQLAnalyzer.IgnoreTag(stmt.Tag)
+	for id, stmt := range builder.Statements {
+		_, err := sqlparser.Parse(stmt.ParseableSQL)
+		if err != nil {
+			a.fail++
+			log.Printf("%s %s\n%v", id, stmt.ParseableSQL, err)
+			log.Println()
+		} else {
+			a.ok++
 		}
 	}
+
+	log.Printf("ok: %d, fail:%d", a.ok, a.fail)
 
 	return nil
 }
 
 func (a *Analyzer) GenerateReport() {
-	a.ReportGenerator.Generate(a.XMLAnalyzer, a.SQLAnalyzer)
+	a.ReportGenerator.Generate(a.SQLAnalyzer)
 }

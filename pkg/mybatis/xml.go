@@ -1,87 +1,164 @@
 package mybatis
 
 import (
+	"fmt"
+	"regexp"
+	"strings"
+
 	"github.com/beevik/etree"
 )
 
-type XMLAnalyzer struct {
-	Namespaces         map[string]int
-	DynamicSQLElements map[string]int
-	Doc                *etree.Document
-	root               *etree.Element
+var (
+	hashPlaceHolder = regexp.MustCompile(`#\{[^}]+\}`)
+)
+
+type XMLMapperBuilder struct {
+	Filename     string
+	Namespace    string
+	Statements   map[string]*Statement
+	SqlFragments map[string]string
 }
 
-func NewXMLAnalyzer() *XMLAnalyzer {
-	return &XMLAnalyzer{
-		Namespaces:         make(map[string]int),
-		DynamicSQLElements: make(map[string]int),
+type Statement struct {
+	ID           string
+	Type         string
+	SQL          string
+	ParseableSQL string
+}
+
+func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
+	return &XMLMapperBuilder{
+		Filename:     filename,
+		Statements:   make(map[string]*Statement),
+		SqlFragments: make(map[string]string),
 	}
 }
 
-func (xa *XMLAnalyzer) GetRoot() *etree.Element {
-	return xa.root
-}
-
-func (xa *XMLAnalyzer) AnalyzeFile(filePath string) error {
-	xa.Doc = etree.NewDocument()
-	if err := xa.Doc.ReadFromFile(filePath); err != nil {
+func (b *XMLMapperBuilder) Parse() error {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromFile(b.Filename); err != nil {
 		return err
 	}
 
-	xa.analyze()
-	return nil
-}
-
-func (xa *XMLAnalyzer) AnalyzeString(xmlContent string) error {
-	xa.Doc = etree.NewDocument()
-	if err := xa.Doc.ReadFromString(xmlContent); err != nil {
-		return err
-	}
-
-	xa.analyze()
-	return nil
-}
-
-func (xa *XMLAnalyzer) analyze() {
-	root := xa.Doc.SelectElement(RootTag)
+	root := doc.SelectElement("mapper")
 	if root == nil {
-		return // 不是 MyBatis mapper 文件
+		return fmt.Errorf("root element 'mapper' not found")
 	}
 
-	xa.root = root
-	xa.analyzeNamespace(root)
-	xa.analyzeDynamicSQLElements(root)
-}
+	b.Namespace = root.SelectAttrValue("namespace", "")
 
-func (xa *XMLAnalyzer) analyzeNamespace(root *etree.Element) {
-	namespace := root.SelectAttrValue("namespace", "")
-	xa.Namespaces[namespace]++
-}
+	// Parse SQL fragments
+	for _, sqlElem := range root.SelectElements("sql") {
+		id := sqlElem.SelectAttrValue("id", "")
+		if id != "" {
+			b.SqlFragments[id] = b.processDynamicSql(sqlElem)
+		}
+	}
 
-func (xa *XMLAnalyzer) analyzeDynamicSQLElements(root *etree.Element) {
-	dynamicElements := []string{"if", "choose", "when", "otherwise", "foreach"}
-
+	// Parse statements
 	for _, elem := range root.ChildElements() {
-		if elem.Tag == "select" || elem.Tag == "update" || elem.Tag == "insert" || elem.Tag == "delete" {
-			xa.countDynamicElements(elem, dynamicElements)
+		switch elem.Tag {
+		case "select", "insert", "update", "delete":
+			stmt := &Statement{
+				ID:   elem.SelectAttrValue("id", ""),
+				Type: elem.Tag,
+				SQL:  b.processDynamicSql(elem),
+			}
+			b.Statements[b.Namespace+"."+stmt.ID] = stmt
 		}
 	}
+
+	for _, stmt := range b.Statements {
+		stmt.ParseableSQL = b.postProcessSQL(stmt.SQL)
+	}
+
+	return nil
 }
 
-func (xa *XMLAnalyzer) countDynamicElements(elem *etree.Element, dynamicElements []string) {
-	for _, child := range elem.ChildElements() {
-		if contains(dynamicElements, child.Tag) {
-			xa.DynamicSQLElements[child.Tag]++
+func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
+	var sql strings.Builder
+
+	for _, child := range elem.Child {
+		switch v := child.(type) {
+		case *etree.CharData:
+			sql.WriteString(v.Data)
+		case *etree.Element:
+			switch v.Tag {
+			case "if":
+				sql.WriteString(b.processDynamicSql(v))
+			case "choose":
+				whenElem := v.SelectElement("when")
+				if whenElem != nil {
+					sql.WriteString(b.processDynamicSql(whenElem))
+				}
+			case "trim", "where", "set":
+				sql.WriteString(b.processWhereTrimSet(v))
+			case "foreach":
+				sql.WriteString(b.processForeach(v))
+			case "include":
+				refid := v.SelectAttrValue("refid", "")
+				if sqlFragment, ok := b.SqlFragments[refid]; ok {
+					sql.WriteString(sqlFragment)
+				}
+			}
 		}
-		xa.countDynamicElements(child, dynamicElements)
 	}
+
+	return sql.String()
 }
 
-func contains(slice []string, item string) bool {
-	for _, a := range slice {
-		if a == item {
-			return true
+func (b *XMLMapperBuilder) processWhereTrimSet(elem *etree.Element) string {
+	content := b.processDynamicSql(elem)
+	content = strings.TrimSpace(content)
+
+	if elem.Tag == "where" && strings.HasPrefix(content, "AND ") {
+		content = content[4:]
+	}
+
+	if content != "" {
+		if elem.Tag == "where" {
+			return "WHERE " + content
+		} else if elem.Tag == "set" {
+			return "SET " + content
 		}
 	}
-	return false
+
+	return content
+}
+
+func (b *XMLMapperBuilder) processForeach(elem *etree.Element) string {
+	var result strings.Builder
+	open := elem.SelectAttrValue("open", "")
+	close := elem.SelectAttrValue("close", "")
+	separator := elem.SelectAttrValue("separator", "")
+
+	result.WriteString(open)
+
+	if separator != "" {
+		// If there's a separator, we'll add two placeholders to represent multiple items
+		result.WriteString("?")
+		result.WriteString(separator)
+		result.WriteString("?")
+	} else {
+		// If there's no separator, we'll just add one placeholder
+		result.WriteString("?")
+	}
+
+	result.WriteString(close)
+
+	return result.String()
+}
+
+func (b *XMLMapperBuilder) postProcessSQL(sql string) string {
+	sql = removeCDATA(sql)
+	sql = replaceMybatisPlaceholders(sql)
+	return sql
+}
+
+func removeCDATA(sql string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(sql, "<![CDATA[", ""), "]]>", "")
+}
+
+func replaceMybatisPlaceholders(sql string) string {
+	return hashPlaceHolder.ReplaceAllString(sql, "?")
 }
