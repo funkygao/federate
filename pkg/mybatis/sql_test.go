@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xwb1989/sqlparser"
 )
 
 const testXML = `<?xml version="1.0" encoding="UTF-8"?>
@@ -107,9 +108,10 @@ func TestSQLAnalyzer(t *testing.T) {
 	processor.ExtractSQLFragments(root)
 
 	testCases := []struct {
-		name     string
-		id       string
-		expected string
+		name        string
+		id          string
+		expected    string
+		countFields int
 	}{
 		{
 			name:     "Insert statement",
@@ -143,6 +145,9 @@ func TestSQLAnalyzer(t *testing.T) {
 			rawSQL, preprocessedSQL, _ := processor.PreprocessStmt(stmt)
 			t.Logf("Original SQL:\n%s\nPreprocessed SQL:\n%s", rawSQL, preprocessedSQL)
 			assert.Equal(t, tc.expected, strings.TrimSpace(preprocessedSQL))
+
+			_, err := sqlparser.Parse(preprocessedSQL)
+			assert.NoError(t, err)
 		})
 	}
 }

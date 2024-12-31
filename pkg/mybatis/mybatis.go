@@ -22,6 +22,7 @@ var (
 	dollarVarRegex = regexp.MustCompile(`\$\{([^}]+)\}`)
 	hashVarRegex   = regexp.MustCompile(`#\{([^}]+)\}`)
 	tagRegex       = regexp.MustCompile(`</?[^>]+>`)
+	numberRegex    = regexp.MustCompile(`\b\d+\b`)
 
 	jsonOperatorRegex      = regexp.MustCompile(`(\w+)\s*->>\s*#\{[^}]+\}\s*=\s*#\{[^}]+\}`)
 	variableInForeachRegex = regexp.MustCompile(`#\{[^}]+\}`)
@@ -116,14 +117,20 @@ func (mp *MyBatisProcessor) preprocessRawSQL(rawSQL string) string {
 	// 处理 <if> 标签
 	rawSQL = ifRegex.ReplaceAllString(rawSQL, "$1")
 
-	// 处理 <foreach> 标签，保留 JSON 操作符
+	// 处理 <foreach> 标签，特别处理批量插入
 	rawSQL = foreachRegex.ReplaceAllStringFunc(rawSQL, func(match string) string {
 		innerContent := foreachRegex.FindStringSubmatch(match)[1]
-		if strings.Contains(innerContent, "VALUES") || strings.Contains(innerContent, "values") {
-			return "(?, ?, ?, ?), (?, ?, ?, ?)"
+		if strings.Contains(strings.ToLower(rawSQL), "insert into") && strings.Contains(strings.ToLower(rawSQL), "values") {
+			// 批量插入情况
+			valueCount := mp.countInsertPlaceholders(innerContent)
+			placeholders := make([]string, valueCount)
+			for i := range placeholders {
+				placeholders[i] = "?"
+			}
+			return "(" + strings.Join(placeholders, ", ") + "), (" + strings.Join(placeholders, ", ") + ")"
 		}
 		if strings.Contains(innerContent, "->>") {
-			// 保留 JSON 操作符，替换变量，并保持括号
+			// JSON 操作符情况
 			return "(" + jsonOperatorRegex.ReplaceAllString(innerContent, "$1 ->> ? = ?") + ")"
 		}
 		return "(?)"
@@ -141,4 +148,20 @@ func (mp *MyBatisProcessor) preprocessRawSQL(rawSQL string) string {
 	rawSQL = strings.Join(strings.Fields(rawSQL), " ")
 
 	return strings.TrimSpace(rawSQL)
+}
+
+func (mp *MyBatisProcessor) countInsertPlaceholders(content string) int {
+	count := 0
+
+	// 计算 #{...} 的数量
+	count += strings.Count(content, "#{")
+
+	// 计算显式的 ? 占位符
+	count += strings.Count(content, "?")
+
+	// 计算数字字面量（如 0）的数量
+	numberRegex := regexp.MustCompile(`\b\d+\b`)
+	count += len(numberRegex.FindAllString(content, -1))
+
+	return count
 }
