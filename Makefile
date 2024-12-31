@@ -19,7 +19,7 @@ LDFLAGS := -X 'federate/cmd/version.GitUser=$(GIT_USER)' \
            -X 'federate/cmd/version.BuildDate=$(BUILD_DATE)'
 
 # go build packages
-EXCLUDE_PACKAGES := /internal/plugin /internal/algo internal/javast/
+EXCLUDE_PACKAGES := /internal/plugin /internal/algo internal/javast/ internal/mybatis-xml-parser/
 PACKAGES := $(shell go list ./... | grep -Ev '$(subst $() ,|,$(EXCLUDE_PACKAGES))')
 
 # go build tags
@@ -56,7 +56,7 @@ clean:
 	rm -rf build cpu_*
 	cd $(JAVAST_DIR) && $(MAVEN) clean -q
 
-install: embed-javast test ## Check if Go is installed, install if not, then build and install federate.
+install:embed-javast embed-mybatis test ## Check if Go is installed, install if not, then build and install federate.
 	if ! command -v go >/dev/null 2>&1; then \
 		echo "Golang is not installed. Attempting to install via Homebrew..."; \
 		if ! command -v brew >/dev/null 2>&1; then \
@@ -202,3 +202,13 @@ embed-javast:
 	mkdir -p $(EMBED_DIR)/
 	mv -f $(JAVAST_JAR) $(EMBED_DIR)/
 	echo "Java AST Transformer embedded"
+
+# MyBatis XML Parser
+MYBATIS_DIR = internal/mybatis-xml-parser
+MYBATIS_JAR = $(MYBATIS_DIR)/target/mybatis.jar
+
+embed-mybatis:
+	echo "MyBatis XML Parser packaging ..."
+	cd $(MYBATIS_DIR) && $(MAVEN) clean package -q
+	mv -f $(MYBATIS_JAR) $(EMBED_DIR)/
+	echo "MyBatis XML Parser embedded"

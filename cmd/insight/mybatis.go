@@ -14,7 +14,7 @@ import (
 
 var mybatisCmd = &cobra.Command{
 	Use:   "mybatis <dir>",
-	Short: "Analyze MyBatis mapper XML files in the specified directory",
+	Short: "Analyze MyBatis MySQL mapper XML files in the specified directory",
 	Args:  cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		dir := args[0]
