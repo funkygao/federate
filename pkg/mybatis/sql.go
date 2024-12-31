@@ -1,18 +1,17 @@
 package mybatis
 
 import (
+	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
-	"federate/pkg/primitive"
 	"github.com/xwb1989/sqlparser"
 )
 
 type UnparsableSQL struct {
-	FilePath string
-	StmtID   string
-	SQL      string
-	Error    error
+	Stmt  Statement
+	Error error
 }
 
 type SQLAnalyzer struct {
@@ -29,9 +28,10 @@ type SQLAnalyzer struct {
 	LimitOperations      int
 	JoinTypes            map[string]int
 	IndexRecommendations map[string]int
-
-	IgnoredTags   *primitive.StringSet
-	UnparsableSQL []UnparsableSQL
+	ParsedOK             int
+	UnparsableSQL        []UnparsableSQL
+	BatchInserts         int
+	BatchInsertColumns   map[string]int
 }
 
 func NewSQLAnalyzer() *SQLAnalyzer {
@@ -42,29 +42,32 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 		AggregationFuncs:     make(map[string]int),
 		JoinTypes:            make(map[string]int),
 		IndexRecommendations: make(map[string]int),
+		BatchInsertColumns:   make(map[string]int),
 		UnparsableSQL:        []UnparsableSQL{},
-		IgnoredTags:          primitive.NewStringSet(),
 	}
 }
 
-func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) error {
-	stmt, err := sqlparser.Parse(preprocessedSQL)
+func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
+	stmt, err := sqlparser.Parse(s.ParseableSQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
-			FilePath: filePath,
-			StmtID:   stmtID,
-			SQL:      preprocessedSQL,
-			Error:    err,
+			Stmt:  s,
+			Error: err,
 		})
-		log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
 		return err
 	}
+
+	sa.ParsedOK++
 
 	switch stmt := stmt.(type) {
 	case *sqlparser.Select:
 		sa.analyzeSelect(stmt)
 	case *sqlparser.Insert:
-		sa.analyzeInsert(stmt)
+		if stmt.Action == sqlparser.ReplaceStr {
+			sa.analyzeReplace(stmt)
+		} else {
+			sa.analyzeInsert(stmt)
+		}
 	case *sqlparser.Update:
 		sa.analyzeUpdate(stmt)
 	case *sqlparser.Delete:
@@ -72,7 +75,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) err
 	case *sqlparser.Union:
 		sa.analyzeUnion(stmt)
 	default:
-		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, preprocessedSQL)
+		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, s.ParseableSQL)
 	}
 
 	// Unify aggregation function names to uppercase
@@ -97,6 +100,49 @@ func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert) {
 		Expr: stmt.Table,
 	})
 	sa.analyzeColumns(stmt.Columns)
+
+	if rows, ok := stmt.Rows.(sqlparser.Values); ok && len(rows) > 0 {
+		sa.analyzeBatchInsert(sqlparser.String(stmt))
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeBatchInsert(sqlString string) {
+	if strings.Contains(sqlString, "/* FOREACH_START */") {
+		sa.BatchInserts++
+
+		// 提取FOREACH_START和FOREACH_END之间的内容
+		start := strings.Index(sqlString, "/* FOREACH_START */")
+		end := strings.Index(sqlString, "/* FOREACH_END */")
+		if start != -1 && end != -1 && start < end {
+			foreachContent := sqlString[start+len("/* FOREACH_START */") : end]
+
+			// 分析foreach内部的列
+			columns := extractColumns(foreachContent)
+			for _, col := range columns {
+				sa.Fields[col]++
+			}
+		}
+	}
+}
+
+func extractColumns(content string) []string {
+	// 使用正则表达式提取列名
+	re := regexp.MustCompile(`\?`)
+	matches := re.FindAllStringIndex(content, -1)
+
+	columns := make([]string, len(matches))
+	for i := range matches {
+		columns[i] = fmt.Sprintf("column_%d", i+1)
+	}
+	return columns
+}
+
+func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert) {
+	sa.SQLTypes["REPLACE"]++
+	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
+		Expr: stmt.Table,
+	})
+	sa.analyzeColumns(stmt.Columns)
 }
 
 func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update) {
@@ -113,12 +159,8 @@ func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete) {
 func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union) {
 	sa.SQLTypes["UNION"]++
 	sa.UnionOperations++
-	sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
-	sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
-}
-
-func (sa *SQLAnalyzer) IgnoreTag(elemTag string) {
-	sa.IgnoredTags.Add(elemTag)
+	//sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
+	//sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
 }
 
 func (sa *SQLAnalyzer) analyzeSingleTable(tableExpr sqlparser.TableExpr) {
