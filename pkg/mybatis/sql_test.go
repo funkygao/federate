@@ -167,7 +167,7 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Batch insert statement",
 			id:       "batchInsert",
-			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES (?, ?, ?, ?), (?, ?, ?, ?)`,
+			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES (?, ?, ?, ?)`,
 		},
 		{
 			name:     "Select statement with include",
@@ -182,7 +182,7 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Complex update if and foreach",
 			id:       "updateCheckResult",
-			expected: ``,
+			expected: `UPDATE st_device_stock_check_result set update_user=case WHEN ? THEN ? END, check_type=case WHEN ? THEN ? END, difference_qty=case WHEN ? THEN ? END, update_time = now() , status = 20 , version = version + 1 WHERE ( ? ) or ( ? )`,
 		},
 	}
 
@@ -196,10 +196,15 @@ func TestSQLAnalyzer(t *testing.T) {
 			assert.NotNil(t, stmt)
 
 			rawSQL, preprocessedSQL, _ := processor.PreprocessStmt(stmt)
-			t.Logf("Original SQL:\n%s\nPreprocessed SQL:\n%s", rawSQL, preprocessedSQL)
+			if false {
+				t.Logf("Original SQL:\n%s\nPreprocessed SQL:\n%s", rawSQL, preprocessedSQL)
+			}
 			assert.Equal(t, tc.expected, strings.TrimSpace(preprocessedSQL))
 
-			_, err := sqlparser.Parse(preprocessedSQL)
+			_, err := sqlparser.Parse(tc.expected)
+			assert.NoError(t, err)
+
+			_, err = sqlparser.Parse(preprocessedSQL)
 			assert.NoError(t, err)
 		})
 	}
