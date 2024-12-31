@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"sort"
 
-	"federate/pkg/primitive"
 	"federate/pkg/tabular"
 )
 
@@ -17,8 +16,7 @@ func NewReportGenerator() *ReportGenerator {
 }
 
 func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
-	//rg.writeUnparsableSQL(sa.UnparsableSQL)
-	rg.writeIgnoredTags(sa.IgnoredTags)
+	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
 	rg.writeSQLTypes(sa.SQLTypes)
 	//rg.writeMostUsedTables(sa.Tables)
 	//rg.writeMostUsedFields(sa.Fields)
@@ -40,33 +38,18 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	printTopN(sa.IndexRecommendations, topK, []string{"Field", "Count"})
 }
 
-func (rg *ReportGenerator) writeIgnoredTags(ignored *primitive.StringSet) {
-	log.Println("Ignored Tags:")
-	header := []string{"Tag"}
-	var cellData [][]string
-	for _, tag := range ignored.Values() {
-		cellData = append(cellData, []string{tag})
+func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN int) {
+	if len(unparsableSQL) == 0 {
+		return
 	}
-	tabular.Display(header, cellData, false, -1)
-	log.Println()
-}
 
-func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL) {
-	if len(unparsableSQL) > 0 {
-		log.Println("Unparsable SQL Statements:")
-		header := []string{"File", "ID", "SQL"}
-		var cellData [][]string
-		for _, sql := range unparsableSQL {
-			cellData = append(cellData, []string{
-				filepath.Base(sql.FilePath),
-				sql.StmtID,
-				sql.SQL,
-			})
-		}
-		tabular.Display(header, cellData, false, -1)
-		log.Printf("%d statements failed", len(unparsableSQL))
-		log.Println()
+	log.Println("Unparsable SQL Statements:")
+	for _, sql := range unparsableSQL {
+		log.Printf("%s %s\n%s", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID, sql.Stmt.ParseableSQL)
 	}
+
+	log.Printf("%d Statements Fail, %d OK", len(unparsableSQL), okN)
+	log.Println()
 }
 
 func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {

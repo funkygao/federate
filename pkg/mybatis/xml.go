@@ -12,18 +12,19 @@ var (
 	hashPlaceHolder = regexp.MustCompile(`#\{[^}]+\}`)
 )
 
+type Statement struct {
+	Filename     string
+	ID           string
+	Type         string
+	SQL          string
+	ParseableSQL string
+}
+
 type XMLMapperBuilder struct {
 	Filename     string
 	Namespace    string
 	Statements   map[string]*Statement
 	SqlFragments map[string]string
-}
-
-type Statement struct {
-	ID           string
-	Type         string
-	SQL          string
-	ParseableSQL string
 }
 
 func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
@@ -34,15 +35,15 @@ func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
 	}
 }
 
-func (b *XMLMapperBuilder) Parse() error {
+func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(b.Filename); err != nil {
-		return err
+		return nil, err
 	}
 
 	root := doc.SelectElement("mapper")
 	if root == nil {
-		return fmt.Errorf("root element 'mapper' not found")
+		return nil, fmt.Errorf("root element 'mapper' not found")
 	}
 
 	b.Namespace = root.SelectAttrValue("namespace", "")
@@ -69,10 +70,11 @@ func (b *XMLMapperBuilder) Parse() error {
 	}
 
 	for _, stmt := range b.Statements {
+		stmt.Filename = b.Filename
 		stmt.ParseableSQL = b.postProcessSQL(stmt.SQL)
 	}
 
-	return nil
+	return b.Statements, nil
 }
 
 func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
@@ -152,7 +154,7 @@ func (b *XMLMapperBuilder) processForeach(elem *etree.Element) string {
 func (b *XMLMapperBuilder) postProcessSQL(sql string) string {
 	sql = removeCDATA(sql)
 	sql = replaceMybatisPlaceholders(sql)
-	return sql
+	return strings.TrimSpace(sql)
 }
 
 func removeCDATA(sql string) string {

@@ -4,15 +4,12 @@ import (
 	"log"
 	"strings"
 
-	"federate/pkg/primitive"
 	"github.com/xwb1989/sqlparser"
 )
 
 type UnparsableSQL struct {
-	FilePath string
-	StmtID   string
-	SQL      string
-	Error    error
+	Stmt  Statement
+	Error error
 }
 
 type SQLAnalyzer struct {
@@ -29,9 +26,8 @@ type SQLAnalyzer struct {
 	LimitOperations      int
 	JoinTypes            map[string]int
 	IndexRecommendations map[string]int
-
-	IgnoredTags   *primitive.StringSet
-	UnparsableSQL []UnparsableSQL
+	ParsedOK             int
+	UnparsableSQL        []UnparsableSQL
 }
 
 func NewSQLAnalyzer() *SQLAnalyzer {
@@ -43,22 +39,20 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 		JoinTypes:            make(map[string]int),
 		IndexRecommendations: make(map[string]int),
 		UnparsableSQL:        []UnparsableSQL{},
-		IgnoredTags:          primitive.NewStringSet(),
 	}
 }
 
-func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) error {
-	stmt, err := sqlparser.Parse(preprocessedSQL)
+func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
+	stmt, err := sqlparser.Parse(s.ParseableSQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
-			FilePath: filePath,
-			StmtID:   stmtID,
-			SQL:      preprocessedSQL,
-			Error:    err,
+			Stmt:  s,
+			Error: err,
 		})
-		log.Printf("%s %s\n%s\n%v", filePath, stmtID, preprocessedSQL, err)
 		return err
 	}
+
+	sa.ParsedOK++
 
 	switch stmt := stmt.(type) {
 	case *sqlparser.Select:
@@ -72,7 +66,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(filePath, stmtID, preprocessedSQL string) err
 	case *sqlparser.Union:
 		sa.analyzeUnion(stmt)
 	default:
-		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, preprocessedSQL)
+		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, s.ParseableSQL)
 	}
 
 	// Unify aggregation function names to uppercase
@@ -113,12 +107,8 @@ func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete) {
 func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union) {
 	sa.SQLTypes["UNION"]++
 	sa.UnionOperations++
-	sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
-	sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
-}
-
-func (sa *SQLAnalyzer) IgnoreTag(elemTag string) {
-	sa.IgnoredTags.Add(elemTag)
+	//sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
+	//sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
 }
 
 func (sa *SQLAnalyzer) analyzeSingleTable(tableExpr sqlparser.TableExpr) {
