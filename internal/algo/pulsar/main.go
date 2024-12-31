@@ -14,6 +14,14 @@ func main() {
 	broker := NewBroker(NewBookKeeper(3))
 	broker.Start()
 
+	// Create some bundles
+	for i := 0; i < 3; i++ {
+		bundleID := fmt.Sprintf("bundle-%d", i)
+		if err := broker.CreateBundle(bundleID); err != nil {
+			log.Fatalf("Failed to create bundle: %v", err)
+		}
+	}
+
 	topic, _ := broker.CreateTopic("OrderCreated", LedgerOption{
 		EnsembleSize: 3,
 		WriteQuorum:  2,

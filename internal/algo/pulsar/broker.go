@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"hash/fnv"
 	"log"
 	"sync"
 	"time"
@@ -10,6 +11,10 @@ import (
 // Broker: Manages topics, producers, consumers, message routing, and interacts with the storage layer.
 type Broker interface {
 	Start() error
+
+	CreateBundle(bundleID string) error
+	GetBundle(topicName string) (Bundle, error)
+	AssignTopicToBundle(topic *Topic) error
 
 	// Broker is owner of topics
 	CreateTopic(name string, ledgerOption LedgerOption) (*Topic, error)
@@ -34,6 +39,9 @@ type broker struct {
 	topics map[string]*Topic
 	mu     sync.RWMutex
 
+	bundles  map[string]Bundle
+	bundleMu sync.RWMutex
+
 	delayQueue *DelayQueue
 
 	// 消费尾部消息时，不必访问 BK
@@ -46,6 +54,7 @@ func NewBroker(bk BookKeeper) *broker {
 	broker := &broker{
 		bkClient:    bk,
 		topics:      make(map[string]*Topic),
+		bundles:     make(map[string]Bundle),
 		delayQueue:  NewDelayQueue(),
 		zk:          getZooKeeper(),
 		cursorStore: NewCursorStore(bk),
@@ -69,6 +78,57 @@ func (b *broker) Start() error {
 	return nil
 }
 
+func (b *broker) CreateBundle(bundleID string) error {
+	b.bundleMu.Lock()
+	defer b.bundleMu.Unlock()
+
+	if _, exists := b.bundles[bundleID]; exists {
+		return fmt.Errorf("bundle %s already exists", bundleID)
+	}
+
+	b.bundles[bundleID] = NewSimpleBundle(bundleID)
+	return nil
+}
+
+func (b *broker) GetBundle(topicName string) (Bundle, error) {
+	b.bundleMu.RLock()
+	defer b.bundleMu.RUnlock()
+
+	for _, bundle := range b.bundles {
+		if _, err := bundle.GetTopic(topicName); err == nil {
+			return bundle, nil
+		}
+	}
+
+	return nil, fmt.Errorf("topic %s not found in any bundle", topicName)
+}
+
+func (b *broker) AssignTopicToBundle(topic *Topic) error {
+	b.bundleMu.RLock()
+	defer b.bundleMu.RUnlock()
+
+	// Simple hash-based assignment
+	hash := fnv.New32a()
+	hash.Write([]byte(topic.Name))
+	bundleIndex := int(hash.Sum32()) % len(b.bundles)
+
+	var selectedBundle Bundle
+	i := 0
+	for _, bundle := range b.bundles {
+		if i == bundleIndex {
+			selectedBundle = bundle
+			break
+		}
+		i++
+	}
+
+	if selectedBundle == nil {
+		return fmt.Errorf("failed to assign topic to a bundle")
+	}
+
+	return selectedBundle.AddTopic(topic)
+}
+
 func (b *broker) CreateTopic(name string, ledgerOption LedgerOption) (*Topic, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -84,6 +144,12 @@ func (b *broker) CreateTopic(name string, ledgerOption LedgerOption) (*Topic, er
 		Subscriptions: make(map[string]Subscription),
 	}
 	b.topics[name] = topic
+
+	// Assign the topic to a bundle
+	if err := b.AssignTopicToBundle(topic); err != nil {
+		delete(b.topics, name)
+		return nil, err
+	}
 
 	b.zk.RegisterTopic(*topic)
 
