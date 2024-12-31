@@ -94,6 +94,52 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
             extend_content ->> #{item.jsonKey} = #{item.value}
         </foreach>
     </select>
+
+    <update id="updateCheckResult" parameterType="java.util.List">
+        <if test="list != null and !list.empty">
+            UPDATE st_device_stock_check_result
+            <trim prefix="set" suffixOverrides=",">
+                <trim prefix="update_user=case" suffix="end,">
+                    <foreach collection="list" item="item" index="index">
+                        WHEN
+                        <include refid="commonUpdate4CheckFinishedClauseOfItem"/>
+                        THEN #{item.updateUser,jdbcType=VARCHAR}
+                    </foreach>
+                </trim>
+                <trim prefix="check_type=case" suffix="end,">
+                    <foreach collection="list" item="item" index="index">
+                        WHEN
+                        <include refid="commonUpdate4CheckFinishedClauseOfItem"/>
+                        THEN #{item.checkType,jdbcType=DECIMAL}
+                    </foreach>
+                </trim>
+                <trim prefix="difference_qty=case" suffix="end,">
+                    <foreach collection="list" item="item" index="index">
+                        WHEN
+                        <include refid="commonUpdate4CheckFinishedClauseOfItem"/>
+                        THEN #{item.differenceQty,jdbcType=DECIMAL}
+                    </foreach>
+                </trim>
+                update_time = now()
+                , status = 20
+                , version = version + 1
+            </trim>
+            WHERE
+            <foreach collection="list" item="item" index="index" open="" separator="or" close="">
+                (<include refid="commonUpdate4CheckFinishedClauseOfItem"/>)
+            </foreach>
+        </if>
+    </update>
+
+    <sql id="commonUpdate4CheckFinishedClauseOfItem">
+        deleted = 0
+        AND id = #{item.id, jdbcType=BIGINT}
+        AND warehouse_no = #{item.warehouseNo, jdbcType=VARCHAR}
+        AND business_no = #{item.businessNo, jdbcType=VARCHAR}
+        <if test="null != item.previousStatus">
+            AND status = #{item.previousStatus.code, jdbcType=INTEGER}
+        </if>
+    </sql>
 </mapper>`
 
 func TestSQLAnalyzer(t *testing.T) {
@@ -133,9 +179,16 @@ func TestSQLAnalyzer(t *testing.T) {
 			id:       "foo",
 			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN (?) AND ( extend_content ->> ? = ? )`,
 		},
+		{
+			name:     "Complex update if and foreach",
+			id:       "updateCheckResult",
+			expected: ``,
+		},
 	}
 
 	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version", processor.fragments["queryColumns"])
+
+	assert.True(t, len(processor.fragments["commonUpdate4CheckFinishedClauseOfItem"]) > 10)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
