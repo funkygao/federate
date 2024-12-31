@@ -58,7 +58,11 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	case *sqlparser.Select:
 		sa.analyzeSelect(stmt)
 	case *sqlparser.Insert:
-		sa.analyzeInsert(stmt)
+		if stmt.Action == sqlparser.ReplaceStr {
+			sa.analyzeReplace(stmt)
+		} else {
+			sa.analyzeInsert(stmt)
+		}
 	case *sqlparser.Update:
 		sa.analyzeUpdate(stmt)
 	case *sqlparser.Delete:
@@ -87,6 +91,14 @@ func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select) {
 
 func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert) {
 	sa.SQLTypes["INSERT"]++
+	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
+		Expr: stmt.Table,
+	})
+	sa.analyzeColumns(stmt.Columns)
+}
+
+func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert) {
+	sa.SQLTypes["REPLACE"]++
 	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
 		Expr: stmt.Table,
 	})

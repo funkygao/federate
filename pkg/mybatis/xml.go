@@ -59,7 +59,7 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	// Parse statements
 	for _, elem := range root.ChildElements() {
 		switch elem.Tag {
-		case "select", "insert", "update", "delete":
+		case "select", "insert", "update", "delete", "replace":
 			stmt := &Statement{
 				ID:   elem.SelectAttrValue("id", ""),
 				Type: elem.Tag,
