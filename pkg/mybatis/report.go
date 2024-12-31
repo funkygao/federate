@@ -45,10 +45,20 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 
 	log.Println("Unparsable SQL Statements:")
 	for _, sql := range unparsableSQL {
-		log.Printf("%s %s\n%s", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID, sql.Stmt.ParseableSQL)
+		log.Printf("%s %s\n%s\n%v", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID, sql.Stmt.ParseableSQL, sql.Error)
 	}
 
 	log.Printf("%d Statements Fail, %d OK", len(unparsableSQL), okN)
+	log.Println()
+}
+
+func (rg *ReportGenerator) writeBatchInsertInfo(sa *SQLAnalyzer) {
+	log.Println("Batch Insert Operations:")
+	log.Printf("Total Batch Inserts: %d\n", sa.BatchInserts)
+	log.Println("Columns used in Batch Inserts:")
+	header := []string{"Column", "Count"}
+	cellData := sortMapByValue(sa.BatchInsertColumns)
+	tabular.Display(header, cellData, false, -1)
 	log.Println()
 }
 

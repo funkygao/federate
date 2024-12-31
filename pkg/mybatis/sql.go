@@ -1,7 +1,9 @@
 package mybatis
 
 import (
+	"fmt"
 	"log"
+	"regexp"
 	"strings"
 
 	"github.com/xwb1989/sqlparser"
@@ -28,6 +30,8 @@ type SQLAnalyzer struct {
 	IndexRecommendations map[string]int
 	ParsedOK             int
 	UnparsableSQL        []UnparsableSQL
+	BatchInserts         int
+	BatchInsertColumns   map[string]int
 }
 
 func NewSQLAnalyzer() *SQLAnalyzer {
@@ -38,6 +42,7 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 		AggregationFuncs:     make(map[string]int),
 		JoinTypes:            make(map[string]int),
 		IndexRecommendations: make(map[string]int),
+		BatchInsertColumns:   make(map[string]int),
 		UnparsableSQL:        []UnparsableSQL{},
 	}
 }
@@ -95,6 +100,41 @@ func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert) {
 		Expr: stmt.Table,
 	})
 	sa.analyzeColumns(stmt.Columns)
+
+	if rows, ok := stmt.Rows.(sqlparser.Values); ok && len(rows) > 0 {
+		sa.analyzeBatchInsert(sqlparser.String(stmt))
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeBatchInsert(sqlString string) {
+	if strings.Contains(sqlString, "/* FOREACH_START */") {
+		sa.BatchInserts++
+
+		// 提取FOREACH_START和FOREACH_END之间的内容
+		start := strings.Index(sqlString, "/* FOREACH_START */")
+		end := strings.Index(sqlString, "/* FOREACH_END */")
+		if start != -1 && end != -1 && start < end {
+			foreachContent := sqlString[start+len("/* FOREACH_START */") : end]
+
+			// 分析foreach内部的列
+			columns := extractColumns(foreachContent)
+			for _, col := range columns {
+				sa.Fields[col]++
+			}
+		}
+	}
+}
+
+func extractColumns(content string) []string {
+	// 使用正则表达式提取列名
+	re := regexp.MustCompile(`\?`)
+	matches := re.FindAllStringIndex(content, -1)
+
+	columns := make([]string, len(matches))
+	for i := range matches {
+		columns[i] = fmt.Sprintf("column_%d", i+1)
+	}
+	return columns
 }
 
 func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert) {

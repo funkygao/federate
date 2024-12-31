@@ -79,6 +79,7 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	return b.Statements, nil
 }
 
+// recursively process SQL
 func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
 	var sql strings.Builder
 
@@ -138,14 +139,28 @@ func (b *XMLMapperBuilder) processForeach(elem *etree.Element) string {
 
 	result.WriteString(open)
 
-	if separator != "" {
-		// If there's a separator, we'll add two placeholders to represent multiple items
-		result.WriteString("?")
-		result.WriteString(separator)
-		result.WriteString("?")
+	isInsert := elem.Parent().Tag == "insert"
+
+	if isInsert {
+		// 批量插入场景
+		result.WriteString("/* FOREACH_START */")
+		innerContent := b.processDynamicSql(elem)
+		// 替换所有 #{...} 为 ?
+		innerContent = hashPlaceHolder.ReplaceAllString(innerContent, "?")
+		result.WriteString(innerContent)
+		result.WriteString("/* FOREACH_END */")
+
+		// 添加 FOREACH_ITEM 注释，但不添加额外的逗号
+		if separator != "" {
+			result.WriteString("/* FOREACH_ITEM */")
+		}
 	} else {
-		// If there's no separator, we'll just add one placeholder
+		// 其他场景（如 SELECT 中的 IN 子句）
 		result.WriteString("?")
+		if separator != "" {
+			result.WriteString(separator)
+			result.WriteString("?")
+		}
 	}
 
 	result.WriteString(close)
