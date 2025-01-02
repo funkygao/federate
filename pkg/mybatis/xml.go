@@ -39,6 +39,7 @@ type XMLMapperBuilder struct {
 	Statements       map[string]*Statement
 	SqlFragments     map[string]string
 	UnknownFragments []SqlFragmentRef
+	nodeHandlers     map[string]NodeHandler
 }
 
 func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
@@ -47,6 +48,7 @@ func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
 		Statements:       make(map[string]*Statement),
 		SqlFragments:     make(map[string]string),
 		UnknownFragments: []SqlFragmentRef{},
+		nodeHandlers:     newNodeHandlers(),
 	}
 }
 
@@ -144,139 +146,52 @@ func (b *XMLMapperBuilder) processSqlFragment(elem *etree.Element) string {
 
 // recursively process SQL
 func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
-	var sql strings.Builder
+	context := &DynamicContext{}
+	b.parseDynamicTags(elem, context)
+	return context.sql.String()
+}
 
+func (b *XMLMapperBuilder) parseDynamicTags(elem *etree.Element, context *DynamicContext) {
 	for _, child := range elem.Child {
 		switch v := child.(type) {
 		case *etree.CharData:
-			sql.WriteString(v.Data)
-
+			context.sql.WriteString(v.Data)
 		case *etree.Element:
-			switch v.Tag {
-			case "if":
-				sql.WriteString(b.processDynamicSql(v))
-
-			case "choose":
-				whenElem := v.SelectElement("when")
-				if whenElem != nil {
-					sql.WriteString(b.processDynamicSql(whenElem))
-				}
-
-			case "trim", "where", "set":
-				sql.WriteString(b.processWhereTrimSet(v))
-
-			case "foreach":
-				sql.WriteString(b.processForeach(v))
-
-			case "include":
-				refid := v.SelectAttrValue("refid", "")
-				if sqlFragment, ok := b.SqlFragments[refid]; ok {
-					sql.WriteString(sqlFragment)
-				} else if refid != "" {
-					b.UnknownFragments = append(b.UnknownFragments, SqlFragmentRef{Refid: refid, StmtID: elem.SelectAttrValue("id", "")})
-				}
+			handler, exists := b.nodeHandlers[v.Tag]
+			if exists {
+				handler.handle(b, v, context)
+			} else if v.Tag == "include" {
+				b.handleInclude(v, context)
 			}
 		}
-	}
-
-	return sql.String()
-}
-
-func (b *XMLMapperBuilder) processWhereTrimSet(elem *etree.Element) string {
-	content := b.processDynamicSql(elem)
-	content = strings.TrimSpace(content)
-
-	// Handle prefixOverrides
-	prefixOverrides := elem.SelectAttrValue("prefixOverrides", "")
-	if prefixOverrides != "" {
-		overrides := strings.Split(prefixOverrides, "|")
-		for _, override := range overrides {
-			override = strings.TrimSpace(override)
-			if strings.HasPrefix(content, override) {
-				content = strings.TrimPrefix(content, override)
-				content = strings.TrimSpace(content)
-				break // Remove only one matching override
-			}
-		}
-	}
-
-	// Handle suffixOverrides
-	suffixOverrides := elem.SelectAttrValue("suffixOverrides", "")
-	if suffixOverrides != "" {
-		overrides := strings.Split(suffixOverrides, "|")
-		for _, override := range overrides {
-			override = strings.TrimSpace(override)
-			if strings.HasSuffix(content, override) {
-				content = strings.TrimSuffix(content, override)
-				content = strings.TrimSpace(content)
-				break // Remove only one matching override
-			}
-		}
-	}
-
-	// Handle prefix and suffix
-	prefix := elem.SelectAttrValue("prefix", "")
-	suffix := elem.SelectAttrValue("suffix", "")
-
-	if content != "" {
-		content = prefix + " " + content + " " + suffix
-	}
-
-	if elem.Tag == "where" && content != "" {
-		return "WHERE " + content
-	} else if elem.Tag == "set" && content != "" {
-		return "SET " + content
-	} else {
-		return content
 	}
 }
 
-func (b *XMLMapperBuilder) processForeach(elem *etree.Element) string {
-	var result strings.Builder
-	open := elem.SelectAttrValue("open", "")
-	close := elem.SelectAttrValue("close", "")
-	separator := elem.SelectAttrValue("separator", "")
-
-	result.WriteString(open)
-
-	isInsert := elem.Parent().Tag == "insert"
-
-	// 处理内部的内容
-	innerContent := b.processDynamicSql(elem)
-	// 替换所有 #{...} 为 ?
-	innerContent = hashPlaceHolder.ReplaceAllString(innerContent, "?")
-
-	if isInsert {
-		// 批量插入场景
-		result.WriteString("/* FOREACH_START */")
-		result.WriteString(innerContent)
-		result.WriteString("/* FOREACH_END */")
-
-		// 添加 FOREACH_ITEM 注释，但不添加额外的逗号
-		if separator != "" {
-			result.WriteString("/* FOREACH_ITEM */")
-		}
-	} else {
-		// 非插入的场景，需要根据分隔符处理
-		// 假设循环至少执行一次，我们用占位符代表多次执行
-		// 为了测试的目的，我们构造一个示例输出
-		simulatedLoop := []string{innerContent}
-		if separator != "" {
-			simulatedLoop = append(simulatedLoop, separator)
-			simulatedLoop = append(simulatedLoop, innerContent)
-		}
-		result.WriteString(strings.Join(simulatedLoop, " "))
+func (b *XMLMapperBuilder) handleInclude(elem *etree.Element, context *DynamicContext) {
+	refid := elem.SelectAttrValue("refid", "")
+	if sqlFragment, ok := b.SqlFragments[refid]; ok {
+		context.sql.WriteString(sqlFragment)
+	} else if refid != "" {
+		b.UnknownFragments = append(b.UnknownFragments, SqlFragmentRef{Refid: refid, StmtID: elem.SelectAttrValue("id", "")})
 	}
-
-	result.WriteString(close)
-
-	return result.String()
 }
 
 func (b *XMLMapperBuilder) postProcessSQL(sql string) string {
 	sql = removeCDATA(sql)
 	sql = replaceMybatisPlaceholders(sql)
 	sql = removeExtraWhitespace(sql)
+
+	// 处理多个 ORDER BY 子句
+	orderByParts := strings.Split(sql, "ORDER BY")
+	if len(orderByParts) > 1 {
+		sql = orderByParts[0]
+		var orderByClauses []string
+		for _, part := range orderByParts[1:] {
+			orderByClauses = append(orderByClauses, strings.TrimSpace(part))
+		}
+		sql += "ORDER BY " + strings.Join(orderByClauses, ", ")
+	}
+
 	return strings.TrimSpace(sql)
 }
 

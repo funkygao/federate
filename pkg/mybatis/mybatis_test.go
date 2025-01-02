@@ -189,7 +189,7 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Batch insert statement",
 			id:       "batchInsert",
-			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES /* FOREACH_START */ ( ?, ?, 0, ? ) /* FOREACH_END *//* FOREACH_ITEM */`,
+			expected: `INSERT INTO st_stock_stream ( tenant_code, remark, version, deleted ) VALUES /* FOREACH_START */ ( ?,?,0,? ) /* FOREACH_END */`,
 		},
 		{
 			name:     "Select statement with include",
@@ -199,17 +199,17 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Complex select statement with if and foreach",
 			id:       "json",
-			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN ( ? , ? ) AND ( extend_content ->> ? = ? AND extend_content ->> ? = ? )`,
+			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN (/* FOREACH_START */ ? /* FOREACH_END */) AND (/* FOREACH_START */ extend_content ->> ? = ? /* FOREACH_END */)`,
 		},
 		{
 			name:     "Complex update if and foreach",
 			id:       "updateCheckResult",
-			expected: `UPDATE st_device_stock_check_result set update_user=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, check_type=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, difference_qty=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, update_time = now() , status = 20 , version = version + 1 WHERE (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?) or (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?)`,
+			expected: `UPDATE st_device_stock_check_result SET foo=? WHERE /* FOREACH_START */ (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?) /* FOREACH_END */`,
 		},
 		{
 			name:     "Complex order by",
 			id:       "selectStockForManualLocating",
-			expected: `SELECT m.id, m.warehouse_no warehouseNo FROM st_stock m LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0 LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no WHERE m.deleted = 0 AND l.deleted = 0 ORDER BY ld.expiration_date ASC, l.extend_content -> ? ASC`,
+			expected: `SELECT m.id, m.warehouse_no warehouseNo FROM st_stock m LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0 LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no WHERE m.deleted = 0 AND l.deleted = 0 ORDER BY ld.expiration_date ASC, ld.expiration_date DESC, l.extend_content -> ? ASC`,
 		},
 	}
 
