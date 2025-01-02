@@ -13,6 +13,11 @@ import (
 type TableIndexRecommendation struct {
 	Table             string
 	FieldCombinations map[string]int
+
+	JoinFields    map[string]int
+	WhereFields   map[string]int
+	GroupByFields map[string]int
+	OrderByFields map[string]int
 }
 
 type UnparsableSQL struct {

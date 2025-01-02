@@ -167,7 +167,7 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) 
 		}
 	}
 
-	tabular.Display(header, cellData, false, -1)
+	tabular.Display(header, cellData, true, -1)
 }
 
 func min(a, b int) int {
