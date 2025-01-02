@@ -142,6 +142,33 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
             AND status = #{item.previousStatus.code, jdbcType=INTEGER}
         </if>
     </sql>
+
+    <select id="selectStockForManualLocating">
+        SELECT
+        m.id,
+        m.warehouse_no warehouseNo
+        FROM st_stock m
+        LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0
+        <if test="null != shelfLifeManagement and shelfLifeManagement == true and ((null != sourceModule and sourceModule.code == &apos;wms-outbound-plan&apos;) or null != perShelfLifeDays)">
+            LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no
+        </if>
+        <include refid="selectStockForManualLocatingCondition"/>
+        <if test="null != expirationOrderDirection and expirationOrderDirection.key == &apos;asc&apos;">
+            ORDER BY ld.expiration_date ASC
+        </if>
+        <if test="null != expirationOrderDirection and expirationOrderDirection.key == &apos;desc&apos;">
+            ORDER BY ld.expiration_date DESC
+        </if>
+    </select>
+
+    <sql id="selectStockForManualLocatingCondition">
+        WHERE m.deleted = 0
+        <if test="null != shelfLifeManagement and shelfLifeManagement == true">
+            <if test="null != perShelfLifeDays">
+                AND l.deleted = 0
+            </if>
+        </if>
+    </sql>
 </mapper>`
 
 func TestSQLAnalyzer(t *testing.T) {
@@ -175,6 +202,11 @@ func TestSQLAnalyzer(t *testing.T) {
 			name:     "Complex update if and foreach",
 			id:       "updateCheckResult",
 			expected: `UPDATE st_device_stock_check_result set update_user=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, check_type=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, difference_qty=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, update_time = now() , status = 20 , version = version + 1 WHERE (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?) or (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?)`,
+		},
+		{
+			name:     "Complex order by",
+			id:       "selectStockForManualLocating",
+			expected: `SELECT m.id, m.warehouse_no warehouseNo FROM st_stock m LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0 LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no WHERE m.deleted = 0 AND l.deleted = 0 ORDER BY ld.expiration_date ASC, ld.expiration_date DESC`,
 		},
 	}
 
