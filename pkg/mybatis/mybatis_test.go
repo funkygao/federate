@@ -153,11 +153,14 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
             LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no
         </if>
         <include refid="selectStockForManualLocatingCondition"/>
-        <if test="null != expirationOrderDirection and expirationOrderDirection.key == &apos;asc&apos;">
+        <if test="null == jsonKey and shelfLifeStatus == 1">
             ORDER BY ld.expiration_date ASC
         </if>
-        <if test="null != expirationOrderDirection and expirationOrderDirection.key == &apos;desc&apos;">
+        <if test="null == jsonKey and shelfLifeStatus == 7">
             ORDER BY ld.expiration_date DESC
+        </if>
+        <if test="null != jsonKey">
+            ORDER BY l.extend_content -&gt; #{jsonKey, jdbcType=VARCHAR} ASC
         </if>
     </select>
 
@@ -206,7 +209,7 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Complex order by",
 			id:       "selectStockForManualLocating",
-			expected: `SELECT m.id, m.warehouse_no warehouseNo FROM st_stock m LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0 LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no WHERE m.deleted = 0 AND l.deleted = 0 ORDER BY ld.expiration_date ASC, ld.expiration_date DESC`,
+			expected: `SELECT m.id, m.warehouse_no warehouseNo FROM st_stock m LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0 LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no WHERE m.deleted = 0 AND l.deleted = 0 ORDER BY ld.expiration_date ASC, l.extend_content -> ? ASC`,
 		},
 	}
 
