@@ -29,6 +29,7 @@ const (
    - Do not omit any needed changes from the requisite messages/code blocks.
    - Keep your suggested code changes minimal, and do not include irrelevant lines.
    - Review all suggestions, ensuring your modification is high quality.
+   - Never ever hard code for the specified failed test cases, your code must be robust and flexible.
 4. Ensure the generated code adheres to:
    - Object-oriented principles
    - SOLID principles
