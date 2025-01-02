@@ -40,6 +40,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
 	printTopN(sa.Fields, topK, []string{"Field", "Count"})
 
 	rg.writeIndexRecommendations(sa, topK)
+	rg.writeSimilarityReport(sa, topK)
 
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
@@ -170,6 +171,35 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) 
 		}
 	}
 
+	tabular.Display(header, cellData, true, -1)
+}
+
+func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer, topN int) {
+	color.Cyan("Similar SQL Statements by Type and File", topN)
+
+	similarities := sa.ComputeSimilarities(topN)
+
+	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
+	var cellData [][]string
+
+	for sqlType, files := range similarities {
+		for filename, pairs := range files {
+			if len(pairs) == 0 {
+				continue
+			}
+			for _, pair := range pairs {
+				simPercentage := fmt.Sprintf("%.2f%%", pair.Similarity*100)
+				if pair.Similarity < 0.5 {
+					continue
+				}
+
+				cellData = append(cellData, []string{sqlType,
+					strings.TrimSuffix(filepath.Base(filename), "Mapper.xml"),
+					simPercentage,
+					pair.ID1, pair.ID2})
+			}
+		}
+	}
 	tabular.Display(header, cellData, true, -1)
 }
 

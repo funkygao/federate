@@ -28,6 +28,8 @@ type UnparsableSQL struct {
 type SQLAnalyzer struct {
 	IgnoredFields map[string]bool
 
+	StatementsByType map[string][]*Statement
+
 	SQLTypes           map[string]int
 	Tables             map[string]int
 	Fields             map[string]int
@@ -59,6 +61,7 @@ func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
 		AggregationFuncs:   make(map[string]int),
 		JoinTypes:          make(map[string]int),
 		BatchInsertColumns: make(map[string]int),
+		StatementsByType:   make(map[string][]*Statement),
 
 		IndexRecommendations: make(map[string]*TableIndexRecommendation),
 
@@ -86,6 +89,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	sa.ParsedOK++
+	sa.StatementsByType[s.Type] = append(sa.StatementsByType[s.Type], &s)
 
 	switch stmt := stmt.(type) {
 	case *sqlparser.Select:
