@@ -4,10 +4,16 @@ import (
 	"fmt"
 	"log"
 	"regexp"
+	"sort"
 	"strings"
 
 	"github.com/xwb1989/sqlparser"
 )
+
+type TableIndexRecommendation struct {
+	Table             string
+	FieldCombinations map[string]int
+}
 
 type UnparsableSQL struct {
 	Stmt  Statement
@@ -15,39 +21,49 @@ type UnparsableSQL struct {
 }
 
 type SQLAnalyzer struct {
-	SQLTypes             map[string]int
-	Tables               map[string]int
-	Fields               map[string]int
-	ComplexQueries       int
-	JoinOperations       int
-	UnionOperations      int
-	SubQueries           int
-	AggregationFuncs     map[string]int // count, min, max, etc
-	DistinctQueries      int
-	OrderByOperations    int
-	LimitOperations      int
-	JoinTypes            map[string]int
-	IndexRecommendations map[string]int
-	ParsedOK             int
-	BatchInserts         int
-	BatchInsertColumns   map[string]int
+	IgnoredFields map[string]bool
+
+	SQLTypes           map[string]int
+	Tables             map[string]int
+	Fields             map[string]int
+	ComplexQueries     int
+	JoinOperations     int
+	UnionOperations    int
+	SubQueries         int
+	AggregationFuncs   map[string]int // count, min, max, etc
+	DistinctQueries    int
+	OrderByOperations  int
+	LimitOperations    int
+	JoinTypes          map[string]int
+	ParsedOK           int
+	BatchInserts       int
+	BatchInsertColumns map[string]int
+
+	IndexRecommendations map[string]*TableIndexRecommendation
 
 	UnknownFragments map[string][]SqlFragmentRef
 	UnparsableSQL    []UnparsableSQL
 }
 
-func NewSQLAnalyzer() *SQLAnalyzer {
-	return &SQLAnalyzer{
-		SQLTypes:             make(map[string]int),
-		Tables:               make(map[string]int),
-		Fields:               make(map[string]int),
-		AggregationFuncs:     make(map[string]int),
-		JoinTypes:            make(map[string]int),
-		IndexRecommendations: make(map[string]int),
-		BatchInsertColumns:   make(map[string]int),
-		UnparsableSQL:        []UnparsableSQL{},
-		UnknownFragments:     make(map[string][]SqlFragmentRef),
+func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
+	sa := &SQLAnalyzer{
+		IgnoredFields:      make(map[string]bool),
+		SQLTypes:           make(map[string]int),
+		Tables:             make(map[string]int),
+		Fields:             make(map[string]int),
+		AggregationFuncs:   make(map[string]int),
+		JoinTypes:          make(map[string]int),
+		BatchInsertColumns: make(map[string]int),
+
+		IndexRecommendations: make(map[string]*TableIndexRecommendation),
+
+		UnparsableSQL:    []UnparsableSQL{},
+		UnknownFragments: make(map[string][]SqlFragmentRef),
 	}
+	for _, field := range ignoredFields {
+		sa.IgnoredFields[field] = true
+	}
+	return sa
 }
 
 func (sa *SQLAnalyzer) Visit(xmlPath string, unknowns []SqlFragmentRef) {
@@ -246,8 +262,35 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 
 	sa.analyzeSelectExprs(stmt.SelectExprs)
 
+	tableAliases := sa.getTableAliases(stmt.From)
+	sa.analyzeWhereForIndexRecommendations(stmt.Where, tableAliases)
+
 	sa.analyzeJoins(stmt.From)
-	sa.analyzeWhereForIndexRecommendations(stmt.Where)
+}
+
+func (sa *SQLAnalyzer) getTableAliases(tableExprs sqlparser.TableExprs) map[string]string {
+	aliases := make(map[string]string)
+	for _, expr := range tableExprs {
+		switch tableExpr := expr.(type) {
+		case *sqlparser.AliasedTableExpr:
+			if tableName, ok := tableExpr.Expr.(sqlparser.TableName); ok {
+				if tableExpr.As.String() != "" {
+					aliases[tableExpr.As.String()] = tableName.Name.String()
+				} else {
+					aliases[tableName.Name.String()] = tableName.Name.String()
+				}
+			}
+		case *sqlparser.JoinTableExpr:
+			// 递归处理 JOIN 的两边
+			for k, v := range sa.getTableAliases(sqlparser.TableExprs{tableExpr.LeftExpr}) {
+				aliases[k] = v
+			}
+			for k, v := range sa.getTableAliases(sqlparser.TableExprs{tableExpr.RightExpr}) {
+				aliases[k] = v
+			}
+		}
+	}
+	return aliases
 }
 
 func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
@@ -262,19 +305,60 @@ func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
 	}, where.Expr)
 }
 
-func (sa *SQLAnalyzer) analyzeWhereForIndexRecommendations(where *sqlparser.Where) {
+func (sa *SQLAnalyzer) analyzeWhereForIndexRecommendations(where *sqlparser.Where, tableAliases map[string]string) {
 	if where == nil {
 		return
 	}
+
+	fieldCombinations := make(map[string]map[string]struct{})
+
 	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
 		switch node := node.(type) {
 		case *sqlparser.ComparisonExpr:
 			if colName, ok := node.Left.(*sqlparser.ColName); ok {
-				sa.IndexRecommendations[colName.Name.String()]++
+				// 检查字段是否被忽略
+				if sa.IgnoredFields[colName.Name.String()] {
+					return true, nil
+				}
+
+				table := colName.Qualifier.Name.String()
+				if actualTable, ok := tableAliases[table]; ok {
+					table = actualTable
+				} else if table == "" {
+					if len(tableAliases) == 1 {
+						for _, t := range tableAliases {
+							table = t
+							break
+						}
+					}
+				}
+				if table != "" {
+					if _, ok := fieldCombinations[table]; !ok {
+						fieldCombinations[table] = make(map[string]struct{})
+					}
+					fieldCombinations[table][colName.Name.String()] = struct{}{}
+				}
 			}
 		}
 		return true, nil
 	}, where.Expr)
+
+	for table, fields := range fieldCombinations {
+		uniqueFields := make([]string, 0, len(fields))
+		for field := range fields {
+			uniqueFields = append(uniqueFields, field)
+		}
+		sort.Strings(uniqueFields)
+		fieldCombination := strings.Join(uniqueFields, ",")
+
+		if _, ok := sa.IndexRecommendations[table]; !ok {
+			sa.IndexRecommendations[table] = &TableIndexRecommendation{
+				Table:             table,
+				FieldCombinations: make(map[string]int),
+			}
+		}
+		sa.IndexRecommendations[table].FieldCombinations[fieldCombination]++
+	}
 }
 
 func (sa *SQLAnalyzer) analyzeGroupBy(groupBy sqlparser.GroupBy) {

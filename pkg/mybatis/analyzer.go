@@ -5,9 +5,9 @@ type Analyzer struct {
 	ReportGenerator *ReportGenerator
 }
 
-func NewAnalyzer(verbosity int) *Analyzer {
+func NewAnalyzer(verbosity int, ignoredFields []string) *Analyzer {
 	return &Analyzer{
-		SQLAnalyzer:     NewSQLAnalyzer(),
+		SQLAnalyzer:     NewSQLAnalyzer(ignoredFields),
 		ReportGenerator: NewReportGenerator(verbosity),
 	}
 }

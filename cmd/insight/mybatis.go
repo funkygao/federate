@@ -28,7 +28,7 @@ var mybatisCmd = &cobra.Command{
 }
 
 func analyzeMybatisMapperXML(dir string) {
-	analyzer := mybatis.NewAnalyzer(verbosity)
+	analyzer := mybatis.NewAnalyzer(verbosity, []string{"deleted", "create_time", "yn"})
 
 	fileChan, _ := java.ListFilesAsync_(dir, java.IsXML, walkDir)
 	for f := range fileChan {

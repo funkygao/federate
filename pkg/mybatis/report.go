@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"federate/pkg/tabular"
 	"github.com/fatih/color"
@@ -36,8 +37,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
 	color.Cyan("Top %d most used fields", topK)
 	printTopN(sa.Fields, topK, []string{"Field", "Count"})
 
-	color.Cyan("Top %d index recommendations", topK)
-	printTopN(sa.IndexRecommendations, topK, []string{"Field", "Count"})
+	rg.writeIndexRecommendations(sa, topK)
 
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
@@ -120,6 +120,49 @@ func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
 	header := []string{"Element", "Count"}
 	cellData := sortMapByValue(elements)
 	tabular.Display(header, cellData, false, -1)
+}
+
+func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) {
+	color.Cyan("Index Recommendations per Table")
+	if len(sa.IgnoredFields) > 0 {
+		ignoredFields := make([]string, 0, len(sa.IgnoredFields))
+		for field := range sa.IgnoredFields {
+			ignoredFields = append(ignoredFields, field)
+		}
+		fmt.Printf("Note: The following fields are ignored in index recommendations: %s\n\n", strings.Join(ignoredFields, ", "))
+	}
+
+	for _, rec := range sa.IndexRecommendations {
+		fmt.Printf("Table: %s\n", rec.Table)
+		combinations := make([]struct {
+			Fields string
+			Count  int
+		}, 0, len(rec.FieldCombinations))
+
+		for fields, count := range rec.FieldCombinations {
+			combinations = append(combinations, struct {
+				Fields string
+				Count  int
+			}{fields, count})
+		}
+
+		sort.Slice(combinations, func(i, j int) bool {
+			return combinations[i].Count > combinations[j].Count
+		})
+
+		for i, comb := range combinations[:min(topK, len(combinations))] {
+			fields := strings.Split(comb.Fields, ",")
+			fmt.Printf("  %d. (%d) %s\n", i+1, comb.Count, strings.Join(fields, ", "))
+		}
+		fmt.Println()
+	}
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func sortMapByValue(m map[string]int) [][]string {
