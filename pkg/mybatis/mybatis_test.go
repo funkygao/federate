@@ -77,7 +77,7 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
         LIMIT 1
     </select>
 
-    <select id="foo" parameterType="com.goog.wms.stock.domain.capacity.entity.query.ZoneRecommendQuery" resultType="com.jdwl.wms.stock.infrastructure.jdbc.capacity.po.ZoneSkuPo">
+    <select id="json" parameterType="com.goog.wms.stock.domain.capacity.entity.query.ZoneRecommendQuery" resultType="com.jdwl.wms.stock.infrastructure.jdbc.capacity.po.ZoneSkuPo">
         SELECT
           DISTINCT
           sku,
@@ -168,8 +168,8 @@ func TestSQLAnalyzer(t *testing.T) {
 		},
 		{
 			name:     "Complex select statement with if and foreach",
-			id:       "foo",
-			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN (?,?) AND ( extend_content ->> ? = ? )`,
+			id:       "json",
+			expected: `SELECT DISTINCT sku, zone_no AS zoneNo FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND zone_no IN ( ? , ? ) AND ( extend_content ->> ? = ? AND extend_content ->> ? = ? )`,
 		},
 		{
 			name:     "Complex update if and foreach",
