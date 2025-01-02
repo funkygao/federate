@@ -27,7 +27,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
 
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
 
-	color.Cyan("Join types")
+	color.Cyan("Join types: %d", len(sa.JoinTypes))
 	printTopN(sa.JoinTypes, topK, []string{"Joint Type", "Count"})
 
 	color.Cyan("Top %d most used tables", topK)
@@ -48,7 +48,6 @@ func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentR
 		return
 	}
 
-	color.Red("Unsupported <include refid/>")
 	header := []string{"XML", "Statement ID", "Ref SQL ID"}
 	var cellData [][]string
 	for path, refs := range fails {
@@ -56,6 +55,7 @@ func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentR
 			cellData = append(cellData, []string{filepath.Base(path), ref.StmtID, ref.Refid})
 		}
 	}
+	color.Red("Unsupported <include refid/>: %d", len(cellData))
 	tabular.Display(header, cellData, true, -1)
 }
 
@@ -86,7 +86,7 @@ func (rg *ReportGenerator) writeBatchInsertInfo(sa *SQLAnalyzer) {
 }
 
 func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
-	color.Cyan("SQL Types")
+	color.Cyan("SQL Types: %d", len(sqlTypes))
 	header := []string{"Type", "Count"}
 	cellData := sortMapByValue(sqlTypes)
 	tabular.Display(header, cellData, false, -1)
@@ -109,14 +109,14 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
 }
 
 func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]int) {
-	color.Cyan("Aggregation Functions")
+	color.Cyan("Aggregation Functions: %d", len(aggFuncs))
 	header := []string{"Function", "Count"}
 	cellData := sortMapByValue(aggFuncs)
 	tabular.Display(header, cellData, false, -1)
 }
 
 func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
-	color.Cyan("Dynamic SQL Elements")
+	color.Cyan("Dynamic SQL Elements: %d", len(elements))
 	header := []string{"Element", "Count"}
 	cellData := sortMapByValue(elements)
 	tabular.Display(header, cellData, false, -1)
