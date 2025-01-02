@@ -2,11 +2,13 @@ package mybatis
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/beevik/etree"
+	"github.com/fatih/color"
 )
 
 var (
@@ -102,6 +104,10 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 	for _, stmt := range b.Statements {
 		stmt.Filename = b.Filename
 		stmt.ParseableSQL = b.postProcessSQL(stmt.SQL)
+		if verbosity > 2 {
+			color.Yellow("%s %s", b.BaseName(), stmt.ID)
+			log.Println(stmt.ParseableSQL)
+		}
 	}
 
 	return b.Statements, nil

@@ -12,12 +12,10 @@ import (
 	"github.com/fatih/color"
 )
 
-type ReportGenerator struct {
-	verbosity int
-}
+type ReportGenerator struct{}
 
-func NewReportGenerator(verbosity int) *ReportGenerator {
-	return &ReportGenerator{verbosity}
+func NewReportGenerator() *ReportGenerator {
+	return &ReportGenerator{}
 }
 
 func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
@@ -26,6 +24,9 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
 	rg.writeComplexityMetrics(sa)
 
 	rg.writeBatchInsertInfo(sa)
+
+	// TODO rg.writeBatchUpdateInfo(sa)
+	// TODO rg.writeBatchDeleteInfo(sa)
 
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
 
@@ -65,10 +66,12 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 		return
 	}
 
-	if rg.verbosity > 1 {
-		color.Red("Unparsable SQL Statements")
+	if verbosity > 1 {
 		for _, sql := range unparsableSQL {
-			log.Printf("%s %s\n%s\n%v", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID, sql.Stmt.ParseableSQL, sql.Error)
+			color.Yellow("%s %s", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID)
+			color.Blue(sql.Stmt.SQL)
+			log.Println(sql.Stmt.ParseableSQL)
+			color.Red("%v", sql.Error)
 		}
 	}
 
