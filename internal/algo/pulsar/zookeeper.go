@@ -1,5 +1,40 @@
 package main
 
+// ZooKeeper interface defines the operations Pulsar uses to interact with ZooKeeper.
+// Pulsar uses ZooKeeper for storing metadata and coordinating between brokers.
+//
+// The ZooKeeper znode structure for Pulsar typically looks like this:
+//
+//	/
+//	├── admin/
+//	│   ├── clusters/
+//	│   └── policies/
+//	├── brokers/
+//	│   └── <broker-id>/
+//	├── managed-ledgers/
+//	│   └── <namespace>/
+//	│       └── <topic>/
+//	│           └── persistent/
+//	│               └── <ledger-id>
+//	├── loadbalance/
+//	│   └── brokers/
+//	│       └── <broker-id>
+//	├── namespace/
+//	├── schemas/
+//	└── topics/
+//	    └── persistent/
+//	        └── <tenant>/
+//	            └── <namespace>/
+//	                └── <topic>/
+//	                    ├── partitions/
+//	                    ├── compaction
+//	                    └── subscriptions/
+//	                        └── <subscription-name>/
+//	                            ├── position
+//	                            └── state
+//
+// This structure allows Pulsar to store and manage metadata for brokers, topics,
+// subscriptions, and other components in a hierarchical manner.
 type ZooKeeper interface {
 	RegisterBroker(BrokerInfo) error
 	RegisterTopic(Topic) error
