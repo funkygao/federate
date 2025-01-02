@@ -12,6 +12,8 @@ import (
 
 var (
 	hashPlaceHolder = regexp.MustCompile(`#\{[^}]+\}`)
+	spaceRegex      = regexp.MustCompile(`\s+`)
+
 	ErrNotMapperXML = fmt.Errorf("root element 'mapper' not found")
 )
 
@@ -25,6 +27,7 @@ type Statement struct {
 
 type XMLMapperBuilder struct {
 	Filename     string
+	Root         *etree.Element
 	Namespace    string
 	Statements   map[string]*Statement
 	SqlFragments map[string]string
@@ -42,23 +45,37 @@ func (b *XMLMapperBuilder) BaseName() string {
 	return filepath.Base(b.Filename)
 }
 
+func (b *XMLMapperBuilder) ParseString(xmlContent string) (map[string]*Statement, error) {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromString(xmlContent); err != nil {
+		return nil, err
+	}
+
+	return b.doParse(doc)
+}
+
 func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	doc := etree.NewDocument()
 	if err := doc.ReadFromFile(b.Filename); err != nil {
 		return nil, err
 	}
 
+	return b.doParse(doc)
+}
+
+func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, error) {
 	root := doc.SelectElement("mapper")
 	if root == nil {
 		return nil, ErrNotMapperXML
 	}
 
+	b.Root = root
 	b.Namespace = root.SelectAttrValue("namespace", "")
 
 	// 首先解析所有的 <sql> 标签
 	for _, sqlElem := range root.SelectElements("sql") {
 		if id := sqlElem.SelectAttrValue("id", ""); id != "" {
-			b.SqlFragments[id] = b.processSqlFragment(sqlElem)
+			b.SqlFragments[id] = strings.TrimSpace(b.processSqlFragment(sqlElem))
 		}
 	}
 
@@ -203,11 +220,18 @@ func (b *XMLMapperBuilder) processForeach(elem *etree.Element) string {
 func (b *XMLMapperBuilder) postProcessSQL(sql string) string {
 	sql = removeCDATA(sql)
 	sql = replaceMybatisPlaceholders(sql)
+	sql = removeExtraWhitespace(sql)
 	return strings.TrimSpace(sql)
 }
 
 func removeCDATA(sql string) string {
 	return strings.ReplaceAll(strings.ReplaceAll(sql, "<![CDATA[", ""), "]]>", "")
+}
+
+func removeExtraWhitespace(sql string) string {
+	// Replace multiple spaces with a single space
+	sql = spaceRegex.ReplaceAllString(sql, " ")
+	return sql
 }
 
 func replaceMybatisPlaceholders(sql string) string {
