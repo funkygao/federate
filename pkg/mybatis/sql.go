@@ -76,7 +76,7 @@ func (sa *SQLAnalyzer) Visit(xmlPath string, unknowns []SqlFragmentRef) {
 }
 
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
-	stmt, err := sqlparser.Parse(s.ParseableSQL)
+	stmt, err := sqlparser.Parse(s.SQL)
 	if err != nil {
 		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
 			Stmt:  s,
@@ -103,7 +103,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	case *sqlparser.Union:
 		sa.analyzeUnion(stmt)
 	default:
-		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, s.ParseableSQL)
+		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, s.SQL)
 	}
 
 	// Unify aggregation function names to uppercase

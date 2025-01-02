@@ -26,6 +26,9 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
             id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version
         ]]>
     </sql>
+    <sql id="queryColumns2">
+        <include refid="queryColumns"/>, ext
+    </sql>
 
     <insert id="singleInsert" parameterType="com.goog.wms.stock.infrastructure.jdbc.main.po.StockStreamPo" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO st_stock_stream (
@@ -180,6 +183,8 @@ func TestSQLAnalyzer(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version", xml.SqlFragments["queryColumns"])
+	// recursive ref
+	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version, ext", xml.SqlFragments["queryColumns2"])
 	assert.True(t, len(xml.SqlFragments["commonUpdate4CheckFinishedClauseOfItem"]) > 10)
 
 	for _, tc := range testCases {
@@ -187,7 +192,7 @@ func TestSQLAnalyzer(t *testing.T) {
 			stmtID := "com.goog.wms.StockDao." + tc.id
 			stmt := stmts[stmtID]
 
-			assert.Equal(t, tc.expected, strings.TrimSpace(stmt.ParseableSQL), tc.id)
+			assert.Equal(t, tc.expected, strings.TrimSpace(stmt.SQL), tc.id)
 		})
 	}
 }

@@ -1,6 +1,7 @@
 package mybatis
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -24,11 +25,11 @@ type SqlFragmentRef struct {
 }
 
 type Statement struct {
-	Filename     string
-	ID           string
-	Type         string
-	SQL          string
-	ParseableSQL string
+	Filename string
+	ID       string
+	Type     string
+	Raw      string
+	SQL      string
 }
 
 type XMLMapperBuilder struct {
@@ -92,9 +93,11 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 		switch elem.Tag {
 		case "select", "insert", "update", "delete", "replace":
 			stmt := &Statement{
-				ID:   elem.SelectAttrValue("id", ""),
-				Type: elem.Tag,
-				SQL:  b.processDynamicSql(elem),
+				Filename: b.Filename,
+				ID:       elem.SelectAttrValue("id", ""),
+				Type:     elem.Tag,
+				Raw:      b.elementText(elem),
+				SQL:      b.processDynamicSql(elem),
 			}
 			b.Statements[b.Namespace+"."+stmt.ID] = stmt
 		}
@@ -102,15 +105,21 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 
 	// Post process SQL
 	for _, stmt := range b.Statements {
-		stmt.Filename = b.Filename
-		stmt.ParseableSQL = b.postProcessSQL(stmt.SQL)
+		stmt.SQL = b.postProcessSQL(stmt.SQL)
 		if verbosity > 2 {
 			color.Yellow("%s %s", b.BaseName(), stmt.ID)
-			log.Println(stmt.ParseableSQL)
+			log.Println(stmt.SQL)
 		}
 	}
 
 	return b.Statements, nil
+}
+
+func (b *XMLMapperBuilder) elementText(elem *etree.Element) string {
+	var buf bytes.Buffer
+	var s etree.WriteSettings
+	elem.WriteTo(&buf, &s)
+	return buf.String()
 }
 
 func (b *XMLMapperBuilder) processSqlFragment(elem *etree.Element) string {
