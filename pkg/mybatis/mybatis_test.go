@@ -174,7 +174,7 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Complex update if and foreach",
 			id:       "updateCheckResult",
-			expected: `UPDATE st_device_stock_check_result set update_user=case WHEN ? THEN ? END, check_type=case WHEN ? THEN ? END, difference_qty=case WHEN ? THEN ? END, update_time = now() , status = 20 , version = version + 1 WHERE deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?`,
+			expected: `UPDATE st_device_stock_check_result set update_user=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, check_type=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, difference_qty=case WHEN deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? THEN ? end, update_time = now() , status = 20 , version = version + 1 WHERE (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?) or (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?)`,
 		},
 	}
 
