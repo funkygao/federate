@@ -12,6 +12,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	verbosity   int
+	mybatisTopK int
+)
+
 var mybatisCmd = &cobra.Command{
 	Use:   "mybatis <dir>",
 	Short: "Analyze MyBatis MySQL mapper XML files in the specified directory",
@@ -20,6 +25,19 @@ var mybatisCmd = &cobra.Command{
 		dir := args[0]
 		analyzeMybatisMapperXML(dir)
 	},
+}
+
+func analyzeMybatisMapperXML(dir string) {
+	analyzer := mybatis.NewAnalyzer(verbosity)
+
+	fileChan, _ := java.ListFilesAsync_(dir, java.IsXML, walkDir)
+	for f := range fileChan {
+		if err := analyzer.AnalyzeFile(f.Path); err != nil {
+			log.Printf("Error analyzing file %s: %v", f.Path, err)
+		}
+	}
+
+	analyzer.GenerateReport(mybatisTopK)
 }
 
 var skippedDirs = map[string]struct{}{
@@ -41,15 +59,7 @@ func walkDir(info os.FileInfo) error {
 	return nil
 }
 
-func analyzeMybatisMapperXML(dir string) {
-	analyzer := mybatis.NewAnalyzer()
-
-	fileChan, _ := java.ListFilesAsync_(dir, java.IsXML, walkDir)
-	for f := range fileChan {
-		if err := analyzer.AnalyzeFile(f.Path); err != nil {
-			log.Printf("Error analyzing file %s: %v", f.Path, err)
-		}
-	}
-
-	analyzer.GenerateReport()
+func init() {
+	mybatisCmd.Flags().IntVarP(&mybatisTopK, "top", "t", 20, "Number of top elements to display in bar chart")
+	mybatisCmd.Flags().IntVarP(&verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 }

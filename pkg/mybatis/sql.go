@@ -29,9 +29,11 @@ type SQLAnalyzer struct {
 	JoinTypes            map[string]int
 	IndexRecommendations map[string]int
 	ParsedOK             int
-	UnparsableSQL        []UnparsableSQL
 	BatchInserts         int
 	BatchInsertColumns   map[string]int
+
+	UnknownFragments map[string][]SqlFragmentRef
+	UnparsableSQL    []UnparsableSQL
 }
 
 func NewSQLAnalyzer() *SQLAnalyzer {
@@ -44,7 +46,12 @@ func NewSQLAnalyzer() *SQLAnalyzer {
 		IndexRecommendations: make(map[string]int),
 		BatchInsertColumns:   make(map[string]int),
 		UnparsableSQL:        []UnparsableSQL{},
+		UnknownFragments:     make(map[string][]SqlFragmentRef),
 	}
+}
+
+func (sa *SQLAnalyzer) Visit(xmlPath string, unknowns []SqlFragmentRef) {
+	sa.UnknownFragments[xmlPath] = unknowns
 }
 
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {

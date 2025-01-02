@@ -7,35 +7,56 @@ import (
 	"sort"
 
 	"federate/pkg/tabular"
+	"github.com/fatih/color"
 )
 
-type ReportGenerator struct{}
-
-func NewReportGenerator() *ReportGenerator {
-	return &ReportGenerator{}
+type ReportGenerator struct {
+	verbosity int
 }
 
-func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
-	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
+func NewReportGenerator(verbosity int) *ReportGenerator {
+	return &ReportGenerator{verbosity}
+}
+
+func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
 	rg.writeSQLTypes(sa.SQLTypes)
-	//rg.writeMostUsedTables(sa.Tables)
-	//rg.writeMostUsedFields(sa.Fields)
+
 	rg.writeComplexityMetrics(sa)
+
+	rg.writeBatchInsertInfo(sa)
+
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
 
-	topK := 20
-
-	log.Printf("Join types:")
+	color.Cyan("Join types")
 	printTopN(sa.JoinTypes, topK, []string{"Joint Type", "Count"})
 
-	log.Printf("Top %d most used tables:", topK)
+	color.Cyan("Top %d most used tables", topK)
 	printTopN(sa.Tables, topK, []string{"Table", "Count"})
 
-	log.Printf("Top %d most used fields:", topK)
+	color.Cyan("Top %d most used fields", topK)
 	printTopN(sa.Fields, topK, []string{"Field", "Count"})
 
-	log.Printf("Top %d index recommendations:", topK)
+	color.Cyan("Top %d index recommendations", topK)
 	printTopN(sa.IndexRecommendations, topK, []string{"Field", "Count"})
+
+	rg.writeUnknownFragments(sa.UnknownFragments)
+	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
+}
+
+func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentRef) {
+	if len(fails) < 1 {
+		return
+	}
+
+	color.Red("Unsupported <include refid/>")
+	header := []string{"XML", "Statement ID", "Ref SQL ID"}
+	var cellData [][]string
+	for path, refs := range fails {
+		for _, ref := range refs {
+			cellData = append(cellData, []string{filepath.Base(path), ref.StmtID, ref.Refid})
+		}
+	}
+	tabular.Display(header, cellData, true, -1)
 }
 
 func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN int) {
@@ -43,51 +64,36 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 		return
 	}
 
-	log.Println("Unparsable SQL Statements:")
-	for _, sql := range unparsableSQL {
-		log.Printf("%s %s\n%s\n%v", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID, sql.Stmt.ParseableSQL, sql.Error)
+	if rg.verbosity > 1 {
+		color.Red("Unparsable SQL Statements")
+		for _, sql := range unparsableSQL {
+			log.Printf("%s %s\n%s\n%v", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID, sql.Stmt.ParseableSQL, sql.Error)
+		}
 	}
 
-	log.Printf("%d Statements Fail, %d OK", len(unparsableSQL), okN)
-	log.Println()
+	color.Cyan("%d Statements Fail, %d OK", len(unparsableSQL), okN)
 }
 
 func (rg *ReportGenerator) writeBatchInsertInfo(sa *SQLAnalyzer) {
-	log.Println("Batch Insert Operations:")
-	log.Printf("Total Batch Inserts: %d\n", sa.BatchInserts)
-	log.Println("Columns used in Batch Inserts:")
+	if sa.BatchInserts < 1 {
+		return
+	}
+
+	color.Cyan("Total Batch Inserts %d\n", sa.BatchInserts)
 	header := []string{"Column", "Count"}
 	cellData := sortMapByValue(sa.BatchInsertColumns)
 	tabular.Display(header, cellData, false, -1)
-	log.Println()
 }
 
 func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
-	log.Println("SQL Types:")
+	color.Cyan("SQL Types")
 	header := []string{"Type", "Count"}
 	cellData := sortMapByValue(sqlTypes)
 	tabular.Display(header, cellData, false, -1)
-	log.Println()
-}
-
-func (rg *ReportGenerator) writeMostUsedTables(tables map[string]int) {
-	log.Println("Most Used Tables:")
-	header := []string{"Table", "Count"}
-	cellData := sortMapByValue(tables)
-	tabular.Display(header, cellData, false, -1)
-	log.Println()
-}
-
-func (rg *ReportGenerator) writeMostUsedFields(fields map[string]int) {
-	log.Println("Most Used Fields:")
-	header := []string{"Field", "Count"}
-	cellData := sortMapByValue(fields)
-	tabular.Display(header, cellData, false, -1)
-	log.Println()
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
-	log.Println("Complexity Operation Metrics:")
+	color.Cyan("Complexity Operation Metrics")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
 		"Complex Queries": sa.ComplexQueries,
@@ -100,23 +106,20 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
 	}
 	cellData := sortMapByValue(metrics)
 	tabular.Display(header, cellData, false, -1)
-	log.Println()
 }
 
 func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]int) {
-	log.Println("Aggregation Functions:")
+	color.Cyan("Aggregation Functions")
 	header := []string{"Function", "Count"}
 	cellData := sortMapByValue(aggFuncs)
 	tabular.Display(header, cellData, false, -1)
-	log.Println()
 }
 
 func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
-	log.Println("Dynamic SQL Elements:")
+	color.Cyan("Dynamic SQL Elements")
 	header := []string{"Element", "Count"}
 	cellData := sortMapByValue(elements)
 	tabular.Display(header, cellData, false, -1)
-	log.Println()
 }
 
 func sortMapByValue(m map[string]int) [][]string {
@@ -149,5 +152,4 @@ func printTopN(m map[string]int, topK int, header []string) {
 
 	cellData := sortMapByValue(m)[:topK]
 	tabular.Display(header, cellData, false, -1)
-	log.Println()
 }

@@ -5,22 +5,24 @@ type Analyzer struct {
 	ReportGenerator *ReportGenerator
 }
 
-func NewAnalyzer() *Analyzer {
+func NewAnalyzer(verbosity int) *Analyzer {
 	return &Analyzer{
 		SQLAnalyzer:     NewSQLAnalyzer(),
-		ReportGenerator: NewReportGenerator(),
+		ReportGenerator: NewReportGenerator(verbosity),
 	}
 }
 
 func (a *Analyzer) AnalyzeFile(filePath string) error {
-	builder := NewXMLMapperBuilder(filePath)
-	stmts, err := builder.Parse()
+	xml := NewXMLMapperBuilder(filePath)
+	stmts, err := xml.Parse()
 	if err != nil {
 		if err == ErrNotMapperXML {
 			return nil
 		}
 		return err
 	}
+
+	a.SQLAnalyzer.Visit(filePath, xml.UnknownFragments)
 
 	for _, stmt := range stmts {
 		a.SQLAnalyzer.AnalyzeStmt(*stmt)
@@ -29,6 +31,6 @@ func (a *Analyzer) AnalyzeFile(filePath string) error {
 	return nil
 }
 
-func (a *Analyzer) GenerateReport() {
-	a.ReportGenerator.Generate(a.SQLAnalyzer)
+func (a *Analyzer) GenerateReport(topK int) {
+	a.ReportGenerator.Generate(a.SQLAnalyzer, topK)
 }

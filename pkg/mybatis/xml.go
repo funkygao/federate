@@ -2,7 +2,6 @@ package mybatis
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -17,6 +16,11 @@ var (
 	ErrNotMapperXML = fmt.Errorf("root element 'mapper' not found")
 )
 
+type SqlFragmentRef struct {
+	Refid  string
+	StmtID string
+}
+
 type Statement struct {
 	Filename     string
 	ID           string
@@ -26,18 +30,20 @@ type Statement struct {
 }
 
 type XMLMapperBuilder struct {
-	Filename     string
-	Root         *etree.Element
-	Namespace    string
-	Statements   map[string]*Statement
-	SqlFragments map[string]string
+	Filename         string
+	Root             *etree.Element
+	Namespace        string
+	Statements       map[string]*Statement
+	SqlFragments     map[string]string
+	UnknownFragments []SqlFragmentRef
 }
 
 func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
 	return &XMLMapperBuilder{
-		Filename:     filename,
-		Statements:   make(map[string]*Statement),
-		SqlFragments: make(map[string]string),
+		Filename:         filename,
+		Statements:       make(map[string]*Statement),
+		SqlFragments:     make(map[string]string),
+		UnknownFragments: []SqlFragmentRef{},
 	}
 }
 
@@ -152,7 +158,7 @@ func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
 				if sqlFragment, ok := b.SqlFragments[refid]; ok {
 					sql.WriteString(sqlFragment)
 				} else if refid != "" {
-					log.Printf("[%s] %s include external[%s] not supported yet", b.BaseName(), elem.SelectAttrValue("id", ""), refid)
+					b.UnknownFragments = append(b.UnknownFragments, SqlFragmentRef{Refid: refid, StmtID: elem.SelectAttrValue("id", "")})
 				}
 			}
 		}
