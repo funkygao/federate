@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
+	"federate/pkg/util"
 	"github.com/fatih/color"
 )
 
@@ -86,7 +87,11 @@ func (rg *ReportGenerator) writeBatchInsertInfo(sa *SQLAnalyzer) {
 }
 
 func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
-	color.Cyan("SQL Types: %d", len(sqlTypes))
+	stmts := 0
+	for _, n := range sqlTypes {
+		stmts += n
+	}
+	color.Cyan("SQL Types: %d, Statements: %d", len(sqlTypes), stmts)
 	header := []string{"Type", "Count"}
 	cellData := sortMapByValue(sqlTypes)
 	tabular.Display(header, cellData, false, -1)
@@ -129,11 +134,13 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) 
 		for field := range sa.IgnoredFields {
 			ignoredFields = append(ignoredFields, field)
 		}
-		fmt.Printf("Note: The following fields are ignored in index recommendations: %s\n\n", strings.Join(ignoredFields, ", "))
+		log.Printf("Note: The following fields are ignored in index recommendations: %s", strings.Join(ignoredFields, ", "))
 	}
 
+	header := []string{"Table", "N", "Index Column Comination"}
+	var cellData [][]string
+
 	for _, rec := range sa.IndexRecommendations {
-		fmt.Printf("Table: %s\n", rec.Table)
 		combinations := make([]struct {
 			Fields string
 			Count  int
@@ -150,12 +157,17 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) 
 			return combinations[i].Count > combinations[j].Count
 		})
 
-		for i, comb := range combinations[:min(topK, len(combinations))] {
-			fields := strings.Split(comb.Fields, ",")
-			fmt.Printf("  %d. (%d) %s\n", i+1, comb.Count, strings.Join(fields, ", "))
+		for _, comb := range combinations[:min(topK, len(combinations))] {
+			if comb.Count < 2 {
+				continue
+			}
+
+			fields := util.Truncate(comb.Fields, util.TerminalWidth()-40)
+			cellData = append(cellData, []string{rec.Table, fmt.Sprintf("%d", comb.Count), fields})
 		}
-		fmt.Println()
 	}
+
+	tabular.Display(header, cellData, false, -1)
 }
 
 func min(a, b int) int {
