@@ -81,17 +81,16 @@ func (sa *SQLAnalyzer) Visit(xmlPath string, unknowns []SqlFragmentRef) {
 }
 
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
-	var parseErrors []error
+	if s.Timeout > 0 {
+		timeoutKey := fmt.Sprintf("%ds", s.Timeout)
+		sa.TimeoutStatements[timeoutKey]++
+	}
 
+	var parseErrors []error
 	for _, sqlStmt := range sa.splitSQLStatements(s.SQL) {
 		sqlStmt = strings.TrimSpace(sqlStmt)
 		if sqlStmt == "" {
 			continue
-		}
-
-		if s.Timeout > 0 {
-			timeoutKey := fmt.Sprintf("%ds", s.Timeout)
-			sa.TimeoutStatements[timeoutKey]++
 		}
 
 		stmt, err := sqlparser.Parse(sqlStmt)
@@ -186,36 +185,36 @@ func (sa *SQLAnalyzer) splitSQLStatements(sql string) []string {
 
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement) {
 	sa.SQLTypes["SELECT"]++
-	sa.analyzeTables(stmt.From)
+	sa.analyzeTables(stmt.From, s)
 	sa.analyzeFields(stmt.SelectExprs)
 	sa.analyzeComplexity(stmt)
 }
 
 func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert, s Statement) {
 	sa.SQLTypes["INSERT"]++
-	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
+	sa.analyzeTable(&sqlparser.AliasedTableExpr{
 		Expr: stmt.Table,
-	})
+	}, s)
 	sa.analyzeColumns(stmt.Columns)
 }
 
 func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert, s Statement) {
 	sa.SQLTypes["REPLACE"]++
-	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
+	sa.analyzeTable(&sqlparser.AliasedTableExpr{
 		Expr: stmt.Table,
-	})
+	}, s)
 	sa.analyzeColumns(stmt.Columns)
 }
 
 func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update, s Statement) {
 	sa.SQLTypes["UPDATE"]++
-	sa.analyzeTables(stmt.TableExprs)
+	sa.analyzeTables(stmt.TableExprs, s)
 	sa.analyzeUpdateExprs(stmt.Exprs)
 }
 
 func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete, s Statement) {
 	sa.SQLTypes["DELETE"]++
-	sa.analyzeTables(stmt.TableExprs)
+	sa.analyzeTables(stmt.TableExprs, s)
 }
 
 func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union, s Statement) {
@@ -227,15 +226,6 @@ func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union, s Statement) {
 
 func (sa *SQLAnalyzer) analyzeSet(stmt *sqlparser.Set) {
 	sa.SQLTypes["SET @"]++
-}
-
-func (sa *SQLAnalyzer) analyzeSingleTable(tableExpr sqlparser.TableExpr) {
-	switch t := tableExpr.(type) {
-	case *sqlparser.AliasedTableExpr:
-		if name, ok := t.Expr.(sqlparser.TableName); ok {
-			sa.Tables[name.Name.String()]++
-		}
-	}
 }
 
 func (sa *SQLAnalyzer) analyzeColumns(columns sqlparser.Columns) {
@@ -250,13 +240,26 @@ func (sa *SQLAnalyzer) analyzeUpdateExprs(exprs sqlparser.UpdateExprs) {
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeTables(tables sqlparser.TableExprs) {
+func (sa *SQLAnalyzer) analyzeTables(tables sqlparser.TableExprs, s Statement) {
 	for _, table := range tables {
-		switch t := table.(type) {
-		case *sqlparser.AliasedTableExpr:
-			if name, ok := t.Expr.(sqlparser.TableName); ok {
-				sa.Tables[name.Name.String()]++
+		sa.analyzeTable(table, s)
+	}
+}
+
+func (sa *SQLAnalyzer) analyzeTable(tableExpr sqlparser.TableExpr, s Statement) {
+	switch t := tableExpr.(type) {
+	case *sqlparser.AliasedTableExpr:
+		if name, ok := t.Expr.(sqlparser.TableName); ok {
+			tableName := name.Name.String()
+
+			if tableName == "dual" {
+				// e,g. select @affected_rows as rows，sqlparser 会自动引入 "dual" 表
+				if !strings.Contains(strings.ToLower(s.SQL), "dual") {
+					return
+				}
 			}
+
+			sa.Tables[tableName]++
 		}
 	}
 }

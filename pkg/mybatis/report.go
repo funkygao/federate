@@ -23,6 +23,10 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.writeSQLTypes(sa.SQLTypes)
 	log.Println()
 
+	color.Magenta("Top %d most used tables", TopK)
+	printTopN(sa.Tables, TopK)
+	log.Println()
+
 	rg.writeComplexityMetrics(sa)
 	log.Println()
 
@@ -33,14 +37,6 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	log.Println()
 
 	rg.writeTimeoutInfo(sa.TimeoutStatements)
-	log.Println()
-
-	color.Magenta("Top %d most used tables", TopK)
-	printTopN(sa.Tables, TopK, []string{"Table", "Count"})
-	log.Println()
-
-	color.Magenta("Top %d most used fields", TopK)
-	printTopN(sa.Fields, TopK, []string{"Field", "Count"})
 	log.Println()
 
 	if ShowBatchOps {
@@ -246,21 +242,16 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
 
 // 在 report.go 中添加
 func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
-	// JOIN 类型统计
-	joinTypeItems := make([]tabular.BarChartItem, 0, len(sa.JoinTypes))
-	for joinType, count := range sa.JoinTypes {
-		joinTypeItems = append(joinTypeItems, tabular.BarChartItem{Name: joinType, Count: count})
-	}
 	color.Magenta("Join Types")
-	tabular.PrintBarChart(joinTypeItems, 0)
+	printTopN(sa.JoinTypes, 0)
+	log.Println()
 
+	color.Magenta("Join Table Counts")
 	// JOIN 表数量统计
 	joinTableItems := make([]tabular.BarChartItem, 0, len(sa.JoinTableCounts))
 	for tableCount, frequency := range sa.JoinTableCounts {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
 	}
-	log.Println()
-	color.Magenta("Join Table Counts")
 	tabular.PrintBarChart(joinTableItems, 0)
 
 	// 添加一些分析和建议
@@ -336,11 +327,14 @@ func sortMapByValue(m map[string]int) [][]string {
 	return result
 }
 
-func printTopN(m map[string]int, topK int, header []string) {
+func printTopN(m map[string]int, topK int) {
 	if len(m) < topK {
 		topK = len(m)
 	}
 
-	cellData := sortMapByValue(m)[:topK]
-	tabular.Display(header, cellData, false, -1)
+	items := make([]tabular.BarChartItem, 0, len(m))
+	for key, count := range m {
+		items = append(items, tabular.BarChartItem{Name: key, Count: count})
+	}
+	tabular.PrintBarChart(items, topK)
 }
