@@ -195,6 +195,26 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
             </foreach>
         </if>
     </sql>
+
+    <select id="selectLocationStock">
+        SELECT
+        COUNT(distinct sku) AS skuQty,
+        zone_no AS zoneNo,
+        SUM(st.frozen_qty) AS frozenQty
+        FROM st_stock st
+        <where>
+            st.deleted = 0 AND st.warehouse_no = #{warehouseNo, jdbcType=VARCHAR}
+        </where>
+        GROUP BY st.location_no
+        <trim prefix="HAVING" prefixOverrides="AND">
+            <if test="existLockStatus != null and existLockStatus == true">
+                and statusSum > 0
+            </if>
+            <if test="existLockStatus != null and existLockStatus == false">
+                and statusSum = 0
+            </if>
+        </trim>
+    </select>
 </mapper>`
 
 func TestSQLAnalyzer(t *testing.T) {
@@ -238,6 +258,11 @@ func TestSQLAnalyzer(t *testing.T) {
 			name:     "queryZoneStock",
 			id:       "queryZoneStock",
 			expected: `SELECT sku FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND sku in (/* FOREACH_START */ ? /* FOREACH_END */) AND zone_no in (/* FOREACH_START */ ? /* FOREACH_END */) group by sku, zone_no`,
+		},
+		{
+			name:     "selectLocationStock",
+			id:       "selectLocationStock",
+			expected: `SELECT COUNT(distinct sku) AS skuQty, zone_no AS zoneNo, SUM(st.frozen_qty) AS frozenQty FROM st_stock st WHERE st.deleted = 0 AND st.warehouse_no = ? GROUP BY st.location_no HAVING statusSum > 0 AND statusSum = 0`,
 		},
 	}
 

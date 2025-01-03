@@ -153,14 +153,14 @@ func (b *XMLMapperBuilder) processSqlFragment(elem *etree.Element) *etree.Elemen
 func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
 	context := &DynamicContext{}
 	b.parseDynamicTags(elem, context)
-	return context.sql.String()
+	return context.String()
 }
 
 func (b *XMLMapperBuilder) parseDynamicTags(elem *etree.Element, context *DynamicContext) {
 	for _, child := range elem.Child {
 		switch v := child.(type) {
 		case *etree.CharData:
-			context.sql.WriteString(v.Data)
+			context.WriteString(v.Data)
 		case *etree.Element:
 			handler, exists := b.nodeHandlers[v.Tag]
 			if exists {

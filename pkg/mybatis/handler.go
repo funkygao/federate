@@ -16,12 +16,12 @@ var (
 	_ NodeHandler = (*OtherwiseHandler)(nil)
 )
 
-type NodeHandler interface {
-	handle(b *XMLMapperBuilder, node *etree.Element, context *DynamicContext) bool
+type DynamicContext struct {
+	strings.Builder
 }
 
-type DynamicContext struct {
-	sql strings.Builder
+type NodeHandler interface {
+	handle(b *XMLMapperBuilder, node *etree.Element, context *DynamicContext) bool
 }
 
 // TrimHandler 处理 <trim> 标签
@@ -33,27 +33,27 @@ func (h *TrimHandler) handle(b *XMLMapperBuilder, node *etree.Element, context *
 
 	if strings.EqualFold(prefix, "set") {
 		// 对于 SET 子句，我们直接简化处理
-		context.sql.WriteString("SET foo=?")
+		context.WriteString("SET foo=?")
 		// 不需要处理 suffixOverrides，因为我们只写入一个 ?=?
 	} else {
 		// 对于其他情况，保持原有的处理逻辑
 		childContent := &DynamicContext{}
 		b.parseDynamicTags(node, childContent)
-		trimmed := strings.TrimSpace(childContent.sql.String())
+		trimmed := strings.TrimSpace(childContent.String())
 
 		if trimmed != "" {
 			if prefix != "" {
-				context.sql.WriteString(prefix)
-				context.sql.WriteString(" ")
+				context.WriteString(prefix)
+				context.WriteString(" ")
 			}
-			context.sql.WriteString(trimmed)
+			context.WriteString(trimmed)
 			// 处理 suffixOverrides
 			if suffixOverrides != "" {
 				for _, override := range strings.Split(suffixOverrides, "|") {
 					trimmed = strings.TrimSuffix(trimmed, override)
 				}
-				context.sql.Reset()
-				context.sql.WriteString(strings.TrimSpace(trimmed))
+				context.Reset()
+				context.WriteString(strings.TrimSpace(trimmed))
 			}
 		}
 	}
@@ -67,7 +67,7 @@ type WhereHandler struct{}
 func (h *WhereHandler) handle(b *XMLMapperBuilder, node *etree.Element, context *DynamicContext) bool {
 	childContent := &DynamicContext{}
 	b.parseDynamicTags(node, childContent)
-	trimmed := strings.TrimSpace(childContent.sql.String())
+	trimmed := strings.TrimSpace(childContent.String())
 
 	if trimmed != "" {
 		if strings.HasPrefix(strings.ToUpper(trimmed), "AND ") {
@@ -75,8 +75,8 @@ func (h *WhereHandler) handle(b *XMLMapperBuilder, node *etree.Element, context 
 		} else if strings.HasPrefix(strings.ToUpper(trimmed), "OR ") {
 			trimmed = trimmed[3:]
 		}
-		context.sql.WriteString(" WHERE ")
-		context.sql.WriteString(trimmed)
+		context.WriteString(" WHERE ")
+		context.WriteString(trimmed)
 	}
 
 	return true
@@ -88,14 +88,14 @@ type SetHandler struct{}
 func (h *SetHandler) handle(b *XMLMapperBuilder, node *etree.Element, context *DynamicContext) bool {
 	childContent := &DynamicContext{}
 	b.parseDynamicTags(node, childContent)
-	trimmed := strings.TrimSpace(childContent.sql.String())
+	trimmed := strings.TrimSpace(childContent.String())
 
 	if trimmed != "" {
 		if strings.HasSuffix(trimmed, ",") {
 			trimmed = trimmed[:len(trimmed)-1]
 		}
-		context.sql.WriteString(" SET ")
-		context.sql.WriteString(trimmed)
+		context.WriteString(" SET ")
+		context.WriteString(trimmed)
 	}
 
 	return true
@@ -109,24 +109,24 @@ func (h *ForEachHandler) handle(b *XMLMapperBuilder, node *etree.Element, contex
 	close := node.SelectAttrValue("close", "")
 	separator := node.SelectAttrValue("separator", "")
 
-	context.sql.WriteString(open)
-	context.sql.WriteString("/* FOREACH_START */ ")
+	context.WriteString(open)
+	context.WriteString("/* FOREACH_START */ ")
 
 	childContent := &DynamicContext{}
 	b.parseDynamicTags(node, childContent)
 
-	content := childContent.sql.String()
+	content := childContent.String()
 
 	items := strings.Split(content, separator)
 	for i, item := range items {
 		if i > 0 {
-			context.sql.WriteString(separator)
+			context.WriteString(separator)
 		}
-		context.sql.WriteString(strings.TrimSpace(item))
+		context.WriteString(strings.TrimSpace(item))
 	}
 
-	context.sql.WriteString(" /* FOREACH_END */")
-	context.sql.WriteString(close)
+	context.WriteString(" /* FOREACH_END */")
+	context.WriteString(close)
 
 	return true
 }
@@ -141,7 +141,7 @@ func (h *IfHandler) handle(b *XMLMapperBuilder, node *etree.Element, context *Dy
 	if test != "" {
 		childContent := &DynamicContext{}
 		b.parseDynamicTags(node, childContent)
-		context.sql.WriteString(childContent.sql.String())
+		context.WriteString(childContent.String())
 	}
 	return true
 }
