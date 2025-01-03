@@ -136,7 +136,7 @@ func TestSplitSQLStatements(t *testing.T) {
 		},
 	}
 
-	analyzer := NewSQLAnalyzer(nil)
+	analyzer := NewSQLAnalyzer(nil, nil)
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := analyzer.splitSQLStatements(tc.input)

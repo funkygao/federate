@@ -26,6 +26,7 @@ type UnparsableSQL struct {
 
 type SQLAnalyzer struct {
 	IgnoredFields map[string]bool
+	DB            *DB
 
 	StatementsByType map[string][]*Statement
 
@@ -55,8 +56,9 @@ type SQLAnalyzer struct {
 	UnparsableSQL    []UnparsableSQL
 }
 
-func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
+func NewSQLAnalyzer(ignoredFields []string, DB *DB) *SQLAnalyzer {
 	sa := &SQLAnalyzer{
+		DB:                DB,
 		IgnoredFields:     make(map[string]bool),
 		SQLTypes:          make(map[string]int),
 		Tables:            make(map[string]int),
@@ -108,23 +110,28 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		sa.ParsedOK++
 		sa.StatementsByType[s.Type] = append(sa.StatementsByType[s.Type], &s)
 
+		stmtID, err := sa.DB.InsertStatement(&s)
+		if err != nil {
+			log.Printf("Error inserting statement: %v", err)
+		}
+
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
-			sa.analyzeSelect(stmt, s)
+			sa.analyzeSelect(stmt, s, stmtID)
 		case *sqlparser.Insert:
 			if stmt.Action == sqlparser.ReplaceStr {
-				sa.analyzeReplace(stmt, s)
+				sa.analyzeReplace(stmt, s, stmtID)
 			} else {
-				sa.analyzeInsert(stmt, s)
+				sa.analyzeInsert(stmt, s, stmtID)
 			}
 		case *sqlparser.Update:
-			sa.analyzeUpdate(stmt, s)
+			sa.analyzeUpdate(stmt, s, stmtID)
 		case *sqlparser.Delete:
-			sa.analyzeDelete(stmt, s)
+			sa.analyzeDelete(stmt, s, stmtID)
 		case *sqlparser.Union:
-			sa.analyzeUnion(stmt, s)
+			sa.analyzeUnion(stmt, s, stmtID)
 		case *sqlparser.Set:
-			sa.analyzeSet(stmt)
+			sa.analyzeSet(stmt, stmtID)
 		default:
 			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, sqlStmt)
 		}
@@ -189,70 +196,67 @@ func (sa *SQLAnalyzer) splitSQLStatements(sql string) []string {
 	return statements
 }
 
-func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement) {
+func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement, stmtID int64) {
 	sa.SQLTypes["SELECT"]++
-	sa.analyzeTables(stmt.From, s)
-	sa.analyzeFields(stmt.SelectExprs)
-	sa.analyzeComplexity(stmt)
+	sa.analyzeTables(stmt.From, s, stmtID)
+	sa.analyzeFields(stmt.SelectExprs, stmtID)
+	sa.analyzeComplexity(stmt, stmtID)
 }
 
-func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert, s Statement) {
+func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert, s Statement, stmtID int64) {
 	sa.SQLTypes["INSERT"]++
-	sa.analyzeTable(&sqlparser.AliasedTableExpr{
-		Expr: stmt.Table,
-	}, s)
-	sa.analyzeColumns(stmt.Columns)
+	sa.analyzeTable(&sqlparser.AliasedTableExpr{Expr: stmt.Table}, s, stmtID)
+	sa.analyzeColumns(stmt.Columns, stmtID)
 }
 
-func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert, s Statement) {
+func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert, s Statement, stmtID int64) {
 	sa.SQLTypes["REPLACE"]++
-	sa.analyzeTable(&sqlparser.AliasedTableExpr{
-		Expr: stmt.Table,
-	}, s)
-	sa.analyzeColumns(stmt.Columns)
+	sa.analyzeTable(&sqlparser.AliasedTableExpr{Expr: stmt.Table}, s, stmtID)
+	sa.analyzeColumns(stmt.Columns, stmtID)
 }
 
-func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update, s Statement) {
+func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update, s Statement, stmtID int64) {
 	sa.SQLTypes["UPDATE"]++
-	sa.analyzeTables(stmt.TableExprs, s)
-	sa.analyzeUpdateExprs(stmt.Exprs)
+	sa.analyzeTables(stmt.TableExprs, s, stmtID)
+	sa.analyzeUpdateExprs(stmt.Exprs, stmtID)
 }
 
-func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete, s Statement) {
+func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete, s Statement, stmtID int64) {
 	sa.SQLTypes["DELETE"]++
-	sa.analyzeTables(stmt.TableExprs, s)
+	sa.analyzeTables(stmt.TableExprs, s, stmtID)
 }
 
-func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union, s Statement) {
+func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union, s Statement, stmtID int64) {
 	sa.SQLTypes["UNION"]++
 	sa.UnionOperations++
-	//sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
-	//sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
+	sa.DB.InsertComplexity(stmtID, false, true, false, false, false, false)
 }
 
-func (sa *SQLAnalyzer) analyzeSet(stmt *sqlparser.Set) {
+func (sa *SQLAnalyzer) analyzeSet(stmt *sqlparser.Set, stmtID int64) {
 	sa.SQLTypes["SET @"]++
 }
 
-func (sa *SQLAnalyzer) analyzeColumns(columns sqlparser.Columns) {
+func (sa *SQLAnalyzer) analyzeColumns(columns sqlparser.Columns, stmtID int64) {
 	for _, col := range columns {
 		sa.Fields[col.String()]++
+		sa.DB.InsertField(stmtID, col.String())
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeUpdateExprs(exprs sqlparser.UpdateExprs) {
+func (sa *SQLAnalyzer) analyzeUpdateExprs(exprs sqlparser.UpdateExprs, stmtID int64) {
 	for _, expr := range exprs {
 		sa.Fields[expr.Name.Name.String()]++
+		sa.DB.InsertField(stmtID, expr.Name.Name.String())
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeTables(tables sqlparser.TableExprs, s Statement) {
+func (sa *SQLAnalyzer) analyzeTables(tables sqlparser.TableExprs, s Statement, stmtID int64) {
 	for _, table := range tables {
-		sa.analyzeTable(table, s)
+		sa.analyzeTable(table, s, stmtID)
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeTable(tableExpr sqlparser.TableExpr, s Statement) {
+func (sa *SQLAnalyzer) analyzeTable(tableExpr sqlparser.TableExpr, s Statement, stmtID int64) {
 	switch t := tableExpr.(type) {
 	case *sqlparser.AliasedTableExpr:
 		if name, ok := t.Expr.(sqlparser.TableName); ok {
@@ -266,22 +270,26 @@ func (sa *SQLAnalyzer) analyzeTable(tableExpr sqlparser.TableExpr, s Statement) 
 			}
 
 			sa.Tables[tableName]++
+			sa.DB.InsertTable(stmtID, tableName)
 		}
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs) {
+func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs, stmtID int64) {
 	for _, expr := range exprs {
 		switch e := expr.(type) {
 		case *sqlparser.AliasedExpr:
 			if col, ok := e.Expr.(*sqlparser.ColName); ok {
-				sa.Fields[col.Name.String()]++
+				fieldName := col.Name.String()
+				sa.Fields[fieldName]++
+
+				sa.DB.InsertField(stmtID, fieldName)
 			}
 		}
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
+func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select, stmtID int64) {
 	joinCount, joinTypes, joinTableCount := sa.analyzeJoins(stmt.From)
 	if joinCount > 0 {
 		sa.JoinOperations += joinCount
@@ -291,6 +299,19 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 		sa.JoinTableCounts[joinTableCount]++
 	}
 
+	hasSubquery := sa.hasSubquery(stmt)
+	hasUnion := sa.UnionOperations > 0
+	hasDistinct := stmt.Distinct != ""
+	hasOrderBy := stmt.OrderBy != nil
+	hasLimit := stmt.Limit != nil
+	hasOffset := stmt.Limit != nil && stmt.Limit.Offset != nil
+
+	if hasSubquery || hasUnion || hasDistinct || hasOrderBy || hasLimit || joinCount > 0 {
+		sa.ComplexQueries++
+	}
+
+	sa.DB.InsertComplexity(stmtID, hasSubquery, hasUnion, hasDistinct, hasOrderBy, hasLimit, hasOffset)
+
 	if stmt.Where != nil || stmt.GroupBy != nil || stmt.Having != nil ||
 		stmt.OrderBy != nil || stmt.Limit != nil || joinCount > 0 ||
 		sa.UnionOperations > 0 {
@@ -298,11 +319,11 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 	}
 
 	if stmt.Where != nil {
-		sa.analyzeWhere(stmt.Where)
+		sa.analyzeWhere(stmt.Where, stmtID)
 	}
 
 	if stmt.GroupBy != nil {
-		sa.analyzeGroupBy(stmt.GroupBy)
+		sa.analyzeGroupBy(stmt.GroupBy, stmtID)
 	}
 
 	if stmt.OrderBy != nil {
@@ -322,12 +343,25 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 		sa.DistinctQueries++
 	}
 
-	sa.analyzeSelectExprs(stmt.SelectExprs)
+	sa.analyzeSelectExprs(stmt.SelectExprs, stmtID)
 
 	tableAliases := sa.getTableAliases(stmt.From)
 	sa.analyzeWhereForIndexRecommendations(stmt.Where, tableAliases)
 
 	sa.analyzeJoins(stmt.From)
+}
+
+func (sa *SQLAnalyzer) hasSubquery(stmt *sqlparser.Select) bool {
+	hasSubquery := false
+	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+		switch node.(type) {
+		case *sqlparser.Subquery:
+			hasSubquery = true
+			return false, nil
+		}
+		return true, nil
+	}, stmt)
+	return hasSubquery
 }
 
 func (sa *SQLAnalyzer) getTableAliases(tableExprs sqlparser.TableExprs) map[string]string {
@@ -355,7 +389,7 @@ func (sa *SQLAnalyzer) getTableAliases(tableExprs sqlparser.TableExprs) map[stri
 	return aliases
 }
 
-func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
+func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where, stmtID int64) {
 	if where == nil {
 		return
 	}
@@ -369,7 +403,9 @@ func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
 				sa.SubQueries++
 			}
 		case *sqlparser.FuncExpr:
-			sa.AggregationFuncs[node.Name.String()]++
+			funcName := node.Name.String()
+			sa.AggregationFuncs[funcName]++
+			sa.DB.InsertAggregationFunction(stmtID, funcName)
 		}
 		return true, nil
 	}, where.Expr)
@@ -431,20 +467,24 @@ func (sa *SQLAnalyzer) analyzeWhereForIndexRecommendations(where *sqlparser.Wher
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeGroupBy(groupBy sqlparser.GroupBy) {
+func (sa *SQLAnalyzer) analyzeGroupBy(groupBy sqlparser.GroupBy, stmtID int64) {
 	for _, expr := range groupBy {
 		if funcExpr, ok := expr.(*sqlparser.FuncExpr); ok {
-			sa.AggregationFuncs[funcExpr.Name.String()]++
+			funcName := funcExpr.Name.String()
+			sa.AggregationFuncs[funcName]++
+			sa.DB.InsertAggregationFunction(stmtID, funcName)
 		}
 	}
 }
 
-func (sa *SQLAnalyzer) analyzeSelectExprs(exprs sqlparser.SelectExprs) {
+func (sa *SQLAnalyzer) analyzeSelectExprs(exprs sqlparser.SelectExprs, stmtID int64) {
 	for _, expr := range exprs {
 		switch expr := expr.(type) {
 		case *sqlparser.AliasedExpr:
 			if funcExpr, ok := expr.Expr.(*sqlparser.FuncExpr); ok {
-				sa.AggregationFuncs[funcExpr.Name.String()]++
+				funcName := funcExpr.Name.String()
+				sa.AggregationFuncs[funcName]++
+				sa.DB.InsertAggregationFunction(stmtID, funcName)
 			}
 		}
 	}

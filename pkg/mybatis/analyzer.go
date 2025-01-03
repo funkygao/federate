@@ -6,14 +6,23 @@ type Analyzer struct {
 	SQLAnalyzer     *SQLAnalyzer
 	ReportGenerator *ReportGenerator
 
-	builders map[string]*XMLMapperBuilder
+	mapperBuilders map[string]*XMLMapperBuilder
 }
 
 func NewAnalyzer(ignoredFields []string) *Analyzer {
+	db, err := NewDB(DbFile)
+	if err != nil {
+		log.Fatalf("%v", err)
+	}
+
+	if err := db.InitTables(); err != nil {
+		log.Fatalf("%v", err)
+	}
+
 	return &Analyzer{
-		SQLAnalyzer:     NewSQLAnalyzer(ignoredFields),
+		SQLAnalyzer:     NewSQLAnalyzer(ignoredFields, db),
 		ReportGenerator: NewReportGenerator(),
-		builders:        make(map[string]*XMLMapperBuilder),
+		mapperBuilders:  make(map[string]*XMLMapperBuilder),
 	}
 }
 
@@ -39,12 +48,12 @@ func (a *Analyzer) prepareFile(filePath string) error {
 		return err
 	}
 
-	a.builders[filePath] = xml
+	a.mapperBuilders[filePath] = xml
 	return nil
 }
 
 func (a *Analyzer) analyzeFile(filePath string) error {
-	xml := a.builders[filePath]
+	xml := a.mapperBuilders[filePath]
 	if xml == nil {
 		return nil
 	}
