@@ -41,6 +41,8 @@ type SQLAnalyzer struct {
 	DistinctQueries    int
 	OrderByOperations  int
 	LimitOperations    int
+	LimitWithOffset    int
+	LimitWithoutOffset int
 	JoinTypes          map[string]int
 	ParsedOK           int
 	BatchInserts       int
@@ -261,7 +263,7 @@ func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union) {
 }
 
 func (sa *SQLAnalyzer) analyzeSet(stmt *sqlparser.Set) {
-	sa.SQLTypes["SET"]++
+	sa.SQLTypes["SET @"]++
 }
 
 func (sa *SQLAnalyzer) analyzeSingleTable(tableExpr sqlparser.TableExpr) {
@@ -331,6 +333,11 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 
 	if stmt.Limit != nil {
 		sa.LimitOperations++
+		if stmt.Limit.Offset != nil {
+			sa.LimitWithOffset++
+		} else {
+			sa.LimitWithoutOffset++
+		}
 	}
 
 	if stmt.Distinct != "" {

@@ -30,6 +30,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	// TODO rg.writeBatchDeleteInfo(sa)
 
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
+	rg.writeTimeoutInfo(sa.TimeoutStatements)
 
 	color.Cyan("Join types: %d", len(sa.JoinTypes))
 	printTopN(sa.JoinTypes, TopK, []string{"Joint Type", "Count"})
@@ -40,10 +41,12 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	color.Cyan("Top %d most used fields", TopK)
 	printTopN(sa.Fields, TopK, []string{"Field", "Count"})
 
+	if true {
+		return
+	}
+
 	rg.writeIndexRecommendations(sa)
 	rg.writeSimilarityReport(sa)
-
-	rg.writeTimeoutInfo(sa.TimeoutStatements)
 
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
@@ -124,7 +127,7 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 	for _, n := range sqlTypes {
 		stmts += n
 	}
-	color.Cyan("SQL Types: %d, Statements: %d", len(sqlTypes), stmts)
+	color.Cyan("Statements: %d", stmts)
 
 	var items []tabular.BarChartItem
 	for sqlType, count := range sqlTypes {
@@ -135,15 +138,16 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
-	color.Cyan("Complexity Operation Metrics")
+	color.Cyan("Complexity Operation")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
-		"JOIN":       sa.JoinOperations,
-		"SubQueries": sa.SubQueries,
-		"DISTINCT":   sa.DistinctQueries,
-		"ORDER BY":   sa.OrderByOperations,
-		"LIMIT":      sa.LimitOperations,
-		"UNION":      sa.UnionOperations,
+		"JOIN":                 sa.JoinOperations,
+		"SubQueries":           sa.SubQueries,
+		"DISTINCT":             sa.DistinctQueries,
+		"ORDER BY":             sa.OrderByOperations,
+		"UNION":                sa.UnionOperations,
+		"LIMIT with OFFSET":    sa.LimitWithOffset,
+		"LIMIT without OFFSET": sa.LimitWithoutOffset,
 	}
 	cellData := sortMapByValue(metrics)
 	tabular.Display(header, cellData, false, -1)
