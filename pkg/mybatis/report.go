@@ -259,6 +259,7 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 	for tableCount, frequency := range sa.JoinTableCounts {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
 	}
+	log.Println()
 	color.Magenta("Join Table Counts")
 	tabular.PrintBarChart(joinTableItems, 0)
 
