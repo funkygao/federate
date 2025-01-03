@@ -1,7 +1,6 @@
 package insight
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -25,13 +24,13 @@ var mybatisCmd = &cobra.Command{
 func analyzeMybatisMapperXML(dir string) {
 	analyzer := mybatis.NewAnalyzer([]string{"deleted", "create_time", "yn"})
 
+	var files []string
 	fileChan, _ := java.ListFilesAsync_(dir, java.IsXML, walkDir)
 	for f := range fileChan {
-		if err := analyzer.AnalyzeFile(f.Path); err != nil {
-			log.Printf("Error analyzing file %s: %v", f.Path, err)
-		}
+		files = append(files, f.Path)
 	}
 
+	analyzer.AnalyzeFiles(files)
 	analyzer.GenerateReport()
 }
 

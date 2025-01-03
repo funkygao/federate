@@ -58,6 +58,10 @@ func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentR
 			cellData = append(cellData, []string{filepath.Base(path), ref.StmtID, ref.Refid})
 		}
 	}
+	if len(cellData) == 0 {
+		return
+	}
+
 	color.Red("Unsupported <include refid/>: %d", len(cellData))
 	tabular.Display(header, cellData, true, -1)
 }
