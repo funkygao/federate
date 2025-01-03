@@ -8,6 +8,7 @@ import (
 	"federate/pkg/java"
 	"federate/pkg/mybatis"
 	"federate/pkg/primitive"
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -54,10 +55,11 @@ func walkDir(info os.FileInfo) error {
 }
 
 func init() {
-	mybatisCmd.Flags().IntVarP(&mybatis.TopK, "top", "t", 10, "Number of top elements to display in bar chart")
+	mybatisCmd.Flags().IntVarP(&mybatis.TopK, "top", "t", 20, "Number of top elements to display in bar chart")
 	mybatisCmd.Flags().IntVarP(&mybatis.Verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 	mybatisCmd.Flags().Float64VarP(&mybatis.SimilarityThreshold, "similarity-threshold", "s", 0.75, "Statement similary threhold")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowIndexRecommend, "index-recommend", "i", false, "Show index recommendations per table")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowBatchOps, "batches", "b", false, "Show batch operations")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowSimilarity, "show-similar-queries", "q", false, "Show similar query pairs")
+	mybatisCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
 }

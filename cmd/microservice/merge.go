@@ -14,7 +14,6 @@ var (
 	dryRunMerge bool
 	autoYes     bool
 	silentMode  bool
-	noColor     bool
 )
 
 var mergeCmd = &cobra.Command{
@@ -33,9 +32,6 @@ func doMerge(m *manifest.Manifest) {
 	if silentMode {
 		log.SetOutput(io.Discard)
 	}
-	if noColor {
-		color.NoColor = true
-	}
 
 	compiler := merge.NewCompiler(m, merge.WithDryRun(dryRunMerge),
 		merge.WithAutoYes(autoYes), merge.WithSilent(silentMode))
@@ -48,6 +44,6 @@ func init() {
 	mergeCmd.Flags().BoolVarP(&autoYes, "yes", "y", false, "Automatically answer yes to all prompts")
 	mergeCmd.Flags().BoolVarP(&silentMode, "silent", "s", false, "Silent or quiet mode")
 	mergeCmd.Flags().BoolVarP(&dryRunMerge, "dry-run", "d", false, "Only show Consolidation Plan")
-	mergeCmd.Flags().BoolVarP(&noColor, "no-color", "n", false, "Disable colorized output")
+	mergeCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
 	mergeCmd.Flags().BoolVarP(&merge.FailFast, "fail-fast", "f", false, "Fail fast")
 }
