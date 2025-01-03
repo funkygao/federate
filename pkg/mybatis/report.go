@@ -21,31 +21,47 @@ func NewReportGenerator() *ReportGenerator {
 
 func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.writeSQLTypes(sa.SQLTypes)
+	log.Println()
 
 	rg.writeComplexityMetrics(sa)
+	log.Println()
+
 	rg.writeJoinAnalysis(sa)
-
-	rg.writeBatchInsertInfo(sa)
-
-	// TODO rg.writeBatchUpdateInfo(sa)
-	// TODO rg.writeBatchDeleteInfo(sa)
+	log.Println()
 
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
+	log.Println()
+
 	rg.writeTimeoutInfo(sa.TimeoutStatements)
+	log.Println()
 
-	color.Cyan("Top %d most used tables", TopK)
+	color.Magenta("Top %d most used tables", TopK)
 	printTopN(sa.Tables, TopK, []string{"Table", "Count"})
+	log.Println()
 
-	color.Cyan("Top %d most used fields", TopK)
+	color.Magenta("Top %d most used fields", TopK)
 	printTopN(sa.Fields, TopK, []string{"Field", "Count"})
+	log.Println()
 
-	if true {
-		return
+	if ShowBatchOps {
+		rg.writeBatchOperations(sa)
+		log.Println()
 	}
 
-	rg.writeIndexRecommendations(sa)
-	rg.writeSimilarityReport(sa)
+	if ShowIndexRecommend {
+		rg.writeIndexRecommendations(sa)
+		log.Println()
+	}
 
+	if ShowSimilarity {
+		rg.writeSimilarityReport(sa)
+		log.Println()
+	}
+
+	rg.showErrors(sa)
+}
+
+func (rg *ReportGenerator) showErrors(sa *SQLAnalyzer) {
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
 }
@@ -55,7 +71,7 @@ func (rg *ReportGenerator) writeTimeoutInfo(timeoutStatements map[string]int) {
 		return
 	}
 
-	color.Cyan("Statements with Timeout")
+	color.Magenta("Statements with Timeout")
 	header := []string{"Timeout", "Count"}
 	var cellData [][]string
 
@@ -106,18 +122,38 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 		}
 	}
 
-	color.Cyan("%d Statements Fail, %d OK", len(unparsableSQL), okN)
+	color.Magenta("%d Statements Fail, %d OK", len(unparsableSQL), okN)
 }
 
-func (rg *ReportGenerator) writeBatchInsertInfo(sa *SQLAnalyzer) {
-	if sa.BatchInserts < 1 {
-		return
+func (rg *ReportGenerator) writeBatchOperations(sa *SQLAnalyzer) {
+	header := []string{"Operation", "XML", "Statement ID"}
+	var cellData [][]string
+
+	// Batch Inserts
+	for _, stmt := range sa.StatementsByType["insert"] {
+		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
+			cellData = append(cellData, []string{"Insert", filepath.Base(stmt.Filename), stmt.ID})
+		}
 	}
 
-	color.Cyan("Total Batch Inserts %d\n", sa.BatchInserts)
-	header := []string{"Column", "Count"}
-	cellData := sortMapByValue(sa.BatchInsertColumns)
-	tabular.Display(header, cellData, false, -1)
+	// Batch Updates
+	for _, stmt := range sa.StatementsByType["update"] {
+		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
+			cellData = append(cellData, []string{"Update", filepath.Base(stmt.Filename), stmt.ID})
+		}
+	}
+
+	// Batch Deletes
+	for _, stmt := range sa.StatementsByType["delete"] {
+		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
+			cellData = append(cellData, []string{"Delete", filepath.Base(stmt.Filename), stmt.ID})
+		}
+	}
+
+	if len(cellData) > 0 {
+		color.Magenta("Batch Operations")
+		tabular.Display(header, cellData, true, -1)
+	}
 }
 
 func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
@@ -125,7 +161,7 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 	for _, n := range sqlTypes {
 		stmts += n
 	}
-	color.Cyan("Statements: %d", stmts)
+	color.Magenta("Statements: %d", stmts)
 
 	var items []tabular.BarChartItem
 	for sqlType, count := range sqlTypes {
@@ -136,7 +172,7 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
-	color.Cyan("Complexity Operation")
+	color.Magenta("Complexity Operation")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
 		"JOIN":                 sa.JoinOperations,
@@ -152,21 +188,21 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
 }
 
 func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]int) {
-	color.Cyan("Aggregation Functions: %d", len(aggFuncs))
+	color.Magenta("Aggregation Functions: %d", len(aggFuncs))
 	header := []string{"Function", "Count"}
 	cellData := sortMapByValue(aggFuncs)
 	tabular.Display(header, cellData, false, -1)
 }
 
 func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
-	color.Cyan("Dynamic SQL Elements: %d", len(elements))
+	color.Magenta("Dynamic SQL Elements: %d", len(elements))
 	header := []string{"Element", "Count"}
 	cellData := sortMapByValue(elements)
 	tabular.Display(header, cellData, false, -1)
 }
 
 func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
-	color.Cyan("Index Recommendations per Table")
+	color.Magenta("Index Recommendations per Table")
 	if len(sa.IgnoredFields) > 0 {
 		ignoredFields := make([]string, 0, len(sa.IgnoredFields))
 		for field := range sa.IgnoredFields {
@@ -215,7 +251,7 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 	for joinType, count := range sa.JoinTypes {
 		joinTypeItems = append(joinTypeItems, tabular.BarChartItem{Name: joinType, Count: count})
 	}
-	color.Cyan("Join Types")
+	color.Magenta("Join Types")
 	tabular.PrintBarChart(joinTypeItems, 0)
 
 	// JOIN 表数量统计
@@ -223,7 +259,7 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 	for tableCount, frequency := range sa.JoinTableCounts {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
 	}
-	color.Cyan("Join Table Counts")
+	color.Magenta("Join Table Counts")
 	tabular.PrintBarChart(joinTableItems, 0)
 
 	// 添加一些分析和建议
@@ -241,7 +277,7 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 }
 
 func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
-	color.Cyan("Similar SQL Statements by Type and File")
+	color.Magenta("Similar SQL Statements by Type and File")
 
 	similarities := sa.ComputeSimilarities()
 

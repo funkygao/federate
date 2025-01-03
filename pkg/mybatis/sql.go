@@ -3,7 +3,6 @@ package mybatis
 import (
 	"fmt"
 	"log"
-	"regexp"
 	"sort"
 	"strings"
 
@@ -46,8 +45,6 @@ type SQLAnalyzer struct {
 	JoinTypes          map[string]int
 	JoinTableCounts    map[int]int
 	ParsedOK           int
-	BatchInserts       int
-	BatchInsertColumns map[string]int
 	TimeoutStatements  map[string]int
 
 	IndexRecommendations map[string]*TableIndexRecommendation
@@ -58,16 +55,15 @@ type SQLAnalyzer struct {
 
 func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
 	sa := &SQLAnalyzer{
-		IgnoredFields:      make(map[string]bool),
-		SQLTypes:           make(map[string]int),
-		Tables:             make(map[string]int),
-		Fields:             make(map[string]int),
-		AggregationFuncs:   make(map[string]int),
-		JoinTypes:          make(map[string]int),
-		JoinTableCounts:    make(map[int]int),
-		TimeoutStatements:  make(map[string]int),
-		BatchInsertColumns: make(map[string]int),
-		StatementsByType:   make(map[string][]*Statement),
+		IgnoredFields:     make(map[string]bool),
+		SQLTypes:          make(map[string]int),
+		Tables:            make(map[string]int),
+		Fields:            make(map[string]int),
+		AggregationFuncs:  make(map[string]int),
+		JoinTypes:         make(map[string]int),
+		JoinTableCounts:   make(map[int]int),
+		TimeoutStatements: make(map[string]int),
+		StatementsByType:  make(map[string][]*Statement),
 
 		IndexRecommendations: make(map[string]*TableIndexRecommendation),
 
@@ -109,19 +105,19 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
-			sa.analyzeSelect(stmt)
+			sa.analyzeSelect(stmt, s)
 		case *sqlparser.Insert:
 			if stmt.Action == sqlparser.ReplaceStr {
-				sa.analyzeReplace(stmt)
+				sa.analyzeReplace(stmt, s)
 			} else {
-				sa.analyzeInsert(stmt)
+				sa.analyzeInsert(stmt, s)
 			}
 		case *sqlparser.Update:
-			sa.analyzeUpdate(stmt)
+			sa.analyzeUpdate(stmt, s)
 		case *sqlparser.Delete:
-			sa.analyzeDelete(stmt)
+			sa.analyzeDelete(stmt, s)
 		case *sqlparser.Union:
-			sa.analyzeUnion(stmt)
+			sa.analyzeUnion(stmt, s)
 		case *sqlparser.Set:
 			sa.analyzeSet(stmt)
 		default:
@@ -188,57 +184,22 @@ func (sa *SQLAnalyzer) splitSQLStatements(sql string) []string {
 	return statements
 }
 
-func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select) {
+func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement) {
 	sa.SQLTypes["SELECT"]++
 	sa.analyzeTables(stmt.From)
 	sa.analyzeFields(stmt.SelectExprs)
 	sa.analyzeComplexity(stmt)
 }
 
-func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert) {
+func (sa *SQLAnalyzer) analyzeInsert(stmt *sqlparser.Insert, s Statement) {
 	sa.SQLTypes["INSERT"]++
 	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
 		Expr: stmt.Table,
 	})
 	sa.analyzeColumns(stmt.Columns)
-
-	if rows, ok := stmt.Rows.(sqlparser.Values); ok && len(rows) > 0 {
-		sa.analyzeBatchInsert(sqlparser.String(stmt))
-	}
 }
 
-func (sa *SQLAnalyzer) analyzeBatchInsert(sqlString string) {
-	if strings.Contains(sqlString, "/* FOREACH_START */") {
-		sa.BatchInserts++
-
-		// 提取FOREACH_START和FOREACH_END之间的内容
-		start := strings.Index(sqlString, "/* FOREACH_START */")
-		end := strings.Index(sqlString, "/* FOREACH_END */")
-		if start != -1 && end != -1 && start < end {
-			foreachContent := sqlString[start+len("/* FOREACH_START */") : end]
-
-			// 分析foreach内部的列
-			columns := extractColumns(foreachContent)
-			for _, col := range columns {
-				sa.Fields[col]++
-			}
-		}
-	}
-}
-
-func extractColumns(content string) []string {
-	// 使用正则表达式提取列名
-	re := regexp.MustCompile(`\?`)
-	matches := re.FindAllStringIndex(content, -1)
-
-	columns := make([]string, len(matches))
-	for i := range matches {
-		columns[i] = fmt.Sprintf("column_%d", i+1)
-	}
-	return columns
-}
-
-func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert) {
+func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert, s Statement) {
 	sa.SQLTypes["REPLACE"]++
 	sa.analyzeSingleTable(&sqlparser.AliasedTableExpr{
 		Expr: stmt.Table,
@@ -246,18 +207,18 @@ func (sa *SQLAnalyzer) analyzeReplace(stmt *sqlparser.Insert) {
 	sa.analyzeColumns(stmt.Columns)
 }
 
-func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update) {
+func (sa *SQLAnalyzer) analyzeUpdate(stmt *sqlparser.Update, s Statement) {
 	sa.SQLTypes["UPDATE"]++
 	sa.analyzeTables(stmt.TableExprs)
 	sa.analyzeUpdateExprs(stmt.Exprs)
 }
 
-func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete) {
+func (sa *SQLAnalyzer) analyzeDelete(stmt *sqlparser.Delete, s Statement) {
 	sa.SQLTypes["DELETE"]++
 	sa.analyzeTables(stmt.TableExprs)
 }
 
-func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union) {
+func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union, s Statement) {
 	sa.SQLTypes["UNION"]++
 	sa.UnionOperations++
 	//sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
