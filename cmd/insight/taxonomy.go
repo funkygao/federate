@@ -5,11 +5,10 @@ import (
 	"log"
 	"regexp"
 	"sort"
-	"strings"
 
 	"federate/pkg/java"
+	"federate/pkg/tabular"
 	"federate/pkg/util"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
@@ -104,40 +103,18 @@ func printArchetypeAnalysis(taxonomy map[string]int) {
 
 	if useBarChart {
 		fmt.Println()
-		printArchetypeBarChart(sorted, width)
+		printArchetypeBarChart(sorted)
 	}
 }
 
-func printArchetypeBarChart(sorted []archetypeCount, width int) {
+func printArchetypeBarChart(sorted []archetypeCount) {
 	fmt.Println("Code Taxonomy (Top", topK, ")")
 	fmt.Println("-----------------------------")
 
-	if topK > len(sorted) {
-		topK = len(sorted)
+	items := make([]tabular.BarChartItem, len(sorted))
+	for i, ac := range sorted {
+		items[i] = tabular.BarChartItem{Name: ac.name, Count: ac.count}
 	}
 
-	maxCount := sorted[0].count
-	maxNameLength := 0
-	for _, ac := range sorted[:topK] {
-		if len(ac.name) > maxNameLength {
-			maxNameLength = len(ac.name)
-		}
-	}
-
-	barWidth := width - maxNameLength - 8
-	cyan := color.New(color.FgCyan)
-	yellow := color.New(color.FgYellow)
-
-	for i, ac := range sorted[:topK] {
-		barLength := int(float64(ac.count) / float64(maxCount) * float64(barWidth))
-		bar := strings.Repeat("■", barLength)
-
-		fmt.Printf("%-*s %5d ", maxNameLength, ac.name, ac.count)
-		if i%2 == 0 {
-			cyan.Print(bar)
-		} else {
-			yellow.Print(bar)
-		}
-		fmt.Println()
-	}
+	tabular.PrintBarChart(items, topK)
 }

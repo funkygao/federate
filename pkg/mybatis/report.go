@@ -125,9 +125,13 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 		stmts += n
 	}
 	color.Cyan("SQL Types: %d, Statements: %d", len(sqlTypes), stmts)
-	header := []string{"Type", "Count"}
-	cellData := sortMapByValue(sqlTypes)
-	tabular.Display(header, cellData, false, -1)
+
+	var items []tabular.BarChartItem
+	for sqlType, count := range sqlTypes {
+		items = append(items, tabular.BarChartItem{Name: sqlType, Count: count})
+	}
+
+	tabular.PrintBarChart(items, 0) // 0 means print all items
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
