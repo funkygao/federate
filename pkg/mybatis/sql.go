@@ -308,14 +308,13 @@ func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs) {
 }
 
 func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
+	joinCount := sa.countJoins(stmt.From)
+	sa.JoinOperations += joinCount
+
 	if stmt.Where != nil || stmt.GroupBy != nil || stmt.Having != nil ||
-		stmt.OrderBy != nil || stmt.Limit != nil || len(stmt.From) > 1 ||
+		stmt.OrderBy != nil || stmt.Limit != nil || joinCount > 0 ||
 		sa.UnionOperations > 0 {
 		sa.ComplexQueries++
-	}
-
-	if len(stmt.From) > 1 {
-		sa.JoinOperations += len(stmt.From) - 1
 	}
 
 	if stmt.Where != nil {
@@ -456,6 +455,19 @@ func (sa *SQLAnalyzer) analyzeSelectExprs(exprs sqlparser.SelectExprs) {
 			}
 		}
 	}
+}
+
+func (sa *SQLAnalyzer) countJoins(tables sqlparser.TableExprs) int {
+	count := 0
+	for _, table := range tables {
+		switch t := table.(type) {
+		case *sqlparser.JoinTableExpr:
+			count++
+			count += sa.countJoins(sqlparser.TableExprs{t.LeftExpr})
+			count += sa.countJoins(sqlparser.TableExprs{t.RightExpr})
+		}
+	}
+	return count
 }
 
 func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) {

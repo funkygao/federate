@@ -138,13 +138,12 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
 	color.Cyan("Complexity Operation Metrics")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
-		"Complex Queries": sa.ComplexQueries,
-		"JOIN":            sa.JoinOperations,
-		"SubQueries":      sa.SubQueries,
-		"DISTINCT":        sa.DistinctQueries,
-		"ORDER BY":        sa.OrderByOperations,
-		"LIMIT":           sa.LimitOperations,
-		"UNION":           sa.UnionOperations,
+		"JOIN":       sa.JoinOperations,
+		"SubQueries": sa.SubQueries,
+		"DISTINCT":   sa.DistinctQueries,
+		"ORDER BY":   sa.OrderByOperations,
+		"LIMIT":      sa.LimitOperations,
+		"UNION":      sa.UnionOperations,
 	}
 	cellData := sortMapByValue(metrics)
 	tabular.Display(header, cellData, false, -1)
