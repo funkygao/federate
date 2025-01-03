@@ -12,7 +12,7 @@ type SimilarityPair struct {
 	Similarity float64
 }
 
-func (sa *SQLAnalyzer) ComputeSimilarities(topN int) map[string]map[string][]SimilarityPair {
+func (sa *SQLAnalyzer) ComputeSimilarities() map[string]map[string][]SimilarityPair {
 	result := make(map[string]map[string][]SimilarityPair) // map[SQLType]map[Filename][]SimilarityPair
 
 	for sqlType, statements := range sa.StatementsByType {
@@ -56,8 +56,8 @@ func (sa *SQLAnalyzer) ComputeSimilarities(topN int) map[string]map[string][]Sim
 			})
 
 			// 每个XML文件内，选择前 N 个相似度最高的
-			if len(pairs) > topN {
-				pairs = pairs[:topN]
+			if len(pairs) > TopK {
+				pairs = pairs[:TopK]
 			}
 
 			// 将结果存入返回值

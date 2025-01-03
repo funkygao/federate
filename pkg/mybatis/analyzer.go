@@ -5,9 +5,7 @@ type Analyzer struct {
 	ReportGenerator *ReportGenerator
 }
 
-func NewAnalyzer(inVerbosity int, ignoredFields []string) *Analyzer {
-	verbosity = inVerbosity
-
+func NewAnalyzer(ignoredFields []string) *Analyzer {
 	return &Analyzer{
 		SQLAnalyzer:     NewSQLAnalyzer(ignoredFields),
 		ReportGenerator: NewReportGenerator(),
@@ -33,6 +31,6 @@ func (a *Analyzer) AnalyzeFile(filePath string) error {
 	return nil
 }
 
-func (a *Analyzer) GenerateReport(topK int) {
-	a.ReportGenerator.Generate(a.SQLAnalyzer, topK)
+func (a *Analyzer) GenerateReport() {
+	a.ReportGenerator.Generate(a.SQLAnalyzer)
 }

@@ -37,7 +37,7 @@ type XMLMapperBuilder struct {
 	Root             *etree.Element
 	Namespace        string
 	Statements       map[string]*Statement
-	SqlFragments     map[string]string
+	SqlFragments     map[string]*etree.Element
 	UnknownFragments []SqlFragmentRef
 	nodeHandlers     map[string]NodeHandler
 }
@@ -46,7 +46,7 @@ func NewXMLMapperBuilder(filename string) *XMLMapperBuilder {
 	return &XMLMapperBuilder{
 		Filename:         filename,
 		Statements:       make(map[string]*Statement),
-		SqlFragments:     make(map[string]string),
+		SqlFragments:     make(map[string]*etree.Element),
 		UnknownFragments: []SqlFragmentRef{},
 		nodeHandlers:     newNodeHandlers(),
 	}
@@ -86,7 +86,7 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 	// 首先解析所有的 <sql> 标签
 	for _, sqlElem := range root.SelectElements("sql") {
 		if id := sqlElem.SelectAttrValue("id", ""); id != "" {
-			b.SqlFragments[id] = strings.TrimSpace(b.processSqlFragment(sqlElem))
+			b.SqlFragments[id] = b.processSqlFragment(sqlElem)
 		}
 	}
 
@@ -98,7 +98,7 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 				Filename: b.Filename,
 				ID:       elem.SelectAttrValue("id", ""),
 				Type:     elem.Tag,
-				Raw:      b.elementText(elem),
+				Raw:      elementToString(elem),
 				SQL:      b.processDynamicSql(elem),
 			}
 			b.Statements[b.Namespace+"."+stmt.ID] = stmt
@@ -108,7 +108,7 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 	// Post process SQL
 	for _, stmt := range b.Statements {
 		stmt.SQL = b.postProcessSQL(stmt.SQL)
-		if verbosity > 2 {
+		if Verbosity > 2 {
 			color.Yellow("%s %s", b.BaseName(), stmt.ID)
 			log.Println(stmt.SQL)
 		}
@@ -117,34 +117,39 @@ func (b *XMLMapperBuilder) doParse(doc *etree.Document) (map[string]*Statement, 
 	return b.Statements, nil
 }
 
-func (b *XMLMapperBuilder) elementText(elem *etree.Element) string {
+func elementToString(elem *etree.Element) string {
 	var buf bytes.Buffer
 	var s etree.WriteSettings
 	elem.WriteTo(&buf, &s)
 	return buf.String()
 }
 
-func (b *XMLMapperBuilder) processSqlFragment(elem *etree.Element) string {
-	var sql strings.Builder
+func (b *XMLMapperBuilder) processSqlFragment(elem *etree.Element) *etree.Element {
+	fragment := etree.NewElement("fragment")
 	for _, child := range elem.Child {
-		switch v := child.(type) {
-		case *etree.CharData:
-			sql.WriteString(v.Data)
+		switch t := child.(type) {
 		case *etree.Element:
-			if v.Tag == "include" {
-				refid := v.SelectAttrValue("refid", "")
-				if fragment, ok := b.SqlFragments[refid]; ok {
-					sql.WriteString(fragment)
-				}
-			} else {
-				sql.WriteString(b.processDynamicSql(v))
-			}
+			fragment.AddChild(t.Copy())
+		case *etree.Comment:
+			newComment := &etree.Comment{Data: t.Data}
+			fragment.AddChild(newComment)
+		case *etree.CharData:
+			newCharData := &etree.CharData{Data: t.Data}
+			fragment.AddChild(newCharData)
+		case *etree.Directive:
+			newDirective := &etree.Directive{Data: t.Data}
+			fragment.AddChild(newDirective)
+		case *etree.ProcInst:
+			newProcInst := &etree.ProcInst{Target: t.Target, Inst: t.Inst}
+			fragment.AddChild(newProcInst)
+		default:
+			// 如果需要，处理其他类型的节点
 		}
 	}
-	return sql.String()
+	return fragment
 }
 
-// recursively process SQL
+// 递归地处理 SQL
 func (b *XMLMapperBuilder) processDynamicSql(elem *etree.Element) string {
 	context := &DynamicContext{}
 	b.parseDynamicTags(elem, context)
@@ -169,8 +174,8 @@ func (b *XMLMapperBuilder) parseDynamicTags(elem *etree.Element, context *Dynami
 
 func (b *XMLMapperBuilder) handleInclude(elem *etree.Element, context *DynamicContext) {
 	refid := elem.SelectAttrValue("refid", "")
-	if sqlFragment, ok := b.SqlFragments[refid]; ok {
-		context.sql.WriteString(sqlFragment)
+	if fragmentElem, ok := b.SqlFragments[refid]; ok {
+		b.parseDynamicTags(fragmentElem, context)
 	} else if refid != "" {
 		b.UnknownFragments = append(b.UnknownFragments, SqlFragmentRef{Refid: refid, StmtID: elem.SelectAttrValue("id", "")})
 	}

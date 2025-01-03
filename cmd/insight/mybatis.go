@@ -12,11 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	verbosity   int
-	mybatisTopK int
-)
-
 var mybatisCmd = &cobra.Command{
 	Use:   "mybatis <dir>",
 	Short: "Analyze MyBatis MySQL mapper XML files in the specified directory",
@@ -28,7 +23,7 @@ var mybatisCmd = &cobra.Command{
 }
 
 func analyzeMybatisMapperXML(dir string) {
-	analyzer := mybatis.NewAnalyzer(verbosity, []string{"deleted", "create_time", "yn"})
+	analyzer := mybatis.NewAnalyzer([]string{"deleted", "create_time", "yn"})
 
 	fileChan, _ := java.ListFilesAsync_(dir, java.IsXML, walkDir)
 	for f := range fileChan {
@@ -37,7 +32,7 @@ func analyzeMybatisMapperXML(dir string) {
 		}
 	}
 
-	analyzer.GenerateReport(mybatisTopK)
+	analyzer.GenerateReport()
 }
 
 var skippedDirs = map[string]struct{}{
@@ -60,6 +55,7 @@ func walkDir(info os.FileInfo) error {
 }
 
 func init() {
-	mybatisCmd.Flags().IntVarP(&mybatisTopK, "top", "t", 20, "Number of top elements to display in bar chart")
-	mybatisCmd.Flags().IntVarP(&verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
+	mybatisCmd.Flags().IntVarP(&mybatis.TopK, "top", "t", 20, "Number of top elements to display in bar chart")
+	mybatisCmd.Flags().IntVarP(&mybatis.Verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
+	mybatisCmd.Flags().Float64VarP(&mybatis.SimilarityThreshold, "similarity-threshold", "s", 0.75, "Statement similary threhold")
 }

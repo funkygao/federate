@@ -18,7 +18,7 @@ func NewReportGenerator() *ReportGenerator {
 	return &ReportGenerator{}
 }
 
-func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
+func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.writeSQLTypes(sa.SQLTypes)
 
 	rg.writeComplexityMetrics(sa)
@@ -31,16 +31,16 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer, topK int) {
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
 
 	color.Cyan("Join types: %d", len(sa.JoinTypes))
-	printTopN(sa.JoinTypes, topK, []string{"Joint Type", "Count"})
+	printTopN(sa.JoinTypes, TopK, []string{"Joint Type", "Count"})
 
-	color.Cyan("Top %d most used tables", topK)
-	printTopN(sa.Tables, topK, []string{"Table", "Count"})
+	color.Cyan("Top %d most used tables", TopK)
+	printTopN(sa.Tables, TopK, []string{"Table", "Count"})
 
-	color.Cyan("Top %d most used fields", topK)
-	printTopN(sa.Fields, topK, []string{"Field", "Count"})
+	color.Cyan("Top %d most used fields", TopK)
+	printTopN(sa.Fields, TopK, []string{"Field", "Count"})
 
-	rg.writeIndexRecommendations(sa, topK)
-	rg.writeSimilarityReport(sa, topK)
+	rg.writeIndexRecommendations(sa)
+	rg.writeSimilarityReport(sa)
 
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
@@ -67,7 +67,7 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 		return
 	}
 
-	if verbosity > 1 {
+	if Verbosity > 1 {
 		for _, sql := range unparsableSQL {
 			color.Yellow("%s %s", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID)
 			color.Green(sql.Stmt.Raw)
@@ -131,7 +131,7 @@ func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
 	tabular.Display(header, cellData, false, -1)
 }
 
-func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) {
+func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
 	color.Cyan("Index Recommendations per Table")
 	if len(sa.IgnoredFields) > 0 {
 		ignoredFields := make([]string, 0, len(sa.IgnoredFields))
@@ -161,7 +161,7 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) 
 			return combinations[i].Count > combinations[j].Count
 		})
 
-		for _, comb := range combinations[:min(topK, len(combinations))] {
+		for _, comb := range combinations[:min(TopK, len(combinations))] {
 			if comb.Count < 2 {
 				continue
 			}
@@ -174,10 +174,10 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer, topK int) 
 	tabular.Display(header, cellData, true, -1)
 }
 
-func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer, topN int) {
-	color.Cyan("Similar SQL Statements by Type and File", topN)
+func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
+	color.Cyan("Similar SQL Statements by Type and File")
 
-	similarities := sa.ComputeSimilarities(topN)
+	similarities := sa.ComputeSimilarities()
 
 	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
 	var cellData [][]string
@@ -189,7 +189,7 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer, topN int) {
 			}
 			for _, pair := range pairs {
 				simPercentage := fmt.Sprintf("%.2f%%", pair.Similarity*100)
-				if pair.Similarity < 0.5 {
+				if pair.Similarity < SimilarityThreshold {
 					continue
 				}
 

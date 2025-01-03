@@ -1,5 +1,7 @@
 package mybatis
 
 var (
-	verbosity int
+	Verbosity           int
+	TopK                int
+	SimilarityThreshold float64
 )

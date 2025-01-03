@@ -172,6 +172,29 @@ const testXML = `<?xml version="1.0" encoding="UTF-8"?>
             </if>
         </if>
     </sql>
+
+    <select id="queryZoneStock">
+        SELECT
+        sku
+        FROM st_stock
+        <include refid="queryZoneStockCondition"/>
+        group by sku, zone_no
+    </select>
+
+    <sql id="queryZoneStockCondition">
+        WHERE deleted = 0
+        AND warehouse_no = #{warehouseNo, jdbcType=VARCHAR}
+        AND sku in
+        <foreach collection="skuList" item="item" open="(" close=")" separator=",">
+            #{item, jdbcType=VARCHAR}
+        </foreach>
+        <if test="null != zoneNoList and !zoneNoList.empty">
+            AND zone_no in
+            <foreach collection="zoneNoList" item="item" open="(" close=")" separator=",">
+                #{item, jdbcType=VARCHAR}
+            </foreach>
+        </if>
+    </sql>
 </mapper>`
 
 func TestSQLAnalyzer(t *testing.T) {
@@ -204,23 +227,23 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "Complex update if and foreach",
 			id:       "updateCheckResult",
-			expected: `UPDATE st_device_stock_check_result SET foo=? WHERE /* FOREACH_START */ (deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ?) /* FOREACH_END */`,
+			expected: `UPDATE st_device_stock_check_result SET foo=? WHERE /* FOREACH_START */ ( deleted = 0 AND id = ? AND warehouse_no = ? AND business_no = ? AND status = ? ) /* FOREACH_END */`,
 		},
 		{
 			name:     "Complex order by",
 			id:       "selectStockForManualLocating",
 			expected: `SELECT m.id, m.warehouse_no warehouseNo FROM st_stock m LEFT JOIN st_lot_detail ld ON m.sku = ld.sku AND m.lot_no = ld.lot_no AND ld.deleted = 0 LEFT JOIN st_lot_shelf_life l ON m.tenant_code = l.tenant_code AND m.sku = l.sku AND m.lot_no = l.lot_no WHERE m.deleted = 0 AND l.deleted = 0 ORDER BY ld.expiration_date ASC, ld.expiration_date DESC, l.extend_content -> ? ASC`,
 		},
+		{
+			name:     "queryZoneStock",
+			id:       "queryZoneStock",
+			expected: `SELECT sku FROM st_stock WHERE deleted = 0 AND warehouse_no = ? AND sku in (/* FOREACH_START */ ? /* FOREACH_END */) AND zone_no in (/* FOREACH_START */ ? /* FOREACH_END */) group by sku, zone_no`,
+		},
 	}
 
 	xml := NewXMLMapperBuilder("")
 	stmts, err := xml.ParseString(testXML)
 	assert.NoError(t, err)
-
-	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version", xml.SqlFragments["queryColumns"])
-	// recursive ref
-	assert.Equal(t, "id, tenant_code, warehouse_no, uuid, business_type, business_no, remark, version, ext", xml.SqlFragments["queryColumns2"])
-	assert.True(t, len(xml.SqlFragments["commonUpdate4CheckFinishedClauseOfItem"]) > 10)
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
