@@ -23,6 +23,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.writeSQLTypes(sa.SQLTypes)
 
 	rg.writeComplexityMetrics(sa)
+	rg.writeJoinAnalysis(sa)
 
 	rg.writeBatchInsertInfo(sa)
 
@@ -31,9 +32,6 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 
 	rg.writeAggregationFunctions(sa.AggregationFuncs)
 	rg.writeTimeoutInfo(sa.TimeoutStatements)
-
-	color.Cyan("Join types: %d", len(sa.JoinTypes))
-	printTopN(sa.JoinTypes, TopK, []string{"Joint Type", "Count"})
 
 	color.Cyan("Top %d most used tables", TopK)
 	printTopN(sa.Tables, TopK, []string{"Table", "Count"})
@@ -208,6 +206,38 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
 	}
 
 	tabular.Display(header, cellData, true, -1)
+}
+
+// 在 report.go 中添加
+func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
+	// JOIN 类型统计
+	joinTypeItems := make([]tabular.BarChartItem, 0, len(sa.JoinTypes))
+	for joinType, count := range sa.JoinTypes {
+		joinTypeItems = append(joinTypeItems, tabular.BarChartItem{Name: joinType, Count: count})
+	}
+	color.Cyan("Join Types")
+	tabular.PrintBarChart(joinTypeItems, 0)
+
+	// JOIN 表数量统计
+	joinTableItems := make([]tabular.BarChartItem, 0, len(sa.JoinTableCounts))
+	for tableCount, frequency := range sa.JoinTableCounts {
+		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
+	}
+	color.Cyan("Join Table Counts")
+	tabular.PrintBarChart(joinTableItems, 0)
+
+	// 添加一些分析和建议
+	if len(sa.JoinTableCounts) > 0 {
+		maxJoinTables := 0
+		for tableCount := range sa.JoinTableCounts {
+			if tableCount > maxJoinTables {
+				maxJoinTables = tableCount
+			}
+		}
+		if maxJoinTables > 3 {
+			color.Yellow("\nNote: There are queries joining %d tables. Consider reviewing these for potential optimization.", maxJoinTables)
+		}
+	}
 }
 
 func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {

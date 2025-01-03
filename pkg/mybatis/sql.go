@@ -34,7 +34,6 @@ type SQLAnalyzer struct {
 	Tables             map[string]int
 	Fields             map[string]int
 	ComplexQueries     int
-	JoinOperations     int
 	UnionOperations    int
 	SubQueries         int
 	AggregationFuncs   map[string]int // count, min, max, etc
@@ -43,7 +42,9 @@ type SQLAnalyzer struct {
 	LimitOperations    int
 	LimitWithOffset    int
 	LimitWithoutOffset int
+	JoinOperations     int
 	JoinTypes          map[string]int
+	JoinTableCounts    map[int]int
 	ParsedOK           int
 	BatchInserts       int
 	BatchInsertColumns map[string]int
@@ -63,6 +64,7 @@ func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
 		Fields:             make(map[string]int),
 		AggregationFuncs:   make(map[string]int),
 		JoinTypes:          make(map[string]int),
+		JoinTableCounts:    make(map[int]int),
 		TimeoutStatements:  make(map[string]int),
 		BatchInsertColumns: make(map[string]int),
 		StatementsByType:   make(map[string][]*Statement),
@@ -310,8 +312,15 @@ func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs) {
 }
 
 func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
-	joinCount := sa.countJoins(stmt.From)
-	sa.JoinOperations += joinCount
+	joinCount, joinTypes, joinTableCount := sa.analyzeJoins(stmt.From)
+	// 只有在实际有 JOIN 操作时才更新相关统计
+	if joinCount > 0 {
+		sa.JoinOperations += joinCount
+		for joinType, count := range joinTypes {
+			sa.JoinTypes[joinType] += count
+		}
+		sa.JoinTableCounts[joinTableCount]++
+	}
 
 	if stmt.Where != nil || stmt.GroupBy != nil || stmt.Having != nil ||
 		stmt.OrderBy != nil || stmt.Limit != nil || joinCount > 0 ||
@@ -378,10 +387,18 @@ func (sa *SQLAnalyzer) getTableAliases(tableExprs sqlparser.TableExprs) map[stri
 }
 
 func (sa *SQLAnalyzer) analyzeWhere(where *sqlparser.Where) {
+	if where == nil {
+		return
+	}
+
 	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
 		switch node := node.(type) {
 		case *sqlparser.Subquery:
 			sa.SubQueries++
+		case *sqlparser.ComparisonExpr:
+			if _, ok := node.Right.(*sqlparser.Subquery); ok {
+				sa.SubQueries++
+			}
 		case *sqlparser.FuncExpr:
 			sa.AggregationFuncs[node.Name.String()]++
 		}
@@ -477,11 +494,43 @@ func (sa *SQLAnalyzer) countJoins(tables sqlparser.TableExprs) int {
 	return count
 }
 
-func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) {
-	for _, table := range tables {
+func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) (int, map[string]int, int) {
+	joinCount := 0
+	joinTypes := make(map[string]int)
+	tableCount := 0
+
+	var analyzeTable func(sqlparser.TableExpr) int
+	analyzeTable = func(table sqlparser.TableExpr) int {
 		switch t := table.(type) {
 		case *sqlparser.JoinTableExpr:
-			sa.JoinTypes[t.Join]++
+			joinType := strings.ToUpper(t.Join)
+			joinTypes[joinType]++
+			joinCount++
+			leftCount := analyzeTable(t.LeftExpr)
+			rightCount := analyzeTable(t.RightExpr)
+			return leftCount + rightCount
+		case *sqlparser.AliasedTableExpr:
+			tableCount++
+			return 1
+		case *sqlparser.ParenTableExpr:
+			subCount := 0
+			for _, expr := range t.Exprs {
+				subCount += analyzeTable(expr)
+			}
+			return subCount
 		}
+		return 0
 	}
+
+	totalTables := 0
+	for _, table := range tables {
+		totalTables += analyzeTable(table)
+	}
+
+	// 只有当实际发生 JOIN 时才记录表数量
+	if joinCount > 0 {
+		sa.JoinTableCounts[totalTables]++
+	}
+
+	return joinCount, joinTypes, tableCount
 }
