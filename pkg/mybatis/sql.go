@@ -44,6 +44,8 @@ type SQLAnalyzer struct {
 	JoinOperations     int
 	JoinTypes          map[string]int
 	JoinTableCounts    map[int]int
+	JoinConditions     map[string]int
+	IndexHints         map[string]int
 	ParsedOK           int
 	TimeoutStatements  map[string]int
 
@@ -62,6 +64,8 @@ func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
 		AggregationFuncs:  make(map[string]int),
 		JoinTypes:         make(map[string]int),
 		JoinTableCounts:   make(map[int]int),
+		JoinConditions:    make(map[string]int),
+		IndexHints:        make(map[string]int),
 		TimeoutStatements: make(map[string]int),
 		StatementsByType:  make(map[string][]*Statement),
 
@@ -70,6 +74,8 @@ func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
 		UnparsableSQL:    []UnparsableSQL{},
 		UnknownFragments: make(map[string][]SqlFragmentRef),
 	}
+	sa.JoinConditions["ON"] = 0
+	sa.JoinConditions["USING"] = 0
 	for _, field := range ignoredFields {
 		sa.IgnoredFields[field] = true
 	}
@@ -277,7 +283,6 @@ func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs) {
 
 func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select) {
 	joinCount, joinTypes, joinTableCount := sa.analyzeJoins(stmt.From)
-	// 只有在实际有 JOIN 操作时才更新相关统计
 	if joinCount > 0 {
 		sa.JoinOperations += joinCount
 		for joinType, count := range joinTypes {
@@ -470,11 +475,25 @@ func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) (int, map[strin
 			joinType := strings.ToUpper(t.Join)
 			joinTypes[joinType]++
 			joinCount++
+
+			// 分析 JoinCondition
+			if t.Condition.On != nil {
+				sa.JoinConditions["ON"]++
+			}
+			if t.Condition.Using != nil {
+				sa.JoinConditions["USING"]++
+			}
+
 			leftCount := analyzeTable(t.LeftExpr)
 			rightCount := analyzeTable(t.RightExpr)
 			return leftCount + rightCount
 		case *sqlparser.AliasedTableExpr:
 			tableCount++
+
+			// 分析 IndexHints
+			if t.Hints != nil {
+				sa.IndexHints[t.Hints.Type]++
+			}
 			return 1
 		case *sqlparser.ParenTableExpr:
 			subCount := 0

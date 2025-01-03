@@ -253,18 +253,17 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
 	}
 	tabular.PrintBarChart(joinTableItems, 0)
+	log.Println()
 
-	// 添加一些分析和建议
-	if len(sa.JoinTableCounts) > 0 {
-		maxJoinTables := 0
-		for tableCount := range sa.JoinTableCounts {
-			if tableCount > maxJoinTables {
-				maxJoinTables = tableCount
-			}
-		}
-		if maxJoinTables > 3 {
-			color.Yellow("\nNote: There are queries joining %d tables. Consider reviewing these for potential optimization.", maxJoinTables)
-		}
+	if len(sa.JoinConditions) > 0 {
+		color.Magenta("Join Conditions")
+		printTopN(sa.JoinConditions, 0)
+		log.Println()
+	}
+
+	if len(sa.IndexHints) > 0 {
+		color.Magenta("Index Hints")
+		printTopN(sa.IndexHints, 0)
 	}
 }
 
