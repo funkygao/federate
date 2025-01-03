@@ -45,6 +45,7 @@ type SQLAnalyzer struct {
 	ParsedOK           int
 	BatchInserts       int
 	BatchInsertColumns map[string]int
+	TimeoutStatements  map[string]int
 
 	IndexRecommendations map[string]*TableIndexRecommendation
 
@@ -60,6 +61,7 @@ func NewSQLAnalyzer(ignoredFields []string) *SQLAnalyzer {
 		Fields:             make(map[string]int),
 		AggregationFuncs:   make(map[string]int),
 		JoinTypes:          make(map[string]int),
+		TimeoutStatements:  make(map[string]int),
 		BatchInsertColumns: make(map[string]int),
 		StatementsByType:   make(map[string][]*Statement),
 
@@ -79,35 +81,48 @@ func (sa *SQLAnalyzer) Visit(xmlPath string, unknowns []SqlFragmentRef) {
 }
 
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
-	stmt, err := sqlparser.Parse(s.SQL)
-	if err != nil {
-		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{
-			Stmt:  s,
-			Error: err,
-		})
-		return err
-	}
+	var parseErrors []error
 
-	sa.ParsedOK++
-	sa.StatementsByType[s.Type] = append(sa.StatementsByType[s.Type], &s)
-
-	switch stmt := stmt.(type) {
-	case *sqlparser.Select:
-		sa.analyzeSelect(stmt)
-	case *sqlparser.Insert:
-		if stmt.Action == sqlparser.ReplaceStr {
-			sa.analyzeReplace(stmt)
-		} else {
-			sa.analyzeInsert(stmt)
+	for _, sqlStmt := range sa.splitSQLStatements(s.SQL) {
+		sqlStmt = strings.TrimSpace(sqlStmt)
+		if sqlStmt == "" {
+			continue
 		}
-	case *sqlparser.Update:
-		sa.analyzeUpdate(stmt)
-	case *sqlparser.Delete:
-		sa.analyzeDelete(stmt)
-	case *sqlparser.Union:
-		sa.analyzeUnion(stmt)
-	default:
-		log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, s.SQL)
+
+		if s.Timeout > 0 {
+			timeoutKey := fmt.Sprintf("%ds", s.Timeout)
+			sa.TimeoutStatements[timeoutKey]++
+		}
+
+		stmt, err := sqlparser.Parse(sqlStmt)
+		if err != nil {
+			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, sqlStmt))
+			continue
+		}
+
+		sa.ParsedOK++
+		sa.StatementsByType[s.Type] = append(sa.StatementsByType[s.Type], &s)
+
+		switch stmt := stmt.(type) {
+		case *sqlparser.Select:
+			sa.analyzeSelect(stmt)
+		case *sqlparser.Insert:
+			if stmt.Action == sqlparser.ReplaceStr {
+				sa.analyzeReplace(stmt)
+			} else {
+				sa.analyzeInsert(stmt)
+			}
+		case *sqlparser.Update:
+			sa.analyzeUpdate(stmt)
+		case *sqlparser.Delete:
+			sa.analyzeDelete(stmt)
+		case *sqlparser.Union:
+			sa.analyzeUnion(stmt)
+		case *sqlparser.Set:
+			sa.analyzeSet(stmt)
+		default:
+			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, sqlStmt)
+		}
 	}
 
 	// Unify aggregation function names to uppercase
@@ -116,7 +131,57 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		sa.AggregationFuncs[strings.ToUpper(k)] = v
 	}
 
+	if len(parseErrors) > 0 {
+		return fmt.Errorf("encountered %d parse errors: %v", len(parseErrors), parseErrors)
+	}
+
 	return nil
+}
+
+func (sa *SQLAnalyzer) splitSQLStatements(sql string) []string {
+	var statements []string
+	var currentStmt strings.Builder
+	var inString, inComment bool
+	var stringDelimiter rune
+
+	for i, char := range sql {
+		switch {
+		case inString:
+			currentStmt.WriteRune(char)
+			if char == stringDelimiter && sql[i-1] != '\\' {
+				inString = false
+			}
+		case inComment:
+			if char == '\n' {
+				inComment = false
+			}
+			currentStmt.WriteRune(char)
+		case char == '\'' || char == '"':
+			inString = true
+			stringDelimiter = char
+			currentStmt.WriteRune(char)
+		case char == '-' && i+1 < len(sql) && sql[i+1] == '-':
+			inComment = true
+			currentStmt.WriteRune(char)
+		case char == ';' && !inString && !inComment:
+			stmt := strings.TrimSpace(currentStmt.String())
+			if stmt != "" {
+				statements = append(statements, stmt)
+			}
+			currentStmt.Reset()
+		default:
+			currentStmt.WriteRune(char)
+		}
+	}
+
+	if currentStmt.Len() > 0 {
+		stmt := strings.TrimSpace(currentStmt.String())
+		if stmt != "" {
+			statements = append(statements, stmt)
+		}
+	}
+
+	return statements
 }
 
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select) {
@@ -193,6 +258,10 @@ func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union) {
 	sa.UnionOperations++
 	//sa.analyzeSelect(stmt.Left.(*sqlparser.Select))
 	//sa.analyzeSelect(stmt.Right.(*sqlparser.Select))
+}
+
+func (sa *SQLAnalyzer) analyzeSet(stmt *sqlparser.Set) {
+	sa.SQLTypes["SET"]++
 }
 
 func (sa *SQLAnalyzer) analyzeSingleTable(tableExpr sqlparser.TableExpr) {

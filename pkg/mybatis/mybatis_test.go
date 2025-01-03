@@ -82,3 +82,65 @@ func TestSQLParser(t *testing.T) {
 	_, err := sqlparser.Parse(sql)
 	assert.NoError(t, err)
 }
+
+func TestSplitSQLStatements(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Multiple semicolons at the end",
+			input:    "SELECT * FROM users;;;",
+			expected: []string{"SELECT * FROM users"},
+		},
+		{
+			name:     "Simple statements",
+			input:    "SELECT * FROM users; INSERT INTO logs VALUES (1, 'test');",
+			expected: []string{"SELECT * FROM users", "INSERT INTO logs VALUES (1, 'test')"},
+		},
+		{
+			name:     "Statements with strings containing semicolons",
+			input:    "SELECT * FROM users WHERE name = 'John; Doe'; INSERT INTO logs VALUES (1, 'test; with; semicolons');",
+			expected: []string{"SELECT * FROM users WHERE name = 'John; Doe'", "INSERT INTO logs VALUES (1, 'test; with; semicolons')"},
+		},
+		{
+			name:     "Statements with comments",
+			input:    "SELECT * FROM users; -- This is a comment; with semicolons\nINSERT INTO logs VALUES (1, 'test');",
+			expected: []string{"SELECT * FROM users", "-- This is a comment; with semicolons\nINSERT INTO logs VALUES (1, 'test')"},
+		},
+		{
+			name:     "Statements with mixed quotes",
+			input:    "SELECT * FROM users WHERE name = 'John''s \"nickname\"'; INSERT INTO logs VALUES (1, \"test\");",
+			expected: []string{"SELECT * FROM users WHERE name = 'John''s \"nickname\"'", "INSERT INTO logs VALUES (1, \"test\")"},
+		},
+		{
+			name:     "Statement without semicolon at the end",
+			input:    "SELECT * FROM users WHERE id = 1",
+			expected: []string{"SELECT * FROM users WHERE id = 1"},
+		},
+		{
+			name:     "Empty input",
+			input:    "",
+			expected: nil,
+		},
+		{
+			name:     "Multiple semicolons and whitespace",
+			input:    ";;  SELECT * FROM users;  ;;  INSERT INTO logs VALUES (1, 'test');;  ;",
+			expected: []string{"SELECT * FROM users", "INSERT INTO logs VALUES (1, 'test')"},
+		},
+		{
+			name:     "Semicolons in function calls",
+			input:    "SELECT CONCAT('a;', 'b;', 'c;') AS result; INSERT INTO logs VALUES (1, 'test');",
+			expected: []string{"SELECT CONCAT('a;', 'b;', 'c;') AS result", "INSERT INTO logs VALUES (1, 'test')"},
+		},
+	}
+
+	analyzer := NewSQLAnalyzer(nil)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			result := analyzer.splitSQLStatements(tc.input)
+			assert.Equal(t, tc.expected, result, "Unexpected split result")
+		})
+	}
+}

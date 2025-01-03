@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	"federate/pkg/tabular"
@@ -42,8 +43,32 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.writeIndexRecommendations(sa)
 	rg.writeSimilarityReport(sa)
 
+	rg.writeTimeoutInfo(sa.TimeoutStatements)
+
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
+}
+
+func (rg *ReportGenerator) writeTimeoutInfo(timeoutStatements map[string]int) {
+	if len(timeoutStatements) == 0 {
+		return
+	}
+
+	color.Cyan("Statements with Timeout")
+	header := []string{"Timeout", "Count"}
+	var cellData [][]string
+
+	for timeout, count := range timeoutStatements {
+		cellData = append(cellData, []string{timeout, fmt.Sprintf("%d", count)})
+	}
+
+	sort.Slice(cellData, func(i, j int) bool {
+		ti, _ := strconv.Atoi(strings.TrimSuffix(cellData[i][0], "s"))
+		tj, _ := strconv.Atoi(strings.TrimSuffix(cellData[j][0], "s"))
+		return ti > tj
+	})
+
+	tabular.Display(header, cellData, false, -1)
 }
 
 func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentRef) {

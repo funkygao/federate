@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/beevik/etree"
@@ -32,6 +33,7 @@ type Statement struct {
 	Type     string
 	Raw      string
 	SQL      string
+	Timeout  int
 }
 
 type XMLMapperBuilder struct {
@@ -88,12 +90,14 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	for _, elem := range b.Root.ChildElements() {
 		switch elem.Tag {
 		case "select", "insert", "update", "delete", "replace":
+			timeout, _ := strconv.Atoi(elem.SelectAttrValue("timeout", "0"))
 			stmt := &Statement{
 				Filename: b.Filename,
 				ID:       elem.SelectAttrValue("id", ""),
 				Type:     elem.Tag,
 				Raw:      elementToString(elem),
 				SQL:      b.processDynamicSql(elem),
+				Timeout:  timeout,
 			}
 			b.Statements[b.Namespace+"."+stmt.ID] = stmt
 		}
