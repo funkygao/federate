@@ -58,7 +58,7 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "refreshPropertiesMap",
 			id:       "refreshPropertiesMap",
-			expected: ``,
+			expected: `UPDATE st_stock_sku set version = version + 1 , extend_content = json_set(extend_content, '', ?) WHERE deleted = 0 AND warehouse_no = ? AND id = ?`,
 		},
 	}
 
@@ -78,7 +78,7 @@ func TestSQLAnalyzer(t *testing.T) {
 }
 
 func TestSQLParser(t *testing.T) {
-	sql := `select 1; select 2;`
+	sql := `UPDATE st_stock_sku set version = version + 1 , extend_content = json_set(extend_content, '', ?) WHERE deleted = 0 AND warehouse_no = ? AND id = ?`
 	_, err := sqlparser.Parse(sql)
 	assert.NoError(t, err)
 }
