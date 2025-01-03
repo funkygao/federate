@@ -290,7 +290,7 @@ func (sa *SQLAnalyzer) analyzeFields(exprs sqlparser.SelectExprs, stmtID int64) 
 }
 
 func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select, stmtID int64) {
-	joinCount, joinTypes, joinTableCount := sa.analyzeJoins(stmt.From)
+	joinCount, joinTypes, joinTableCount := sa.analyzeJoins(stmt.From, stmtID)
 	if joinCount > 0 {
 		sa.JoinOperations += joinCount
 		for joinType, count := range joinTypes {
@@ -348,7 +348,7 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select, stmtID int64) {
 	tableAliases := sa.getTableAliases(stmt.From)
 	sa.analyzeWhereForIndexRecommendations(stmt.Where, tableAliases)
 
-	sa.analyzeJoins(stmt.From)
+	sa.analyzeJoins(stmt.From, stmtID)
 }
 
 func (sa *SQLAnalyzer) hasSubquery(stmt *sqlparser.Select) bool {
@@ -503,7 +503,7 @@ func (sa *SQLAnalyzer) countJoins(tables sqlparser.TableExprs) int {
 	return count
 }
 
-func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) (int, map[string]int, int) {
+func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs, stmtID int64) (int, map[string]int, int) {
 	joinCount := 0
 	joinTypes := make(map[string]int)
 	tableCount := 0
@@ -515,6 +515,8 @@ func (sa *SQLAnalyzer) analyzeJoins(tables sqlparser.TableExprs) (int, map[strin
 			joinType := strings.ToUpper(t.Join)
 			joinTypes[joinType]++
 			joinCount++
+
+			sa.DB.InsertJoin(stmtID, joinType, "")
 
 			// 分析 JoinCondition
 			if t.Condition.On != nil {
