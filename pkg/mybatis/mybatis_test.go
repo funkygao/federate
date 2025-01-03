@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/xwb1989/sqlparser"
 )
 
 func TestSQLAnalyzer(t *testing.T) {
@@ -52,7 +53,12 @@ func TestSQLAnalyzer(t *testing.T) {
 		{
 			name:     "selectLocationStock",
 			id:       "selectLocationStock",
-			expected: `SELECT COUNT(distinct sku) AS skuQty, zone_no AS zoneNo, SUM(st.frozen_qty) AS frozenQty FROM st_stock st WHERE st.deleted = 0 AND st.warehouse_no = ? GROUP BY st.location_no HAVING statusSum > 0 AND statusSum = 0`,
+			expected: `SELECT COUNT(distinct sku) AS skuQty, zone_no AS zoneNo, SUM(st.frozen_qty) AS frozenQty FROM st_stock st WHERE st.deleted = 0 AND st.warehouse_no = ? GROUP BY st.location_no HAVING statusSum > 0 and statusSum = 0`,
+		},
+		{
+			name:     "refreshPropertiesMap",
+			id:       "refreshPropertiesMap",
+			expected: ``,
 		},
 	}
 
@@ -69,4 +75,10 @@ func TestSQLAnalyzer(t *testing.T) {
 			assert.Equal(t, tc.expected, strings.TrimSpace(stmt.SQL), tc.id)
 		})
 	}
+}
+
+func TestSQLParser(t *testing.T) {
+	sql := `select 1; select 2;`
+	_, err := sqlparser.Parse(sql)
+	assert.NoError(t, err)
 }

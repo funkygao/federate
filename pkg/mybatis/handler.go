@@ -29,33 +29,51 @@ type TrimHandler struct{}
 
 func (h *TrimHandler) handle(b *XMLMapperBuilder, node *etree.Element, context *DynamicContext) bool {
 	prefix := node.SelectAttrValue("prefix", "")
+	prefixOverrides := node.SelectAttrValue("prefixOverrides", "")
 	suffixOverrides := node.SelectAttrValue("suffixOverrides", "")
 
 	if strings.EqualFold(prefix, "set") {
 		// 对于 SET 子句，我们直接简化处理
 		context.WriteString("SET foo=?")
-		// 不需要处理 suffixOverrides，因为我们只写入一个 ?=?
-	} else {
-		// 对于其他情况，保持原有的处理逻辑
-		childContent := &DynamicContext{}
-		b.parseDynamicTags(node, childContent)
-		trimmed := strings.TrimSpace(childContent.String())
+		// 不需要处理 suffixOverrides，因为我们只写入一个 foo=?
+		return true
+	}
 
-		if trimmed != "" {
-			if prefix != "" {
-				context.WriteString(prefix)
-				context.WriteString(" ")
-			}
-			context.WriteString(trimmed)
-			// 处理 suffixOverrides
-			if suffixOverrides != "" {
-				for _, override := range strings.Split(suffixOverrides, "|") {
-					trimmed = strings.TrimSuffix(trimmed, override)
+	childContent := &DynamicContext{}
+	b.parseDynamicTags(node, childContent)
+	trimmed := strings.TrimSpace(childContent.String())
+
+	if trimmed != "" {
+		// 处理 prefixOverrides
+		if prefixOverrides != "" {
+			overrides := strings.Split(prefixOverrides, "|")
+			for _, override := range overrides {
+				override = strings.TrimSpace(override)
+				if strings.HasPrefix(strings.ToUpper(trimmed), strings.ToUpper(override)) {
+					trimmed = strings.TrimPrefix(trimmed, trimmed[:len(override)])
+					trimmed = strings.TrimSpace(trimmed)
+					break
 				}
-				context.Reset()
-				context.WriteString(strings.TrimSpace(trimmed))
 			}
 		}
+
+		// 处理 suffixOverrides
+		if suffixOverrides != "" {
+			overrides := strings.Split(suffixOverrides, "|")
+			for _, override := range overrides {
+				override = strings.TrimSpace(override)
+				if strings.HasSuffix(strings.ToUpper(trimmed), strings.ToUpper(override)) {
+					trimmed = strings.TrimSuffix(trimmed, trimmed[len(trimmed)-len(override):])
+					trimmed = strings.TrimSpace(trimmed)
+					break
+				}
+			}
+		}
+
+		if prefix != "" {
+			context.WriteString(prefix + " ")
+		}
+		context.WriteString(trimmed)
 	}
 
 	return true

@@ -206,4 +206,15 @@
             </if>
         </trim>
     </select>
+
+    <update id="refreshPropertiesMap">
+        UPDATE st_stock_sku
+        set version = version + 1
+        <!--        , update_time = NOW()-->
+        , extend_content = json_set(extend_content, #{propertiesMapJsonPath, jdbcType=VARCHAR}, CAST(JSON #{extendContent.propertiesMap, jdbcType=OTHER, javaType=java.util.Map, typeHandler=com.jdwl.wms.common.util.mybatis.JsonTypeHandler} AS MAP(VARCHAR, OTHER)))
+        WHERE
+        deleted = 0
+        AND warehouse_no = #{warehouseNo, jdbcType=VARCHAR}
+        AND id = #{id, jdbcType=BIGINT}
+    </update>
 </mapper>
