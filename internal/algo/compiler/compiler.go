@@ -6,6 +6,7 @@ import (
 	"go/parser"
 	"go/token"
 	"log"
+	"strconv"
 )
 
 type Compiler interface {
@@ -18,7 +19,7 @@ type GoCompiler struct {
 
 func (c *GoCompiler) Compile(pkg Package) ObjectFile {
 	var ssaCode SSACode
-	var machineCode []byte
+	var machineCode MachineCode
 	symbols := make(map[string]int)
 	address := 0
 
@@ -42,10 +43,13 @@ func (c *GoCompiler) Compile(pkg Package) ObjectFile {
 				ssaFunc := c.generateSSAForFunction(x)
 				ssaCode.Functions = append(ssaCode.Functions, ssaFunc)
 
-				funcSize := len(ssaFunc.Instructions) * 4 // 假设每条 SSA 指令占 4 字节
+				funcMachineCode := c.generateMachineCode(ssaFunc)
+				machineCode.Instructions = append(machineCode.Instructions, funcMachineCode.Instructions...)
+
+				funcSize := len(funcMachineCode.Instructions) * 4 // 假设每条机器指令占 4 字节
 				symbols[pkg.Name+"."+funcName] = address
 				address += funcSize
-				log.Printf("  Found function: %s at address 0x%x, estimated size: %d bytes", funcName, address-funcSize, funcSize)
+				log.Printf("  Found function: %s at address 0x%x, size: %d bytes", funcName, address-funcSize, funcSize)
 
 			case *ast.GenDecl:
 				if x.Tok == token.VAR {
@@ -56,17 +60,19 @@ func (c *GoCompiler) Compile(pkg Package) ObjectFile {
 								symbols[pkg.Name+"."+varName] = address
 								address += 8 // 假设每个变量占用8字节
 								log.Printf("  Found variable: %s at address 0x%x", varName, address-8)
+
+								// 为全局变量添加一条机器指令（仅作为占位符）
+								machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+									Opcode:   "DATA",
+									Operands: []string{varName, "8"}, // 8 表示 8 字节
+								})
 							}
 						}
 					}
 				}
 			}
-
 			return true
 		})
-
-		// 模拟机器码生成
-		machineCode = append(machineCode, []byte("MachineCode for "+file.Name)...)
 	}
 
 	return ObjectFile{
@@ -74,6 +80,112 @@ func (c *GoCompiler) Compile(pkg Package) ObjectFile {
 		Code:    machineCode,
 		SSA:     ssaCode,
 	}
+}
+
+func (c *GoCompiler) generateMachineCode(ssaFunc SSAFunction) MachineCode {
+	var machineCode MachineCode
+	registers := []string{"rax", "rbx", "rcx", "rdx"}
+	regMap := make(map[string]string)
+
+	for _, instr := range ssaFunc.Instructions {
+		switch instr.Op {
+		case "PARAM":
+			reg := c.allocateRegister(registers, regMap)
+			regMap[instr.Result] = reg
+			machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+				Opcode:   "MOV",
+				Operands: []string{reg, instr.Operands[0]},
+			})
+		case "ASSIGN":
+			reg := c.allocateRegister(registers, regMap)
+			regMap[instr.Result] = reg
+			machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+				Opcode:   "MOV",
+				Operands: []string{reg, c.getOperand(instr.Operands[0], regMap)},
+			})
+		case "+", "-", "*", "/":
+			reg1 := c.getOperand(instr.Operands[0], regMap)
+			reg2 := c.getOperand(instr.Operands[1], regMap)
+			resultReg := c.allocateRegister(registers, regMap)
+			regMap[instr.Result] = resultReg
+			machineCode.Instructions = append(machineCode.Instructions,
+				MachineInstruction{Opcode: "MOV", Operands: []string{resultReg, reg1}},
+			)
+			opcode := ""
+			switch instr.Op {
+			case "+":
+				opcode = "ADD"
+			case "-":
+				opcode = "SUB"
+			case "*":
+				opcode = "IMUL"
+			case "/":
+				opcode = "IDIV"
+			}
+			machineCode.Instructions = append(machineCode.Instructions,
+				MachineInstruction{Opcode: opcode, Operands: []string{resultReg, reg2}},
+			)
+		case "CALL":
+			for i, arg := range instr.Operands[1:] {
+				machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+					Opcode:   "MOV",
+					Operands: []string{fmt.Sprintf("arg%d", i), c.getOperand(arg, regMap)},
+				})
+			}
+			machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+				Opcode:   "CALL",
+				Operands: []string{instr.Operands[0]},
+			})
+			if instr.Result != "" {
+				resultReg := c.allocateRegister(registers, regMap)
+				regMap[instr.Result] = resultReg
+				machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+					Opcode:   "MOV",
+					Operands: []string{resultReg, "rax"},
+				})
+			}
+		case "RETURN":
+			if len(instr.Operands) > 0 {
+				machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+					Opcode:   "MOV",
+					Operands: []string{"rax", c.getOperand(instr.Operands[0], regMap)},
+				})
+			}
+			machineCode.Instructions = append(machineCode.Instructions, MachineInstruction{
+				Opcode: "RET",
+			})
+		default:
+			log.Printf("Unsupported SSA operation: %s", instr.Op)
+		}
+	}
+
+	return machineCode
+}
+
+func (c *GoCompiler) allocateRegister(registers []string, regMap map[string]string) string {
+	for _, reg := range registers {
+		used := false
+		for _, allocatedReg := range regMap {
+			if allocatedReg == reg {
+				used = true
+				break
+			}
+		}
+		if !used {
+			return reg
+		}
+	}
+	return registers[0] // 如果所有寄存器都被使用，简单地返回第一个（在实际编译器中，这里会进行寄存器溢出处理）
+}
+
+func (c *GoCompiler) getOperand(op string, regMap map[string]string) string {
+	if reg, ok := regMap[op]; ok {
+		return reg
+	}
+	if _, err := strconv.Atoi(op); err == nil {
+		return op // 如果是数字，直接返回
+	}
+	return op // 如果不是寄存器也不是数字，假设是内存地址或标签
 }
 
 func (c *GoCompiler) generateSSAForFunction(funcDecl *ast.FuncDecl) SSAFunction {
