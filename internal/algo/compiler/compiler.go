@@ -35,6 +35,8 @@ func (c *GoCompiler) Compile(pkg Package) ObjectFile {
 			continue
 		}
 
+		ast.Print(fset, astFile)
+
 		// 遍历 AST 生成符号表和 SSA
 		ast.Inspect(astFile, func(n ast.Node) bool {
 			switch x := n.(type) {
