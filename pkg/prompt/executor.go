@@ -12,10 +12,7 @@ func executor(input string) {
 
 	switch {
 	case input == "go":
-		promptGenerator.GenerateHighQualityPrompt(false)
-		os.Exit(0)
-	case input == "go+":
-		promptGenerator.GenerateHighQualityPrompt(true)
+		promptGenerator.GenerateHighQualityPrompt()
 		os.Exit(0)
 
 	case strings.HasPrefix(input, "!!"):

@@ -62,5 +62,5 @@ func init() {
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowBatchOps, "batches", "b", false, "Show batch operations")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowSimilarity, "show-similar-queries", "q", false, "Show similar query pairs")
 	mybatisCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
-	mybatisCmd.Flags().StringVarP(&mybatis.DbFile, "db-file", "d", "", "Store metadata in sqlite db")
+	mybatisCmd.Flags().StringVarP(&mybatis.DbFile, "db-file", "d", "", "Store metadata in SQLite3 DB")
 }

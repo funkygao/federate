@@ -10,6 +10,7 @@ const (
 	atPrefix   = "@"
 	filePrefix = atPrefix + "f"
 	dirPrefix  = atPrefix + "d"
+	rulePrefix = atPrefix + "r"
 	targetFile = "prompt.txt"
 )
 
@@ -20,9 +21,21 @@ func completer(d prompt.Document) []prompt.Suggest {
 		return handleFileCompletion(text)
 	case strings.Contains(text, dirPrefix):
 		return handleDirCompletion(text)
+	case strings.HasPrefix(text, rulePrefix):
+		return handleRuleCompletion(text)
 	default:
 		return []prompt.Suggest{}
 	}
+}
+
+func handleRuleCompletion(text string) []prompt.Suggest {
+	suggestions := []prompt.Suggest{}
+	for _, rule := range rules {
+		if strings.HasPrefix(rule.Name, strings.TrimPrefix(text, rulePrefix)) {
+			suggestions = append(suggestions, prompt.Suggest{Text: rulePrefix + rule.Name})
+		}
+	}
+	return suggestions
 }
 
 func handleFileCompletion(text string) []prompt.Suggest {

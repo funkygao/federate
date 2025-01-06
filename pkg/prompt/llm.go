@@ -14,34 +14,6 @@ import (
 )
 
 const (
-	systemPrompt = "You are an excellent programming expert. Your task is to provide high-quality code modification suggestions or explain technical principles in detail."
-
-	userBasePrompt = `Instructions:
-1. Carefully analyze the original code.
-2. When suggesting modifications:
-   - Explain why the change is necessary or beneficial.
-   - Identify and explain the root cause of the issue, not just add new solutions on top of existing ones.
-3. Guidelines for suggested code snippets:
-   - Only apply the change(s) suggested by the most recent assistant message.
-   - Do not make any unrelated changes to the code.
-   - Produce a valid full rewrite of the entire original file without skipping any lines. Do not be lazy!
-   - Do not omit large parts of the original file without reason.
-   - Do not omit any needed changes from the requisite messages/code blocks.
-   - Keep your suggested code changes minimal, and do not include irrelevant lines.
-   - Review all suggestions, ensuring your modification is high quality.
-   - Never ever hard code for the specified failed test cases, your code must be robust and flexible.
-4. Ensure the generated code adheres to:
-   - Object-oriented principles
-   - SOLID principles
-   - Simplicity
-   - Extensibility
-   - Maintainability
-   - Readability
-   - Code style consistency (naming conventions, comments, etc.)
-   - Performance optimization
-5. Only provide the code that needs to be modified, do not include unchanged code.
-`
-
 	promptFile = "prompt.txt"
 )
 
@@ -50,6 +22,7 @@ var mentionRegex = regexp.MustCompile(`@(\S+)`)
 type PromptGenerator struct {
 	lastLine string
 	buffer   strings.Builder
+	rule     *Rule
 }
 
 func NewPromptGenerator() *PromptGenerator {
@@ -139,7 +112,9 @@ func (pg *PromptGenerator) processLineWithMention(line string) {
 	validMention := false
 	for _, match := range matches {
 		path := match[1]
-		if isDir(path) {
+		if strings.HasPrefix(path, "r") {
+			validMention = pg.processRuleInput(path[1:])
+		} else if isDir(path) {
 			validMention = pg.processDirInput(path)
 		} else {
 			validMention = pg.processFileInput(path)
@@ -151,6 +126,16 @@ func (pg *PromptGenerator) processLineWithMention(line string) {
 		pg.buffer.WriteString(line)
 		pg.buffer.WriteString("\n")
 	}
+}
+
+func (pg *PromptGenerator) processRuleInput(ruleName string) bool {
+	for _, rule := range rules {
+		if rule.Name == ruleName {
+			pg.rule = &rule
+			return true
+		}
+	}
+	return false
 }
 
 func (pg *PromptGenerator) processDirInput(path string) bool {
@@ -182,16 +167,7 @@ func (pg *PromptGenerator) processFileInput(path string) bool {
 	return true
 }
 
-func (pg *PromptGenerator) GenerateHighQualityPrompt(useTemplate bool) {
-	// 先写入 systemPrompt 和 userBasePrompt
-	initialBuffer := strings.Builder{}
-	if useTemplate {
-		initialBuffer.WriteString(systemPrompt)
-		initialBuffer.WriteString("\n\n")
-		initialBuffer.WriteString(userBasePrompt)
-		initialBuffer.WriteString("\n\n")
-	}
-
+func (pg *PromptGenerator) GenerateHighQualityPrompt() {
 	lines := strings.Split(pg.buffer.String(), "\n")
 	pg.buffer.Reset()
 
@@ -209,8 +185,10 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt(useTemplate bool) {
 		return
 	}
 
-	// 将 initialBuffer 的内容添加到 pg.buffer 的最前面
-	finalContent := initialBuffer.String() + pg.buffer.String()
+	finalContent := pg.buffer.String()
+	if pg.rule != nil {
+		finalContent = pg.rule.SystemPrompt + "\n\n" + pg.rule.UserPrompt + "\n\n" + finalContent
+	}
 
 	if Dump {
 		if err := ioutil.WriteFile(promptFile, []byte(finalContent), 0644); err != nil {
