@@ -380,7 +380,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage) {
 }
 
 func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) {
-	color.Magenta("Table Relations Analysis")
+	color.Magenta("Table Relations Analysis: %d", len(relations))
 	header := []string{"Table 1", "Table 2", "Join Type"}
 	var data [][]string
 	for _, r := range relations {
@@ -391,7 +391,7 @@ func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) 
 			//r.JoinCondition,
 		})
 	}
-	tabular.Display(header, data, false, -1)
+	tabular.Display(header, data, false, 0)
 }
 
 func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplexity) {
@@ -412,9 +412,16 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 	tabular.Display(header, data, false, -1)
 }
 
-func (rg *ReportGenerator) writeOptimisticLocksReport(locks []string) {
-	color.Magenta("Optimistic Locking Detection")
-	for _, l := range locks {
-		color.Yellow("- %s", l)
+func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
+	color.Magenta("Optimistic Locking Detection: %d", len(locks))
+
+	header := []string{"Filename", "Statement ID"}
+	var data [][]string
+	for _, lock := range locks {
+		data = append(data, []string{
+			filepath.Base(lock.Filename),
+			lock.ID,
+		})
 	}
+	tabular.Display(header, data, true, -1)
 }

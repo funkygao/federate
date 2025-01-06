@@ -55,7 +55,7 @@ type SQLAnalyzer struct {
 	TableRelations         []TableRelation
 	PerformanceBottlenecks []string
 	ComplexQueries         []SQLComplexity
-	OptimisticLocks        []string
+	OptimisticLocks        []*Statement
 	ReuseOpportunities     []string
 
 	UnknownFragments map[string][]SqlFragmentRef

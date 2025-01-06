@@ -71,33 +71,37 @@ func (sa *SQLAnalyzer) AnalyzeTableRelations() {
 
 	for _, stmts := range sa.StatementsByType {
 		for _, stmt := range stmts {
-			if stmt.Type == "select" {
-				joinClauses := sa.extractJoinClauses(stmt.SQL)
-				for _, join := range joinClauses {
-					// 确保表1和表2的顺序一致
-					table1, table2 := join.LeftTable, join.RightTable
-					if table1 > table2 {
-						table1, table2 = table2, table1
-					}
+			joinClauses := sa.extractJoinClauses(stmt.SQL)
+			for _, join := range joinClauses {
+				// Skip if either table is empty or "SUBQUERY"
+				if join.LeftTable == "" || join.RightTable == "" ||
+					join.LeftTable == "SUBQUERY" || join.RightTable == "SUBQUERY" {
+					continue
+				}
 
-					key := fmt.Sprintf("%s:%s:%s", table1, table2, join.Type)
-					relationMap[key] = TableRelation{
-						Table1:   table1,
-						Table2:   table2,
-						JoinType: join.Type,
-					}
+				// Ensure table1 and table2 order is consistent
+				table1, table2 := join.LeftTable, join.RightTable
+				if table1 > table2 {
+					table1, table2 = table2, table1
+				}
+
+				key := fmt.Sprintf("%s:%s:%s", table1, table2, join.Type)
+				relationMap[key] = TableRelation{
+					Table1:   table1,
+					Table2:   table2,
+					JoinType: join.Type,
 				}
 			}
 		}
 	}
 
-	// 将去重后的关系转换为切片
+	// Convert the deduplicated relations to a slice
 	sa.TableRelations = make([]TableRelation, 0, len(relationMap))
 	for _, relation := range relationMap {
 		sa.TableRelations = append(sa.TableRelations, relation)
 	}
 
-	// 可选：按表名和连接类型排序
+	// Sort by table names and join type
 	sort.Slice(sa.TableRelations, func(i, j int) bool {
 		if sa.TableRelations[i].Table1 != sa.TableRelations[j].Table1 {
 			return sa.TableRelations[i].Table1 < sa.TableRelations[j].Table1
@@ -189,13 +193,13 @@ func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
 }
 
 func (sa *SQLAnalyzer) DetectOptimisticLocking() {
-	sa.OptimisticLocks = []string{}
+	sa.OptimisticLocks = []*Statement{}
 	for _, stmts := range sa.StatementsByType {
 		for _, stmt := range stmts {
 			if stmt.Type == "update" {
 				if strings.Contains(stmt.SQL, "version = version + 1") ||
 					strings.Contains(stmt.SQL, "last_updated = NOW()") {
-					sa.OptimisticLocks = append(sa.OptimisticLocks, fmt.Sprintf("Optimistic locking detected in statement: %s", stmt.ID))
+					sa.OptimisticLocks = append(sa.OptimisticLocks, stmt)
 				}
 			}
 		}
@@ -206,11 +210,9 @@ func (sa *SQLAnalyzer) extractJoinClauses(sql string) []struct {
 	LeftTable  string
 	RightTable string
 	Type       string
-	Condition  string
 } {
 	stmt, err := sqlparser.Parse(sql)
 	if err != nil {
-		// 如果解析失败，返回空切片
 		return nil
 	}
 
@@ -218,43 +220,77 @@ func (sa *SQLAnalyzer) extractJoinClauses(sql string) []struct {
 		LeftTable  string
 		RightTable string
 		Type       string
-		Condition  string
 	}
 
-	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+	var extractJoins func(node sqlparser.SQLNode)
+	extractJoins = func(node sqlparser.SQLNode) {
 		switch n := node.(type) {
+		case *sqlparser.Select:
+			// Handle main FROM clause
+			for _, tableExpr := range n.From {
+				extractJoins(tableExpr)
+			}
+			// Handle subqueries in the SELECT list
+			for _, expr := range n.SelectExprs {
+				switch e := expr.(type) {
+				case *sqlparser.AliasedExpr:
+					if subquery, ok := e.Expr.(*sqlparser.Subquery); ok {
+						extractJoins(subquery.Select)
+					}
+				}
+			}
+			// Handle subqueries in WHERE clause
+			if n.Where != nil {
+				extractJoins(n.Where.Expr)
+			}
 		case *sqlparser.JoinTableExpr:
 			leftTable := sa.getTableName(n.LeftExpr)
 			rightTable := sa.getTableName(n.RightExpr)
 			joinType := strings.ToUpper(n.Join)
-			condition := sqlparser.String(n.Condition.On)
-
 			joins = append(joins, struct {
 				LeftTable  string
 				RightTable string
 				Type       string
-				Condition  string
 			}{
 				LeftTable:  leftTable,
 				RightTable: rightTable,
 				Type:       joinType,
-				Condition:  condition,
 			})
+			extractJoins(n.LeftExpr)
+			extractJoins(n.RightExpr)
+		case *sqlparser.AliasedTableExpr:
+			if subquery, ok := n.Expr.(*sqlparser.Subquery); ok {
+				extractJoins(subquery.Select)
+			}
+		case *sqlparser.Where:
+			sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+				extractJoins(node)
+				return true, nil
+			}, n.Expr)
+		case *sqlparser.Subquery:
+			extractJoins(n.Select)
 		}
-		return true, nil
-	}, stmt)
+	}
 
+	extractJoins(stmt)
 	return joins
 }
 
 func (sa *SQLAnalyzer) getTableName(tableExpr sqlparser.TableExpr) string {
 	switch t := tableExpr.(type) {
 	case *sqlparser.AliasedTableExpr:
-		if tn, ok := t.Expr.(sqlparser.TableName); ok {
-			return tn.Name.String()
+		switch expr := t.Expr.(type) {
+		case sqlparser.TableName:
+			return expr.Name.String()
+		case *sqlparser.Subquery:
+			return "SUBQUERY"
 		}
 	case *sqlparser.JoinTableExpr:
-		return sa.getTableName(t.LeftExpr) // 递归获取左表名
+		return sa.getTableName(t.LeftExpr)
+	case *sqlparser.ParenTableExpr:
+		if len(t.Exprs) > 0 {
+			return sa.getTableName(t.Exprs[0])
+		}
 	}
 	return ""
 }
