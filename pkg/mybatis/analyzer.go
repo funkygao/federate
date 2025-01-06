@@ -40,6 +40,9 @@ func (a *Analyzer) AnalyzeFiles(files []string) {
 			log.Printf("%s %v", file, err)
 		}
 	}
+
+	// high order metrics
+	a.SQLAnalyzer.AnalyzeAll()
 }
 
 func (a *Analyzer) prepareFile(filePath string) error {

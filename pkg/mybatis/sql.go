@@ -30,27 +30,33 @@ type SQLAnalyzer struct {
 
 	StatementsByType map[string][]*Statement
 
-	SQLTypes           map[string]int
-	Tables             map[string]int
-	Fields             map[string]int
-	ComplexQueries     int
-	UnionOperations    int
-	SubQueries         int
-	AggregationFuncs   map[string]int // count, min, max, etc
-	DistinctQueries    int
-	OrderByOperations  int
-	LimitOperations    int
-	LimitWithOffset    int
-	LimitWithoutOffset int
-	JoinOperations     int
-	JoinTypes          map[string]int
-	JoinTableCounts    map[int]int
-	JoinConditions     map[string]int
-	IndexHints         map[string]int
-	ParsedOK           int
-	TimeoutStatements  map[string]int
-
+	SQLTypes             map[string]int
+	Tables               map[string]int
+	Fields               map[string]int
+	UnionOperations      int
+	SubQueries           int
+	AggregationFuncs     map[string]int // count, min, max, etc
+	DistinctQueries      int
+	OrderByOperations    int
+	LimitOperations      int
+	LimitWithOffset      int
+	LimitWithoutOffset   int
+	JoinOperations       int
+	JoinTypes            map[string]int
+	JoinTableCounts      map[int]int
+	JoinConditions       map[string]int
+	IndexHints           map[string]int
+	ParsedOK             int
+	TimeoutStatements    map[string]int
 	IndexRecommendations map[string]*TableIndexRecommendation
+
+	// metrics
+	TableUsage             map[string]*TableUsage
+	TableRelations         []TableRelation
+	PerformanceBottlenecks []string
+	ComplexQueries         []SQLComplexity
+	OptimisticLocks        []string
+	ReuseOpportunities     []string
 
 	UnknownFragments map[string][]SqlFragmentRef
 	UnparsableSQL    []UnparsableSQL
@@ -306,17 +312,7 @@ func (sa *SQLAnalyzer) analyzeComplexity(stmt *sqlparser.Select, stmtID int64) {
 	hasLimit := stmt.Limit != nil
 	hasOffset := stmt.Limit != nil && stmt.Limit.Offset != nil
 
-	if hasSubquery || hasUnion || hasDistinct || hasOrderBy || hasLimit || joinCount > 0 {
-		sa.ComplexQueries++
-	}
-
 	sa.DB.InsertComplexity(stmtID, hasSubquery, hasUnion, hasDistinct, hasOrderBy, hasLimit, hasOffset)
-
-	if stmt.Where != nil || stmt.GroupBy != nil || stmt.Having != nil ||
-		stmt.OrderBy != nil || stmt.Limit != nil || joinCount > 0 ||
-		sa.UnionOperations > 0 {
-		sa.ComplexQueries++
-	}
 
 	if stmt.Where != nil {
 		sa.analyzeWhere(stmt.Where, stmtID)

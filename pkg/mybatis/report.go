@@ -54,6 +54,19 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 		log.Println()
 	}
 
+	// New reports
+	rg.writeTableUsageReport(sa.TableUsage)
+	log.Println()
+
+	rg.writeTableRelationsReport(sa.TableRelations)
+	log.Println()
+
+	rg.writeComplexQueriesReport(sa.ComplexQueries)
+	log.Println()
+
+	rg.writeOptimisticLocksReport(sa.OptimisticLocks)
+	log.Println()
+
 	rg.showErrors(sa)
 }
 
@@ -336,4 +349,72 @@ func printTopN(m map[string]int, topK int) {
 		items = append(items, tabular.BarChartItem{Name: key, Count: count})
 	}
 	tabular.PrintBarChart(items, topK)
+}
+
+func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage) {
+	var items []TableUsage
+	for _, u := range usage {
+		items = append(items, *u)
+	}
+
+	// 按总使用次数降序排序
+	sort.Slice(items, func(i, j int) bool {
+		return items[i].UseCount > items[j].UseCount
+	})
+
+	var data [][]string
+	for _, item := range items {
+		data = append(data, []string{
+			item.Name,
+			strconv.Itoa(item.UseCount),
+			strconv.Itoa(item.InSelect),
+			strconv.Itoa(item.InInsert),
+			strconv.Itoa(item.InUpdate),
+			strconv.Itoa(item.InDelete),
+		})
+	}
+
+	color.Magenta("Table Usage Analysis: %d", len(data))
+	header := []string{"Table", "Total Uses", "In Select", "In Insert", "In Update", "In Delete"}
+	tabular.Display(header, data, false, -1)
+}
+
+func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) {
+	color.Magenta("Table Relations Analysis")
+	header := []string{"Table 1", "Table 2", "Join Type"}
+	var data [][]string
+	for _, r := range relations {
+		data = append(data, []string{
+			r.Table1,
+			r.Table2,
+			r.JoinType,
+			//r.JoinCondition,
+		})
+	}
+	tabular.Display(header, data, false, -1)
+}
+
+func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplexity) {
+	if len(complexQueries) == 0 {
+		return
+	}
+
+	color.Magenta("Complex Queries Analysis (Top %d)", TopK)
+	header := []string{"Statement ID", "Complexity Score", "Reasons"}
+	var data [][]string
+	for _, q := range complexQueries {
+		data = append(data, []string{
+			q.StatementID,
+			strconv.Itoa(q.Score),
+			strings.Join(q.Reasons, ", "),
+		})
+	}
+	tabular.Display(header, data, false, -1)
+}
+
+func (rg *ReportGenerator) writeOptimisticLocksReport(locks []string) {
+	color.Magenta("Optimistic Locking Detection")
+	for _, l := range locks {
+		color.Yellow("- %s", l)
+	}
 }
