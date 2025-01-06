@@ -400,7 +400,7 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 	}
 
 	color.Magenta("Complex Queries Analysis (Top %d)", TopK)
-	header := []string{"XML", "Statement ID", "Complexity Score", "Reasons"}
+	header := []string{"XML", "Statement ID", "Score", "Reasons"}
 	var data [][]string
 	for _, q := range complexQueries {
 		data = append(data, []string{
