@@ -400,10 +400,11 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 	}
 
 	color.Magenta("Complex Queries Analysis (Top %d)", TopK)
-	header := []string{"Statement ID", "Complexity Score", "Reasons"}
+	header := []string{"XML", "Statement ID", "Complexity Score", "Reasons"}
 	var data [][]string
 	for _, q := range complexQueries {
 		data = append(data, []string{
+			strings.Trim(filepath.Base(q.Filename), ".xml"),
 			q.StatementID,
 			strconv.Itoa(q.Score),
 			strings.Join(q.Reasons, ", "),

@@ -25,6 +25,7 @@ type TableRelation struct {
 }
 
 type SQLComplexity struct {
+	Filename    string
 	StatementID string
 	Score       int
 	Reasons     []string
@@ -118,77 +119,122 @@ func (sa *SQLAnalyzer) DetectPerformanceBottlenecks() {
 }
 
 func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
-	var complexQueries []SQLComplexity
+	complexityMap := make(map[string]SQLComplexity)
+
 	for _, stmts := range sa.StatementsByType {
 		for _, stmt := range stmts {
-			complexity := SQLComplexity{StatementID: stmt.ID}
-
-			// Convert SQL to uppercase for case-insensitive matching
-			upperSQL := strings.ToUpper(stmt.SQL)
-
-			// Count various SQL elements
-			joinCount := strings.Count(upperSQL, "JOIN")
-			unionCount := strings.Count(upperSQL, "UNION")
-			subqueryCount := strings.Count(upperSQL, "SELECT") - 1 // Subtracting 1 for the main query
-			distinctCount := strings.Count(upperSQL, "DISTINCT")
-			groupByCount := strings.Count(upperSQL, "GROUP BY")
-			havingCount := strings.Count(upperSQL, "HAVING")
-			orderByCount := strings.Count(upperSQL, "ORDER BY")
-			caseCount := strings.Count(upperSQL, "CASE")
-
-			// Calculate score
-			complexity.Score += joinCount * 2
-			complexity.Score += unionCount * 3
-			complexity.Score += subqueryCount * 3
-			complexity.Score += distinctCount * 2
-			complexity.Score += groupByCount * 2
-			complexity.Score += havingCount * 2
-			complexity.Score += orderByCount
-			complexity.Score += caseCount
-
-			// Add reasons for complexity
-			if joinCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d JOINs", joinCount))
-			}
-			if unionCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d UNIONs", unionCount))
-			}
-			if subqueryCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d subqueries", subqueryCount))
-			}
-			if distinctCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, "DISTINCT")
-			}
-			if groupByCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, "GROUP BY")
-			}
-			if havingCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, "HAVING")
-			}
-			if orderByCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d ORDER BY clauses", orderByCount))
-			}
-			if caseCount > 0 {
-				complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d CASE statements", caseCount))
+			complexity := SQLComplexity{
+				StatementID: stmt.ID,
+				Filename:    stmt.Filename,
 			}
 
-			// Adjust this threshold as needed
-			if complexity.Score > 5 {
-				complexQueries = append(complexQueries, complexity)
+			// Use sa.splitSQLStatements to split the SQL
+			sqlStatements := sa.splitSQLStatements(stmt.SQL)
+
+			totalScore := 0
+			reasons := make(map[string]int)
+
+			for _, sqlStmt := range sqlStatements {
+				upperSQL := strings.ToUpper(sqlStmt)
+
+				// Count various SQL elements
+				joinCount := strings.Count(upperSQL, "JOIN")
+				unionCount := strings.Count(upperSQL, "UNION")
+				subqueryCount := strings.Count(upperSQL, "SELECT") - 1 // Subtracting 1 for the main query
+				distinctCount := strings.Count(upperSQL, "DISTINCT")
+				groupByCount := strings.Count(upperSQL, "GROUP BY")
+				havingCount := strings.Count(upperSQL, "HAVING")
+				orderByCount := strings.Count(upperSQL, "ORDER BY")
+				insertCount := strings.Count(upperSQL, "INSERT")
+
+				caseCount := 0
+				if strings.Contains(upperSQL, "CASE") {
+					// Only count CASE statements in WHERE clauses or JOIN conditions
+					caseInWhereOrJoin := strings.Contains(upperSQL, "WHERE CASE") ||
+						strings.Contains(upperSQL, "ON CASE") ||
+						strings.Contains(upperSQL, "AND CASE") ||
+						strings.Contains(upperSQL, "OR CASE")
+					if caseInWhereOrJoin {
+						caseCount = strings.Count(upperSQL, "CASE")
+					}
+				}
+
+				// Special check for INSERT INTO SELECT
+				insertIntoSelectCount := 0
+				if strings.Contains(upperSQL, "INSERT") && strings.Contains(upperSQL, "SELECT") {
+					insertIntoSelectCount = 1
+				}
+
+				// Calculate score
+				score := joinCount*2 + unionCount*3 + subqueryCount*3 + distinctCount*2 +
+					groupByCount*2 + havingCount*2 + orderByCount + caseCount +
+					insertCount + insertIntoSelectCount*5
+
+				totalScore += score
+
+				// Add reasons
+				if joinCount > 0 {
+					reasons["JOINs"] += joinCount
+				}
+				if unionCount > 0 {
+					reasons["UNIONs"] += unionCount
+				}
+				if subqueryCount > 0 {
+					reasons["subqueries"] += subqueryCount
+				}
+				if distinctCount > 0 {
+					reasons["DISTINCT"] += distinctCount
+				}
+				if groupByCount > 0 {
+					reasons["GROUP BY"] += groupByCount
+				}
+				if havingCount > 0 {
+					reasons["HAVING"] += havingCount
+				}
+				if orderByCount > 0 {
+					reasons["ORDER BY"] += orderByCount
+				}
+				if caseCount > 0 {
+					reasons["CASE statements in conditions"] = caseCount
+				}
+				if insertIntoSelectCount > 0 {
+					reasons["INSERT INTO SELECT"] += insertIntoSelectCount
+				} else if insertCount > 0 {
+					reasons["INSERT statements"] += insertCount
+				}
 			}
+
+			complexity.Score = totalScore
+
+			// Convert reasons map to slice of strings
+			for reason, count := range reasons {
+				if count > 1 {
+					complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d %s", count, reason))
+				} else {
+					complexity.Reasons = append(complexity.Reasons, reason)
+				}
+			}
+
+			// Use filename and statement ID as key to avoid duplicates
+			key := fmt.Sprintf("%s:%s", stmt.Filename, stmt.ID)
+			complexityMap[key] = complexity
 		}
 	}
 
-	// Sort the queries by complexity score in descending order
-	sort.Slice(complexQueries, func(i, j int) bool {
-		return complexQueries[i].Score > complexQueries[j].Score
+	// Convert map to slice
+	sa.ComplexQueries = make([]SQLComplexity, 0, len(complexityMap))
+	for _, complexity := range complexityMap {
+		sa.ComplexQueries = append(sa.ComplexQueries, complexity)
+	}
+
+	// Sort by complexity score in descending order
+	sort.Slice(sa.ComplexQueries, func(i, j int) bool {
+		return sa.ComplexQueries[i].Score > sa.ComplexQueries[j].Score
 	})
 
-	// Store only the top K complex queries
-	if len(complexQueries) > TopK {
-		sa.ComplexQueries = complexQueries[:TopK]
-	} else {
-		sa.ComplexQueries = complexQueries
+	// Keep only top K complex queries
+	if len(sa.ComplexQueries) > TopK {
+		sa.ComplexQueries = sa.ComplexQueries[:TopK]
 	}
 }
 
