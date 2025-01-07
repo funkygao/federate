@@ -249,7 +249,7 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
 		}
 	}
 
-	tabular.Display(header, cellData, true, -1)
+	tabular.Display(header, cellData, true, 0)
 }
 
 // 在 report.go 中添加
@@ -280,13 +280,8 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 }
 
 func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
-	color.Magenta("Similar SQL Statements by Type and File")
-
 	similarities := sa.ComputeSimilarities()
-
-	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
 	var cellData [][]string
-
 	for sqlType, files := range similarities {
 		for filename, pairs := range files {
 			if len(pairs) == 0 {
@@ -305,7 +300,10 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
 			}
 		}
 	}
-	tabular.Display(header, cellData, true, -1)
+	color.Magenta("Similar SQL Statements by Type and File: %d", len(cellData))
+	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
+
+	tabular.Display(header, cellData, false, -1)
 }
 
 func min(a, b int) int {
@@ -367,6 +365,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 		singleInsert := 0
 		batchUpdate := 0
 		singleUpdate := 0
+		insertOnDuplicate := 0
 
 		// 遍历所有 INSERT 语句
 		for _, stmt := range sa.StatementsByType["insert"] {
@@ -375,6 +374,9 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 					batchInsert++
 				} else {
 					singleInsert++
+				}
+				if strings.Contains(strings.ToUpper(stmt.SQL), "ON DUPLICATE KEY") {
+					insertOnDuplicate++
 				}
 			}
 		}
@@ -390,20 +392,34 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 			}
 		}
 
+		insertOnDuplicateStr := strconv.Itoa(insertOnDuplicate)
+		if insertOnDuplicate > 0 {
+			insertOnDuplicateStr = color.New(color.FgYellow).Sprintf("%d", insertOnDuplicate)
+		}
+		batchInsertStr := strconv.Itoa(batchInsert)
+		if batchInsert > 0 {
+			batchInsertStr = color.New(color.FgYellow).Sprintf("%d", batchInsert)
+		}
+		batchUpdateStr := strconv.Itoa(batchUpdate)
+		if batchUpdate > 0 {
+			batchUpdateStr = color.New(color.FgYellow).Sprintf("%d", batchUpdate)
+		}
+
 		data = append(data, []string{
 			item.Name,
 			strconv.Itoa(item.UseCount),
 			strconv.Itoa(item.InSelect),
 			strconv.Itoa(singleInsert),
-			strconv.Itoa(batchInsert),
+			batchInsertStr,
+			insertOnDuplicateStr,
 			strconv.Itoa(singleUpdate),
-			strconv.Itoa(batchUpdate),
+			batchUpdateStr,
 			strconv.Itoa(item.InDelete),
 		})
 	}
 
 	color.Magenta("Table Usage Analysis: %d", len(data))
-	header := []string{"Table", "Total Uses", "In Select", "Single Insert", "Batch Insert", "Single Update", "Batch Update", "In Delete"}
+	header := []string{"Table", "Total Stmt", "Select", "Single Insert", "Batch Insert", "Insert On Duplicate", "Single Update", "Batch Update", "Delete"}
 	tabular.Display(header, data, false, -1)
 }
 
