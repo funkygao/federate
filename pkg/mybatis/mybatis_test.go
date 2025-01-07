@@ -136,10 +136,10 @@ func TestSplitSQLStatements(t *testing.T) {
 		},
 	}
 
-	analyzer := NewSQLAnalyzer(nil, nil)
 	for _, tc := range testCases {
+		stmt := Statement{SQL: tc.input}
 		t.Run(tc.name, func(t *testing.T) {
-			result := analyzer.splitSQLStatements(tc.input)
+			result := stmt.SplitSQL()
 			assert.Equal(t, tc.expected, result, "Unexpected split result")
 		})
 	}

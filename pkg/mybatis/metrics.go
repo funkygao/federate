@@ -128,13 +128,10 @@ func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
 				Filename:    stmt.Filename,
 			}
 
-			// Use sa.splitSQLStatements to split the SQL
-			sqlStatements := sa.splitSQLStatements(stmt.SQL)
-
 			totalScore := 0
 			reasons := make(map[string]int)
 
-			for _, sqlStmt := range sqlStatements {
+			for _, sqlStmt := range stmt.SplitSQL() {
 				upperSQL := strings.ToUpper(sqlStmt)
 
 				// Count various SQL elements

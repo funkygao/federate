@@ -101,7 +101,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	var parseErrors []error
-	for _, sqlStmt := range sa.splitSQLStatements(s.SQL) {
+	for _, sqlStmt := range s.SplitSQL() {
 		sqlStmt = strings.TrimSpace(sqlStmt)
 		if sqlStmt == "" {
 			continue
@@ -154,52 +154,6 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	return nil
-}
-
-func (sa *SQLAnalyzer) splitSQLStatements(sql string) []string {
-	var statements []string
-	var currentStmt strings.Builder
-	var inString, inComment bool
-	var stringDelimiter rune
-
-	for i, char := range sql {
-		switch {
-		case inString:
-			currentStmt.WriteRune(char)
-			if char == stringDelimiter && sql[i-1] != '\\' {
-				inString = false
-			}
-		case inComment:
-			if char == '\n' {
-				inComment = false
-			}
-			currentStmt.WriteRune(char)
-		case char == '\'' || char == '"':
-			inString = true
-			stringDelimiter = char
-			currentStmt.WriteRune(char)
-		case char == '-' && i+1 < len(sql) && sql[i+1] == '-':
-			inComment = true
-			currentStmt.WriteRune(char)
-		case char == ';' && !inString && !inComment:
-			stmt := strings.TrimSpace(currentStmt.String())
-			if stmt != "" {
-				statements = append(statements, stmt)
-			}
-			currentStmt.Reset()
-		default:
-			currentStmt.WriteRune(char)
-		}
-	}
-
-	if currentStmt.Len() > 0 {
-		stmt := strings.TrimSpace(currentStmt.String())
-		if stmt != "" {
-			statements = append(statements, stmt)
-		}
-	}
-
-	return statements
 }
 
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement, stmtID int64) {

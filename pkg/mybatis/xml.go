@@ -27,45 +27,6 @@ type SqlFragmentRef struct {
 	StmtID string
 }
 
-type Statement struct {
-	Filename string
-	ID       string
-	Type     string
-	Raw      string
-	SQL      string
-	Timeout  int
-}
-
-func (s *Statement) IsBatchOperation() bool {
-	containsSQLOperation := func(elem *etree.Element) bool {
-		// 检查元素的文本内容是否包含 SQL 关键字
-		text := strings.ToUpper(elem.Text())
-		return strings.Contains(text, "INSERT") ||
-			strings.Contains(text, "UPDATE") ||
-			strings.Contains(text, "DELETE") ||
-			strings.Contains(text, "SELECT")
-	}
-
-	doc := etree.NewDocument()
-	if err := doc.ReadFromString(s.Raw); err != nil {
-		return false
-	}
-
-	root := doc.Root()
-	if root == nil {
-		return false
-	}
-
-	// 检查是否有最外层的 foreach
-	for _, child := range root.ChildElements() {
-		if child.Tag == "foreach" && containsSQLOperation(child) {
-			return true
-		}
-	}
-
-	return false
-}
-
 type XMLMapperBuilder struct {
 	Filename         string
 	Root             *etree.Element
@@ -195,6 +156,13 @@ func (b *XMLMapperBuilder) parseDynamicTags(elem *etree.Element, context *Dynami
 				handler.handle(b, v, context)
 			} else if v.Tag == "include" {
 				b.handleInclude(v, context)
+			} else if v.Tag == "bind" || v.Tag == "selectKey" {
+				// <selectKey resultType="java.lang.Long"  keyProperty="id" keyColumn="id" order="AFTER">SELECT LAST_INSERT_ID()</selectKey>
+				// <bind name="skuSize" value="sku.size"/>
+
+				// ignore
+			} else {
+				log.Printf("Unknown tag: %s", v.Tag)
 			}
 		}
 	}
