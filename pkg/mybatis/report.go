@@ -198,11 +198,11 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
 	tabular.Display(header, cellData, false, -1)
 }
 
-func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]int) {
-	color.Magenta("Aggregation Functions: %d", len(aggFuncs))
-	header := []string{"Function", "Count"}
-	cellData := sortMapByValue(aggFuncs)
-	tabular.Display(header, cellData, false, -1)
+func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]map[string]int) {
+	header := []string{"Operation", "Function", "Count"}
+	cellData := sortNestedMapByValueDesc(aggFuncs)
+	color.Magenta("Aggregation Functions: %d", len(cellData))
+	tabular.Display(header, cellData, true, -1)
 }
 
 func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
@@ -307,48 +307,6 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
 	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
 
 	tabular.Display(header, cellData, false, -1)
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func sortMapByValue(m map[string]int) [][]string {
-	type kv struct {
-		Key   string
-		Value int
-	}
-
-	var ss []kv
-	for k, v := range m {
-		ss = append(ss, kv{k, v})
-	}
-
-	sort.Slice(ss, func(i, j int) bool {
-		return ss[i].Value > ss[j].Value
-	})
-
-	var result [][]string
-	for _, kv := range ss {
-		result = append(result, []string{kv.Key, fmt.Sprintf("%d", kv.Value)})
-	}
-
-	return result
-}
-
-func printTopN(m map[string]int, topK int) {
-	if len(m) < topK {
-		topK = len(m)
-	}
-
-	items := make([]tabular.BarChartItem, 0, len(m))
-	for key, count := range m {
-		items = append(items, tabular.BarChartItem{Name: key, Count: count})
-	}
-	tabular.PrintBarChart(items, topK)
 }
 
 func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, sa *SQLAnalyzer) {

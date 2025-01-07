@@ -1,8 +1,10 @@
 package mybatis
 
 import (
+	"log"
 	"strings"
 
+	"federate/pkg/primitive"
 	"github.com/beevik/etree"
 	"github.com/xwb1989/sqlparser"
 )
@@ -124,11 +126,6 @@ func (s *Statement) SplitSQL() []string {
 }
 
 func (s *Statement) ExtractJoinClauses() []JoinClause {
-	stmt, err := sqlparser.Parse(s.SQL)
-	if err != nil {
-		return nil
-	}
-
 	var joins []JoinClause
 	var extractJoins func(node sqlparser.SQLNode)
 
@@ -181,7 +178,14 @@ func (s *Statement) ExtractJoinClauses() []JoinClause {
 		}
 	}
 
-	extractJoins(stmt)
+	for _, sql := range s.PrimarySQL {
+		stmt, err := sqlparser.Parse(sql)
+		if err != nil {
+			log.Fatalf("%v: %v", sql, err)
+		}
+
+		extractJoins(stmt)
+	}
 	return joins
 }
 
@@ -205,29 +209,26 @@ func (s *Statement) getTableName(tableExpr sqlparser.TableExpr) string {
 }
 
 func (s *Statement) Tables() []string {
-	stmt, err := sqlparser.Parse(s.SQL)
-	if err != nil {
-		// 如果解析失败，返回空切片
-		return []string{}
-	}
-
-	tables := make(map[string]bool)
-	sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
-		switch n := node.(type) {
-		case *sqlparser.AliasedTableExpr:
-			tableName := s.getTableNameFromExpr(n.Expr)
-			if tableName != "" {
-				tables[tableName] = true
-			}
+	tables := primitive.NewStringSet()
+	for _, sql := range s.PrimarySQL {
+		stmt, err := sqlparser.Parse(sql)
+		if err != nil {
+			log.Fatalf("%s: %v", sql, err)
 		}
-		return true, nil
-	}, stmt)
 
-	result := make([]string, 0, len(tables))
-	for table := range tables {
-		result = append(result, table)
+		sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
+			switch n := node.(type) {
+			case *sqlparser.AliasedTableExpr:
+				tableName := s.getTableNameFromExpr(n.Expr)
+				if tableName != "" {
+					tables.Add(tableName)
+				}
+			}
+			return true, nil
+		}, stmt)
 	}
-	return result
+
+	return tables.Values()
 }
 
 func (s *Statement) getTableNameFromExpr(expr sqlparser.SimpleTableExpr) string {
