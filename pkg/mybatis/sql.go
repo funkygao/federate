@@ -90,10 +90,6 @@ func NewSQLAnalyzer(ignoredFields []string, DB *DB) *SQLAnalyzer {
 	return sa
 }
 
-func (sa *SQLAnalyzer) Visit(xmlPath string, unknowns []SqlFragmentRef) {
-	sa.UnknownFragments[xmlPath] = unknowns
-}
-
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	if s.Timeout > 0 {
 		timeoutKey := fmt.Sprintf("%ds", s.Timeout)

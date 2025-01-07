@@ -68,7 +68,7 @@ func (a *Analyzer) analyzeFile(filePath string) error {
 		return err
 	}
 
-	a.SQLAnalyzer.Visit(filePath, xml.UnknownFragments)
+	a.SQLAnalyzer.UnknownFragments[filePath] = xml.UnknownFragments
 
 	for _, stmt := range stmts {
 		a.SQLAnalyzer.AnalyzeStmt(*stmt)
