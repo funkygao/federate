@@ -97,7 +97,7 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 	// Post process SQL
 	for _, stmt := range b.Statements {
 		stmt.SQL = b.postProcessSQL(stmt.SQL)
-		if Verbosity > 2 {
+		if Verbosity > 4 {
 			color.Yellow("%s %s", b.BaseName(), stmt.ID)
 			log.Println(stmt.SQL)
 		}
