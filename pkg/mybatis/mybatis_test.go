@@ -1,9 +1,11 @@
 package mybatis
 
 import (
+	"log"
 	"strings"
 	"testing"
 
+	"federate/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/xwb1989/sqlparser"
 )
@@ -79,8 +81,12 @@ func TestSQLAnalyzer(t *testing.T) {
 
 func TestSQLParser(t *testing.T) {
 	sql := `UPDATE st_stock_sku set version = version + 1 , extend_content = json_set(extend_content, '', ?) WHERE deleted = 0 AND warehouse_no = ? AND id = ?`
-	_, err := sqlparser.Parse(sql)
+	sql = `select @affected_rows as rows`
+	stmt, err := sqlparser.Parse(sql)
 	assert.NoError(t, err)
+	if testing.Verbose() {
+		log.Printf("\n%s", util.Beautify(stmt))
+	}
 }
 
 func TestSplitSQLStatements(t *testing.T) {
@@ -136,6 +142,27 @@ func TestSplitSQLStatements(t *testing.T) {
 		},
 	}
 
+	for _, tc := range testCases {
+		stmt := Statement{SQL: tc.input}
+		t.Run(tc.name, func(t *testing.T) {
+			result := stmt.SplitSQL()
+			assert.Equal(t, tc.expected, result, "Unexpected split result")
+		})
+	}
+}
+
+func TestSplitSQL(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected []string
+	}{
+		{
+			name:     "Multiple semicolons at the end",
+			input:    "SET @affected_rows = 0; DELETE  FROM users;;     ;set @affected_rows  = @affected_rows + row_count();  select @affected_rows as rows;",
+			expected: []string{"SET @affected_rows = 0", "DELETE  FROM users", "set @affected_rows  = @affected_rows + row_count()", "select @affected_rows as rows"},
+		},
+	}
 	for _, tc := range testCases {
 		stmt := Statement{SQL: tc.input}
 		t.Run(tc.name, func(t *testing.T) {
