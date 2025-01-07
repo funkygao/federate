@@ -61,6 +61,10 @@ func (s *Statement) HasOptimisticLocking() bool {
 	return false
 }
 
+func (s *Statement) SubN() int {
+	return len(s.SplitSQL())
+}
+
 func (s *Statement) SplitSQL() []string {
 	var statements []string
 	var currentStmt strings.Builder

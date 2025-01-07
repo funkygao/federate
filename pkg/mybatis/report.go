@@ -66,6 +66,9 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.writeOptimisticLocksReport(sa.OptimisticLocks)
 	log.Println()
 
+	rg.writeSubStatmentReport(sa)
+	log.Println()
+
 	rg.showErrors(sa)
 }
 
@@ -458,15 +461,31 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 }
 
 func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
-	color.Magenta("Optimistic Locking Detection: %d", len(locks))
-
-	header := []string{"XML", "Statement ID"}
-	var data [][]string
+	var cellData [][]string
 	for _, lock := range locks {
-		data = append(data, []string{
+		cellData = append(cellData, []string{
 			strings.Trim(filepath.Base(lock.Filename), ".xml"),
 			lock.ID,
 		})
 	}
-	tabular.Display(header, data, true, -1)
+	color.Magenta("Optimistic Locking Detection: %d", len(cellData))
+	header := []string{"XML", "Statement ID"}
+	tabular.Display(header, cellData, true, -1)
+}
+
+func (rg *ReportGenerator) writeSubStatmentReport(sa *SQLAnalyzer) {
+	var cellData [][]string
+	for _, stmts := range sa.StatementsByType {
+		for i := 0; i < len(stmts); i++ {
+			stmt := stmts[i]
+			subN := stmt.SubN()
+			if subN > 1 {
+				cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID, fmt.Sprintf("%d", subN)})
+				i += subN
+			}
+		}
+	}
+	color.Magenta("Statements With Sub Statements: %d", len(cellData))
+	header := []string{"XML", "Statement ID", "Sub Stmts"}
+	tabular.Display(header, cellData, true, 0)
 }
