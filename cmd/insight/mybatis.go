@@ -15,7 +15,11 @@ import (
 var mybatisCmd = &cobra.Command{
 	Use:   "mybatis <dir>",
 	Short: "Analyze MyBatis MySQL mapper XML files in the specified directory",
-	Args:  cobra.ExactArgs(1),
+	Long: `Analyze MyBatis MySQL mapper XML files in the specified directory.
+
+Example usage:
+  federate insight mybatis . --show-similar-queries --index-recommend --verbosity 3 --top 30`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		dir := args[0]
 		analyzeMybatisMapperXML(dir)
@@ -58,9 +62,9 @@ func init() {
 	mybatisCmd.Flags().IntVarP(&mybatis.TopK, "top", "t", 20, "Number of top elements to display in bar chart")
 	mybatisCmd.Flags().IntVarP(&mybatis.Verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 	mybatisCmd.Flags().Float64VarP(&mybatis.SimilarityThreshold, "similarity-threshold", "s", 0.75, "Statement similary threhold")
-	mybatisCmd.Flags().BoolVarP(&mybatis.ShowIndexRecommend, "index-recommend", "i", true, "Show index recommendations per table")
+	mybatisCmd.Flags().BoolVarP(&mybatis.ShowIndexRecommend, "index-recommend", "i", false, "Show index recommendations per table")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowBatchOps, "batches", "b", true, "Show batch operations")
-	mybatisCmd.Flags().BoolVarP(&mybatis.ShowSimilarity, "show-similar-queries", "q", true, "Show similar query pairs")
+	mybatisCmd.Flags().BoolVarP(&mybatis.ShowSimilarity, "show-similar-queries", "q", false, "Show similar query pairs")
 	mybatisCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
 	mybatisCmd.Flags().StringVarP(&mybatis.DbFile, "db-file", "d", "", "Store metadata in SQLite3 DB")
 }

@@ -139,27 +139,27 @@ func (rg *ReportGenerator) writeBatchOperations(sa *SQLAnalyzer) {
 
 	// Batch Inserts
 	for _, stmt := range sa.StatementsByType["insert"] {
-		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
+		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{"Insert", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	// Batch Updates
 	for _, stmt := range sa.StatementsByType["update"] {
-		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
+		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{"Update", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	// Batch Deletes
 	for _, stmt := range sa.StatementsByType["delete"] {
-		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
+		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{"Delete", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	if len(cellData) > 0 {
-		color.Magenta("Batch Operations")
+		color.Magenta("Batch Operations: %d", len(cellData))
 		tabular.Display(header, cellData, true, -1)
 	}
 }
@@ -370,7 +370,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 		// 遍历所有 INSERT 语句
 		for _, stmt := range sa.StatementsByType["insert"] {
 			if strings.Contains(stmt.SQL, item.Name) {
-				if stmt.isOutermostForeach() {
+				if stmt.IsBatchOperation() {
 					batchInsert++
 				} else {
 					singleInsert++
@@ -384,7 +384,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 		// 遍历所有 UPDATE 语句
 		for _, stmt := range sa.StatementsByType["update"] {
 			if strings.Contains(stmt.SQL, item.Name) {
-				if stmt.isOutermostForeach() {
+				if stmt.IsBatchOperation() {
 					batchUpdate++
 				} else {
 					singleUpdate++

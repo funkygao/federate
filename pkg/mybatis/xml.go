@@ -36,7 +36,16 @@ type Statement struct {
 	Timeout  int
 }
 
-func (s *Statement) isOutermostForeach() bool {
+func (s *Statement) IsBatchOperation() bool {
+	containsSQLOperation := func(elem *etree.Element) bool {
+		// 检查元素的文本内容是否包含 SQL 关键字
+		text := strings.ToUpper(elem.Text())
+		return strings.Contains(text, "INSERT") ||
+			strings.Contains(text, "UPDATE") ||
+			strings.Contains(text, "DELETE") ||
+			strings.Contains(text, "SELECT")
+	}
+
 	doc := etree.NewDocument()
 	if err := doc.ReadFromString(s.Raw); err != nil {
 		return false
@@ -49,7 +58,7 @@ func (s *Statement) isOutermostForeach() bool {
 
 	// 检查是否有最外层的 foreach
 	for _, child := range root.ChildElements() {
-		if child.Tag == "foreach" {
+		if child.Tag == "foreach" && containsSQLOperation(child) {
 			return true
 		}
 	}
