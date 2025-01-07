@@ -123,7 +123,7 @@ func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
 			totalScore := 0
 			reasons := make(map[string]int)
 
-			for _, sqlStmt := range stmt.SplitSQL() {
+			for _, sqlStmt := range stmt.PrimarySQL {
 				upperSQL := strings.ToUpper(sqlStmt)
 
 				// Count various SQL elements

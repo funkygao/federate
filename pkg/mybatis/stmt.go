@@ -17,9 +17,17 @@ type Statement struct {
 	Filename string
 	ID       string
 	Type     string
-	Raw      string
-	SQL      string
 	Timeout  int
+
+	// Raw XML Node Text
+	Raw string
+
+	// 可能是多个语句组成的：SET @affected_rows = 0; UDPATE ...; set @affected_rows  = @affected_rows + row_count(); select @affected_rows as rows;
+	SQL string
+
+	SubSQL []string
+
+	PrimarySQL []string
 }
 
 func (s *Statement) IsBatchOperation() bool {
@@ -61,8 +69,12 @@ func (s *Statement) HasOptimisticLocking() bool {
 	return false
 }
 
+func (s *Statement) SetPrimarySQL(sql string) {
+	s.PrimarySQL = append(s.PrimarySQL, sql)
+}
+
 func (s *Statement) SubN() int {
-	return len(s.SplitSQL())
+	return len(s.SubSQL)
 }
 
 func (s *Statement) SplitSQL() []string {

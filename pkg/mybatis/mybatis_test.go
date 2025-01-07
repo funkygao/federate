@@ -2,6 +2,7 @@ package mybatis
 
 import (
 	"log"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -76,16 +77,6 @@ func TestSQLAnalyzer(t *testing.T) {
 
 			assert.Equal(t, tc.expected, strings.TrimSpace(stmt.SQL), tc.id)
 		})
-	}
-}
-
-func TestSQLParser(t *testing.T) {
-	sql := `UPDATE st_stock_sku set version = version + 1 , extend_content = json_set(extend_content, '', ?) WHERE deleted = 0 AND warehouse_no = ? AND id = ?`
-	sql = `select @affected_rows as rows`
-	stmt, err := sqlparser.Parse(sql)
-	assert.NoError(t, err)
-	if testing.Verbose() {
-		log.Printf("\n%s", util.Beautify(stmt))
 	}
 }
 
@@ -169,5 +160,16 @@ func TestSplitSQL(t *testing.T) {
 			result := stmt.SplitSQL()
 			assert.Equal(t, tc.expected, result, "Unexpected split result")
 		})
+	}
+}
+
+func TestSQLParser(t *testing.T) {
+	sql := `UPDATE st_stock_sku set version = version + 1 , extend_content = json_set(extend_content, '', ?) WHERE deleted = 0 AND warehouse_no = ? AND id = ?`
+	sql = `select @affected_rows as rows`
+	sql = `SET  @affected_rows = 0`
+	stmt, err := sqlparser.Parse(sql)
+	assert.NoError(t, err)
+	if testing.Verbose() {
+		log.Printf("\n%s\nactual type: %+v", util.Beautify(stmt), reflect.TypeOf(stmt))
 	}
 }

@@ -97,17 +97,14 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	var parseErrors []error
-	for _, sqlStmt := range s.SplitSQL() {
-		sqlStmt = strings.TrimSpace(sqlStmt)
-		if sqlStmt == "" {
+	for _, subStmt := range s.SplitSQL() {
+		stmt, err := sqlparser.Parse(subStmt)
+		if err != nil {
+			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subStmt))
 			continue
 		}
 
-		stmt, err := sqlparser.Parse(sqlStmt)
-		if err != nil {
-			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, sqlStmt))
-			continue
-		}
+		s.SubSQL = append(s.SubSQL, subStmt)
 
 		sa.ParsedOK++
 		sa.StatementsByType[s.Type] = append(sa.StatementsByType[s.Type], &s)
@@ -119,23 +116,36 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
-			sa.analyzeSelect(stmt, s, stmtID)
+			if !isSelectFromDual(stmt) {
+				s.SetPrimarySQL(subStmt)
+				sa.analyzeSelect(stmt, s, stmtID)
+			}
+
 		case *sqlparser.Insert:
+			s.SetPrimarySQL(subStmt)
 			if stmt.Action == sqlparser.ReplaceStr {
 				sa.analyzeReplace(stmt, s, stmtID)
 			} else {
 				sa.analyzeInsert(stmt, s, stmtID)
 			}
+
 		case *sqlparser.Update:
+			s.SetPrimarySQL(subStmt)
 			sa.analyzeUpdate(stmt, s, stmtID)
+
 		case *sqlparser.Delete:
+			s.SetPrimarySQL(subStmt)
 			sa.analyzeDelete(stmt, s, stmtID)
+
 		case *sqlparser.Union:
+			s.SetPrimarySQL(subStmt)
 			sa.analyzeUnion(stmt, s, stmtID)
+
 		case *sqlparser.Set:
 			sa.analyzeSet(stmt, stmtID)
+
 		default:
-			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, sqlStmt)
+			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, subStmt)
 		}
 	}
 
@@ -150,6 +160,17 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	return nil
+}
+
+func isSelectFromDual(stmt *sqlparser.Select) bool {
+	if len(stmt.From) == 1 {
+		if tableExpr, ok := stmt.From[0].(*sqlparser.AliasedTableExpr); ok {
+			if tableName, ok := tableExpr.Expr.(sqlparser.TableName); ok {
+				return tableName.Name.String() == "dual"
+			}
+		}
+	}
+	return false
 }
 
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement, stmtID int64) {
@@ -189,6 +210,8 @@ func (sa *SQLAnalyzer) analyzeUnion(stmt *sqlparser.Union, s Statement, stmtID i
 }
 
 func (sa *SQLAnalyzer) analyzeSet(stmt *sqlparser.Set, stmtID int64) {
+	// SET @affected_rows = 0;
+	// set @affected_rows = @affected_rows + row_count()
 	sa.SQLTypes["SET @"]++
 }
 
