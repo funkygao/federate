@@ -54,8 +54,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 		log.Println()
 	}
 
-	// New reports
-	rg.writeTableUsageReport(sa.TableUsage)
+	rg.writeTableUsageReport(sa.TableUsage, sa)
 	log.Println()
 
 	rg.writeTableRelationsReport(sa.TableRelations)
@@ -141,21 +140,21 @@ func (rg *ReportGenerator) writeBatchOperations(sa *SQLAnalyzer) {
 	// Batch Inserts
 	for _, stmt := range sa.StatementsByType["insert"] {
 		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
-			cellData = append(cellData, []string{"Insert", filepath.Base(stmt.Filename), stmt.ID})
+			cellData = append(cellData, []string{"Insert", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	// Batch Updates
 	for _, stmt := range sa.StatementsByType["update"] {
 		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
-			cellData = append(cellData, []string{"Update", filepath.Base(stmt.Filename), stmt.ID})
+			cellData = append(cellData, []string{"Update", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	// Batch Deletes
 	for _, stmt := range sa.StatementsByType["delete"] {
 		if strings.Contains(stmt.SQL, "/* FOREACH_START */") {
-			cellData = append(cellData, []string{"Delete", filepath.Base(stmt.Filename), stmt.ID})
+			cellData = append(cellData, []string{"Delete", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
@@ -351,7 +350,7 @@ func printTopN(m map[string]int, topK int) {
 	tabular.PrintBarChart(items, topK)
 }
 
-func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage) {
+func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, sa *SQLAnalyzer) {
 	var items []TableUsage
 	for _, u := range usage {
 		items = append(items, *u)
@@ -364,18 +363,47 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage) {
 
 	var data [][]string
 	for _, item := range items {
+		batchInsert := 0
+		singleInsert := 0
+		batchUpdate := 0
+		singleUpdate := 0
+
+		// 遍历所有 INSERT 语句
+		for _, stmt := range sa.StatementsByType["insert"] {
+			if strings.Contains(stmt.SQL, item.Name) {
+				if stmt.isOutermostForeach() {
+					batchInsert++
+				} else {
+					singleInsert++
+				}
+			}
+		}
+
+		// 遍历所有 UPDATE 语句
+		for _, stmt := range sa.StatementsByType["update"] {
+			if strings.Contains(stmt.SQL, item.Name) {
+				if stmt.isOutermostForeach() {
+					batchUpdate++
+				} else {
+					singleUpdate++
+				}
+			}
+		}
+
 		data = append(data, []string{
 			item.Name,
 			strconv.Itoa(item.UseCount),
 			strconv.Itoa(item.InSelect),
-			strconv.Itoa(item.InInsert),
-			strconv.Itoa(item.InUpdate),
+			strconv.Itoa(singleInsert),
+			strconv.Itoa(batchInsert),
+			strconv.Itoa(singleUpdate),
+			strconv.Itoa(batchUpdate),
 			strconv.Itoa(item.InDelete),
 		})
 	}
 
 	color.Magenta("Table Usage Analysis: %d", len(data))
-	header := []string{"Table", "Total Uses", "In Select", "In Insert", "In Update", "In Delete"}
+	header := []string{"Table", "Total Uses", "In Select", "Single Insert", "Batch Insert", "Single Update", "Batch Update", "In Delete"}
 	tabular.Display(header, data, false, -1)
 }
 
@@ -416,11 +444,11 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
 	color.Magenta("Optimistic Locking Detection: %d", len(locks))
 
-	header := []string{"Filename", "Statement ID"}
+	header := []string{"XML", "Statement ID"}
 	var data [][]string
 	for _, lock := range locks {
 		data = append(data, []string{
-			filepath.Base(lock.Filename),
+			strings.Trim(filepath.Base(lock.Filename), ".xml"),
 			lock.ID,
 		})
 	}

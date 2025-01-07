@@ -36,6 +36,27 @@ type Statement struct {
 	Timeout  int
 }
 
+func (s *Statement) isOutermostForeach() bool {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromString(s.Raw); err != nil {
+		return false
+	}
+
+	root := doc.Root()
+	if root == nil {
+		return false
+	}
+
+	// 检查是否有最外层的 foreach
+	for _, child := range root.ChildElements() {
+		if child.Tag == "foreach" {
+			return true
+		}
+	}
+
+	return false
+}
+
 type XMLMapperBuilder struct {
 	Filename         string
 	Root             *etree.Element
