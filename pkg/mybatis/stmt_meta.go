@@ -1,13 +1,12 @@
 package mybatis
 
 type StatementMetadata struct {
-	SQLType string
-	Tables  []string
-	Fields  []string
-
+	SQLType          string
+	Tables           []string
+	Fields           []string
 	UnionOperations  int
 	SubQueries       int
-	AggregationFuncs map[string]int // key: function name, value: count
+	AggregationFuncs map[string]int
 	HasDistinct      bool
 	HasOrderBy       bool
 	HasLimit         bool
@@ -17,7 +16,6 @@ type StatementMetadata struct {
 	JoinTableCount   int
 	JoinConditions   map[string]int
 	IndexHints       map[string]int
-	IsOptimisticLock bool
 }
 
 func (s *Statement) analyzeMetadata() {

@@ -28,16 +28,6 @@ type SQLAnalyzer struct {
 
 	StatementsByTag map[string][]*Statement
 
-	// Aggregated metrics
-	TotalUnionOperations    int
-	TotalSubQueries         int
-	TotalDistinctQueries    int
-	TotalOrderByOperations  int
-	TotalLimitOperations    int
-	TotalLimitWithOffset    int
-	TotalLimitWithoutOffset int
-	TotalJoinOperations     int
-
 	SQLTypes             map[string]int
 	Tables               map[string]int
 	Fields               map[string]int
@@ -158,8 +148,67 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	return nil
 }
 
-func (sa *SQLAnalyzer) updateAggregatedMetrics(s *Statement) {
-	sa.ComplexQueries = append(sa.ComplexQueries, s.Complexity)
+func (sa *SQLAnalyzer) updateAggregatedMetrics(stmt *Statement) {
+	sa.ComplexQueries = append(sa.ComplexQueries, stmt.Complexity)
+
+	s := stmt.Metadata
+
+	sa.SQLTypes[s.SQLType]++
+	for _, table := range s.Tables {
+		sa.Tables[table]++
+	}
+	for _, field := range s.Fields {
+		sa.Fields[field]++
+	}
+	sa.UnionOperations += s.UnionOperations
+	sa.SubQueries += s.SubQueries
+	for funcName, count := range s.AggregationFuncs {
+		if sa.AggregationFuncs[s.SQLType] == nil {
+			sa.AggregationFuncs[s.SQLType] = make(map[string]int)
+		}
+		sa.AggregationFuncs[s.SQLType][funcName] += count
+	}
+	if s.HasDistinct {
+		sa.DistinctQueries++
+	}
+	if s.HasOrderBy {
+		sa.OrderByOperations++
+	}
+	if s.HasLimit {
+		sa.LimitOperations++
+		if s.HasOffset {
+			sa.LimitWithOffset++
+		} else {
+			sa.LimitWithoutOffset++
+		}
+	}
+	sa.JoinOperations += s.JoinOperations
+	for joinType, count := range s.JoinTypes {
+		sa.JoinTypes[joinType] += count
+	}
+	sa.JoinTableCounts[s.JoinTableCount]++
+	for condition, count := range s.JoinConditions {
+		sa.JoinConditions[condition] += count
+	}
+	for hint, count := range s.IndexHints {
+		sa.IndexHints[hint] += count
+	}
+
+	if stmt.HasOptimisticLocking() {
+		sa.OptimisticLocks = append(sa.OptimisticLocks, stmt)
+	}
+}
+
+// WalkStatements 遍历 SQLAnalyzer 中的所有语句
+func (sa *SQLAnalyzer) WalkStatements(walkFn func(tag string, stmt *Statement) error) error {
+	for tag, stmts := range sa.StatementsByTag {
+		for _, stmt := range stmts {
+			if err := walkFn(tag, stmt); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (sa *SQLAnalyzer) addStatement(s *Statement) {
