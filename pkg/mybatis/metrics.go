@@ -3,7 +3,8 @@ package mybatis
 import (
 	"fmt"
 	"sort"
-	"strings"
+
+	"federate/pkg/primitive"
 )
 
 type TableUsage struct {
@@ -26,7 +27,7 @@ type SQLComplexity struct {
 	Filename    string
 	StatementID string
 	Score       int
-	Reasons     []string
+	Reasons     *primitive.StringSet
 }
 
 func (sa *SQLAnalyzer) AnalyzeAll() {
@@ -38,7 +39,7 @@ func (sa *SQLAnalyzer) AnalyzeAll() {
 
 func (sa *SQLAnalyzer) AnalyzeTableUsage() {
 	sa.TableUsage = make(map[string]*TableUsage)
-	for stmtType, stmts := range sa.StatementsByType {
+	for stmtType, stmts := range sa.StatementsByTag {
 		for _, stmt := range stmts {
 			for _, table := range stmt.Tables() {
 				if table == "SUBQUERY" {
@@ -67,7 +68,7 @@ func (sa *SQLAnalyzer) AnalyzeTableUsage() {
 func (sa *SQLAnalyzer) AnalyzeTableRelations() {
 	relationMap := make(map[string]TableRelation)
 
-	for _, stmts := range sa.StatementsByType {
+	for _, stmts := range sa.StatementsByTag {
 		for _, stmt := range stmts {
 			for _, join := range stmt.ExtractJoinClauses() {
 				// Skip if either table is empty or "SUBQUERY"
@@ -111,117 +112,20 @@ func (sa *SQLAnalyzer) AnalyzeTableRelations() {
 }
 
 func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
-	complexityMap := make(map[string]SQLComplexity)
+	sa.ComplexQueries = []SQLComplexity{}
 
-	for _, stmts := range sa.StatementsByType {
+	for _, stmts := range sa.StatementsByTag {
 		for _, stmt := range stmts {
-			complexity := SQLComplexity{
-				StatementID: stmt.ID,
-				Filename:    stmt.Filename,
-			}
-
-			totalScore := 0
-			reasons := make(map[string]int)
-
-			for _, sqlStmt := range stmt.PrimarySQL {
-				upperSQL := strings.ToUpper(sqlStmt)
-
-				// Count various SQL elements
-				joinCount := strings.Count(upperSQL, "JOIN")
-				unionCount := strings.Count(upperSQL, "UNION")
-				subqueryCount := strings.Count(upperSQL, "SELECT") - 1 // Subtracting 1 for the main query
-				distinctCount := strings.Count(upperSQL, "DISTINCT")
-				groupByCount := strings.Count(upperSQL, "GROUP BY")
-				havingCount := strings.Count(upperSQL, "HAVING")
-				orderByCount := strings.Count(upperSQL, "ORDER BY")
-				insertCount := strings.Count(upperSQL, "INSERT")
-
-				caseCount := 0
-				if strings.Contains(upperSQL, "CASE") {
-					// Only count CASE statements in WHERE clauses or JOIN conditions
-					caseInWhereOrJoin := strings.Contains(upperSQL, "WHERE CASE") ||
-						strings.Contains(upperSQL, "ON CASE") ||
-						strings.Contains(upperSQL, "AND CASE") ||
-						strings.Contains(upperSQL, "OR CASE")
-					if caseInWhereOrJoin {
-						caseCount = strings.Count(upperSQL, "CASE")
-					}
-				}
-
-				// Special check for INSERT INTO SELECT
-				insertIntoSelectCount := 0
-				if strings.Contains(upperSQL, "INSERT") && strings.Contains(upperSQL, "SELECT") {
-					insertIntoSelectCount = 1
-				}
-
-				// Calculate score
-				score := joinCount*2 + unionCount*3 + subqueryCount*3 + distinctCount*2 +
-					groupByCount*2 + havingCount*2 + orderByCount + caseCount +
-					insertCount + insertIntoSelectCount*5
-
-				totalScore += score
-
-				// Add reasons
-				if joinCount > 0 {
-					reasons["JOINs"] += joinCount
-				}
-				if unionCount > 0 {
-					reasons["UNIONs"] += unionCount
-				}
-				if subqueryCount > 0 {
-					reasons["subqueries"] += subqueryCount
-				}
-				if distinctCount > 0 {
-					reasons["DISTINCT"] += distinctCount
-				}
-				if groupByCount > 0 {
-					reasons["GROUP BY"] += groupByCount
-				}
-				if havingCount > 0 {
-					reasons["HAVING"] += havingCount
-				}
-				if orderByCount > 0 {
-					reasons["ORDER BY"] += orderByCount
-				}
-				if caseCount > 0 {
-					reasons["CASE statements in conditions"] = caseCount
-				}
-				if insertIntoSelectCount > 0 {
-					reasons["INSERT INTO SELECT"] += insertIntoSelectCount
-				} else if insertCount > 0 {
-					reasons["INSERT statements"] += insertCount
-				}
-			}
-
-			complexity.Score = totalScore
-
-			// Convert reasons map to slice of strings
-			for reason, count := range reasons {
-				if count > 1 {
-					complexity.Reasons = append(complexity.Reasons, fmt.Sprintf("%d %s", count, reason))
-				} else {
-					complexity.Reasons = append(complexity.Reasons, reason)
-				}
-			}
-
-			// Use filename and statement ID as key to avoid duplicates
-			key := fmt.Sprintf("%s:%s", stmt.Filename, stmt.ID)
-			complexityMap[key] = complexity
+			sa.ComplexQueries = append(sa.ComplexQueries, stmt.AnalyzeComplexity())
 		}
 	}
 
-	// Convert map to slice
-	sa.ComplexQueries = make([]SQLComplexity, 0, len(complexityMap))
-	for _, complexity := range complexityMap {
-		sa.ComplexQueries = append(sa.ComplexQueries, complexity)
-	}
-
-	// Sort by complexity score in descending order
+	// 按复杂度得分降序排序
 	sort.Slice(sa.ComplexQueries, func(i, j int) bool {
 		return sa.ComplexQueries[i].Score > sa.ComplexQueries[j].Score
 	})
 
-	// Keep only top K complex queries
+	// 只保留前 TopK 个复杂查询
 	if len(sa.ComplexQueries) > TopK {
 		sa.ComplexQueries = sa.ComplexQueries[:TopK]
 	}
@@ -229,7 +133,7 @@ func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
 
 func (sa *SQLAnalyzer) DetectOptimisticLocking() {
 	sa.OptimisticLocks = []*Statement{}
-	for _, stmts := range sa.StatementsByType {
+	for _, stmts := range sa.StatementsByTag {
 		for _, stmt := range stmts {
 			if stmt.HasOptimisticLocking() {
 				sa.OptimisticLocks = append(sa.OptimisticLocks, stmt)

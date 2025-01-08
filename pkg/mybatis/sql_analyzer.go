@@ -27,7 +27,7 @@ type SQLAnalyzer struct {
 	IgnoredFields map[string]bool
 	DB            *DB
 
-	StatementsByType map[string][]*Statement
+	StatementsByTag map[string][]*Statement
 
 	SQLTypes             map[string]int
 	Tables               map[string]int
@@ -74,7 +74,7 @@ func NewSQLAnalyzer(ignoredFields []string, DB *DB) *SQLAnalyzer {
 		JoinConditions:    make(map[string]int),
 		IndexHints:        make(map[string]int),
 		TimeoutStatements: make(map[string]int),
-		StatementsByType:  make(map[string][]*Statement),
+		StatementsByTag:   make(map[string][]*Statement),
 
 		IndexRecommendations: make(map[string]*TableIndexRecommendation),
 
@@ -89,6 +89,25 @@ func NewSQLAnalyzer(ignoredFields []string, DB *DB) *SQLAnalyzer {
 	return sa
 }
 
+func (sa *SQLAnalyzer) addStatement(s *Statement) {
+	// 确保 StatementsByTag 已初始化
+	if sa.StatementsByTag == nil {
+		sa.StatementsByTag = make(map[string][]*Statement)
+	}
+
+	exists := false
+	for _, that := range sa.StatementsByTag[s.Tag] {
+		if that == s { // 直接比较指针地址
+			exists = true
+			break
+		}
+	}
+
+	if !exists {
+		sa.StatementsByTag[s.Tag] = append(sa.StatementsByTag[s.Tag], s)
+	}
+}
+
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	if s.Timeout > 0 {
 		timeoutKey := fmt.Sprintf("%ds", s.Timeout)
@@ -96,17 +115,17 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	var parseErrors []error
-	for _, subStmt := range s.SplitSQL() {
-		stmt, err := sqlparser.Parse(subStmt)
+	for _, subSQL := range s.SplitSQL() {
+		stmt, err := sqlparser.Parse(subSQL)
 		if err != nil {
-			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subStmt))
+			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subSQL))
 			continue
 		}
 
-		s.SubSQL = append(s.SubSQL, subStmt)
+		s.AddSubSQL(subSQL)
 
 		sa.ParsedOK++
-		sa.StatementsByType[s.Type] = append(sa.StatementsByType[s.Type], &s)
+		sa.addStatement(&s)
 
 		stmtID, err := sa.DB.InsertStatement(&s)
 		if err != nil {
@@ -116,12 +135,12 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
 			if !isSelectFromDual(stmt) {
-				s.SetPrimarySQL(subStmt)
+				s.AddPrimarySQL(subSQL)
 				sa.analyzeSelect(stmt, s, stmtID)
 			}
 
 		case *sqlparser.Insert:
-			s.SetPrimarySQL(subStmt)
+			s.AddPrimarySQL(subSQL)
 			if stmt.Action == sqlparser.ReplaceStr {
 				sa.analyzeReplace(stmt, s, stmtID)
 			} else {
@@ -129,22 +148,22 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 			}
 
 		case *sqlparser.Update:
-			s.SetPrimarySQL(subStmt)
+			s.AddPrimarySQL(subSQL)
 			sa.analyzeUpdate(stmt, s, stmtID)
 
 		case *sqlparser.Delete:
-			s.SetPrimarySQL(subStmt)
+			s.AddPrimarySQL(subSQL)
 			sa.analyzeDelete(stmt, s, stmtID)
 
 		case *sqlparser.Union:
-			s.SetPrimarySQL(subStmt)
+			s.AddPrimarySQL(subSQL)
 			sa.analyzeUnion(stmt, s, stmtID)
 
 		case *sqlparser.Set:
 			sa.analyzeSet(stmt, stmtID)
 
 		default:
-			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, subStmt)
+			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, subSQL)
 		}
 	}
 

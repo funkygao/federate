@@ -125,7 +125,7 @@ func (db *DB) InsertStatement(stmt *Statement) (int64, error) {
 	result, err := db.Exec(`
 		INSERT INTO Statements (filename, statement_id, statement_type, raw_sql, processed_sql, timeout)
 		VALUES (?, ?, ?, ?, ?, ?)
-	`, stmt.Filename, stmt.ID, stmt.Type, stmt.Raw, stmt.SQL, stmt.Timeout)
+	`, stmt.Filename, stmt.ID, stmt.Tag, stmt.Raw, stmt.SQL, stmt.Timeout)
 	if err != nil {
 		return 0, fmt.Errorf("error inserting statement: %v", err)
 	}

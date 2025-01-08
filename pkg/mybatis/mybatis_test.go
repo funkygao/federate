@@ -173,3 +173,51 @@ func TestSQLParser(t *testing.T) {
 		log.Printf("\n%s\nactual type: %+v", util.Beautify(stmt), reflect.TypeOf(stmt))
 	}
 }
+
+func TestAnalyzeComplexity(t *testing.T) {
+	testCases := []struct {
+		name    string
+		input   string
+		score   int
+		reasons []string
+	}{
+		{
+			name: "basic",
+			input: `
+SELECT
+  MAX(stock.location_no) AS locationNo,
+  capacity.zone_no AS zoneNo,
+  capacity.zone_type as zoneType
+FROM st_stock stock JOIN st_location_capacity capacity
+  ON stock.warehouse_no = capacity.warehouse_no AND stock.location_no = capacity.location_no
+WHERE stock.deleted = 0 AND capacity.deleted = 0
+  AND stock.warehouse_no = ?
+  AND capacity.zone_no IN (?)
+  AND capacity.zone_type IN ('cp', 'bp')
+GROUP BY stock.location_no, capacity.zone_no,  capacity.zone_type
+UNION
+SELECT
+  max(stock.location_no) AS locationNo,
+  capacity.zone_no AS zoneNo,
+  capacity.zone_type AS zoneType
+FROM st_location_occupy stock JOIN st_location_capacity capacity
+  ON stock.warehouse_no = capacity.warehouse_no AND stock.location_no = capacity.location_no
+WHERE stock.deleted = 0 AND capacity.deleted = 0
+  AND stock.warehouse_no = ?
+  AND capacity.zone_no IN (?)
+  AND capacity.zone_type in ('cp', 'bp')
+GROUP BY stock.location_no, capacity.zone_no, capacity.zone_type
+        `,
+			score:   11,
+			reasons: []string{"GROUP BY", "JOIN", "MAX", "UNION"},
+		},
+	}
+	for _, tc := range testCases {
+		stmt := Statement{PrimarySQL: []string{tc.input}}
+		t.Run(tc.name, func(t *testing.T) {
+			result := stmt.AnalyzeComplexity()
+			assert.Equal(t, tc.score, result.Score)
+			assert.Equal(t, tc.reasons, result.Reasons.SortedValues())
+		})
+	}
+}
