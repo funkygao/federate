@@ -1,29 +1,44 @@
 package mybatis
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
+	"federate/pkg/prompt"
 	"federate/pkg/tabular"
 	"federate/pkg/util"
 	"github.com/fatih/color"
 )
 
-type ReportGenerator struct{}
+type ReportGenerator struct {
+	buffer bytes.Buffer
+}
 
 func NewReportGenerator() *ReportGenerator {
 	return &ReportGenerator{}
 }
 
 func (rg *ReportGenerator) Generate(sa *Aggregator) {
+	if GeneratePrompt {
+		fmt.Fprintf(&rg.buffer, promtContext)
+
+		log.SetOutput(io.MultiWriter(os.Stdout, &rg.buffer))
+		defer func() {
+			log.SetOutput(os.Stdout)
+		}()
+	}
+
 	rg.writeSQLTypes(sa.SQLTypes)
 	log.Println()
 
-	color.Magenta("Top %d most used tables", TopK)
+	rg.writeSectionHeader("Top %d most used tables", TopK)
 	printTopN(sa.Tables, TopK)
 	log.Println()
 
@@ -69,7 +84,25 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeSubStatmentReport(sa)
 	log.Println()
 
+	if GeneratePrompt {
+		promptContent = rg.buffer.String()
+		if err := util.ClipboardPut(promptContent); err == nil {
+			log.Printf("ChatGPT Prompt 已复制到剪贴板，约 %.2fK tokens", prompt.CountTokensInK(promptContent))
+		} else {
+			log.Fatalf("%v", err)
+		}
+	}
+
 	rg.showErrors(sa)
+}
+
+func (rg *ReportGenerator) writeSectionHeader(format string, v ...any) {
+	title := fmt.Sprintf(format, v...)
+	color.Magenta(title)
+
+	if GeneratePrompt {
+		fmt.Fprintf(&rg.buffer, "## %s\n\n", title)
+	}
 }
 
 func (rg *ReportGenerator) showErrors(sa *Aggregator) {
@@ -82,7 +115,7 @@ func (rg *ReportGenerator) writeTimeoutInfo(timeoutStatements map[string]int) {
 		return
 	}
 
-	color.Magenta("Statements with Timeout")
+	rg.writeSectionHeader("Statements with Timeout")
 	header := []string{"Timeout", "Count"}
 	var cellData [][]string
 
@@ -133,7 +166,7 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 		}
 	}
 
-	color.Magenta("%d Statements Fail, %d OK", len(unparsableSQL), okN)
+	color.Yellow("%d Statements Fail, %d OK", len(unparsableSQL), okN)
 }
 
 func (rg *ReportGenerator) writeBatchOperations(sa *Aggregator) {
@@ -148,7 +181,7 @@ func (rg *ReportGenerator) writeBatchOperations(sa *Aggregator) {
 	})
 
 	if len(cellData) > 0 {
-		color.Magenta("Batch Operations: %d", len(cellData))
+		rg.writeSectionHeader("Batch Operations: %d", len(cellData))
 		tabular.Display(header, cellData, true, -1)
 	}
 }
@@ -158,19 +191,17 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 	for _, n := range sqlTypes {
 		stmts += n
 	}
-	color.Magenta("Statements: %d", stmts)
 
 	var items []tabular.BarChartItem
 	for sqlType, count := range sqlTypes {
 		items = append(items, tabular.BarChartItem{Name: sqlType, Count: count})
 	}
 
+	rg.writeSectionHeader("Statements: %d", stmts)
 	tabular.PrintBarChart(items, 0) // 0 means print all items
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *Aggregator) {
-	color.Magenta("Complex Operations")
-	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
 		"JOIN":                 sa.JoinOperations,
 		"SubQueries":           sa.SubQueries,
@@ -181,25 +212,27 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *Aggregator) {
 		"LIMIT without OFFSET": sa.LimitWithoutOffset,
 	}
 	cellData := sortMapByValue(metrics)
+	header := []string{"Metric", "Count"}
+	rg.writeSectionHeader("Complex Operations")
 	tabular.Display(header, cellData, false, -1)
 }
 
 func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]map[string]int) {
 	header := []string{"Operation", "Function", "Count"}
 	cellData := sortNestedMapByValueDesc(aggFuncs)
-	color.Magenta("Aggregation Functions: %d", len(cellData))
+	rg.writeSectionHeader("Aggregation Functions: %d", len(cellData))
 	tabular.Display(header, cellData, true, -1)
 }
 
 func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
-	color.Magenta("Dynamic SQL Elements: %d", len(elements))
 	header := []string{"Element", "Count"}
 	cellData := sortMapByValue(elements)
+	rg.writeSectionHeader("Dynamic SQL Elements: %d", len(elements))
 	tabular.Display(header, cellData, false, -1)
 }
 
 func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
-	color.Magenta("Index Recommendations per Table")
+	rg.writeSectionHeader("Index Recommendations per Table")
 	if sa.IgnoredFields.Cardinality() > 0 {
 		log.Printf("Note: The following fields are ignored in index recommendations: %s", sa.IgnoredFields)
 	}
@@ -239,12 +272,12 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
 
 // 在 report.go 中添加
 func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
-	color.Magenta("Join Types")
+	rg.writeSectionHeader("Join Types")
 	printTopN(sa.JoinTypes, 0)
 	log.Println()
 
 	// JOIN 表数量统计
-	color.Magenta("Join Table Counts") // TODO 目前数据不对
+	rg.writeSectionHeader("Join Table Counts") // TODO 目前数据不对
 	joinTableItems := make([]tabular.BarChartItem, 0, len(sa.JoinTableCounts))
 	for tableCount, frequency := range sa.JoinTableCounts {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
@@ -253,7 +286,7 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	log.Println()
 
 	if len(sa.IndexHints) > 0 {
-		color.Magenta("Index Hints")
+		rg.writeSectionHeader("Index Hints")
 		printTopN(sa.IndexHints, 0)
 	}
 }
@@ -279,7 +312,7 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *Aggregator) {
 			}
 		}
 	}
-	color.Magenta("Similar SQL Statements by Type and File: %d", len(cellData))
+	rg.writeSectionHeader("Similar SQL Statements by Type and File: %d", len(cellData))
 	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
 
 	tabular.Display(header, cellData, false, -1)
@@ -324,13 +357,13 @@ func (rg *ReportGenerator) writeTableUsageReport(sa *Aggregator) {
 		})
 	}
 
-	color.Magenta("Table Usage: %d", len(data))
+	rg.writeSectionHeader("Table Usage: %d", len(data))
 	header := []string{"Table", "Total Stmt", "Select", "Single Insert", "Batch Insert", "Insert On Duplicate", "Single Update", "Batch Update", "Delete"}
 	tabular.DisplayWithSummary(header, data, false, util.Range(1, len(header)), -1)
 }
 
 func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) {
-	color.Magenta("Table Relations: %d", len(relations))
+	rg.writeSectionHeader("Table Relations: %d", len(relations))
 	header := []string{"Table 1", "Table 2", "Join Type"}
 	var data [][]string
 	for _, r := range relations {
@@ -349,8 +382,6 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []CognitiveC
 		return
 	}
 
-	color.Magenta("Cognitively Complex Queries (Top %d)", TopK)
-	header := []string{"XML", "Statement ID", "Score", "Reasons"}
 	var data [][]string
 	for _, q := range complexQueries {
 		data = append(data, []string{
@@ -360,6 +391,8 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []CognitiveC
 			strings.Join(q.Reasons.SortedValues(), ", "),
 		})
 	}
+	rg.writeSectionHeader("Cognitively Complex Queries (Top %d)", TopK)
+	header := []string{"XML", "Statement ID", "Score", "Reasons"}
 	tabular.Display(header, data, false, -1)
 }
 
@@ -371,7 +404,7 @@ func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
 			lock.ID,
 		})
 	}
-	color.Magenta("Optimistic Locking: %d", len(cellData))
+	rg.writeSectionHeader("Optimistic Locking: %d", len(cellData))
 	header := []string{"XML", "Statement ID"}
 	tabular.Display(header, cellData, true, -1)
 }
@@ -384,7 +417,7 @@ func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 		}
 		return nil
 	})
-	color.Magenta("Statements With Sub Statements: %d", len(cellData))
+	rg.writeSectionHeader("Statements With Sub Statements: %d", len(cellData))
 	header := []string{"XML", "Statement ID", "Sub Stmts"}
 	tabular.Display(header, cellData, true, 0)
 }

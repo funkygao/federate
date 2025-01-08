@@ -2,6 +2,38 @@ package mybatis
 
 import "log"
 
+const promtContext = `
+# Apache MyBatis Mapper XML File Analysis Report
+
+## Background
+
+This report provides a thorough analysis of the MyBatis Mapper XML files within my project. MyBatis is a Java persistence framework that employs XML configuration files, called Mapper XML files, to establish mappings between SQL statements and Java objects. These files are crucial for efficient database interactions and maintaining code readability.
+
+By analyzing the XML mapper files, we can uncover the primary business operations and processes, as they define how data is accessed, modified, and utilized to support key business functions. This analysis allows us to gain insights into the system's data physical model and understand the underlying logic that drives the business.
+
+## Your role
+
+As a SQL Analysis Expert and Business Insights Consultant, your responsibilities include:
+
+- Conducting a detailed analysis of the MyBatis Mapper XML file analysis report
+- Identifying the main business operations and processes based on the SQL statements and their interactions with the database
+- Assessing the current state and health of the business system by understanding how data is used to support business objectives
+- Providing expert recommendations to optimize the alignment between database operations and business requirements
+- Offering insights into potential improvements in business processes based on the analysis of data usage patterns
+- Suggesting areas for further investigation or clarification if the report does not provide sufficient information for a comprehensive understanding of the business operations
+
+## Expected Outputs
+
+- Initial Observations: Begin by describing what you have observed in the analysis report. Highlight the key findings related to SQL types, table usage, join analysis, aggregation functions, and any notable patterns or trends that stand out. This will provide a foundation for further insights and recommendations
+- Clear identification of the primary business operations and processes within the system
+- Insights into how data is utilized to support these business functions and any potential gaps or inefficiencies
+- Practical recommendations for enhancing the effectiveness and efficiency of business operations through database optimizations
+- Strategic suggestions for leveraging the analysis findings to drive business growth and improve overall system performance
+- Guidance on potential areas for future analysis or enhancements to gain deeper insights into the business operations
+
+Please provide further insights and recommendations based on this analysis report.
+`
+
 var (
 	Verbosity           int
 	TopK                int
