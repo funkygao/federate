@@ -42,15 +42,15 @@ func (s *Statement) parseSQL() (parseErrors []error) {
 			continue
 		}
 
-		s.addSubSQL(subSQL)
+		sqlet := SQLet{SQL: subSQL, Stmt: stmt}
 
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
 			if !isSelectFromDual(stmt) {
-				s.addPrimarySQL(subSQL)
+				sqlet.Primary = true
 			}
 		case *sqlparser.Insert, *sqlparser.Update, *sqlparser.Delete, *sqlparser.Union:
-			s.addPrimarySQL(subSQL)
+			sqlet.Primary = true
 
 		case *sqlparser.Set:
 			// noop
@@ -58,6 +58,8 @@ func (s *Statement) parseSQL() (parseErrors []error) {
 		default:
 			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, subSQL)
 		}
+
+		s.addSubSQL(sqlet)
 	}
 
 	return
@@ -71,12 +73,7 @@ func (s *Statement) analyzeComplexity() {
 		Reasons:     primitive.NewStringSet().UseRaw(),
 	}
 
-	for _, sql := range s.PrimarySQL {
-		node, err := sqlparser.Parse(sql)
-		if err != nil {
-			log.Fatalf("%s: %v", sql, err)
-		}
-
+	for _, node := range s.PrimaryASTs() {
 		s.analyzeNode(node, &complexity)
 	}
 

@@ -83,14 +83,13 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 		case "select", "insert", "update", "delete", "replace":
 			timeout, _ := strconv.Atoi(elem.SelectAttrValue("timeout", "0"))
 			stmt := &Statement{
-				Filename:   b.Filename,
-				ID:         elem.SelectAttrValue("id", ""),
-				Tag:        elem.Tag,
-				Raw:        elementToString(elem),
-				SQL:        b.processDynamicSql(elem),
-				Timeout:    timeout,
-				SubSQL:     []string{},
-				PrimarySQL: []string{},
+				Filename: b.Filename,
+				ID:       elem.SelectAttrValue("id", ""),
+				Tag:      elem.Tag,
+				Raw:      elementToString(elem),
+				SQL:      b.processDynamicSql(elem),
+				Timeout:  timeout,
+				SubSQL:   []SQLet{},
 			}
 			b.Statements[b.Namespace+"."+stmt.ID] = stmt
 		}
