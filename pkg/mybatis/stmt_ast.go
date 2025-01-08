@@ -17,7 +17,6 @@ var cognitiveWeights = map[string]int{
 	"LIMIT":         1,
 	"LP LIKE":       1,
 	"FULL LIKE":     2,
-	"CASE Expr":     1,
 	"Subquery":      2,
 	"OR":            1,
 	"NOT":           2,
@@ -102,6 +101,7 @@ func (s *Statement) analyzeCognitiveComplexity() {
 	s.Complexity = complexity
 }
 
+// recursive
 func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *CognitiveComplexity) {
 	switch n := node.(type) {
 	case *sqlparser.Select:
@@ -133,7 +133,7 @@ func (s *Statement) analyzeSelect(selectStmt *sqlparser.Select, complexity *Cogn
 	}
 
 	if len(selectStmt.From) > 0 {
-		s.analyzeTableExpr(selectStmt.From[0], complexity)
+		s.analyzeTableExpr(selectStmt.From[0], complexity) // TODO 0?
 	}
 
 	if selectStmt.Where != nil {
@@ -161,87 +161,25 @@ func (s *Statement) analyzeSelect(selectStmt *sqlparser.Select, complexity *Cogn
 func (s *Statement) analyzeSelectExpr(expr sqlparser.SelectExpr, complexity *CognitiveComplexity) {
 	switch e := expr.(type) {
 	case *sqlparser.AliasedExpr:
+		// select foo as bar
 		s.analyzeExpr(e.Expr, complexity)
 	case *sqlparser.StarExpr:
+		// ignore: select *
 	default:
 		log.Printf("Unexpected SelectExpr type: %T", e)
 	}
 }
 
-// where | having
-func (s *Statement) analyzeExpr(expr sqlparser.Expr, complexity *CognitiveComplexity) {
-	switch e := expr.(type) {
-	case *sqlparser.AndExpr:
-		s.analyzeExpr(e.Left, complexity)
-		s.analyzeExpr(e.Right, complexity)
-	case *sqlparser.OrExpr:
-		complexity.Reasons.Add("OR")
-		s.analyzeExpr(e.Left, complexity)
-		s.analyzeExpr(e.Right, complexity)
-	case *sqlparser.ComparisonExpr:
-		s.analyzeExpr(e.Left, complexity)
-		s.analyzeExpr(e.Right, complexity)
-	case *sqlparser.Subquery:
-		complexity.Reasons.Add("Subquery")
-		s.analyzeNode(e.Select, complexity)
-	case *sqlparser.FuncExpr:
-		s.analyzeFunction(e, complexity)
-	case *sqlparser.ColName:
-		// 简单的列引用，不增加复杂度
-	case sqlparser.ValTuple:
-		for _, val := range e {
-			s.analyzeExpr(val, complexity)
-		}
-	case *sqlparser.ParenExpr:
-		s.analyzeExpr(e.Expr, complexity)
-	case *sqlparser.CaseExpr:
-		s.analyzeCase(e, complexity)
-	case *sqlparser.NotExpr:
-		complexity.Reasons.Add("NOT")
-		s.analyzeExpr(e.Expr, complexity)
-	case *sqlparser.ExistsExpr:
-		complexity.Reasons.Add("EXISTS")
-		s.analyzeNode(e.Subquery.Select, complexity)
-	case *sqlparser.RangeCond:
-		complexity.Reasons.Add("BETWEEN")
-		s.analyzeExpr(e.Left, complexity)
-		s.analyzeExpr(e.From, complexity)
-		s.analyzeExpr(e.To, complexity)
-	case *sqlparser.IsExpr:
-		s.analyzeExpr(e.Expr, complexity)
-	case sqlparser.ListArg, *sqlparser.SQLVal, *sqlparser.BinaryExpr, *sqlparser.UnaryExpr, *sqlparser.GroupConcatExpr, sqlparser.BoolVal, *sqlparser.NullVal, *sqlparser.ConvertExpr:
-		// 这些是简单的值，不增加复杂度
-	default:
-		log.Printf("Unhandled expression type: %T", e)
-	}
-}
-
-func (s *Statement) analyzeCase(caseExpr *sqlparser.CaseExpr, complexity *CognitiveComplexity) {
-	complexity.Reasons.Add("CASE Expr")
-
-	if caseExpr.Expr != nil {
-		s.analyzeExpr(caseExpr.Expr, complexity)
-	}
-
-	for _, when := range caseExpr.Whens {
-		s.analyzeExpr(when.Cond, complexity)
-		s.analyzeExpr(when.Val, complexity)
-	}
-
-	if caseExpr.Else != nil {
-		s.analyzeExpr(caseExpr.Else, complexity)
-	}
-}
-
 func (s *Statement) analyzeUnion(union *sqlparser.Union, complexity *CognitiveComplexity) {
-	complexity.Reasons.Add("UNION")
+	if union.Type == sqlparser.UnionAllStr {
+		complexity.Reasons.Add("UNION ALL")
+	} else {
+		complexity.Reasons.Add("UNION")
+	}
 
 	s.analyzeNode(union.Left, complexity)
 	s.analyzeNode(union.Right, complexity)
 
-	if union.Type == sqlparser.UnionAllStr {
-		complexity.Reasons.Add("UNION ALL")
-	}
 }
 
 func (s *Statement) analyzeTableExpr(expr sqlparser.TableExpr, complexity *CognitiveComplexity) {
@@ -258,13 +196,6 @@ func (s *Statement) analyzeTableExpr(expr sqlparser.TableExpr, complexity *Cogni
 		complexity.Reasons.Add("JOIN")
 		s.analyzeTableExpr(t.LeftExpr, complexity)
 		s.analyzeTableExpr(t.RightExpr, complexity)
-	}
-}
-
-func (s *Statement) analyzeFunction(funcExpr *sqlparser.FuncExpr, complexity *CognitiveComplexity) {
-	switch strings.ToUpper(funcExpr.Name.String()) {
-	case "MIN", "MAX", "AVG", "SUM", "COUNT":
-		complexity.Reasons.Add(strings.ToUpper(funcExpr.Name.String()))
 	}
 }
 
