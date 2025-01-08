@@ -141,21 +141,21 @@ func (rg *ReportGenerator) writeBatchOperations(sa *SQLAnalyzer) {
 	var cellData [][]string
 
 	// Batch Inserts
-	for _, stmt := range sa.StatementsByType["insert"] {
+	for _, stmt := range sa.StatementsByTag["insert"] {
 		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{"Insert", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	// Batch Updates
-	for _, stmt := range sa.StatementsByType["update"] {
+	for _, stmt := range sa.StatementsByTag["update"] {
 		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{"Update", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
 	}
 
 	// Batch Deletes
-	for _, stmt := range sa.StatementsByType["delete"] {
+	for _, stmt := range sa.StatementsByTag["delete"] {
 		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{"Delete", strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
 		}
@@ -329,7 +329,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 		insertOnDuplicate := 0
 
 		// 遍历所有 INSERT 语句
-		for _, stmt := range sa.StatementsByType["insert"] {
+		for _, stmt := range sa.StatementsByTag["insert"] {
 			if strings.Contains(stmt.SQL, item.Name) {
 				if stmt.IsBatchOperation() {
 					batchInsert++
@@ -343,7 +343,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 		}
 
 		// 遍历所有 UPDATE 语句
-		for _, stmt := range sa.StatementsByType["update"] {
+		for _, stmt := range sa.StatementsByTag["update"] {
 			if strings.Contains(stmt.SQL, item.Name) {
 				if stmt.IsBatchOperation() {
 					batchUpdate++
@@ -412,7 +412,7 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 			strings.Trim(filepath.Base(q.Filename), ".xml"),
 			q.StatementID,
 			strconv.Itoa(q.Score),
-			strings.Join(q.Reasons, ", "),
+			strings.Join(q.Reasons.SortedValues(), ", "),
 		})
 	}
 	tabular.Display(header, data, false, -1)
@@ -433,13 +433,11 @@ func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
 
 func (rg *ReportGenerator) writeSubStatmentReport(sa *SQLAnalyzer) {
 	var cellData [][]string
-	for _, stmts := range sa.StatementsByType {
-		for i := 0; i < len(stmts); i++ {
-			stmt := stmts[i]
+	for _, stmts := range sa.StatementsByTag {
+		for _, stmt := range stmts {
 			subN := stmt.SubN()
 			if subN > 1 {
 				cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID, fmt.Sprintf("%d", subN)})
-				i += subN
 			}
 		}
 	}

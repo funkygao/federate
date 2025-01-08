@@ -15,7 +15,7 @@ type SimilarityPair struct {
 func (sa *SQLAnalyzer) ComputeSimilarities() map[string]map[string][]SimilarityPair {
 	result := make(map[string]map[string][]SimilarityPair) // map[SQLType]map[Filename][]SimilarityPair
 
-	for sqlType, statements := range sa.StatementsByType {
+	for sqlType, statements := range sa.StatementsByTag {
 		// 初始化内层映射
 		if _, ok := result[sqlType]; !ok {
 			result[sqlType] = make(map[string][]SimilarityPair)

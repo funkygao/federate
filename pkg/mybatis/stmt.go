@@ -18,7 +18,7 @@ type JoinClause struct {
 type Statement struct {
 	Filename string
 	ID       string
-	Type     string
+	Tag      string
 	Timeout  int
 
 	// Raw XML Node Text
@@ -62,7 +62,7 @@ func (s *Statement) IsBatchOperation() bool {
 }
 
 func (s *Statement) HasOptimisticLocking() bool {
-	if s.Type == "update" {
+	if s.Tag == "update" {
 		if strings.Contains(s.SQL, "version = version + 1") {
 			return true
 		}
@@ -71,7 +71,11 @@ func (s *Statement) HasOptimisticLocking() bool {
 	return false
 }
 
-func (s *Statement) SetPrimarySQL(sql string) {
+func (s *Statement) AddSubSQL(sql string) {
+	s.SubSQL = append(s.SubSQL, sql)
+}
+
+func (s *Statement) AddPrimarySQL(sql string) {
 	s.PrimarySQL = append(s.PrimarySQL, sql)
 }
 
