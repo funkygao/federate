@@ -119,7 +119,15 @@ func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *CognitiveCom
 		complexity.Reasons.Add("Subquery")
 		s.analyzeNode(n.Select, complexity)
 
-	case *sqlparser.ParenSelect: // TODO
+	case *sqlparser.ParenSelect:
+		// 将 ParenSelect 视为一个子查询
+		complexity.Reasons.Add("Subquery")
+		s.analyzeNode(n.Select, complexity)
+
+	case *sqlparser.AliasedTableExpr:
+		// 处理别名表表达式
+		s.analyzeNode(n.Expr, complexity)
+
 	default:
 		log.Printf("Unhandled node type: %T", n)
 	}
