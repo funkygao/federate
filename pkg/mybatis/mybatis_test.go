@@ -215,7 +215,7 @@ GROUP BY stock.location_no, capacity.zone_no, capacity.zone_type
 	for _, tc := range testCases {
 		stmt := Statement{PrimarySQL: []string{tc.input}}
 		t.Run(tc.name, func(t *testing.T) {
-			stmt.AnalyzeComplexity()
+			stmt.analyzeComplexity()
 			result := stmt.Complexity
 			assert.Equal(t, tc.score, result.Score)
 			assert.Equal(t, tc.reasons, result.Reasons.SortedValues())

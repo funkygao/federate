@@ -34,7 +34,7 @@ var complexityWeights = map[string]int{
 	"ON DUPLICATE":  2,
 }
 
-func (s *Statement) ParseSQL() (parseErrors []error) {
+func (s *Statement) parseSQL() (parseErrors []error) {
 	for _, subSQL := range s.SplitSQL() {
 		stmt, err := sqlparser.Parse(subSQL)
 		if err != nil {
@@ -63,7 +63,7 @@ func (s *Statement) ParseSQL() (parseErrors []error) {
 	return
 }
 
-func (s *Statement) AnalyzeComplexity() {
+func (s *Statement) analyzeComplexity() {
 	complexity := SQLComplexity{
 		Filename:    s.Filename,
 		StatementID: s.ID,

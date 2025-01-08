@@ -105,7 +105,12 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	}
 
 	sa.addStatement(&s)
-	parseErrors := s.ParseSQL()
+
+	if err := s.Analyze(); err != nil {
+		return err
+	}
+
+	sa.updateAggregatedMetrics(&s)
 
 	for _, subSQL := range s.SplitSQL() {
 		stmt, err := sqlparser.Parse(subSQL)
@@ -150,14 +155,11 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		}
 	}
 
-	if len(parseErrors) > 0 {
-		return fmt.Errorf("encountered %d parse errors: %v", len(parseErrors), parseErrors)
-	}
-
-	s.AnalyzeComplexity()
-	sa.ComplexQueries = append(sa.ComplexQueries, s.Complexity)
-
 	return nil
+}
+
+func (sa *SQLAnalyzer) updateAggregatedMetrics(s *Statement) {
+	sa.ComplexQueries = append(sa.ComplexQueries, s.Complexity)
 }
 
 func (sa *SQLAnalyzer) addStatement(s *Statement) {

@@ -1,6 +1,7 @@
 package mybatis
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -34,6 +35,18 @@ type Statement struct {
 	SubSQL []string
 
 	PrimarySQL []string
+}
+
+func (s *Statement) Analyze() error {
+	parseErrors := s.parseSQL()
+	if len(parseErrors) > 0 {
+		return fmt.Errorf("encountered %d parse errors: %v", len(parseErrors), parseErrors)
+	}
+
+	s.analyzeMetadata()
+	s.analyzeComplexity()
+
+	return nil
 }
 
 func (s *Statement) IsBatchOperation() bool {
