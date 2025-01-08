@@ -23,7 +23,7 @@ type Statement struct {
 	Timeout  int
 
 	Metadata   StatementMetadata
-	Complexity SQLComplexity
+	Complexity CognitiveComplexity
 
 	// 可能是多个语句组成的：SET @affected_rows = 0; UDPATE ...; set @affected_rows  = @affected_rows + row_count(); select @affected_rows as rows;
 	SQL string

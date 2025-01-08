@@ -37,7 +37,7 @@ type TableRelation struct {
 	JoinCondition string
 }
 
-type SQLComplexity struct {
+type CognitiveComplexity struct {
 	Filename    string
 	StatementID string
 	Score       int

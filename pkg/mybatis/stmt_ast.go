@@ -79,7 +79,7 @@ func (s *Statement) parseSQL() (parseErrors []error) {
 }
 
 func (s *Statement) analyzeCognitiveComplexity() {
-	complexity := SQLComplexity{
+	complexity := CognitiveComplexity{
 		Filename:    s.Filename,
 		StatementID: s.ID,
 		Score:       0,
@@ -102,7 +102,7 @@ func (s *Statement) analyzeCognitiveComplexity() {
 	s.Complexity = complexity
 }
 
-func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *SQLComplexity) {
+func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *CognitiveComplexity) {
 	switch n := node.(type) {
 	case *sqlparser.Select:
 		s.analyzeSelect(n, complexity)
@@ -123,7 +123,7 @@ func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *SQLComplexit
 	}
 }
 
-func (s *Statement) analyzeSelect(selectStmt *sqlparser.Select, complexity *SQLComplexity) {
+func (s *Statement) analyzeSelect(selectStmt *sqlparser.Select, complexity *CognitiveComplexity) {
 	if selectStmt.Distinct != "" {
 		complexity.Reasons.Add("DISTINCT")
 	}
@@ -158,7 +158,7 @@ func (s *Statement) analyzeSelect(selectStmt *sqlparser.Select, complexity *SQLC
 	}
 }
 
-func (s *Statement) analyzeSelectExpr(expr sqlparser.SelectExpr, complexity *SQLComplexity) {
+func (s *Statement) analyzeSelectExpr(expr sqlparser.SelectExpr, complexity *CognitiveComplexity) {
 	switch e := expr.(type) {
 	case *sqlparser.AliasedExpr:
 		s.analyzeExpr(e.Expr, complexity)
@@ -169,7 +169,7 @@ func (s *Statement) analyzeSelectExpr(expr sqlparser.SelectExpr, complexity *SQL
 }
 
 // where | having
-func (s *Statement) analyzeExpr(expr sqlparser.Expr, complexity *SQLComplexity) {
+func (s *Statement) analyzeExpr(expr sqlparser.Expr, complexity *CognitiveComplexity) {
 	switch e := expr.(type) {
 	case *sqlparser.AndExpr:
 		s.analyzeExpr(e.Left, complexity)
@@ -216,7 +216,7 @@ func (s *Statement) analyzeExpr(expr sqlparser.Expr, complexity *SQLComplexity) 
 	}
 }
 
-func (s *Statement) analyzeCase(caseExpr *sqlparser.CaseExpr, complexity *SQLComplexity) {
+func (s *Statement) analyzeCase(caseExpr *sqlparser.CaseExpr, complexity *CognitiveComplexity) {
 	complexity.Reasons.Add("CASE Expr")
 
 	if caseExpr.Expr != nil {
@@ -233,7 +233,7 @@ func (s *Statement) analyzeCase(caseExpr *sqlparser.CaseExpr, complexity *SQLCom
 	}
 }
 
-func (s *Statement) analyzeUnion(union *sqlparser.Union, complexity *SQLComplexity) {
+func (s *Statement) analyzeUnion(union *sqlparser.Union, complexity *CognitiveComplexity) {
 	complexity.Reasons.Add("UNION")
 
 	s.analyzeNode(union.Left, complexity)
@@ -244,7 +244,7 @@ func (s *Statement) analyzeUnion(union *sqlparser.Union, complexity *SQLComplexi
 	}
 }
 
-func (s *Statement) analyzeTableExpr(expr sqlparser.TableExpr, complexity *SQLComplexity) {
+func (s *Statement) analyzeTableExpr(expr sqlparser.TableExpr, complexity *CognitiveComplexity) {
 	switch t := expr.(type) {
 	case *sqlparser.AliasedTableExpr:
 		switch tableExpr := t.Expr.(type) {
@@ -261,14 +261,14 @@ func (s *Statement) analyzeTableExpr(expr sqlparser.TableExpr, complexity *SQLCo
 	}
 }
 
-func (s *Statement) analyzeFunction(funcExpr *sqlparser.FuncExpr, complexity *SQLComplexity) {
+func (s *Statement) analyzeFunction(funcExpr *sqlparser.FuncExpr, complexity *CognitiveComplexity) {
 	switch strings.ToUpper(funcExpr.Name.String()) {
 	case "MIN", "MAX", "AVG", "SUM", "COUNT":
 		complexity.Reasons.Add(strings.ToUpper(funcExpr.Name.String()))
 	}
 }
 
-func (s *Statement) analyzeInsert(insert *sqlparser.Insert, complexity *SQLComplexity) {
+func (s *Statement) analyzeInsert(insert *sqlparser.Insert, complexity *CognitiveComplexity) {
 	// 分析 VALUES 子句或 SELECT 子句
 	switch rows := insert.Rows.(type) {
 	case *sqlparser.Select:
@@ -286,7 +286,7 @@ func (s *Statement) analyzeInsert(insert *sqlparser.Insert, complexity *SQLCompl
 	}
 }
 
-func (s *Statement) analyzeUpdate(update *sqlparser.Update, complexity *SQLComplexity) {
+func (s *Statement) analyzeUpdate(update *sqlparser.Update, complexity *CognitiveComplexity) {
 	// 分析更新的表
 	for _, tableExpr := range update.TableExprs {
 		s.analyzeTableExpr(tableExpr, complexity)
@@ -308,7 +308,7 @@ func (s *Statement) analyzeUpdate(update *sqlparser.Update, complexity *SQLCompl
 	}
 }
 
-func (s *Statement) analyzeDelete(delete *sqlparser.Delete, complexity *SQLComplexity) {
+func (s *Statement) analyzeDelete(delete *sqlparser.Delete, complexity *CognitiveComplexity) {
 	// 分析删除的表
 	for _, tableExpr := range delete.TableExprs {
 		s.analyzeTableExpr(tableExpr, complexity)

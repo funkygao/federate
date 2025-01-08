@@ -344,7 +344,7 @@ func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) 
 	tabular.Display(header, data, false, 0)
 }
 
-func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplexity) {
+func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []CognitiveComplexity) {
 	if len(complexQueries) == 0 {
 		return
 	}

@@ -37,7 +37,7 @@ type Aggregator struct {
 	IndexRecommendations map[string]*TableIndexRecommendation
 	TableUsage           map[string]*TableUsage
 	TableRelations       []TableRelation
-	ComplexQueries       []SQLComplexity
+	ComplexQueries       []CognitiveComplexity
 	OptimisticLocks      []*Statement
 
 	// errors
@@ -67,7 +67,7 @@ func NewAggregator(ignoredFields []string) *Aggregator {
 func (sa *Aggregator) Aggregate() {
 	sa.analyzeTableUsage()
 	sa.analyzeTableRelations()
-	sa.analyzeSQLComplexity()
+	sa.analyzeCognitiveComplexity()
 	sa.detectOptimisticLocking()
 }
 
@@ -290,7 +290,7 @@ func (sa *Aggregator) analyzeTableRelations() {
 	})
 }
 
-func (sa *Aggregator) analyzeSQLComplexity() {
+func (sa *Aggregator) analyzeCognitiveComplexity() {
 	// 按复杂度得分降序排序
 	sort.Slice(sa.ComplexQueries, func(i, j int) bool {
 		return sa.ComplexQueries[i].Score > sa.ComplexQueries[j].Score
