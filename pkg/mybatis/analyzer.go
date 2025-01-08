@@ -3,13 +3,13 @@ package mybatis
 import "log"
 
 var (
-    Verbosity           int
-    TopK                int
-    SimilarityThreshold float64
+	Verbosity           int
+	TopK                int
+	SimilarityThreshold float64
 
-    ShowIndexRecommend bool
-    ShowBatchOps       bool
-    ShowSimilarity     bool
+	ShowIndexRecommend bool
+	ShowBatchOps       bool
+	ShowSimilarity     bool
 )
 
 type Analyzer struct {

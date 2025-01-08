@@ -87,6 +87,18 @@ func RemoveEmptyLines(s string) string {
 	return strings.Join(nonEmptyLines, "\n")
 }
 
+func Range(start, end int) []int {
+	if start >= end {
+		return []int{}
+	}
+	n := end - start
+	result := make([]int, n)
+	for i := 0; i < n; i++ {
+		result[i] = start + i
+	}
+	return result
+}
+
 func CopyFile(sourceFile, targetFile string) error {
 	source, err := os.Open(sourceFile)
 	if err != nil {

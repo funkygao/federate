@@ -51,7 +51,7 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 		log.Println()
 	}
 
-	rg.writeTableUsageReport(sa.TableUsage, sa)
+	rg.writeTableUsageReport(sa)
 	log.Println()
 
 	rg.writeTableRelationsReport(sa.TableRelations)
@@ -289,9 +289,9 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *Aggregator) {
 	tabular.Display(header, cellData, false, -1)
 }
 
-func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, sa *Aggregator) {
+func (rg *ReportGenerator) writeTableUsageReport(sa *Aggregator) {
 	var items []TableUsage
-	for _, u := range usage {
+	for _, u := range sa.TableUsage {
 		items = append(items, *u)
 	}
 
@@ -330,7 +330,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 
 	color.Magenta("Table Usage Analysis: %d", len(data))
 	header := []string{"Table", "Total Stmt", "Select", "Single Insert", "Batch Insert", "Insert On Duplicate", "Single Update", "Batch Update", "Delete"}
-	tabular.Display(header, data, false, -1)
+	tabular.DisplayWithSummary(header, data, false, util.Range(1, len(header)), -1)
 }
 
 func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) {
