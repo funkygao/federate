@@ -27,7 +27,7 @@ func NewReportGenerator() *ReportGenerator {
 
 func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	if GeneratePrompt {
-		fmt.Fprintf(&rg.buffer, promtContext)
+		fmt.Fprintf(&rg.buffer, prompt.MyBatisMapperPrompt)
 
 		log.SetOutput(io.MultiWriter(os.Stdout, &rg.buffer))
 		defer func() {
