@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -20,13 +21,16 @@ const (
 var mentionRegex = regexp.MustCompile(`@(\S+)`)
 
 type PromptGenerator struct {
-	lastLine string
-	buffer   strings.Builder
-	rule     *Rule
+	lastLine    string
+	buffer      strings.Builder
+	rule        *Rule
+	excludeList []string
 }
 
 func NewPromptGenerator() *PromptGenerator {
-	return &PromptGenerator{}
+	return &PromptGenerator{
+		excludeList: []string{},
+	}
 }
 
 func (pg *PromptGenerator) ResetLastLine() {
@@ -114,6 +118,8 @@ func (pg *PromptGenerator) processLineWithMention(line string) {
 		path := match[1]
 		if strings.HasPrefix(path, "r") {
 			validMention = pg.processRuleInput(path[1:])
+		} else if strings.HasPrefix(path, "k") {
+			validMention = pg.processKillInput(path[1:])
 		} else if isDir(path) {
 			validMention = pg.processDirInput(path)
 		} else {
@@ -122,10 +128,18 @@ func (pg *PromptGenerator) processLineWithMention(line string) {
 	}
 
 	if !validMention {
-		// 用户 copy & paste 了包含 @ 的内容，而这部分内容并不希望 mention file/dir
 		pg.buffer.WriteString(line)
 		pg.buffer.WriteString("\n")
 	}
+}
+
+func (pg *PromptGenerator) processKillInput(path string) bool {
+	fullPath, err := filepath.Abs(path)
+	if err != nil {
+		return false
+	}
+	pg.excludeList = append(pg.excludeList, fullPath)
+	return true
 }
 
 func (pg *PromptGenerator) processRuleInput(ruleName string) bool {
@@ -144,7 +158,7 @@ func (pg *PromptGenerator) processDirInput(path string) bool {
 		return false
 	}
 
-	content, err := readDirContentWithStructure(dir)
+	content, err := readDirContentWithStructure(dir, pg.excludeList)
 	if err != nil {
 		return false
 	}

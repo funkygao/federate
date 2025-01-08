@@ -11,6 +11,7 @@ const (
 	filePrefix = atPrefix + "f"
 	dirPrefix  = atPrefix + "d"
 	rulePrefix = atPrefix + "r"
+	killPrefix = atPrefix + "k"
 	targetFile = "prompt.txt"
 )
 
@@ -23,6 +24,8 @@ func completer(d prompt.Document) []prompt.Suggest {
 		return handleDirCompletion(text)
 	case strings.HasPrefix(text, rulePrefix):
 		return handleRuleCompletion(text)
+	case strings.HasPrefix(text, killPrefix):
+		return handleKillCompletion(text)
 	default:
 		return []prompt.Suggest{}
 	}
@@ -58,6 +61,17 @@ func handleDirCompletion(text string) []prompt.Suggest {
 		if isDir(match) {
 			suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + match})
 		}
+	}
+	return suggestions
+}
+
+func handleKillCompletion(text string) []prompt.Suggest {
+	prefix := text[strings.LastIndex(text, killPrefix):]
+	matches, _ := recursiveSearch(baseDir, strings.TrimPrefix(prefix, killPrefix), false)
+
+	suggestions := []prompt.Suggest{}
+	for _, match := range matches {
+		suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + "k" + match})
 	}
 	return suggestions
 }

@@ -15,7 +15,7 @@ var (
 )
 
 func Interact(codebaseDir string) {
-	fmt.Printf("💡 输入 '%s' 引用文件，'%s' 引用目录，'%s' 引用规则，'go' 生成提示词，'!cmd' 只执行不记录，'!!cmd' 执行且生成\n", filePrefix, dirPrefix, rulePrefix)
+	fmt.Printf("💡 输入 '%s' 引用文件，'%s' 引用目录，'%s' 引用规则，'%s' 排除文件，'go' 生成提示词，'!cmd' 只执行不记录，'!!cmd' 执行且生成\n", filePrefix, dirPrefix, rulePrefix, killPrefix)
 
 	baseDir = codebaseDir
 	promptGenerator = NewPromptGenerator()

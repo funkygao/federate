@@ -96,16 +96,27 @@ func readDirContent(dir string) (string, error) {
 	return contentBuilder.String(), nil
 }
 
-func readDirContentWithStructure(dir string) (string, error) {
+func readDirContentWithStructure(dir string, excludeList []string) (string, error) {
 	var contentBuilder strings.Builder
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+		fullPath, err := filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+		for _, excludePath := range excludeList {
+			if fullPath == excludePath {
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
 		if info.IsDir() && shouldIgnoreDir(info.Name()) {
 			return filepath.SkipDir
 		}
-		// 忽略指定模式的文件
 		if !info.IsDir() {
 			content, err := ioutil.ReadFile(path)
 			if err != nil {
