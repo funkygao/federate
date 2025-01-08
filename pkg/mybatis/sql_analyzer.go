@@ -101,15 +101,15 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		return err
 	}
 
+	sa.ParsedOK++
 	sa.updateAggregatedMetrics(&s)
 
-	for _, subSQL := range s.SplitSQL() {
+	// TODO 转移到 stmt_ast.go
+	for _, subSQL := range s.splitSQL() {
 		stmt, err := sqlparser.Parse(subSQL)
 		if err != nil {
 			continue
 		}
-
-		sa.ParsedOK++
 
 		stmtID, err := sa.DB.InsertStatement(&s)
 		if err != nil {
@@ -213,10 +213,5 @@ func (sa *SQLAnalyzer) WalkStatements(walkFn func(tag string, stmt *Statement) e
 }
 
 func (sa *SQLAnalyzer) addStatement(s *Statement) {
-	// 确保 StatementsByTag 已初始化
-	if sa.StatementsByTag == nil {
-		sa.StatementsByTag = make(map[string][]*Statement)
-	}
-
 	sa.StatementsByTag[s.Tag] = append(sa.StatementsByTag[s.Tag], s)
 }

@@ -35,22 +35,22 @@ var complexityWeights = map[string]int{
 }
 
 func (s *Statement) parseSQL() (parseErrors []error) {
-	for _, subSQL := range s.SplitSQL() {
+	for _, subSQL := range s.splitSQL() {
 		stmt, err := sqlparser.Parse(subSQL)
 		if err != nil {
 			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subSQL))
 			continue
 		}
 
-		s.AddSubSQL(subSQL)
+		s.addSubSQL(subSQL)
 
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
 			if !isSelectFromDual(stmt) {
-				s.AddPrimarySQL(subSQL)
+				s.addPrimarySQL(subSQL)
 			}
 		case *sqlparser.Insert, *sqlparser.Update, *sqlparser.Delete, *sqlparser.Union:
-			s.AddPrimarySQL(subSQL)
+			s.addPrimarySQL(subSQL)
 
 		case *sqlparser.Set:
 			// noop

@@ -39,30 +39,29 @@ func (sa *SQLAnalyzer) AnalyzeAll() {
 
 func (sa *SQLAnalyzer) AnalyzeTableUsage() {
 	sa.TableUsage = make(map[string]*TableUsage)
-	for stmtType, stmts := range sa.StatementsByTag {
-		for _, stmt := range stmts {
-			for _, table := range stmt.Tables() {
-				if table == "SUBQUERY" {
-					continue // 跳过子查询
-				}
+	sa.WalkStatements(func(tag string, stmt *Statement) error {
+		for _, table := range stmt.Tables() {
+			if table == "SUBQUERY" {
+				continue // 跳过子查询
+			}
 
-				if _, ok := sa.TableUsage[table]; !ok {
-					sa.TableUsage[table] = &TableUsage{Name: table}
-				}
-				sa.TableUsage[table].UseCount++
-				switch stmtType {
-				case "select":
-					sa.TableUsage[table].InSelect++
-				case "insert":
-					sa.TableUsage[table].InInsert++
-				case "update":
-					sa.TableUsage[table].InUpdate++
-				case "delete":
-					sa.TableUsage[table].InDelete++
-				}
+			if _, ok := sa.TableUsage[table]; !ok {
+				sa.TableUsage[table] = &TableUsage{Name: table}
+			}
+			sa.TableUsage[table].UseCount++
+			switch tag {
+			case "select":
+				sa.TableUsage[table].InSelect++
+			case "insert":
+				sa.TableUsage[table].InInsert++
+			case "update":
+				sa.TableUsage[table].InUpdate++
+			case "delete":
+				sa.TableUsage[table].InDelete++
 			}
 		}
-	}
+		return nil
+	})
 }
 
 func (sa *SQLAnalyzer) AnalyzeTableRelations() {

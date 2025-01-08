@@ -322,7 +322,7 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 				} else {
 					singleInsert++
 				}
-				if strings.Contains(strings.ToUpper(stmt.SQL), "ON DUPLICATE KEY") {
+				if stmt.HasOnDuplicateKey() {
 					insertOnDuplicate++
 				}
 			}
@@ -419,14 +419,13 @@ func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
 
 func (rg *ReportGenerator) writeSubStatmentReport(sa *SQLAnalyzer) {
 	var cellData [][]string
-	for _, stmts := range sa.StatementsByTag {
-		for _, stmt := range stmts {
-			subN := stmt.SubN()
-			if subN > 1 {
-				cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID, fmt.Sprintf("%d", subN)})
-			}
+	sa.WalkStatements(func(tag string, stmt *Statement) error {
+		subN := stmt.SubN()
+		if subN > 1 {
+			cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID, fmt.Sprintf("%d", subN)})
 		}
-	}
+		return nil
+	})
 	color.Magenta("Statements With Sub Statements: %d", len(cellData))
 	header := []string{"XML", "Statement ID", "Sub Stmts"}
 	tabular.Display(header, cellData, true, 0)

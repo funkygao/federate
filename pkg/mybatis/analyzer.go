@@ -56,10 +56,13 @@ func (a *Analyzer) prepareFile(filePath string) error {
 }
 
 func (a *Analyzer) analyzeFile(filePath string) error {
+	// 解析 XML
 	xml := a.mapperBuilders[filePath]
 	if xml == nil {
+		// not a mapper XML, e,g. pom.xml
 		return nil
 	}
+
 	stmts, err := xml.Parse()
 	if err != nil {
 		if err == ErrNotMapperXML {
@@ -68,8 +71,10 @@ func (a *Analyzer) analyzeFile(filePath string) error {
 		return err
 	}
 
+	// <include refid=""/> 没有找到被引用 sql fragment
 	a.SQLAnalyzer.UnknownFragments[filePath] = xml.UnknownFragments
 
+	// 解析 SQL AST
 	for _, stmt := range stmts {
 		a.SQLAnalyzer.AnalyzeStmt(*stmt)
 	}

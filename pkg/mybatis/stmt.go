@@ -78,6 +78,10 @@ func (s *Statement) IsBatchOperation() bool {
 	return false
 }
 
+func (s *Statement) HasOnDuplicateKey() bool {
+	return strings.Contains(strings.ToUpper(s.SQL), "ON DUPLICATE KEY")
+}
+
 func (s *Statement) HasOptimisticLocking() bool {
 	if s.Tag == "update" {
 		if strings.Contains(s.SQL, "version = version + 1") {
@@ -88,11 +92,11 @@ func (s *Statement) HasOptimisticLocking() bool {
 	return false
 }
 
-func (s *Statement) AddSubSQL(sql string) {
+func (s *Statement) addSubSQL(sql string) {
 	s.SubSQL = append(s.SubSQL, sql)
 }
 
-func (s *Statement) AddPrimarySQL(sql string) {
+func (s *Statement) addPrimarySQL(sql string) {
 	s.PrimarySQL = append(s.PrimarySQL, sql)
 }
 
@@ -100,7 +104,7 @@ func (s *Statement) SubN() int {
 	return len(s.SubSQL)
 }
 
-func (s *Statement) SplitSQL() []string {
+func (s *Statement) splitSQL() []string {
 	var statements []string
 	var currentStmt strings.Builder
 	var inString, inComment bool
