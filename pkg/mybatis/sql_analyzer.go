@@ -3,7 +3,6 @@ package mybatis
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/xwb1989/sqlparser"
 )
@@ -28,6 +27,16 @@ type SQLAnalyzer struct {
 	DB            *DB
 
 	StatementsByTag map[string][]*Statement
+
+	// Aggregated metrics
+	TotalUnionOperations    int
+	TotalSubQueries         int
+	TotalDistinctQueries    int
+	TotalOrderByOperations  int
+	TotalLimitOperations    int
+	TotalLimitWithOffset    int
+	TotalLimitWithoutOffset int
+	TotalJoinOperations     int
 
 	SQLTypes             map[string]int
 	Tables               map[string]int
@@ -89,43 +98,22 @@ func NewSQLAnalyzer(ignoredFields []string, DB *DB) *SQLAnalyzer {
 	return sa
 }
 
-func (sa *SQLAnalyzer) addStatement(s *Statement) {
-	// 确保 StatementsByTag 已初始化
-	if sa.StatementsByTag == nil {
-		sa.StatementsByTag = make(map[string][]*Statement)
-	}
-
-	exists := false
-	for _, that := range sa.StatementsByTag[s.Tag] {
-		if that == s { // 直接比较指针地址
-			exists = true
-			break
-		}
-	}
-
-	if !exists {
-		sa.StatementsByTag[s.Tag] = append(sa.StatementsByTag[s.Tag], s)
-	}
-}
-
 func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	if s.Timeout > 0 {
 		timeoutKey := fmt.Sprintf("%ds", s.Timeout)
 		sa.TimeoutStatements[timeoutKey]++
 	}
 
-	var parseErrors []error
+	sa.addStatement(&s)
+	parseErrors := s.ParseSQL()
+
 	for _, subSQL := range s.SplitSQL() {
 		stmt, err := sqlparser.Parse(subSQL)
 		if err != nil {
-			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subSQL))
 			continue
 		}
 
-		s.AddSubSQL(subSQL)
-
 		sa.ParsedOK++
-		sa.addStatement(&s)
 
 		stmtID, err := sa.DB.InsertStatement(&s)
 		if err != nil {
@@ -135,12 +123,10 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		switch stmt := stmt.(type) {
 		case *sqlparser.Select:
 			if !isSelectFromDual(stmt) {
-				s.AddPrimarySQL(subSQL)
 				sa.analyzeSelect(stmt, s, stmtID)
 			}
 
 		case *sqlparser.Insert:
-			s.AddPrimarySQL(subSQL)
 			if stmt.Action == sqlparser.ReplaceStr {
 				sa.analyzeReplace(stmt, s, stmtID)
 			} else {
@@ -148,15 +134,12 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 			}
 
 		case *sqlparser.Update:
-			s.AddPrimarySQL(subSQL)
 			sa.analyzeUpdate(stmt, s, stmtID)
 
 		case *sqlparser.Delete:
-			s.AddPrimarySQL(subSQL)
 			sa.analyzeDelete(stmt, s, stmtID)
 
 		case *sqlparser.Union:
-			s.AddPrimarySQL(subSQL)
 			sa.analyzeUnion(stmt, s, stmtID)
 
 		case *sqlparser.Set:
@@ -171,12 +154,17 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 		return fmt.Errorf("encountered %d parse errors: %v", len(parseErrors), parseErrors)
 	}
 
+	s.AnalyzeComplexity()
+	sa.ComplexQueries = append(sa.ComplexQueries, s.Complexity)
+
 	return nil
 }
 
-func (sa *SQLAnalyzer) IncrementAggregationFunc(opType, funcName string) {
-	if _, present := sa.AggregationFuncs[opType]; !present {
-		sa.AggregationFuncs[opType] = make(map[string]int)
+func (sa *SQLAnalyzer) addStatement(s *Statement) {
+	// 确保 StatementsByTag 已初始化
+	if sa.StatementsByTag == nil {
+		sa.StatementsByTag = make(map[string][]*Statement)
 	}
-	sa.AggregationFuncs[opType][strings.ToUpper(funcName)]++
+
+	sa.StatementsByTag[s.Tag] = append(sa.StatementsByTag[s.Tag], s)
 }

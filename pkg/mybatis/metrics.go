@@ -112,14 +112,6 @@ func (sa *SQLAnalyzer) AnalyzeTableRelations() {
 }
 
 func (sa *SQLAnalyzer) AnalyzeSQLComplexity() {
-	sa.ComplexQueries = []SQLComplexity{}
-
-	for _, stmts := range sa.StatementsByTag {
-		for _, stmt := range stmts {
-			sa.ComplexQueries = append(sa.ComplexQueries, stmt.AnalyzeComplexity())
-		}
-	}
-
 	// 按复杂度得分降序排序
 	sort.Slice(sa.ComplexQueries, func(i, j int) bool {
 		return sa.ComplexQueries[i].Score > sa.ComplexQueries[j].Score

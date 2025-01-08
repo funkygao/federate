@@ -18,6 +18,13 @@ func isSelectFromDual(stmt *sqlparser.Select) bool {
 	return false
 }
 
+func (sa *SQLAnalyzer) IncrementAggregationFunc(opType, funcName string) {
+	if _, present := sa.AggregationFuncs[opType]; !present {
+		sa.AggregationFuncs[opType] = make(map[string]int)
+	}
+	sa.AggregationFuncs[opType][strings.ToUpper(funcName)]++
+}
+
 func (sa *SQLAnalyzer) analyzeSelect(stmt *sqlparser.Select, s Statement, stmtID int64) {
 	sa.SQLTypes["SELECT"]++
 	sa.analyzeTables(stmt.From, s, stmtID)

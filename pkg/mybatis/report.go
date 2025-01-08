@@ -27,9 +27,6 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	printTopN(sa.Tables, TopK)
 	log.Println()
 
-	rg.writeComplexityMetrics(sa)
-	log.Println()
-
 	rg.writeJoinAnalysis(sa)
 	log.Println()
 
@@ -58,6 +55,9 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	log.Println()
 
 	rg.writeTableRelationsReport(sa.TableRelations)
+	log.Println()
+
+	rg.writeComplexityMetrics(sa)
 	log.Println()
 
 	rg.writeComplexQueriesReport(sa.ComplexQueries)

@@ -1,6 +1,7 @@
 package mybatis
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -33,7 +34,36 @@ var complexityWeights = map[string]int{
 	"ON DUPLICATE":  2,
 }
 
-func (s *Statement) AnalyzeComplexity() SQLComplexity {
+func (s *Statement) ParseSQL() (parseErrors []error) {
+	for _, subSQL := range s.SplitSQL() {
+		stmt, err := sqlparser.Parse(subSQL)
+		if err != nil {
+			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subSQL))
+			continue
+		}
+
+		s.AddSubSQL(subSQL)
+
+		switch stmt := stmt.(type) {
+		case *sqlparser.Select:
+			if !isSelectFromDual(stmt) {
+				s.AddPrimarySQL(subSQL)
+			}
+		case *sqlparser.Insert, *sqlparser.Update, *sqlparser.Delete, *sqlparser.Union:
+			s.AddPrimarySQL(subSQL)
+
+		case *sqlparser.Set:
+			// noop
+
+		default:
+			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, subSQL)
+		}
+	}
+
+	return
+}
+
+func (s *Statement) AnalyzeComplexity() {
 	complexity := SQLComplexity{
 		Filename:    s.Filename,
 		StatementID: s.ID,
@@ -59,7 +89,7 @@ func (s *Statement) AnalyzeComplexity() SQLComplexity {
 		}
 	}
 
-	return complexity
+	s.Complexity = complexity
 }
 
 func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *SQLComplexity) {

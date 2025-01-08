@@ -18,8 +18,12 @@ type JoinClause struct {
 type Statement struct {
 	Filename string
 	ID       string
-	Tag      string
-	Timeout  int
+	Tag      string // XML Tag
+
+	Metadata   StatementMetadata
+	Complexity SQLComplexity
+
+	Timeout int
 
 	// Raw XML Node Text
 	Raw string
