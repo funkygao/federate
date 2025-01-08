@@ -97,6 +97,7 @@ func (sa *SQLAnalyzer) AnalyzeStmt(s Statement) error {
 	sa.addStatement(&s)
 
 	if err := s.Analyze(); err != nil {
+		sa.UnparsableSQL = append(sa.UnparsableSQL, UnparsableSQL{s, err})
 		return err
 	}
 
