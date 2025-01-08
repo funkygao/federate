@@ -3,7 +3,6 @@ package mybatis
 import (
 	"strings"
 
-	"federate/pkg/primitive"
 	"github.com/xwb1989/sqlparser"
 )
 
@@ -89,24 +88,6 @@ func (s *Statement) getTableName(tableExpr sqlparser.TableExpr) string {
 		}
 	}
 	return ""
-}
-
-func (s *Statement) Tables() []string {
-	tables := primitive.NewStringSet()
-	for _, stmt := range s.PrimaryASTs() {
-		sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
-			switch n := node.(type) {
-			case *sqlparser.AliasedTableExpr:
-				tableName := s.getTableNameFromExpr(n.Expr)
-				if tableName != "" {
-					tables.Add(tableName)
-				}
-			}
-			return true, nil
-		}, stmt)
-	}
-
-	return tables.Values()
 }
 
 func (s *Statement) getTableNameFromExpr(expr sqlparser.SimpleTableExpr) string {

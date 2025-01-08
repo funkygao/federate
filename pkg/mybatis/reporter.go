@@ -19,7 +19,7 @@ func NewReportGenerator() *ReportGenerator {
 	return &ReportGenerator{}
 }
 
-func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeSQLTypes(sa.SQLTypes)
 	log.Println()
 
@@ -72,7 +72,7 @@ func (rg *ReportGenerator) Generate(sa *SQLAnalyzer) {
 	rg.showErrors(sa)
 }
 
-func (rg *ReportGenerator) showErrors(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) showErrors(sa *Aggregator) {
 	rg.writeUnknownFragments(sa.UnknownFragments)
 	rg.writeUnparsableSQL(sa.UnparsableSQL, sa.ParsedOK)
 }
@@ -136,7 +136,7 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 	color.Magenta("%d Statements Fail, %d OK", len(unparsableSQL), okN)
 }
 
-func (rg *ReportGenerator) writeBatchOperations(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeBatchOperations(sa *Aggregator) {
 	header := []string{"XML", "Statement ID"}
 	var cellData [][]string
 
@@ -168,7 +168,7 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 	tabular.PrintBarChart(items, 0) // 0 means print all items
 }
 
-func (rg *ReportGenerator) writeComplexityMetrics(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeComplexityMetrics(sa *Aggregator) {
 	color.Magenta("Complexity Operation")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
@@ -198,7 +198,7 @@ func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
 	tabular.Display(header, cellData, false, -1)
 }
 
-func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
 	color.Magenta("Index Recommendations per Table")
 	if len(sa.IgnoredFields) > 0 {
 		ignoredFields := make([]string, 0, len(sa.IgnoredFields))
@@ -242,7 +242,7 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *SQLAnalyzer) {
 }
 
 // 在 report.go 中添加
-func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	color.Magenta("Join Types")
 	printTopN(sa.JoinTypes, 0)
 	log.Println()
@@ -256,19 +256,13 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *SQLAnalyzer) {
 	tabular.PrintBarChart(joinTableItems, 0)
 	log.Println()
 
-	if len(sa.JoinConditions) > 0 {
-		color.Magenta("Join Conditions")
-		printTopN(sa.JoinConditions, 0)
-		log.Println()
-	}
-
 	if len(sa.IndexHints) > 0 {
 		color.Magenta("Index Hints")
 		printTopN(sa.IndexHints, 0)
 	}
 }
 
-func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeSimilarityReport(sa *Aggregator) {
 	similarities := sa.ComputeSimilarities()
 	var cellData [][]string
 	for sqlType, files := range similarities {
@@ -295,7 +289,7 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *SQLAnalyzer) {
 	tabular.Display(header, cellData, false, -1)
 }
 
-func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, sa *Aggregator) {
 	var items []TableUsage
 	for _, u := range usage {
 		items = append(items, *u)
@@ -308,58 +302,27 @@ func (rg *ReportGenerator) writeTableUsageReport(usage map[string]*TableUsage, s
 
 	var data [][]string
 	for _, item := range items {
-		batchInsert := 0
-		singleInsert := 0
-		batchUpdate := 0
-		singleUpdate := 0
-		insertOnDuplicate := 0
-
-		// 遍历所有 INSERT 语句
-		for _, stmt := range sa.StatementsByTag["insert"] {
-			if strings.Contains(stmt.SQL, item.Name) {
-				if stmt.IsBatchOperation() {
-					batchInsert++
-				} else {
-					singleInsert++
-				}
-				if stmt.HasOnDuplicateKey() {
-					insertOnDuplicate++
-				}
-			}
+		insertOnDuplicateStr := strconv.Itoa(item.InsertOnDuplicate)
+		if item.InsertOnDuplicate > 0 {
+			insertOnDuplicateStr = color.New(color.FgYellow).Sprintf("%d", item.InsertOnDuplicate)
 		}
-
-		// 遍历所有 UPDATE 语句
-		for _, stmt := range sa.StatementsByTag["update"] {
-			if strings.Contains(stmt.SQL, item.Name) {
-				if stmt.IsBatchOperation() {
-					batchUpdate++
-				} else {
-					singleUpdate++
-				}
-			}
+		batchInsertStr := strconv.Itoa(item.BatchInsert)
+		if item.BatchInsert > 0 {
+			batchInsertStr = color.New(color.FgYellow).Sprintf("%d", item.BatchInsert)
 		}
-
-		insertOnDuplicateStr := strconv.Itoa(insertOnDuplicate)
-		if insertOnDuplicate > 0 {
-			insertOnDuplicateStr = color.New(color.FgYellow).Sprintf("%d", insertOnDuplicate)
-		}
-		batchInsertStr := strconv.Itoa(batchInsert)
-		if batchInsert > 0 {
-			batchInsertStr = color.New(color.FgYellow).Sprintf("%d", batchInsert)
-		}
-		batchUpdateStr := strconv.Itoa(batchUpdate)
-		if batchUpdate > 0 {
-			batchUpdateStr = color.New(color.FgYellow).Sprintf("%d", batchUpdate)
+		batchUpdateStr := strconv.Itoa(item.BatchUpdate)
+		if item.BatchUpdate > 0 {
+			batchUpdateStr = color.New(color.FgYellow).Sprintf("%d", item.BatchUpdate)
 		}
 
 		data = append(data, []string{
 			item.Name,
 			strconv.Itoa(item.UseCount),
 			strconv.Itoa(item.InSelect),
-			strconv.Itoa(singleInsert),
+			strconv.Itoa(item.SingleInsert),
 			batchInsertStr,
 			insertOnDuplicateStr,
-			strconv.Itoa(singleUpdate),
+			strconv.Itoa(item.SingleUpdate),
 			batchUpdateStr,
 			strconv.Itoa(item.InDelete),
 		})
@@ -412,12 +375,12 @@ func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
 			lock.ID,
 		})
 	}
-	color.Magenta("Optimistic Locking Detection: %d", len(cellData))
+	color.Magenta("Optimistic Locking: %d", len(cellData))
 	header := []string{"XML", "Statement ID"}
 	tabular.Display(header, cellData, true, -1)
 }
 
-func (rg *ReportGenerator) writeSubStatmentReport(sa *SQLAnalyzer) {
+func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 	var cellData [][]string
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
 		subN := stmt.SubN()

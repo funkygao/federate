@@ -2,26 +2,26 @@ package mybatis
 
 import "log"
 
-type Analyzer struct {
-	SQLAnalyzer     *SQLAnalyzer
-	ReportGenerator *ReportGenerator
+var (
+    Verbosity           int
+    TopK                int
+    SimilarityThreshold float64
 
-	mapperBuilders map[string]*XMLMapperBuilder
+    ShowIndexRecommend bool
+    ShowBatchOps       bool
+    ShowSimilarity     bool
+)
+
+type Analyzer struct {
+	aggregator      *Aggregator
+	reportGenerator *ReportGenerator
+	mapperBuilders  map[string]*XMLMapperBuilder
 }
 
 func NewAnalyzer(ignoredFields []string) *Analyzer {
-	db, err := NewDB(DbFile)
-	if err != nil {
-		log.Fatalf("%v", err)
-	}
-
-	if err := db.InitTables(); err != nil {
-		log.Fatalf("%v", err)
-	}
-
 	return &Analyzer{
-		SQLAnalyzer:     NewSQLAnalyzer(ignoredFields, db),
-		ReportGenerator: NewReportGenerator(),
+		aggregator:      NewAggregator(ignoredFields),
+		reportGenerator: NewReportGenerator(),
 		mapperBuilders:  make(map[string]*XMLMapperBuilder),
 	}
 }
@@ -41,8 +41,7 @@ func (a *Analyzer) AnalyzeFiles(files []string) {
 		}
 	}
 
-	// high order metrics
-	a.SQLAnalyzer.AnalyzeAll()
+	a.aggregator.Aggregate()
 }
 
 func (a *Analyzer) prepareFile(filePath string) error {
@@ -72,16 +71,16 @@ func (a *Analyzer) analyzeFile(filePath string) error {
 	}
 
 	// <include refid=""/> 没有找到被引用 sql fragment
-	a.SQLAnalyzer.UnknownFragments[filePath] = xml.UnknownFragments
+	a.aggregator.UnknownFragments[filePath] = xml.UnknownFragments
 
 	// 解析 SQL AST
 	for _, stmt := range stmts {
-		a.SQLAnalyzer.AnalyzeStmt(*stmt)
+		a.aggregator.AnalyzeStmt(*stmt)
 	}
 
 	return nil
 }
 
 func (a *Analyzer) GenerateReport() {
-	a.ReportGenerator.Generate(a.SQLAnalyzer)
+	a.reportGenerator.Generate(a.aggregator)
 }

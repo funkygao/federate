@@ -10,6 +10,7 @@ import (
 
 type SQLet struct {
 	SQL     string
+	SQLType string
 	Stmt    sqlparser.Statement
 	Primary bool
 }
@@ -18,14 +19,11 @@ type Statement struct {
 	Filename string
 	ID       string
 	Tag      string // XML Tag
+	XMLText  string
+	Timeout  int
 
 	Metadata   StatementMetadata
 	Complexity SQLComplexity
-
-	Timeout int
-
-	// XMLText XML Node Text
-	XMLText string
 
 	// 可能是多个语句组成的：SET @affected_rows = 0; UDPATE ...; set @affected_rows  = @affected_rows + row_count(); select @affected_rows as rows;
 	SQL string

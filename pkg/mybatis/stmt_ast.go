@@ -48,9 +48,20 @@ func (s *Statement) parseSQL() (parseErrors []error) {
 		case *sqlparser.Select:
 			if !isSelectFromDual(stmt) {
 				sqlet.Primary = true
+				sqlet.SQLType = "SELECT"
 			}
-		case *sqlparser.Insert, *sqlparser.Update, *sqlparser.Delete, *sqlparser.Union:
+		case *sqlparser.Insert:
 			sqlet.Primary = true
+			sqlet.SQLType = "INSERT"
+		case *sqlparser.Update:
+			sqlet.Primary = true
+			sqlet.SQLType = "UPDATE"
+		case *sqlparser.Delete:
+			sqlet.Primary = true
+			sqlet.SQLType = "DELETE"
+		case *sqlparser.Union:
+			sqlet.Primary = true
+			sqlet.SQLType = "UNION"
 
 		case *sqlparser.Set:
 			// noop
@@ -310,4 +321,15 @@ func (s *Statement) analyzeDelete(delete *sqlparser.Delete, complexity *SQLCompl
 	if len(delete.OrderBy) > 0 {
 		complexity.Reasons.Add("ORDER BY")
 	}
+}
+
+func isSelectFromDual(stmt *sqlparser.Select) bool {
+	if len(stmt.From) == 1 {
+		if tableExpr, ok := stmt.From[0].(*sqlparser.AliasedTableExpr); ok {
+			if tableName, ok := tableExpr.Expr.(sqlparser.TableName); ok {
+				return tableName.Name.String() == "dual"
+			}
+		}
+	}
+	return false
 }
