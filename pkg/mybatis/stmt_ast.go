@@ -3,7 +3,6 @@ package mybatis
 import (
 	"fmt"
 	"log"
-	"strings"
 
 	"federate/pkg/primitive"
 	"github.com/xwb1989/sqlparser"
@@ -106,17 +105,20 @@ func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *CognitiveCom
 	switch n := node.(type) {
 	case *sqlparser.Select:
 		s.analyzeSelect(n, complexity)
-	case *sqlparser.Union:
-		s.analyzeUnion(n, complexity)
 	case *sqlparser.Insert:
 		s.analyzeInsert(n, complexity)
 	case *sqlparser.Update:
 		s.analyzeUpdate(n, complexity)
 	case *sqlparser.Delete:
 		s.analyzeDelete(n, complexity)
+
+	case *sqlparser.Union:
+		s.analyzeUnion(n, complexity)
+
 	case *sqlparser.Subquery:
 		complexity.Reasons.Add("Subquery")
 		s.analyzeNode(n.Select, complexity)
+
 	case *sqlparser.ParenSelect: // TODO
 	default:
 		log.Printf("Unhandled node type: %T", n)
@@ -254,15 +256,4 @@ func (s *Statement) analyzeDelete(delete *sqlparser.Delete, complexity *Cognitiv
 	if len(delete.OrderBy) > 0 {
 		complexity.Reasons.Add("ORDER BY")
 	}
-}
-
-func isSelectFromDual(stmt *sqlparser.Select) bool {
-	if len(stmt.From) == 1 {
-		if tableExpr, ok := stmt.From[0].(*sqlparser.AliasedTableExpr); ok {
-			if tableName, ok := tableExpr.Expr.(sqlparser.TableName); ok {
-				return tableName.Name.String() == "dual"
-			}
-		}
-	}
-	return false
 }

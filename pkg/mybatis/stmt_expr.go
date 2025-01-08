@@ -19,6 +19,12 @@ func (s *Statement) analyzeExpr(expr sqlparser.Expr, complexity *CognitiveComple
 		s.analyzeExpr(e.Right, complexity)
 	case *sqlparser.ComparisonExpr:
 		if e.Operator == sqlparser.LikeStr {
+			// 检查右侧表达式是否包含通配符 %
+			if containsWildcard(e.Right) {
+				complexity.Reasons.Add("LP LIKE")
+			} else {
+				complexity.Reasons.Add("FULL LIKE")
+			}
 		}
 		s.analyzeExpr(e.Left, complexity)
 		s.analyzeExpr(e.Right, complexity)
