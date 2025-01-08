@@ -9,12 +9,14 @@ import (
 	"github.com/xwb1989/sqlparser"
 )
 
-var complexityWeights = map[string]int{
+var cognitiveWeights = map[string]int{
 	"DISTINCT":      1,
 	"GROUP BY":      1,
 	"HAVING":        1,
 	"ORDER BY":      1,
 	"LIMIT":         1,
+	"LP LIKE":       1,
+	"FULL LIKE":     2,
 	"CASE Expr":     1,
 	"Subquery":      2,
 	"OR":            1,
@@ -76,7 +78,7 @@ func (s *Statement) parseSQL() (parseErrors []error) {
 	return
 }
 
-func (s *Statement) analyzeComplexity() {
+func (s *Statement) analyzeCognitiveComplexity() {
 	complexity := SQLComplexity{
 		Filename:    s.Filename,
 		StatementID: s.ID,
@@ -90,7 +92,7 @@ func (s *Statement) analyzeComplexity() {
 
 	// 使用权重计算最终分数
 	for _, reason := range complexity.Reasons.RawValues() {
-		if weight, ok := complexityWeights[reason]; ok {
+		if weight, ok := cognitiveWeights[reason]; ok {
 			complexity.Score += weight
 		} else {
 			log.Fatalf("unknown reason for weights: %s", reason)

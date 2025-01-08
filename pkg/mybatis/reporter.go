@@ -169,7 +169,7 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 }
 
 func (rg *ReportGenerator) writeComplexityMetrics(sa *Aggregator) {
-	color.Magenta("Complexity Operation")
+	color.Magenta("Complex Operations")
 	header := []string{"Metric", "Count"}
 	metrics := map[string]int{
 		"JOIN":                 sa.JoinOperations,
@@ -349,7 +349,7 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 		return
 	}
 
-	color.Magenta("Complex Queries (Top %d)", TopK)
+	color.Magenta("Cognitively Complex Queries (Top %d)", TopK)
 	header := []string{"XML", "Statement ID", "Score", "Reasons"}
 	var data [][]string
 	for _, q := range complexQueries {

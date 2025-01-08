@@ -6,10 +6,10 @@ var (
 	Verbosity           int
 	TopK                int
 	SimilarityThreshold float64
-
-	ShowIndexRecommend bool
-	ShowBatchOps       bool
-	ShowSimilarity     bool
+	GeneratePrompt      bool
+	ShowIndexRecommend  bool
+	ShowBatchOps        bool
+	ShowSimilarity      bool
 )
 
 type Analyzer struct {

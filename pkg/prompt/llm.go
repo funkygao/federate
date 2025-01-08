@@ -11,7 +11,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/atotto/clipboard"
+	"federate/pkg/util"
 )
 
 const (
@@ -211,7 +211,7 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt() {
 	}
 
 	// 将内容复制到剪贴板
-	if err := clipboard.WriteAll(finalContent); err != nil {
+	if err := util.ClipboardPut(finalContent); err != nil {
 		log.Fatalf("%v", err)
 	}
 

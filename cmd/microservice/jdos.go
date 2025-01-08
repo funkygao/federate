@@ -8,10 +8,10 @@ import (
 	"federate/internal/fs"
 	"federate/pkg/manifest"
 	"federate/pkg/tabular"
+	"federate/pkg/util"
 	"github.com/alecthomas/chroma/formatters"
 	"github.com/alecthomas/chroma/lexers"
 	"github.com/alecthomas/chroma/styles"
-	"github.com/atotto/clipboard"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
@@ -67,7 +67,7 @@ func setupJDOS(m *manifest.Manifest) {
 	log.Println("如下内容已复制到剪贴板，黏贴到“编译命令”栏：")
 	content := fs.ParseTemplateToString("templates/jdos.compile.sh", data)
 	color.Yellow(content)
-	if err := clipboard.WriteAll(content); err != nil {
+	if err := util.ClipboardPut(content); err != nil {
 		log.Fatalf("%v", err)
 	}
 }

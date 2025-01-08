@@ -38,7 +38,7 @@ func (s *Statement) Analyze() error {
 	}
 
 	s.analyzeMetadata()
-	s.analyzeComplexity()
+	s.analyzeCognitiveComplexity()
 
 	return nil
 }
