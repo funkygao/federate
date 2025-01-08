@@ -200,12 +200,8 @@ func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
 
 func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
 	color.Magenta("Index Recommendations per Table")
-	if len(sa.IgnoredFields) > 0 {
-		ignoredFields := make([]string, 0, len(sa.IgnoredFields))
-		for field := range sa.IgnoredFields {
-			ignoredFields = append(ignoredFields, field)
-		}
-		log.Printf("Note: The following fields are ignored in index recommendations: %s", strings.Join(ignoredFields, ", "))
+	if sa.IgnoredFields.Cardinality() > 0 {
+		log.Printf("Note: The following fields are ignored in index recommendations: %s", sa.IgnoredFields)
 	}
 
 	header := []string{"Table", "N", "Index Column Comination"}
@@ -247,8 +243,8 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	printTopN(sa.JoinTypes, 0)
 	log.Println()
 
-	color.Magenta("Join Table Counts")
 	// JOIN 表数量统计
+	color.Magenta("Join Table Counts") // TODO 目前数据不对
 	joinTableItems := make([]tabular.BarChartItem, 0, len(sa.JoinTableCounts))
 	for tableCount, frequency := range sa.JoinTableCounts {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
@@ -328,13 +324,13 @@ func (rg *ReportGenerator) writeTableUsageReport(sa *Aggregator) {
 		})
 	}
 
-	color.Magenta("Table Usage Analysis: %d", len(data))
+	color.Magenta("Table Usage: %d", len(data))
 	header := []string{"Table", "Total Stmt", "Select", "Single Insert", "Batch Insert", "Insert On Duplicate", "Single Update", "Batch Update", "Delete"}
 	tabular.DisplayWithSummary(header, data, false, util.Range(1, len(header)), -1)
 }
 
 func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) {
-	color.Magenta("Table Relations Analysis: %d", len(relations))
+	color.Magenta("Table Relations: %d", len(relations))
 	header := []string{"Table 1", "Table 2", "Join Type"}
 	var data [][]string
 	for _, r := range relations {
@@ -353,7 +349,7 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []SQLComplex
 		return
 	}
 
-	color.Magenta("Complex Queries Analysis (Top %d)", TopK)
+	color.Magenta("Complex Queries (Top %d)", TopK)
 	header := []string{"XML", "Statement ID", "Score", "Reasons"}
 	var data [][]string
 	for _, q := range complexQueries {
@@ -383,8 +379,7 @@ func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
 func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 	var cellData [][]string
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
-		subN := stmt.SubN()
-		if subN > 1 {
+		if subN := stmt.SubN(); subN > 1 {
 			cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID, fmt.Sprintf("%d", subN)})
 		}
 		return nil

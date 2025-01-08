@@ -5,19 +5,23 @@ import (
 	"regexp"
 	"sort"
 	"strings"
+
+	"federate/pkg/primitive"
 )
 
 type Aggregator struct {
-	IgnoredFields map[string]bool
-
 	StatementsByTag map[string][]*Statement
 
+	// config
+	IgnoredFields *primitive.StringSet
+
+	// metrics
 	SQLTypes             map[string]int
 	Tables               map[string]int
 	Fields               map[string]int
 	UnionOperations      int
 	SubQueries           int
-	AggregationFuncs     map[string]map[string]int // count, min, max, etc, key1 is OpType
+	AggregationFuncs     map[string]map[string]int
 	DistinctQueries      int
 	OrderByOperations    int
 	LimitOperations      int
@@ -31,47 +35,43 @@ type Aggregator struct {
 	ParsedOK             int
 	TimeoutStatements    map[string]int
 	IndexRecommendations map[string]*TableIndexRecommendation
+	TableUsage           map[string]*TableUsage
+	TableRelations       []TableRelation
+	ComplexQueries       []SQLComplexity
+	OptimisticLocks      []*Statement
 
-	// metrics
-	TableUsage             map[string]*TableUsage
-	TableRelations         []TableRelation
-	PerformanceBottlenecks []string
-	ComplexQueries         []SQLComplexity
-	OptimisticLocks        []*Statement
-	ReuseOpportunities     []string
-
+	// errors
 	UnknownFragments map[string][]SqlFragmentRef
 	UnparsableSQL    []UnparsableSQL
 }
 
 func NewAggregator(ignoredFields []string) *Aggregator {
-	sa := &Aggregator{
-		IgnoredFields:     make(map[string]bool),
-		SQLTypes:          make(map[string]int),
-		Tables:            make(map[string]int),
-		Fields:            make(map[string]int),
-		AggregationFuncs:  make(map[string]map[string]int),
-		JoinTypes:         make(map[string]int),
-		JoinTableCounts:   make(map[int]int),
-		JoinConditions:    make(map[string]int),
-		IndexHints:        make(map[string]int),
-		TimeoutStatements: make(map[string]int),
-		StatementsByTag:   make(map[string][]*Statement),
-
+	return &Aggregator{
+		IgnoredFields:        primitive.NewStringSet().Add(ignoredFields...),
+		SQLTypes:             make(map[string]int),
+		Tables:               make(map[string]int),
+		Fields:               make(map[string]int),
+		AggregationFuncs:     make(map[string]map[string]int),
+		JoinTypes:            make(map[string]int),
+		JoinTableCounts:      make(map[int]int),
+		JoinConditions:       make(map[string]int),
+		IndexHints:           make(map[string]int),
+		TimeoutStatements:    make(map[string]int),
+		StatementsByTag:      make(map[string][]*Statement),
 		IndexRecommendations: make(map[string]*TableIndexRecommendation),
-
-		UnparsableSQL:    []UnparsableSQL{},
-		UnknownFragments: make(map[string][]SqlFragmentRef),
+		UnparsableSQL:        []UnparsableSQL{},
+		UnknownFragments:     make(map[string][]SqlFragmentRef),
 	}
-	sa.JoinConditions["ON"] = 0
-	sa.JoinConditions["USING"] = 0
-	for _, field := range ignoredFields {
-		sa.IgnoredFields[field] = true
-	}
-	return sa
 }
 
-func (sa *Aggregator) AnalyzeStmt(s Statement) error {
+func (sa *Aggregator) Aggregate() {
+	sa.analyzeTableUsage()
+	sa.analyzeTableRelations()
+	sa.analyzeSQLComplexity()
+	sa.detectOptimisticLocking()
+}
+
+func (sa *Aggregator) OnStmt(s Statement) error {
 	if s.Timeout > 0 {
 		timeoutKey := fmt.Sprintf("%ds", s.Timeout)
 		sa.TimeoutStatements[timeoutKey]++
@@ -88,13 +88,6 @@ func (sa *Aggregator) AnalyzeStmt(s Statement) error {
 	sa.updateAggregatedMetrics(&s)
 
 	return nil
-}
-
-func (sa *Aggregator) Aggregate() {
-	sa.AnalyzeTableUsage()
-	sa.AnalyzeTableRelations()
-	sa.AnalyzeSQLComplexity()
-	sa.DetectOptimisticLocking()
 }
 
 // WalkStatements 遍历 Aggregator 中的所有语句
@@ -211,7 +204,7 @@ func (sa *Aggregator) updateAggregatedMetrics(stmt *Statement) {
 }
 
 // TODO 逻辑不大对，表可能被重复计算
-func (sa *Aggregator) AnalyzeTableUsage() {
+func (sa *Aggregator) analyzeTableUsage() {
 	sa.TableUsage = make(map[string]*TableUsage)
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
 		for _, table := range stmt.Metadata.Tables {
@@ -253,33 +246,31 @@ func (sa *Aggregator) AnalyzeTableUsage() {
 	})
 }
 
-func (sa *Aggregator) AnalyzeTableRelations() {
+func (sa *Aggregator) analyzeTableRelations() {
 	relationMap := make(map[string]TableRelation)
+	sa.WalkStatements(func(tag string, stmt *Statement) error {
+		for _, join := range stmt.ExtractJoinClauses() {
+			// Skip if either table is empty or "SUBQUERY"
+			if join.LeftTable == "" || join.RightTable == "" ||
+				join.LeftTable == "SUBQUERY" || join.RightTable == "SUBQUERY" {
+				continue
+			}
 
-	for _, stmts := range sa.StatementsByTag {
-		for _, stmt := range stmts {
-			for _, join := range stmt.ExtractJoinClauses() {
-				// Skip if either table is empty or "SUBQUERY"
-				if join.LeftTable == "" || join.RightTable == "" ||
-					join.LeftTable == "SUBQUERY" || join.RightTable == "SUBQUERY" {
-					continue
-				}
+			// Ensure table1 and table2 order is consistent
+			table1, table2 := join.LeftTable, join.RightTable
+			if table1 > table2 {
+				table1, table2 = table2, table1
+			}
 
-				// Ensure table1 and table2 order is consistent
-				table1, table2 := join.LeftTable, join.RightTable
-				if table1 > table2 {
-					table1, table2 = table2, table1
-				}
-
-				key := fmt.Sprintf("%s:%s:%s", table1, table2, join.Type)
-				relationMap[key] = TableRelation{
-					Table1:   table1,
-					Table2:   table2,
-					JoinType: join.Type,
-				}
+			key := fmt.Sprintf("%s:%s:%s", table1, table2, join.Type)
+			relationMap[key] = TableRelation{
+				Table1:   table1,
+				Table2:   table2,
+				JoinType: join.Type,
 			}
 		}
-	}
+		return nil
+	})
 
 	// Convert the deduplicated relations to a slice
 	sa.TableRelations = make([]TableRelation, 0, len(relationMap))
@@ -299,7 +290,7 @@ func (sa *Aggregator) AnalyzeTableRelations() {
 	})
 }
 
-func (sa *Aggregator) AnalyzeSQLComplexity() {
+func (sa *Aggregator) analyzeSQLComplexity() {
 	// 按复杂度得分降序排序
 	sort.Slice(sa.ComplexQueries, func(i, j int) bool {
 		return sa.ComplexQueries[i].Score > sa.ComplexQueries[j].Score
@@ -311,15 +302,14 @@ func (sa *Aggregator) AnalyzeSQLComplexity() {
 	}
 }
 
-func (sa *Aggregator) DetectOptimisticLocking() {
+func (sa *Aggregator) detectOptimisticLocking() {
 	sa.OptimisticLocks = []*Statement{}
-	for _, stmts := range sa.StatementsByTag {
-		for _, stmt := range stmts {
-			if stmt.HasOptimisticLocking() {
-				sa.OptimisticLocks = append(sa.OptimisticLocks, stmt)
-			}
+	sa.WalkStatements(func(tag string, stmt *Statement) error {
+		if stmt.HasOptimisticLocking() {
+			sa.OptimisticLocks = append(sa.OptimisticLocks, stmt)
 		}
-	}
+		return nil
+	})
 }
 
 type SimilarityPair struct {

@@ -1,6 +1,9 @@
 package primitive
 
-import "sort"
+import (
+	"sort"
+	"strings"
+)
 
 type StringSet struct {
 	items map[string]struct{}
@@ -22,11 +25,14 @@ func (s *StringSet) UseRaw() *StringSet {
 	return s
 }
 
-func (s *StringSet) Add(item string) {
-	s.items[item] = struct{}{}
-	if s.useRaw {
-		s.rawItems = append(s.rawItems, item)
+func (s *StringSet) Add(items ...string) *StringSet {
+	for _, item := range items {
+		s.items[item] = struct{}{}
+		if s.useRaw {
+			s.rawItems = append(s.rawItems, item)
+		}
 	}
+	return s
 }
 
 func (s *StringSet) Contains(item string) bool {
@@ -48,6 +54,10 @@ func (s *StringSet) Values() []string {
 		r = append(r, s)
 	}
 	return r
+}
+
+func (s StringSet) String() string {
+	return strings.Join(s.Values(), ", ")
 }
 
 func (s *StringSet) SortedValues() []string {

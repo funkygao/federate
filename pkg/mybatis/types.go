@@ -43,3 +43,8 @@ type SQLComplexity struct {
 	Score       int
 	Reasons     *primitive.StringSet
 }
+
+type SqlFragmentRef struct {
+	Refid  string
+	StmtID string
+}

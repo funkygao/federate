@@ -22,11 +22,6 @@ var (
 	ErrNotMapperXML = fmt.Errorf("root element 'mapper' not found")
 )
 
-type SqlFragmentRef struct {
-	Refid  string
-	StmtID string
-}
-
 type XMLMapperBuilder struct {
 	Filename         string
 	Root             *etree.Element

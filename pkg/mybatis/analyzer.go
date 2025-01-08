@@ -75,7 +75,7 @@ func (a *Analyzer) analyzeFile(filePath string) error {
 
 	// 解析 SQL AST
 	for _, stmt := range stmts {
-		a.aggregator.AnalyzeStmt(*stmt)
+		a.aggregator.OnStmt(*stmt)
 	}
 
 	return nil

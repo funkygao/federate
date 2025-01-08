@@ -19,10 +19,12 @@ var mybatisCmd = &cobra.Command{
 
 Example usage:
   federate insight mybatis . --show-similar-queries --index-recommend --verbosity 3 --top 30`,
-	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		dir := args[0]
-		analyzeMybatisMapperXML(dir)
+		root := "."
+		if len(args) > 0 {
+			root = args[0]
+		}
+		analyzeMybatisMapperXML(root)
 	},
 }
 
