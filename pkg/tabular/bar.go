@@ -44,6 +44,9 @@ func PrintBarChart(items []BarChartItem, topK int) {
 
 	for i, item := range items {
 		barLength := int(float64(item.Count) / float64(maxCount) * float64(barWidth))
+		if barLength < 0 {
+			barLength = 0
+		}
 		bar := strings.Repeat("■", barLength)
 
 		fmt.Printf("%-*s %5d ", maxNameLength, item.Name, item.Count)

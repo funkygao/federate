@@ -2,13 +2,22 @@ package tabular
 
 import (
 	"log"
+	"regexp"
 	"sort"
+	"strconv"
+	"strings"
 
 	"federate/pkg/util"
 	"github.com/olekukonko/tablewriter"
 )
 
+var ansiRegex = regexp.MustCompile(`\x1b\[[0-9;]*[a-zA-Z]`)
+
 func Display(header []string, data [][]string, autoMergeCells bool, sortByColumns ...int) {
+	DisplayWithSummary(header, data, autoMergeCells, nil, sortByColumns...)
+}
+
+func DisplayWithSummary(header []string, data [][]string, autoMergeCells bool, sumColumns []int, sortByColumns ...int) {
 	if len(data) < 1 {
 		return
 	}
@@ -55,7 +64,35 @@ func Display(header []string, data [][]string, autoMergeCells bool, sortByColumn
 		table.Append(newRow)
 	}
 
+	// Add summary row if sumColumns is provided
+	if len(sumColumns) > 0 {
+		summaryRow := calculateSummary(data, sumColumns)
+		table.SetFooter(summaryRow)
+	}
+
 	table.Render()
+}
+
+func calculateSummary(data [][]string, sumColumns []int) []string {
+	summary := make([]string, len(data[0]))
+	summary[0] = "Total"
+
+	for _, col := range sumColumns {
+		sum := 0
+		for _, row := range data {
+			// 去除 ANSI 转义序列
+			cleanValue := ansiRegex.ReplaceAllString(row[col], "")
+			// 去除可能的空白字符
+			cleanValue = strings.TrimSpace(cleanValue)
+			val, err := strconv.Atoi(cleanValue)
+			if err == nil {
+				sum += val
+			}
+		}
+		summary[col] = strconv.Itoa(sum)
+	}
+
+	return summary
 }
 
 func calculateColumnWidths(header []string, data [][]string, colCount, availableWidth int) []int {

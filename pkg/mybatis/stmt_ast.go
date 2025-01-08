@@ -1,6 +1,7 @@
 package mybatis
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -33,7 +34,49 @@ var complexityWeights = map[string]int{
 	"ON DUPLICATE":  2,
 }
 
-func (s *Statement) AnalyzeComplexity() SQLComplexity {
+func (s *Statement) parseSQL() (parseErrors []error) {
+	for _, subSQL := range s.splitSQL() {
+		stmt, err := sqlparser.Parse(subSQL)
+		if err != nil {
+			parseErrors = append(parseErrors, fmt.Errorf("error parsing SQL: %v. SQL: %s", err, subSQL))
+			continue
+		}
+
+		sqlet := SQLet{SQL: subSQL, Stmt: stmt}
+
+		switch stmt := stmt.(type) {
+		case *sqlparser.Select:
+			if !isSelectFromDual(stmt) {
+				sqlet.Primary = true
+				sqlet.SQLType = "SELECT"
+			}
+		case *sqlparser.Insert:
+			sqlet.Primary = true
+			sqlet.SQLType = "INSERT"
+		case *sqlparser.Update:
+			sqlet.Primary = true
+			sqlet.SQLType = "UPDATE"
+		case *sqlparser.Delete:
+			sqlet.Primary = true
+			sqlet.SQLType = "DELETE"
+		case *sqlparser.Union:
+			sqlet.Primary = true
+			sqlet.SQLType = "UNION"
+
+		case *sqlparser.Set:
+			// noop
+
+		default:
+			log.Printf("Unhandled SQL type: %T\nSQL: %s", stmt, subSQL)
+		}
+
+		s.addSubSQL(sqlet)
+	}
+
+	return
+}
+
+func (s *Statement) analyzeComplexity() {
 	complexity := SQLComplexity{
 		Filename:    s.Filename,
 		StatementID: s.ID,
@@ -41,12 +84,7 @@ func (s *Statement) AnalyzeComplexity() SQLComplexity {
 		Reasons:     primitive.NewStringSet().UseRaw(),
 	}
 
-	for _, sql := range s.PrimarySQL {
-		node, err := sqlparser.Parse(sql)
-		if err != nil {
-			log.Fatalf("%s: %v", sql, err)
-		}
-
+	for _, node := range s.PrimaryASTs() {
 		s.analyzeNode(node, &complexity)
 	}
 
@@ -59,7 +97,7 @@ func (s *Statement) AnalyzeComplexity() SQLComplexity {
 		}
 	}
 
-	return complexity
+	s.Complexity = complexity
 }
 
 func (s *Statement) analyzeNode(node sqlparser.SQLNode, complexity *SQLComplexity) {
@@ -283,4 +321,15 @@ func (s *Statement) analyzeDelete(delete *sqlparser.Delete, complexity *SQLCompl
 	if len(delete.OrderBy) > 0 {
 		complexity.Reasons.Add("ORDER BY")
 	}
+}
+
+func isSelectFromDual(stmt *sqlparser.Select) bool {
+	if len(stmt.From) == 1 {
+		if tableExpr, ok := stmt.From[0].(*sqlparser.AliasedTableExpr); ok {
+			if tableName, ok := tableExpr.Expr.(sqlparser.TableName); ok {
+				return tableName.Name.String() == "dual"
+			}
+		}
+	}
+	return false
 }
