@@ -127,7 +127,7 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 	if Verbosity > 1 {
 		for _, sql := range unparsableSQL {
 			color.Yellow("%s %s", filepath.Base(sql.Stmt.Filename), sql.Stmt.ID)
-			color.Green(sql.Stmt.Raw)
+			color.Green(sql.Stmt.XMLText)
 			log.Println(sql.Stmt.SQL)
 			color.Red("%v", sql.Error)
 		}

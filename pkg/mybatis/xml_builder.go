@@ -86,7 +86,7 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 				Filename: b.Filename,
 				ID:       elem.SelectAttrValue("id", ""),
 				Tag:      elem.Tag,
-				Raw:      elementToString(elem),
+				XMLText:  elementToString(elem),
 				SQL:      b.processDynamicSql(elem),
 				Timeout:  timeout,
 				SubSQL:   []SQLet{},

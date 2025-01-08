@@ -24,8 +24,8 @@ type Statement struct {
 
 	Timeout int
 
-	// Raw XML Node Text
-	Raw string
+	// XMLText XML Node Text
+	XMLText string
 
 	// 可能是多个语句组成的：SET @affected_rows = 0; UDPATE ...; set @affected_rows  = @affected_rows + row_count(); select @affected_rows as rows;
 	SQL string
@@ -65,7 +65,7 @@ func (s *Statement) IsBatchOperation() bool {
 	}
 
 	doc := etree.NewDocument()
-	if err := doc.ReadFromString(s.Raw); err != nil {
+	if err := doc.ReadFromString(s.XMLText); err != nil {
 		return false
 	}
 
