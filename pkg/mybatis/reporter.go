@@ -18,15 +18,17 @@ import (
 )
 
 type ReportGenerator struct {
-	buffer bytes.Buffer
+	buffer    bytes.Buffer
+	inlineBar bool
 }
 
 func NewReportGenerator() *ReportGenerator {
-	return &ReportGenerator{}
+	return &ReportGenerator{inlineBar: true}
 }
 
 func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	if GeneratePrompt {
+		rg.inlineBar = false
 		fmt.Fprintf(&rg.buffer, prompt.MyBatisMapperPromptCN)
 		fmt.Fprintf(&rg.buffer, "\n\n## MyBatis Mapper Analysis Report\n\n")
 
@@ -38,7 +40,7 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 
 	rg.writeSectionHeader("Top %d most used tables", TopK)
 	rg.writeSectionBody(func() {
-		printTopN(sa.Tables, TopK)
+		printTopN(sa.Tables, TopK, rg.inlineBar)
 	})
 	log.Println()
 
@@ -237,7 +239,7 @@ func (rg *ReportGenerator) writeSQLTypes(sqlTypes map[string]int) {
 
 	rg.writeSectionHeader("Statements: %d", stmts)
 	rg.writeSectionBody(func() {
-		tabular.PrintBarChart(items, 0) // 0 means print all items
+		tabular.PrintBarChart(items, 0, rg.inlineBar) // 0 means print all items
 	})
 }
 
@@ -322,7 +324,7 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
 func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	rg.writeSectionHeader("Join Types")
 	rg.writeSectionBody(func() {
-		printTopN(sa.JoinTypes, 0)
+		printTopN(sa.JoinTypes, 0, rg.inlineBar)
 	})
 	log.Println()
 
@@ -333,14 +335,14 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	}
 	rg.writeSectionHeader("Join Table Counts") // TODO 目前数据不对
 	rg.writeSectionBody(func() {
-		tabular.PrintBarChart(joinTableItems, 0)
+		tabular.PrintBarChart(joinTableItems, 0, rg.inlineBar)
 	})
 	log.Println()
 
 	if len(sa.IndexHints) > 0 {
 		rg.writeSectionHeader("Index Hints")
 		rg.writeSectionBody(func() {
-			printTopN(sa.IndexHints, 0)
+			printTopN(sa.IndexHints, 0, rg.inlineBar)
 		})
 	}
 }

@@ -89,7 +89,7 @@ func sortNestedMapByValueDesc(m map[string]map[string]int) [][]string {
 	return result
 }
 
-func printTopN(m map[string]int, topK int) {
+func printTopN(m map[string]int, topK int, inline bool) {
 	if len(m) < topK {
 		topK = len(m)
 	}
@@ -98,5 +98,5 @@ func printTopN(m map[string]int, topK int) {
 	for key, count := range m {
 		items = append(items, tabular.BarChartItem{Name: key, Count: count})
 	}
-	tabular.PrintBarChart(items, topK)
+	tabular.PrintBarChart(items, topK, inline)
 }

@@ -195,6 +195,23 @@ func (s *StatementMetadata) analyzeExpr(expr sqlparser.Expr, context string) {
 				log.Printf("Unexpected expression type in function argument: %T", arg)
 			}
 		}
+
+	case *sqlparser.GroupConcatExpr:
+		s.addAggregationFunc(context, "GROUP_CONCAT")
+		for _, expr := range e.Exprs {
+			if aliasedExpr, ok := expr.(*sqlparser.AliasedExpr); ok {
+				s.analyzeExpr(aliasedExpr.Expr, context)
+			}
+		}
+		if e.OrderBy != nil {
+			for _, order := range e.OrderBy {
+				s.analyzeExpr(order.Expr, context)
+			}
+		}
+		if e.Separator != "" {
+			// 直接使用分隔符字符串，不需要进一步分析
+		}
+
 	case *sqlparser.Subquery:
 		s.SubQueries++
 		s.analyzeStmt(e.Select)
@@ -204,6 +221,8 @@ func (s *StatementMetadata) analyzeExpr(expr sqlparser.Expr, context string) {
 	case *sqlparser.UnaryExpr:
 		s.analyzeExpr(e.Expr, context)
 	case *sqlparser.ParenExpr:
+		s.analyzeExpr(e.Expr, context)
+	case *sqlparser.ConvertExpr:
 		s.analyzeExpr(e.Expr, context)
 	case *sqlparser.CaseExpr:
 		if e.Expr != nil {
@@ -239,7 +258,7 @@ func (s *StatementMetadata) analyzeExpr(expr sqlparser.Expr, context string) {
 		s.analyzeExpr(e.Left, context)
 		s.analyzeExpr(e.From, context)
 		s.analyzeExpr(e.To, context)
-	case *sqlparser.SQLVal, *sqlparser.IntervalExpr, sqlparser.BoolVal:
+	case *sqlparser.SQLVal, *sqlparser.IntervalExpr, sqlparser.BoolVal, *sqlparser.NullVal:
 	default:
 		// 对于其他类型的表达式，我们可能不需要进一步分析
 		// 但是可以记录日志以便于调试

@@ -116,5 +116,5 @@ func printArchetypeBarChart(sorted []archetypeCount) {
 		items[i] = tabular.BarChartItem{Name: ac.name, Count: ac.count}
 	}
 
-	tabular.PrintBarChart(items, topK)
+	tabular.PrintBarChart(items, topK, true)
 }

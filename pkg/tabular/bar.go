@@ -1,6 +1,7 @@
 package tabular
 
 import (
+	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -14,7 +15,7 @@ type BarChartItem struct {
 	Count int
 }
 
-func PrintBarChart(items []BarChartItem, topK int) {
+func PrintBarChart(items []BarChartItem, topK int, inline bool) {
 	if len(items) == 0 {
 		return
 	}
@@ -39,6 +40,9 @@ func PrintBarChart(items []BarChartItem, topK int) {
 
 	width := util.TerminalWidth()
 	barWidth := width - maxNameLength - 15 // 15 for count and spaces
+	if !inline {
+		barWidth = width
+	}
 	cyan := color.New(color.FgCyan)
 	yellow := color.New(color.FgYellow)
 
@@ -49,7 +53,12 @@ func PrintBarChart(items []BarChartItem, topK int) {
 		}
 		bar := strings.Repeat("■", barLength)
 
-		log.Printf("%-*s %5d ", maxNameLength, item.Name, item.Count)
+		if inline {
+			fmt.Printf("%-*s %5d ", maxNameLength, item.Name, item.Count)
+		} else {
+			log.Printf("%-*s %5d ", maxNameLength, item.Name, item.Count)
+		}
+
 		if i%2 == 0 {
 			cyan.Print(bar)
 		} else {
