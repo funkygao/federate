@@ -222,3 +222,23 @@ GROUP BY stock.location_no, capacity.zone_no, capacity.zone_type
 		})
 	}
 }
+
+func TestMinimalSQL(t *testing.T) {
+	testCases := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "basic",
+			input:    `UPDATE      st_check_result SET foo=?   WHERE /* FOREACH_START */ ( deleted = 0 AND warehouse_no = ? AND id = ? ) /* FOREACH_END */`,
+			expected: `UPDATE st_check_result SET foo=? WHERE ( deleted = 0 AND warehouse_no = ? AND id = ? )`,
+		},
+	}
+	for _, tc := range testCases {
+		stmt := Statement{SQL: tc.input}
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.expected, stmt.MinimalSQL())
+		})
+	}
+}

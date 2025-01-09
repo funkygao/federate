@@ -128,9 +128,17 @@ func (rg *ReportGenerator) showErrors(sa *Aggregator) {
 // 专门给大模型的输出
 func (rg *ReportGenerator) writeDetailedPrompt(sa *Aggregator) {
 	fmt.Fprintf(&rg.buffer, "\n### Statements with name\n\n```\n")
-	fmt.Fprintf(&rg.buffer, "Mapper XML, Statement Name, ParameterType, ResultType\n")
+	if PromptSQL {
+		fmt.Fprintf(&rg.buffer, "Mapper XML, Statement Name, ParameterType, ResultType, SQL\n")
+	} else {
+		fmt.Fprintf(&rg.buffer, "Mapper XML, Statement Name, ParameterType, ResultType\n")
+	}
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
-		fmt.Fprintf(&rg.buffer, "%s, %s, %s, %s\n", filepath.Base(stmt.Filename), stmt.ID, stmt.ParameterType, stmt.ResultType)
+		if PromptSQL {
+			fmt.Fprintf(&rg.buffer, "%s, %s, %s, %s, ```%s```\n", filepath.Base(stmt.Filename), stmt.ID, stmt.ParameterType, stmt.ResultType, stmt.MinimalSQL())
+		} else {
+			fmt.Fprintf(&rg.buffer, "%s, %s, %s, %s\n", filepath.Base(stmt.Filename), stmt.ID, stmt.ParameterType, stmt.ResultType)
+		}
 		return nil
 	})
 	fmt.Fprintf(&rg.buffer, "```\n\n")

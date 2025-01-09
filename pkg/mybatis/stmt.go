@@ -46,6 +46,52 @@ func (s *Statement) Analyze() error {
 	return nil
 }
 
+func (s *Statement) MinimalSQL() string {
+	var result strings.Builder
+	var inString, inLineComment, inBlockComment bool
+	var stringDelimiter rune
+
+	for i := 0; i < len(s.SQL); i++ {
+		char := rune(s.SQL[i])
+
+		switch {
+		case inString:
+			result.WriteRune(char)
+			if char == stringDelimiter && (i == 0 || s.SQL[i-1] != '\\') {
+				inString = false
+			}
+		case inLineComment:
+			if char == '\n' {
+				inLineComment = false
+				result.WriteRune(' ')
+			}
+		case inBlockComment:
+			if char == '*' && i+1 < len(s.SQL) && s.SQL[i+1] == '/' {
+				inBlockComment = false
+				i++
+				result.WriteRune(' ')
+			}
+		case char == '\'' || char == '"':
+			inString = true
+			stringDelimiter = char
+			result.WriteRune(char)
+		case char == '-' && i+1 < len(s.SQL) && s.SQL[i+1] == '-':
+			inLineComment = true
+			i++
+		case char == '/' && i+1 < len(s.SQL) && s.SQL[i+1] == '*':
+			inBlockComment = true
+			i++
+		case char == '\n' || char == '\t':
+			result.WriteRune(' ')
+		default:
+			result.WriteRune(char)
+		}
+	}
+
+	// 移除多余的空格
+	return strings.Join(strings.Fields(result.String()), " ")
+}
+
 func (s *Statement) PrimaryASTs() []sqlparser.Statement {
 	var result []sqlparser.Statement
 	for _, sqlet := range s.SubSQL {

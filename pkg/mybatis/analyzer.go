@@ -7,6 +7,7 @@ var (
 	TopK                int
 	SimilarityThreshold float64
 	GeneratePrompt      bool
+	PromptSQL           bool
 	ShowIndexRecommend  bool
 	ShowBatchOps        bool
 	ShowSimilarity      bool
