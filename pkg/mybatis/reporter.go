@@ -101,6 +101,9 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeResultTypeReport(sa.ResultTypes)
 	log.Println()
 
+	rg.writeOrderByGroupByUsageReport(sa)
+	log.Println()
+
 	if GeneratePrompt {
 		rg.writeDetailedPrompt(sa)
 
@@ -526,7 +529,7 @@ func (rg *ReportGenerator) writeParameterTypeReport(parameterTypes map[string]ma
 			countJ, _ := strconv.Atoi(data[j][2])
 			return countI > countJ
 		})
-		tabular.Display(header, data, false, -1)
+		tabular.Display(header, data, true, -1)
 	})
 }
 
@@ -552,6 +555,22 @@ func (rg *ReportGenerator) writeResultTypeReport(resultTypes map[string]map[stri
 			countJ, _ := strconv.Atoi(data[j][2])
 			return countI > countJ
 		})
+		tabular.Display(header, data, true, -1)
+	})
+}
+
+func (rg *ReportGenerator) writeOrderByGroupByUsageReport(sa *Aggregator) {
+	rg.writeSectionHeader("ORDER BY and GROUP BY Usage")
+	rg.writeSectionBody(func() {
+		totalStatements := sa.SelectOK
+
+		header := []string{"SELECT Clause", "Usage Count", "Usage Percentage"}
+		data := [][]string{
+			{"ORDER BY", fmt.Sprintf("%d", sa.OrderByUsage), fmt.Sprintf("%.2f%%", float64(sa.OrderByUsage)/float64(totalStatements)*100)},
+			{"GROUP BY", fmt.Sprintf("%d", sa.GroupByUsage), fmt.Sprintf("%.2f%%", float64(sa.GroupByUsage)/float64(totalStatements)*100)},
+			{"DISTINCT", fmt.Sprintf("%d", sa.DistinctUsage), fmt.Sprintf("%.2f%%", float64(sa.DistinctUsage)/float64(totalStatements)*100)},
+		}
+
 		tabular.Display(header, data, false, -1)
 	})
 }

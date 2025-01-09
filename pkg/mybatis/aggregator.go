@@ -16,6 +16,8 @@ type Aggregator struct {
 	IgnoredFields *primitive.StringSet
 
 	// metrics
+	ParsedOK             int
+	SelectOK             int
 	SQLTypes             map[string]int
 	Tables               map[string]int
 	Fields               map[string]int
@@ -32,7 +34,6 @@ type Aggregator struct {
 	JoinTableCounts      map[int]int
 	JoinConditions       map[string]int
 	IndexHints           map[string]int
-	ParsedOK             int
 	TimeoutStatements    map[string]int
 	IndexRecommendations map[string]*TableIndexRecommendation
 	TableUsage           map[string]*TableUsage
@@ -41,6 +42,9 @@ type Aggregator struct {
 	OptimisticLocks      []*Statement
 	ParameterTypes       map[string]map[string]int // Tag -> ParameterType -> Count
 	ResultTypes          map[string]map[string]int // Tag -> ResultType -> Count
+	OrderByUsage         int
+	GroupByUsage         int
+	DistinctUsage        int
 
 	// errors
 	UnknownFragments map[string][]SqlFragmentRef
@@ -89,7 +93,20 @@ func (sa *Aggregator) OnStmt(s Statement) error {
 	}
 
 	sa.ParsedOK++
+	if s.Metadata.ContainsSelect() {
+		sa.SelectOK++
+	}
 	sa.updateAggregatedMetrics(&s)
+
+	if s.Metadata.HasOrderBy {
+		sa.OrderByUsage++
+	}
+	if s.Metadata.HasDistinct {
+		sa.DistinctUsage++
+	}
+	if s.Metadata.HasGroupBy {
+		sa.GroupByUsage++
+	}
 
 	if sa.ParameterTypes[s.Tag] == nil {
 		sa.ParameterTypes[s.Tag] = make(map[string]int)

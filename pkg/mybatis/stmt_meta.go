@@ -52,8 +52,10 @@ func (s *Statement) analyzeMetadata() {
 func (s *StatementMetadata) analyzeStmt(stmt sqlparser.Statement) {
 	switch v := stmt.(type) {
 	case *sqlparser.Select:
-		s.addSQLType("SELECT")
-		s.analyzeSelect(v)
+		if !isSelectFromDual(v) {
+			s.addSQLType("SELECT")
+			s.analyzeSelect(v)
+		}
 	case *sqlparser.Insert:
 		s.addSQLType("INSERT")
 		s.analyzeInsert(v)
@@ -77,6 +79,15 @@ func (s *StatementMetadata) addSQLType(sqlType string) {
 	s.SQLTypes = append(s.SQLTypes, sqlType)
 }
 
+func (s *StatementMetadata) ContainsSelect() bool {
+	for _, s := range s.SQLTypes {
+		if s == "SELECT" {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *StatementMetadata) analyzeSelect(stmt *sqlparser.Select) {
 	sqlType := "SELECT"
 	s.analyzeTables(stmt.From)
@@ -89,6 +100,14 @@ func (s *StatementMetadata) analyzeSelect(stmt *sqlparser.Select) {
 
 	if stmt.Distinct != "" {
 		s.HasDistinct = true
+	}
+
+	if len(stmt.OrderBy) > 0 {
+		s.HasOrderBy = true
+	}
+
+	if len(stmt.GroupBy) > 0 {
+		s.HasGroupBy = true
 	}
 }
 
@@ -319,9 +338,6 @@ func (s *StatementMetadata) analyzeWhere(where *sqlparser.Where, sqlType string)
 }
 
 func (s *StatementMetadata) analyzeGroupBy(groupBy sqlparser.GroupBy, sqlType string) {
-	if len(groupBy) > 0 {
-		s.HasGroupBy = true
-	}
 	for _, expr := range groupBy {
 		s.analyzeExpr(expr, "GROUP BY")
 	}
@@ -335,9 +351,6 @@ func (s *StatementMetadata) analyzeHaving(having *sqlparser.Where, sqlType strin
 }
 
 func (s *StatementMetadata) analyzeOrderBy(orderBy sqlparser.OrderBy, sqlType string) {
-	if len(orderBy) > 0 {
-		s.HasOrderBy = true
-	}
 	for _, expr := range orderBy {
 		s.analyzeExpr(expr.Expr, "ORDER BY")
 	}
