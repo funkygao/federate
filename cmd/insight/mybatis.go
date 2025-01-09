@@ -18,7 +18,7 @@ var mybatisCmd = &cobra.Command{
 	Long: `Analyze MyBatis MySQL mapper XML files in the specified directory.
 
 Example usage:
-  federate insight mybatis . --show-similar-queries --index-recommend --verbosity 3 --top 30`,
+  federate insight mybatis . --show-similar-queries --index-recommend --generate-prompt --prompt-sql`,
 	Run: func(cmd *cobra.Command, args []string) {
 		root := "."
 		if len(args) > 0 {
