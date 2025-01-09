@@ -39,6 +39,8 @@ type Aggregator struct {
 	TableRelations       []TableRelation
 	ComplexQueries       []CognitiveComplexity
 	OptimisticLocks      []*Statement
+	ParameterTypes       map[string]map[string]int // Tag -> ParameterType -> Count
+	ResultTypes          map[string]map[string]int // Tag -> ResultType -> Count
 
 	// errors
 	UnknownFragments map[string][]SqlFragmentRef
@@ -55,6 +57,8 @@ func NewAggregator(ignoredFields []string) *Aggregator {
 		JoinTypes:            make(map[string]int),
 		JoinTableCounts:      make(map[int]int),
 		JoinConditions:       make(map[string]int),
+		ParameterTypes:       make(map[string]map[string]int),
+		ResultTypes:          make(map[string]map[string]int),
 		IndexHints:           make(map[string]int),
 		TimeoutStatements:    make(map[string]int),
 		StatementsByTag:      make(map[string][]*Statement),
@@ -86,6 +90,16 @@ func (sa *Aggregator) OnStmt(s Statement) error {
 
 	sa.ParsedOK++
 	sa.updateAggregatedMetrics(&s)
+
+	if sa.ParameterTypes[s.Tag] == nil {
+		sa.ParameterTypes[s.Tag] = make(map[string]int)
+	}
+	sa.ParameterTypes[s.Tag][s.ParameterType]++
+
+	if sa.ResultTypes[s.Tag] == nil {
+		sa.ResultTypes[s.Tag] = make(map[string]int)
+	}
+	sa.ResultTypes[s.Tag][s.ResultType]++
 
 	return nil
 }

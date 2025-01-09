@@ -95,6 +95,12 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeSubStatmentReport(sa)
 	log.Println()
 
+	rg.writeParameterTypeReport(sa.ParameterTypes)
+	log.Println()
+
+	rg.writeResultTypeReport(sa.ResultTypes)
+	log.Println()
+
 	if GeneratePrompt {
 		rg.writeDetailedPrompt(sa)
 
@@ -495,5 +501,57 @@ func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 	rg.writeSectionHeader("Statements With Sub Statements: %d", len(cellData))
 	rg.writeSectionBody(func() {
 		tabular.Display(header, cellData, true, 0)
+	})
+}
+
+func (rg *ReportGenerator) writeParameterTypeReport(parameterTypes map[string]map[string]int) {
+	rg.writeSectionHeader("Parameter Types by SQL Operation")
+	rg.writeSectionBody(func() {
+		header := []string{"SQL Operation", "Parameter Type", "Count"}
+		var data [][]string
+		for tag, types := range parameterTypes {
+			for paramType, count := range types {
+				if paramType == "NULL" || count < 3 {
+					continue
+				}
+				data = append(data, []string{tag, paramType, fmt.Sprintf("%d", count)})
+			}
+		}
+		// 按 SQL 操作类型和计数降序排序
+		sort.Slice(data, func(i, j int) bool {
+			if data[i][0] != data[j][0] {
+				return data[i][0] < data[j][0]
+			}
+			countI, _ := strconv.Atoi(data[i][2])
+			countJ, _ := strconv.Atoi(data[j][2])
+			return countI > countJ
+		})
+		tabular.Display(header, data, false, -1)
+	})
+}
+
+func (rg *ReportGenerator) writeResultTypeReport(resultTypes map[string]map[string]int) {
+	rg.writeSectionHeader("Result Types by SQL Operation")
+	rg.writeSectionBody(func() {
+		header := []string{"SQL Operation", "Result Type", "Count"}
+		var data [][]string
+		for tag, types := range resultTypes {
+			for resultType, count := range types {
+				if resultType == "NULL" || count < 3 {
+					continue
+				}
+				data = append(data, []string{tag, resultType, fmt.Sprintf("%d", count)})
+			}
+		}
+		// 按 SQL 操作类型和计数降序排序
+		sort.Slice(data, func(i, j int) bool {
+			if data[i][0] != data[j][0] {
+				return data[i][0] < data[j][0]
+			}
+			countI, _ := strconv.Atoi(data[i][2])
+			countJ, _ := strconv.Atoi(data[j][2])
+			return countI > countJ
+		})
+		tabular.Display(header, data, false, -1)
 	})
 }
