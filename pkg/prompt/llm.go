@@ -214,7 +214,7 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt() {
 
 	finalContent := pg.buffer.String()
 	if pg.rule != nil {
-		finalContent = pg.rule.SystemPrompt + "\n\n" + pg.rule.UserPrompt + "\n\n" + finalContent
+		finalContent = pg.rule.Prompt + "\n\n" + finalContent
 	}
 
 	if Dump {
