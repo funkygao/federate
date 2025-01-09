@@ -341,13 +341,20 @@ func (s *StatementMetadata) analyzeWhere(where *sqlparser.Where, sqlType string)
 
 func (s *StatementMetadata) analyzeGroupBy(groupBy sqlparser.GroupBy, sqlType string) {
 	if len(groupBy) > 0 {
-		s.GroupByFields = make(map[string]int)
+		if s.GroupByFields == nil {
+			s.GroupByFields = make(map[string]int)
+		}
+
+		var fields []string
 		for _, expr := range groupBy {
 			field := s.getFieldName(expr)
-			s.GroupByFields[field]++
+			fields = append(fields, field)
 
 			s.analyzeExpr(expr, "GROUP BY")
 		}
+
+		combination := strings.Join(fields, ", ")
+		s.GroupByFields[combination]++
 	}
 }
 

@@ -582,9 +582,9 @@ func (rg *ReportGenerator) writeOrderByGroupByUsageReport(sa *Aggregator) {
 }
 
 func (rg *ReportGenerator) writeGroupByFieldsReport(groupByFields map[string]int) {
-	rg.writeSectionHeader("GROUP BY Fields Usage")
+	rg.writeSectionHeader("GROUP BY Field Combinations Usage")
 	rg.writeSectionBody(func() {
-		header := []string{"Field", "Usage Count"}
+		header := []string{"Field Combination", "Usage Count"}
 		var data [][]string
 		for field, count := range groupByFields {
 			data = append(data, []string{field, fmt.Sprintf("%d", count)})
