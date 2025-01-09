@@ -67,7 +67,7 @@ func init() {
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowIndexRecommend, "index-recommend", "i", false, "Show index recommendations per table")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowBatchOps, "batches", "b", true, "Show batch operations")
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowSimilarity, "show-similar-queries", "q", false, "Show similar query pairs")
-	mybatisCmd.Flags().BoolVarP(&mybatis.GeneratePrompt, "generate-prompt", "g", true, "Generate LLM Prompt for further insight")
+	mybatisCmd.Flags().BoolVarP(&mybatis.GeneratePrompt, "generate-prompt", "g", false, "Generate LLM Prompt for further insight")
 	mybatisCmd.Flags().BoolVarP(&mybatis.PromptSQL, "prompt-sql", "l", false, "LLM Prompt contains SQL")
 	mybatisCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
 }

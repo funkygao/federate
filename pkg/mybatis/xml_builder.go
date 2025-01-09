@@ -18,7 +18,8 @@ var (
 	hashPlaceHolder = regexp.MustCompile(`#\{[^}]+\}`)
 	spaceRegex      = regexp.MustCompile(`\s+`)
 
-	GlobalSqlFragments = make(map[string]*etree.Element)
+	GlobalSqlFragments     = make(map[string]*etree.Element)
+	GlobalSqlFragmentUsage = make(map[string]int)
 
 	ErrNotMapperXML = fmt.Errorf("root element 'mapper' not found")
 )
@@ -169,19 +170,21 @@ func (b *XMLMapperBuilder) parseDynamicTags(elem *etree.Element, context *Dynami
 
 func (b *XMLMapperBuilder) handleInclude(elem *etree.Element, context *DynamicContext) {
 	refid := elem.SelectAttrValue("refid", "")
+	fullRefid := b.Namespace + "." + refid
 	var fragmentElem *etree.Element
 	var ok bool
 
 	// 首先检查是否包含完整的命名空间
 	if fragmentElem, ok = GlobalSqlFragments[refid]; ok {
+		GlobalSqlFragmentUsage[fullRefid]++
 		b.parseDynamicTags(fragmentElem, context)
 		return
 	}
 
 	// 如果没有找到，尝试使用当前命名空间
-	fullRefid := b.Namespace + "." + refid
 	if fragmentElem, ok = GlobalSqlFragments[fullRefid]; ok {
 		b.parseDynamicTags(fragmentElem, context)
+		GlobalSqlFragmentUsage[fullRefid]++
 		return
 	}
 

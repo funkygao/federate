@@ -44,6 +44,12 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	})
 	log.Println()
 
+	rg.writeSectionHeader("Top %d SQL Fragment Reuse", TopK)
+	rg.writeSectionBody(func() {
+		printTopN(GlobalSqlFragmentUsage, TopK, rg.inlineBar)
+	})
+	log.Println()
+
 	rg.writeSQLTypes(sa.SQLTypes)
 	log.Println()
 
