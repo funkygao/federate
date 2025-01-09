@@ -107,6 +107,9 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeGroupByFieldsReport(sa.GroupByFields)
 	log.Println()
 
+	rg.writeOrderByFieldsReport(sa.OrderByFields)
+	log.Println()
+
 	if GeneratePrompt {
 		rg.writeDetailedPrompt(sa)
 
@@ -594,12 +597,71 @@ func (rg *ReportGenerator) writeGroupByFieldsReport(groupByFields map[string]int
 			return countI > countJ
 		})
 
-		// 只显示前 N 个最常用的字段
-		topN := 20 // 你可以调整这个数字
-		if len(data) > topN {
-			data = data[:topN]
+		if len(data) > TopK {
+			data = data[:TopK]
 		}
 
 		tabular.Display(header, data, false, -1)
 	})
+}
+
+func (rg *ReportGenerator) writeOrderByFieldsReport(orderByFields map[string]int) {
+	rg.writeSectionHeader("ORDER BY Fields Usage")
+	rg.writeSectionBody(func() {
+		header := []string{"Field", "Direction", "Usage Count"}
+		var data [][]string
+
+		for fieldAndDirection, count := range orderByFields {
+			field, direction := splitFieldAndDirection(fieldAndDirection)
+			data = append(data, []string{field, direction, fmt.Sprintf("%d", count)})
+		}
+
+		// 首先按使用次数降序排序，然后按字段名字母顺序排序，最后按方向排序
+		sort.Slice(data, func(i, j int) bool {
+			countI, _ := strconv.Atoi(data[i][2])
+			countJ, _ := strconv.Atoi(data[j][2])
+			if countI != countJ {
+				return countI > countJ
+			}
+			if data[i][0] != data[j][0] {
+				return data[i][0] < data[j][0]
+			}
+			return data[i][1] < data[j][1]
+		})
+
+		if len(data) > TopK {
+			data = data[:TopK]
+		}
+
+		tabular.Display(header, data, false, -1)
+	})
+}
+
+func splitFieldAndDirection(fieldAndDirection string) (string, string) {
+	lastSpaceIndex := strings.LastIndex(fieldAndDirection, " ")
+	if lastSpaceIndex == -1 {
+		return fieldAndDirection, "ASC"
+	}
+
+	field := fieldAndDirection[:lastSpaceIndex]
+	direction := fieldAndDirection[lastSpaceIndex+1:]
+
+	// 处理复杂表达式
+	if strings.HasPrefix(field, "(") && !strings.HasSuffix(field, ")") {
+		field = fieldAndDirection[:strings.LastIndex(fieldAndDirection, ")")+1]
+		direction = strings.TrimSpace(fieldAndDirection[strings.LastIndex(fieldAndDirection, ")")+1:])
+	}
+
+	// 处理 JSON 操作符
+	if strings.Contains(field, "->") {
+		parts := strings.SplitN(field, "->", 2)
+		field = parts[0]
+		if len(parts) > 1 {
+			direction = "-> " + strings.TrimSpace(parts[1]) + " " + direction
+		} else {
+			direction = "-> " + direction
+		}
+	}
+
+	return strings.TrimSpace(field), strings.TrimSpace(direction)
 }

@@ -17,6 +17,7 @@ type StatementMetadata struct {
 	AggregationFuncs     map[string]map[string]int // SQLType -> FuncName -> Count
 	IndexRecommendations map[string]*TableIndexRecommendation
 	GroupByFields        map[string]int
+	OrderByFields        map[string]int
 	JoinOperations       int
 	JoinTypes            map[string]int
 	JoinTableCount       int
@@ -356,8 +357,20 @@ func (s *StatementMetadata) getFieldName(expr sqlparser.Expr) string {
 		return e.Name.String()
 	case *sqlparser.FuncExpr:
 		return e.Name.String() // 返回函数名
+	case *sqlparser.ParenExpr:
+		return "(" + s.getFieldName(e.Expr) + ")"
+	case *sqlparser.BinaryExpr:
+		return s.getFieldName(e.Left) + " " + e.Operator + " " + s.getFieldName(e.Right)
+	case *sqlparser.UnaryExpr:
+		return e.Operator + s.getFieldName(e.Expr)
+	case *sqlparser.Subquery:
+		return "Subquery"
+	case *sqlparser.CaseExpr:
+		return "CASE"
+	case *sqlparser.SQLVal:
+		return "Value"
 	default:
-		return fmt.Sprintf("%T", expr) // 返回表达式类型作为字符串
+		return fmt.Sprintf("Complex(%T)", expr)
 	}
 }
 
@@ -369,8 +382,18 @@ func (s *StatementMetadata) analyzeHaving(having *sqlparser.Where, sqlType strin
 }
 
 func (s *StatementMetadata) analyzeOrderBy(orderBy sqlparser.OrderBy, sqlType string) {
-	for _, expr := range orderBy {
-		s.analyzeExpr(expr.Expr, "ORDER BY")
+	if len(orderBy) > 0 {
+		s.OrderByFields = make(map[string]int)
+		for _, order := range orderBy {
+			field := s.getFieldName(order.Expr)
+			direction := "ASC"
+			if order.Direction == sqlparser.DescScr {
+				direction = "DESC"
+			}
+			s.OrderByFields[field+" "+direction]++
+
+			s.analyzeExpr(order.Expr, "ORDER BY")
+		}
 	}
 }
 

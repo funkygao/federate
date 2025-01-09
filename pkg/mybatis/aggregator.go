@@ -43,6 +43,7 @@ type Aggregator struct {
 	ParameterTypes       map[string]map[string]int // Tag -> ParameterType -> Count
 	ResultTypes          map[string]map[string]int // Tag -> ResultType -> Count
 	GroupByFields        map[string]int
+	OrderByFields        map[string]int
 	OrderByUsage         int
 	GroupByUsage         int
 	DistinctUsage        int
@@ -63,6 +64,7 @@ func NewAggregator(ignoredFields []string) *Aggregator {
 		JoinTableCounts:      make(map[int]int),
 		JoinConditions:       make(map[string]int),
 		GroupByFields:        make(map[string]int),
+		OrderByFields:        make(map[string]int),
 		ParameterTypes:       make(map[string]map[string]int),
 		ResultTypes:          make(map[string]map[string]int),
 		IndexHints:           make(map[string]int),
@@ -122,6 +124,9 @@ func (sa *Aggregator) OnStmt(s Statement) error {
 
 	for field, count := range s.Metadata.GroupByFields {
 		sa.GroupByFields[field] += count
+	}
+	for field, count := range s.Metadata.OrderByFields {
+		sa.OrderByFields[field] += count
 	}
 
 	return nil
