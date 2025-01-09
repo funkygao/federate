@@ -104,6 +104,9 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeOrderByGroupByUsageReport(sa)
 	log.Println()
 
+	rg.writeGroupByFieldsReport(sa.GroupByFields)
+	log.Println()
+
 	if GeneratePrompt {
 		rg.writeDetailedPrompt(sa)
 
@@ -566,9 +569,35 @@ func (rg *ReportGenerator) writeOrderByGroupByUsageReport(sa *Aggregator) {
 
 		header := []string{"SELECT Clause", "Usage Count", "Usage Percentage"}
 		data := [][]string{
+			{"DISTINCT", fmt.Sprintf("%d", sa.DistinctUsage), fmt.Sprintf("%.2f%%", float64(sa.DistinctUsage)/float64(totalStatements)*100)},
 			{"ORDER BY", fmt.Sprintf("%d", sa.OrderByUsage), fmt.Sprintf("%.2f%%", float64(sa.OrderByUsage)/float64(totalStatements)*100)},
 			{"GROUP BY", fmt.Sprintf("%d", sa.GroupByUsage), fmt.Sprintf("%.2f%%", float64(sa.GroupByUsage)/float64(totalStatements)*100)},
-			{"DISTINCT", fmt.Sprintf("%d", sa.DistinctUsage), fmt.Sprintf("%.2f%%", float64(sa.DistinctUsage)/float64(totalStatements)*100)},
+		}
+
+		tabular.Display(header, data, false, -1)
+	})
+}
+
+func (rg *ReportGenerator) writeGroupByFieldsReport(groupByFields map[string]int) {
+	rg.writeSectionHeader("GROUP BY Fields Usage")
+	rg.writeSectionBody(func() {
+		header := []string{"Field", "Usage Count"}
+		var data [][]string
+		for field, count := range groupByFields {
+			data = append(data, []string{field, fmt.Sprintf("%d", count)})
+		}
+
+		// 按使用次数降序排序
+		sort.Slice(data, func(i, j int) bool {
+			countI, _ := strconv.Atoi(data[i][1])
+			countJ, _ := strconv.Atoi(data[j][1])
+			return countI > countJ
+		})
+
+		// 只显示前 N 个最常用的字段
+		topN := 20 // 你可以调整这个数字
+		if len(data) > topN {
+			data = data[:topN]
 		}
 
 		tabular.Display(header, data, false, -1)

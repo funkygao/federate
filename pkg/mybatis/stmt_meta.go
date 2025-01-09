@@ -16,6 +16,7 @@ type StatementMetadata struct {
 	Fields               []string
 	AggregationFuncs     map[string]map[string]int // SQLType -> FuncName -> Count
 	IndexRecommendations map[string]*TableIndexRecommendation
+	GroupByFields        map[string]int
 	JoinOperations       int
 	JoinTypes            map[string]int
 	JoinTableCount       int
@@ -338,8 +339,25 @@ func (s *StatementMetadata) analyzeWhere(where *sqlparser.Where, sqlType string)
 }
 
 func (s *StatementMetadata) analyzeGroupBy(groupBy sqlparser.GroupBy, sqlType string) {
-	for _, expr := range groupBy {
-		s.analyzeExpr(expr, "GROUP BY")
+	if len(groupBy) > 0 {
+		s.GroupByFields = make(map[string]int)
+		for _, expr := range groupBy {
+			field := s.getFieldName(expr)
+			s.GroupByFields[field]++
+
+			s.analyzeExpr(expr, "GROUP BY")
+		}
+	}
+}
+
+func (s *StatementMetadata) getFieldName(expr sqlparser.Expr) string {
+	switch e := expr.(type) {
+	case *sqlparser.ColName:
+		return e.Name.String()
+	case *sqlparser.FuncExpr:
+		return e.Name.String() // 返回函数名
+	default:
+		return fmt.Sprintf("%T", expr) // 返回表达式类型作为字符串
 	}
 }
 

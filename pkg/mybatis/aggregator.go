@@ -42,6 +42,7 @@ type Aggregator struct {
 	OptimisticLocks      []*Statement
 	ParameterTypes       map[string]map[string]int // Tag -> ParameterType -> Count
 	ResultTypes          map[string]map[string]int // Tag -> ResultType -> Count
+	GroupByFields        map[string]int
 	OrderByUsage         int
 	GroupByUsage         int
 	DistinctUsage        int
@@ -61,6 +62,7 @@ func NewAggregator(ignoredFields []string) *Aggregator {
 		JoinTypes:            make(map[string]int),
 		JoinTableCounts:      make(map[int]int),
 		JoinConditions:       make(map[string]int),
+		GroupByFields:        make(map[string]int),
 		ParameterTypes:       make(map[string]map[string]int),
 		ResultTypes:          make(map[string]map[string]int),
 		IndexHints:           make(map[string]int),
@@ -117,6 +119,10 @@ func (sa *Aggregator) OnStmt(s Statement) error {
 		sa.ResultTypes[s.Tag] = make(map[string]int)
 	}
 	sa.ResultTypes[s.Tag][s.ResultType]++
+
+	for field, count := range s.Metadata.GroupByFields {
+		sa.GroupByFields[field] += count
+	}
 
 	return nil
 }
