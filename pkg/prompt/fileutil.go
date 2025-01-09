@@ -107,7 +107,7 @@ func readDirContentWithStructure(dir string, excludeList []string) (string, erro
 			return err
 		}
 		for _, excludePath := range excludeList {
-			if fullPath == excludePath {
+			if strings.HasPrefix(fullPath, excludePath) {
 				if info.IsDir() {
 					return filepath.SkipDir
 				}
@@ -177,7 +177,7 @@ func isDir(path string) bool {
 	return info.IsDir()
 }
 
-func recursiveSearch(root, pattern string, searchDir bool) ([]string, error) {
+func recursiveSearch(root, pattern string, includeDir bool) ([]string, error) {
 	var matches []string
 	regexPattern := ".*" + strings.Join(strings.Split(pattern, ""), ".*") + ".*"
 	re, err := regexp.Compile(regexPattern)
@@ -193,10 +193,10 @@ func recursiveSearch(root, pattern string, searchDir bool) ([]string, error) {
 			if shouldIgnoreDir(info.Name()) {
 				return filepath.SkipDir
 			}
-			if searchDir && re.MatchString(info.Name()) {
+			if includeDir && re.MatchString(info.Name()) {
 				matches = append(matches, path)
 			}
-		} else if !searchDir && re.MatchString(info.Name()) && !shouldIgnoreFile(path) {
+		} else if re.MatchString(info.Name()) && !shouldIgnoreFile(path) {
 			matches = append(matches, path)
 		}
 		return nil

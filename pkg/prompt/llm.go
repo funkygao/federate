@@ -138,6 +138,19 @@ func (pg *PromptGenerator) processKillInput(path string) bool {
 	if err != nil {
 		return false
 	}
+
+	// 检查路径是否存在
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		return false
+	}
+
+	// 如果是目录，添加到排除列表
+	if isDir(fullPath) {
+		pg.excludeList = append(pg.excludeList, fullPath)
+		return true
+	}
+
+	// 如果是文件，添加到排除列表
 	pg.excludeList = append(pg.excludeList, fullPath)
 	return true
 }

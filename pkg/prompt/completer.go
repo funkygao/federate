@@ -67,11 +67,15 @@ func handleDirCompletion(text string) []prompt.Suggest {
 
 func handleKillCompletion(text string) []prompt.Suggest {
 	prefix := text[strings.LastIndex(text, killPrefix):]
-	matches, _ := recursiveSearch(baseDir, strings.TrimPrefix(prefix, killPrefix), false)
+	matches, _ := recursiveSearch(baseDir, strings.TrimPrefix(prefix, killPrefix), true)
 
 	suggestions := []prompt.Suggest{}
 	for _, match := range matches {
-		suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + "k" + match})
+		if isDir(match) {
+			suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + "k" + match + "/"})
+		} else {
+			suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + "k" + match})
+		}
 	}
 	return suggestions
 }
