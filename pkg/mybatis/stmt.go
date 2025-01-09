@@ -16,11 +16,14 @@ type SQLet struct {
 }
 
 type Statement struct {
-	Filename string
-	ID       string
-	Tag      string // XML Tag
-	XMLText  string
-	Timeout  int
+	Filename      string
+	ID            string
+	Tag           string // XML Tag
+	ResultType    string
+	ParameterType string
+
+	XMLText string
+	Timeout int
 
 	Metadata   StatementMetadata
 	Complexity CognitiveComplexity

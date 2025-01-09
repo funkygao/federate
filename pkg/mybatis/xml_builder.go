@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"federate/pkg/java"
 	"github.com/beevik/etree"
 	"github.com/fatih/color"
 )
@@ -78,13 +79,15 @@ func (b *XMLMapperBuilder) Parse() (map[string]*Statement, error) {
 		case "select", "insert", "update", "delete", "replace":
 			timeout, _ := strconv.Atoi(elem.SelectAttrValue("timeout", "0"))
 			stmt := &Statement{
-				Filename: b.Filename,
-				ID:       elem.SelectAttrValue("id", ""),
-				Tag:      elem.Tag,
-				XMLText:  elementToString(elem),
-				SQL:      b.processDynamicSql(elem),
-				Timeout:  timeout,
-				SubSQL:   []SQLet{},
+				Filename:      b.Filename,
+				ID:            elem.SelectAttrValue("id", ""),
+				ParameterType: java.ClassSimpleName(elem.SelectAttrValue("parameterType", "NULL")),
+				ResultType:    java.ClassSimpleName(elem.SelectAttrValue("resultType", "NULL")),
+				Tag:           elem.Tag,
+				XMLText:       elementToString(elem),
+				SQL:           b.processDynamicSql(elem),
+				Timeout:       timeout,
+				SubSQL:        []SQLet{},
 			}
 			b.Statements[b.Namespace+"."+stmt.ID] = stmt
 		}

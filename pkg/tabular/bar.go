@@ -1,7 +1,7 @@
 package tabular
 
 import (
-	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -49,12 +49,12 @@ func PrintBarChart(items []BarChartItem, topK int) {
 		}
 		bar := strings.Repeat("■", barLength)
 
-		fmt.Printf("%-*s %5d ", maxNameLength, item.Name, item.Count)
+		log.Printf("%-*s %5d ", maxNameLength, item.Name, item.Count)
 		if i%2 == 0 {
 			cyan.Print(bar)
 		} else {
 			yellow.Print(bar)
 		}
-		fmt.Println()
+		log.Println()
 	}
 }

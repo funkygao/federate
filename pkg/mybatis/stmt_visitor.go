@@ -12,14 +12,14 @@ type Visitor[T sqlparser.SQLNode] interface {
 	Visit(T) (continueTraversal bool)
 }
 
-func (s *Statement) walkAST[T sqlparser.SQLNode](visitor Visitor[T], node T) {
-		sqlparser.Walk(func(node sqlparser.SQLNode) (kontinue bool, err error) {
-					return visitor.Visit(node.(T)), nil
-						}, node)
-					}
+func walkAST[T sqlparser.SQLNode](visitor Visitor[T], node T) {
+	sqlparser.Walk(func(n sqlparser.SQLNode) (kontinue bool, err error) {
+		return visitor.Visit(n.(T)), nil
+	}, node)
+}
 
 type SQLTypeVisitor struct {
-	Metadata *StatementMetadata
+	Metadata StatementMetadata
 }
 
 func (s *Statement) NewSQLTypeVisitor() *SQLTypeVisitor {
@@ -39,7 +39,7 @@ func (v *SQLTypeVisitor) Visit(node sqlparser.SQLNode) bool {
 	case *sqlparser.Union:
 		v.Metadata.addSQLType("UNION")
 	case *sqlparser.Set:
-		s.addSQLType("Set @")
+		v.Metadata.addSQLType("Set @")
 	default:
 		log.Printf("unknown stmt type: %T", stmt)
 	}
