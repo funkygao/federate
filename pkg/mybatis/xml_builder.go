@@ -66,7 +66,7 @@ func (b *XMLMapperBuilder) Prepare() error {
 	if AnalyzeGit {
 		n, err := git.GitHistory(b.Filename)
 		if err != nil {
-			log.Printf("%f %v", b.Filename, err)
+			log.Printf("%s %v", b.Filename, err)
 		}
 		b.GitCommits = n
 	}
