@@ -135,6 +135,11 @@ func (s *Statement) HasOnDuplicateKey() bool {
 	return strings.Contains(strings.ToUpper(s.SQL), "ON DUPLICATE KEY")
 }
 
+func (s *Statement) HasPessimisticLocking() bool {
+	return strings.Contains(strings.ToUpper(s.SQL), "FOR UPDATE") ||
+		strings.Contains(strings.ToUpper(s.SQL), "LOCK IN SHARE MODE")
+}
+
 func (s *Statement) HasOptimisticLocking() bool {
 	if s.Tag == "update" {
 		if strings.Contains(s.SQL, "version = version + 1") {

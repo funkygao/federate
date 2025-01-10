@@ -20,10 +20,11 @@ import (
 type ReportGenerator struct {
 	buffer    bytes.Buffer
 	inlineBar bool
+	topN      int
 }
 
 func NewReportGenerator() *ReportGenerator {
-	return &ReportGenerator{inlineBar: true}
+	return &ReportGenerator{inlineBar: true, topN: TopK * 2}
 }
 
 func (rg *ReportGenerator) Generate(sa *Aggregator) {
@@ -43,34 +44,47 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 		}()
 	}
 
-	rg.writeSectionHeader("Top %d most used tables", TopK)
-	rg.writeSectionBody(func() {
-		printTopN(sa.Tables, TopK, rg.inlineBar)
-	})
-	log.Println()
-
-	rg.writeSectionHeader("Top %d SQL Fragment Reuse", TopK)
-	rg.writeSectionBody(func() {
-		printTopN(GlobalSqlFragmentUsage, TopK, rg.inlineBar)
-	})
-	log.Println()
-
 	rg.writeSQLTypes(sa.SQLTypes)
-	log.Println()
-
-	rg.writeJoinAnalysis(sa)
-	log.Println()
-
-	rg.writeAggregationFunctions(sa.AggregationFuncs)
 	log.Println()
 
 	rg.writeTimeoutInfo(sa.TimeoutStatements)
 	log.Println()
 
+	rg.writeGitCommitsReport(sa.GitCommits)
+	rg.writeCacheConfigReport(sa.CacheConfigs)
+
+	rg.writeSectionHeader("Top %d/%d most used tables", TopK, len(sa.Tables))
+	rg.writeSectionBody(func() {
+		printTopN(sa.Tables, TopK, rg.inlineBar)
+	})
+	log.Println()
+
+	rg.writeTableUsageReport(sa)
+	log.Println()
+
+	rg.writeTableRelationsReport(sa.TableRelations)
+	log.Println()
+
+	rg.writeSectionHeader("Top %d/%d SQL Fragment Reuse", TopK, len(GlobalSqlFragmentUsage))
+	rg.writeSectionBody(func() {
+		printTopN(GlobalSqlFragmentUsage, TopK, rg.inlineBar)
+	})
+	log.Println()
+
+	rg.writeUnusedSqlFragmentReport()
+
+	if false {
+		rg.writeJoinAnalysis(sa)
+		log.Println()
+	}
+
 	if ShowBatchOps {
 		rg.writeBatchOperations(sa)
 		log.Println()
 	}
+
+	rg.writeSubStatmentReport(sa)
+	log.Println()
 
 	if ShowIndexRecommend {
 		rg.writeIndexRecommendations(sa)
@@ -82,10 +96,7 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 		log.Println()
 	}
 
-	rg.writeTableUsageReport(sa)
-	log.Println()
-
-	rg.writeTableRelationsReport(sa.TableRelations)
+	rg.writeAggregationFunctions(sa.AggregationFuncs)
 	log.Println()
 
 	rg.writeComplexityMetrics(sa)
@@ -94,10 +105,7 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	rg.writeComplexQueriesReport(sa.ComplexQueries)
 	log.Println()
 
-	rg.writeOptimisticLocksReport(sa.OptimisticLocks)
-	log.Println()
-
-	rg.writeSubStatmentReport(sa)
+	rg.writeLocksReport(sa.OptimisticLocks, sa.PessimisticLocks)
 	log.Println()
 
 	rg.writeParameterTypeReport(sa.ParameterTypes)
@@ -163,7 +171,7 @@ func (rg *ReportGenerator) writeExtraPrompt(sa *Aggregator) {
 	}
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
 		if PromptSQL {
-			fmt.Fprintf(&rg.buffer, "%s, %s, %s, %s, ```%s```\n", filepath.Base(stmt.Filename), stmt.ID, stmt.ParameterType, stmt.ResultType, stmt.MinimalSQL())
+			fmt.Fprintf(&rg.buffer, "%s, %s, %s, %s, `%s`\n", filepath.Base(stmt.Filename), stmt.ID, stmt.ParameterType, stmt.ResultType, stmt.MinimalSQL())
 		} else {
 			fmt.Fprintf(&rg.buffer, "%s, %s, %s, %s\n", filepath.Base(stmt.Filename), stmt.ID, stmt.ParameterType, stmt.ResultType)
 		}
@@ -201,7 +209,6 @@ func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentR
 		return
 	}
 
-	header := []string{"XML", "Statement ID", "Ref SQL ID"}
 	var cellData [][]string
 	for path, refs := range fails {
 		for _, ref := range refs {
@@ -213,6 +220,7 @@ func (rg *ReportGenerator) writeUnknownFragments(fails map[string][]SqlFragmentR
 	}
 
 	color.Red("Unsupported <include refid/>: %d", len(cellData))
+	header := []string{"XML", "Statement ID", "Ref SQL ID"}
 	tabular.Display(header, cellData, true, -1)
 }
 
@@ -233,10 +241,23 @@ func (rg *ReportGenerator) writeUnparsableSQL(unparsableSQL []UnparsableSQL, okN
 	color.Yellow("%d Statements Fail, %d OK", len(unparsableSQL), okN)
 }
 
-func (rg *ReportGenerator) writeBatchOperations(sa *Aggregator) {
-	header := []string{"XML", "Statement ID"}
+func (rg *ReportGenerator) writeUnusedSqlFragmentReport() {
 	var cellData [][]string
+	for name, n := range GlobalSqlFragmentUsage {
+		if n == 0 {
+			cellData = append(cellData, []string{name})
+		}
+	}
+	if len(cellData) > 0 {
+		rg.writeSectionHeader("Unused SQL Fragment: %d", len(cellData))
+		rg.writeSectionBody(func() {
+			tabular.Display([]string{"SQL Fragment"}, cellData, false, 0)
+		})
+	}
+}
 
+func (rg *ReportGenerator) writeBatchOperations(sa *Aggregator) {
+	var cellData [][]string
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
 		if stmt.IsBatchOperation() {
 			cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID})
@@ -245,6 +266,7 @@ func (rg *ReportGenerator) writeBatchOperations(sa *Aggregator) {
 	})
 
 	if len(cellData) > 0 {
+		header := []string{"XML", "Statement ID"}
 		rg.writeSectionHeader("Batch Operations: %d", len(cellData))
 		rg.writeSectionBody(func() {
 			tabular.Display(header, cellData, true, -1)
@@ -280,35 +302,33 @@ func (rg *ReportGenerator) writeComplexityMetrics(sa *Aggregator) {
 		"LIMIT without OFFSET": sa.LimitWithoutOffset,
 	}
 	cellData := sortMapByValue(metrics)
-	header := []string{"Metric", "Count"}
 	rg.writeSectionHeader("Complex Operations")
 	rg.writeSectionBody(func() {
+		header := []string{"Metric", "Count"}
 		tabular.Display(header, cellData, false, -1)
 	})
 }
 
 func (rg *ReportGenerator) writeAggregationFunctions(aggFuncs map[string]map[string]int) {
-	header := []string{"Operation", "Function", "Count"}
 	cellData := sortNestedMapByValueDesc(aggFuncs)
 	rg.writeSectionHeader("Aggregation Functions: %d", len(cellData))
 	rg.writeSectionBody(func() {
+		header := []string{"Operation", "Function", "Count"}
 		tabular.Display(header, cellData, true, -1)
 	})
 }
 
 func (rg *ReportGenerator) writeDynamicSQLElements(elements map[string]int) {
-	header := []string{"Element", "Count"}
 	cellData := sortMapByValue(elements)
 	rg.writeSectionHeader("Dynamic SQL Elements: %d", len(elements))
 	rg.writeSectionBody(func() {
+		header := []string{"Element", "Count"}
 		tabular.Display(header, cellData, false, -1)
 	})
 }
 
 func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
-	header := []string{"Table", "N", "Index Column Comination"}
 	var cellData [][]string
-
 	for _, rec := range sa.IndexRecommendations {
 		combinations := make([]struct {
 			Fields string
@@ -342,11 +362,11 @@ func (rg *ReportGenerator) writeIndexRecommendations(sa *Aggregator) {
 	}
 
 	rg.writeSectionBody(func() {
+		header := []string{"Table", "N", "Index Column Comination"}
 		tabular.Display(header, cellData, true, 0)
 	})
 }
 
-// 在 report.go 中添加
 func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	rg.writeSectionHeader("Join Types")
 	rg.writeSectionBody(func() {
@@ -359,11 +379,13 @@ func (rg *ReportGenerator) writeJoinAnalysis(sa *Aggregator) {
 	for tableCount, frequency := range sa.JoinTableCounts {
 		joinTableItems = append(joinTableItems, tabular.BarChartItem{Name: fmt.Sprintf("%d tables", tableCount), Count: frequency})
 	}
-	rg.writeSectionHeader("Join Table Counts") // TODO 目前数据不对
-	rg.writeSectionBody(func() {
-		tabular.PrintBarChart(joinTableItems, 0, rg.inlineBar)
-	})
-	log.Println()
+	if len(joinTableItems) > 1 {
+		rg.writeSectionHeader("Join Table Counts") // TODO 目前数据不对
+		rg.writeSectionBody(func() {
+			tabular.PrintBarChart(joinTableItems, 0, rg.inlineBar)
+		})
+		log.Println()
+	}
 
 	if len(sa.IndexHints) > 0 {
 		rg.writeSectionHeader("Index Hints")
@@ -395,9 +417,9 @@ func (rg *ReportGenerator) writeSimilarityReport(sa *Aggregator) {
 		}
 	}
 
-	header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
 	rg.writeSectionHeader("Similar SQL Statements by Type and File: %d", len(cellData))
 	rg.writeSectionBody(func() {
+		header := []string{"SQL Type", "XML", "Similarity", "Statement ID 1", "Statement ID 2"}
 		tabular.Display(header, cellData, false, -1)
 	})
 }
@@ -441,9 +463,9 @@ func (rg *ReportGenerator) writeTableUsageReport(sa *Aggregator) {
 		})
 	}
 
-	header := []string{"Table", "Total Stmt", "Select", "Single Insert", "Batch Insert", "Insert On Duplicate", "Single Update", "Batch Update", "Delete"}
 	rg.writeSectionHeader("Table Usage: %d", len(data))
 	rg.writeSectionBody(func() {
+		header := []string{"Table", "Total Stmt", "Select", "Single Insert", "Batch Insert", "Insert On Duplicate", "Single Update", "Batch Update", "Delete"}
 		tabular.DisplayWithSummary(header, data, false, util.Range(1, len(header)), -1)
 	})
 }
@@ -458,9 +480,9 @@ func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) 
 			//r.JoinCondition,
 		})
 	}
-	header := []string{"Table 1", "Table 2", "Join Type"}
 	rg.writeSectionHeader("Table Relations: %d", len(relations))
 	rg.writeSectionBody(func() {
+		header := []string{"Table 1", "Table 2", "Join Type"}
 		tabular.Display(header, data, false, 0)
 	})
 }
@@ -479,25 +501,25 @@ func (rg *ReportGenerator) writeComplexQueriesReport(complexQueries []CognitiveC
 			strings.Join(q.Reasons.SortedValues(), ", "),
 		})
 	}
-	header := []string{"XML", "Statement ID", "Score", "Reasons"}
-	rg.writeSectionHeader("Cognitively Complex Queries (Top %d)", TopK)
+	rg.writeSectionHeader("Cognitively Complex Queries (Top %d)", rg.topN)
 	rg.writeSectionBody(func() {
+		header := []string{"XML", "Statement ID", "Score", "Reasons"}
 		tabular.Display(header, data, false, -1)
 	})
 }
 
-func (rg *ReportGenerator) writeOptimisticLocksReport(locks []*Statement) {
+func (rg *ReportGenerator) writeLocksReport(optimisticLocks, pessimisticLocks []*Statement) {
 	var cellData [][]string
-	for _, lock := range locks {
-		cellData = append(cellData, []string{
-			strings.Trim(filepath.Base(lock.Filename), ".xml"),
-			lock.ID,
-		})
+	for _, lock := range pessimisticLocks {
+		cellData = append(cellData, []string{"Pessimistic", strings.Trim(filepath.Base(lock.Filename), ".xml"), lock.ID})
+	}
+	for _, lock := range optimisticLocks {
+		cellData = append(cellData, []string{"Optimistic", strings.Trim(filepath.Base(lock.Filename), ".xml"), lock.ID})
 	}
 
-	header := []string{"XML", "Statement ID"}
-	rg.writeSectionHeader("Optimistic Locking: %d", len(cellData))
+	rg.writeSectionHeader("Locking Statements: %d", len(cellData))
 	rg.writeSectionBody(func() {
+		header := []string{"Lock Type", "XML", "Statement ID"}
 		tabular.Display(header, cellData, true, -1)
 	})
 }
@@ -506,14 +528,15 @@ func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 	var cellData [][]string
 	sa.WalkStatements(func(tag string, stmt *Statement) error {
 		if subN := stmt.SubN(); subN > 1 {
-			cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID, fmt.Sprintf("%d", subN)})
+			cellData = append(cellData, []string{strings.Trim(filepath.Base(stmt.Filename), ".xml"), stmt.ID,
+				fmt.Sprintf("%d", subN), stmt.ParameterType, stmt.ResultType})
 		}
 		return nil
 	})
 
-	header := []string{"XML", "Statement ID", "Sub Stmts"}
 	rg.writeSectionHeader("Statements With Sub Statements: %d", len(cellData))
 	rg.writeSectionBody(func() {
+		header := []string{"XML", "Statement ID", "Sub Stmts", "ParameterType", "ResultType"}
 		tabular.Display(header, cellData, true, 0)
 	})
 }
@@ -521,13 +544,24 @@ func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 func (rg *ReportGenerator) writeParameterTypeReport(parameterTypes map[string]map[string]int) {
 	rg.writeSectionHeader("Parameter Types by SQL Operation")
 	rg.writeSectionBody(func() {
-		header := []string{"SQL Operation", "Parameter Type", "Count"}
+		specials := map[string]struct{}{
+			"list":    struct{}{},
+			"map":     struct{}{},
+			"string":  struct{}{},
+			"long":    struct{}{},
+			"integer": struct{}{},
+			"int":     struct{}{},
+		}
 		var data [][]string
 		for tag, types := range parameterTypes {
 			for paramType, count := range types {
 				if paramType == "NULL" || count < 3 {
 					continue
 				}
+				if _, special := specials[strings.ToLower(paramType)]; special {
+					paramType = color.New(color.FgYellow).Sprintf("%s", paramType)
+				}
+
 				data = append(data, []string{tag, paramType, fmt.Sprintf("%d", count)})
 			}
 		}
@@ -540,6 +574,8 @@ func (rg *ReportGenerator) writeParameterTypeReport(parameterTypes map[string]ma
 			countJ, _ := strconv.Atoi(data[j][2])
 			return countI > countJ
 		})
+
+		header := []string{"SQL Operation", "Parameter Type", "Count"}
 		tabular.Display(header, data, true, -1)
 	})
 }
@@ -547,12 +583,25 @@ func (rg *ReportGenerator) writeParameterTypeReport(parameterTypes map[string]ma
 func (rg *ReportGenerator) writeResultTypeReport(resultTypes map[string]map[string]int) {
 	rg.writeSectionHeader("Result Types by SQL Operation")
 	rg.writeSectionBody(func() {
-		header := []string{"SQL Operation", "Result Type", "Count"}
+		specials := map[string]struct{}{
+			"long":       struct{}{},
+			"integer":    struct{}{},
+			"int":        struct{}{},
+			"string":     struct{}{},
+			"boolean":    struct{}{},
+			"bigdecimal": struct{}{},
+			"map":        struct{}{},
+			"date":       struct{}{},
+		}
 		var data [][]string
 		for tag, types := range resultTypes {
 			for resultType, count := range types {
 				if resultType == "NULL" || count < 3 {
 					continue
+				}
+
+				if _, special := specials[strings.ToLower(resultType)]; special {
+					resultType = color.New(color.FgYellow).Sprintf("%s", resultType)
 				}
 				data = append(data, []string{tag, resultType, fmt.Sprintf("%d", count)})
 			}
@@ -566,6 +615,8 @@ func (rg *ReportGenerator) writeResultTypeReport(resultTypes map[string]map[stri
 			countJ, _ := strconv.Atoi(data[j][2])
 			return countI > countJ
 		})
+
+		header := []string{"SQL Operation", "Result Type", "Count"}
 		tabular.Display(header, data, true, -1)
 	})
 }
@@ -574,22 +625,24 @@ func (rg *ReportGenerator) writeOrderByGroupByUsageReport(sa *Aggregator) {
 	rg.writeSectionHeader("ORDER BY and GROUP BY Usage")
 	rg.writeSectionBody(func() {
 		totalStatements := sa.SelectOK
-
-		header := []string{"SELECT Clause", "Usage Count", "Usage Percentage"}
 		data := [][]string{
 			{"DISTINCT", fmt.Sprintf("%d", sa.DistinctUsage), fmt.Sprintf("%.2f%%", float64(sa.DistinctUsage)/float64(totalStatements)*100)},
 			{"ORDER BY", fmt.Sprintf("%d", sa.OrderByUsage), fmt.Sprintf("%.2f%%", float64(sa.OrderByUsage)/float64(totalStatements)*100)},
 			{"GROUP BY", fmt.Sprintf("%d", sa.GroupByUsage), fmt.Sprintf("%.2f%%", float64(sa.GroupByUsage)/float64(totalStatements)*100)},
 		}
 
+		header := []string{"Clause in SELECT", "Usage Count", "Usage Percentage"}
 		tabular.Display(header, data, false, -1)
 	})
 }
 
 func (rg *ReportGenerator) writeGroupByFieldsReport(groupByFields map[string]int) {
-	rg.writeSectionHeader("GROUP BY Field Combinations Usage")
+	n := len(groupByFields)
+	if n > rg.topN {
+		n = rg.topN
+	}
+	rg.writeSectionHeader("Top %d/%d GROUP BY Field Combinations Usage", n, len(groupByFields))
 	rg.writeSectionBody(func() {
-		header := []string{"Field Combination", "Usage Count"}
 		var data [][]string
 		for field, count := range groupByFields {
 			data = append(data, []string{field, fmt.Sprintf("%d", count)})
@@ -602,18 +655,18 @@ func (rg *ReportGenerator) writeGroupByFieldsReport(groupByFields map[string]int
 			return countI > countJ
 		})
 
-		if len(data) > TopK {
-			data = data[:TopK]
-		}
-
-		tabular.Display(header, data, false, -1)
+		header := []string{"Field Combination", "Usage Count"}
+		tabular.Display(header, data[:n], false, -1)
 	})
 }
 
 func (rg *ReportGenerator) writeOrderByFieldsReport(orderByFields map[string]int) {
-	rg.writeSectionHeader("ORDER BY Fields Usage")
+	n := len(orderByFields)
+	if n > rg.topN {
+		n = rg.topN
+	}
+	rg.writeSectionHeader("Top %d/%d ORDER BY Fields Usage", n, len(orderByFields))
 	rg.writeSectionBody(func() {
-		header := []string{"Field", "Direction", "Usage Count"}
 		var data [][]string
 
 		for fieldAndDirection, count := range orderByFields {
@@ -634,11 +687,8 @@ func (rg *ReportGenerator) writeOrderByFieldsReport(orderByFields map[string]int
 			return data[i][1] < data[j][1]
 		})
 
-		if len(data) > TopK {
-			data = data[:TopK]
-		}
-
-		tabular.Display(header, data, false, -1)
+		header := []string{"Field", "Direction", "Usage Count"}
+		tabular.Display(header, data[:n], false, -1)
 	})
 }
 
@@ -669,4 +719,63 @@ func splitFieldAndDirection(fieldAndDirection string) (string, string) {
 	}
 
 	return strings.TrimSpace(field), strings.TrimSpace(direction)
+}
+
+func (rg *ReportGenerator) writeCacheConfigReport(cacheConfigs map[string]*CacheConfig) {
+	if len(cacheConfigs) == 0 {
+		return
+	}
+
+	rg.writeSectionHeader("Cache Configurations: %d", len(cacheConfigs))
+	rg.writeSectionBody(func() {
+		var data [][]string
+		for namespace, config := range cacheConfigs {
+			data = append(data, []string{
+				namespace,
+				config.Type,
+				config.EvictionPolicy,
+				config.FlushInterval,
+				config.Size,
+				strconv.FormatBool(config.ReadOnly),
+				strconv.FormatBool(config.Blocking),
+			})
+		}
+		// 按命名空间排序
+		sort.Slice(data, func(i, j int) bool {
+			return data[i][0] < data[j][0]
+		})
+
+		header := []string{"Namespace", "Type", "Eviction Policy", "Flush Interval", "Size", "Read Only", "Blocking"}
+		tabular.Display(header, data, false, -1)
+	})
+	log.Println()
+}
+
+func (rg *ReportGenerator) writeGitCommitsReport(gitCommits map[string]int) {
+	if len(gitCommits) == 0 {
+		return
+	}
+
+	n := len(gitCommits)
+	if n > rg.topN {
+		n = rg.topN
+	}
+	rg.writeSectionHeader("Top %d/%d Git Commit Statistics", n, len(gitCommits))
+	rg.writeSectionBody(func() {
+		var data [][]string
+		for file, count := range gitCommits {
+			data = append(data, []string{strings.Trim(filepath.Base(file), ".xml"), strconv.Itoa(count)})
+		}
+
+		// 按提交次数降序排序
+		sort.Slice(data, func(i, j int) bool {
+			countI, _ := strconv.Atoi(data[i][1])
+			countJ, _ := strconv.Atoi(data[j][1])
+			return countI > countJ
+		})
+
+		header := []string{"XML", "Commit Count"}
+		tabular.Display(header, data[:n], false, -1)
+	})
+	log.Println()
 }

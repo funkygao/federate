@@ -10,6 +10,9 @@ import (
 )
 
 type Aggregator struct {
+	mapperBuilders map[string]*XMLMapperBuilder
+
+	CacheConfigs    map[string]*CacheConfig
 	StatementsByTag map[string][]*Statement
 
 	// config
@@ -18,6 +21,7 @@ type Aggregator struct {
 	// metrics
 	ParsedOK             int
 	SelectOK             int
+	GitCommits           map[string]int // 键是文件名，值是提交次数
 	SQLTypes             map[string]int
 	Tables               map[string]int
 	Fields               map[string]int
@@ -40,6 +44,7 @@ type Aggregator struct {
 	TableRelations       []TableRelation
 	ComplexQueries       []CognitiveComplexity
 	OptimisticLocks      []*Statement
+	PessimisticLocks     []*Statement
 	ParameterTypes       map[string]map[string]int // Tag -> ParameterType -> Count
 	ResultTypes          map[string]map[string]int // Tag -> ResultType -> Count
 	GroupByFields        map[string]int
@@ -53,10 +58,13 @@ type Aggregator struct {
 	UnparsableSQL    []UnparsableSQL
 }
 
-func NewAggregator(ignoredFields []string) *Aggregator {
+func NewAggregator(mapperBuilders map[string]*XMLMapperBuilder, ignoredFields []string) *Aggregator {
 	return &Aggregator{
+		mapperBuilders:       mapperBuilders,
 		IgnoredFields:        primitive.NewStringSet().Add(ignoredFields...),
+		CacheConfigs:         make(map[string]*CacheConfig),
 		SQLTypes:             make(map[string]int),
+		GitCommits:           make(map[string]int),
 		Tables:               make(map[string]int),
 		Fields:               make(map[string]int),
 		AggregationFuncs:     make(map[string]map[string]int),
@@ -81,6 +89,8 @@ func (sa *Aggregator) Aggregate() {
 	sa.analyzeTableRelations()
 	sa.analyzeCognitiveComplexity()
 	sa.detectOptimisticLocking()
+	sa.analyzeCacheConfigs()
+	sa.collectGitCommits()
 }
 
 func (sa *Aggregator) OnStmt(s Statement) error {
@@ -242,6 +252,9 @@ func (sa *Aggregator) updateAggregatedMetrics(stmt *Statement) {
 
 	if stmt.HasOptimisticLocking() {
 		sa.OptimisticLocks = append(sa.OptimisticLocks, stmt)
+	}
+	if stmt.HasPessimisticLocking() {
+		sa.PessimisticLocks = append(sa.PessimisticLocks, stmt)
 	}
 }
 
@@ -453,4 +466,20 @@ func computeJaccardSimilarity(tokens1, tokens2 []string) float64 {
 		return 0
 	}
 	return float64(intersectionSize) / float64(unionSize)
+}
+
+func (sa *Aggregator) analyzeCacheConfigs() {
+	for _, builder := range sa.mapperBuilders {
+		if builder.CacheConfig != nil {
+			sa.CacheConfigs[builder.Namespace] = builder.CacheConfig
+		}
+	}
+}
+
+func (sa *Aggregator) collectGitCommits() {
+	for _, builder := range sa.mapperBuilders {
+		if builder.GitCommits > 0 {
+			sa.GitCommits[builder.Filename] = builder.GitCommits
+		}
+	}
 }

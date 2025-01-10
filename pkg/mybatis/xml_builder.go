@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 
+	"federate/pkg/git"
 	"federate/pkg/java"
 	"github.com/beevik/etree"
 	"github.com/fatih/color"
@@ -28,6 +29,8 @@ type XMLMapperBuilder struct {
 	Filename         string
 	Root             *etree.Element
 	Namespace        string
+	GitCommits       int
+	CacheConfig      *CacheConfig
 	Statements       map[string]*Statement
 	UnknownFragments []SqlFragmentRef
 	nodeHandlers     map[string]NodeHandler
@@ -60,9 +63,29 @@ func (b *XMLMapperBuilder) Prepare() error {
 	b.Root = root
 	b.Namespace = root.SelectAttrValue("namespace", "")
 
+	if AnalyzeGit {
+		n, err := git.GitHistory(b.Filename)
+		if err != nil {
+			log.Printf("%f %v", b.Filename, err)
+		}
+		b.GitCommits = n
+	}
+
 	for _, sqlElem := range root.SelectElements("sql") {
 		if id := sqlElem.SelectAttrValue("id", ""); id != "" {
 			GlobalSqlFragments[b.Namespace+"."+id] = b.processSqlFragment(sqlElem)
+		}
+	}
+
+	// 解析 <cache> 标签
+	if cacheElem := root.SelectElement("cache"); cacheElem != nil {
+		b.CacheConfig = &CacheConfig{
+			Type:           cacheElem.SelectAttrValue("type", "PERPETUAL"),
+			EvictionPolicy: cacheElem.SelectAttrValue("eviction", "LRU"),
+			FlushInterval:  cacheElem.SelectAttrValue("flushInterval", ""),
+			Size:           cacheElem.SelectAttrValue("size", "1024"),
+			ReadOnly:       cacheElem.SelectAttrValue("readOnly", "false") == "true",
+			Blocking:       cacheElem.SelectAttrValue("blocking", "false") == "true",
 		}
 	}
 

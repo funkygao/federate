@@ -1,11 +1,16 @@
 package mybatis
 
-import "log"
+import (
+	"log"
+
+	"github.com/schollz/progressbar/v3"
+)
 
 var (
 	Verbosity           int
 	TopK                int
 	SimilarityThreshold float64
+	AnalyzeGit          bool
 	Prompt              string
 	GeneratePrompt      bool
 	PromptSQL           bool
@@ -21,19 +26,47 @@ type Analyzer struct {
 }
 
 func NewAnalyzer(ignoredFields []string) *Analyzer {
-	return &Analyzer{
-		aggregator:      NewAggregator(ignoredFields),
+	a := &Analyzer{
 		reportGenerator: NewReportGenerator(),
 		mapperBuilders:  make(map[string]*XMLMapperBuilder),
 	}
+	a.aggregator = NewAggregator(a.mapperBuilders, ignoredFields)
+	return a
 }
 
 func (a *Analyzer) AnalyzeFiles(files []string) {
+	var bar *progressbar.ProgressBar
+	if AnalyzeGit {
+		bar = progressbar.NewOptions(len(files),
+			progressbar.OptionEnableColorCodes(true),
+			progressbar.OptionShowElapsedTimeOnFinish(),
+			progressbar.OptionSetWidth(10),
+			progressbar.OptionShowDescriptionAtLineEnd(),
+			progressbar.OptionSetTheme(progressbar.Theme{
+				Saucer:        "[green]■[reset]",
+				SaucerHead:    "[green]►[reset]",
+				SaucerPadding: "-",
+				BarStart:      "[",
+				BarEnd:        "]",
+			}))
+	}
+
 	// prepare sql fragments
 	for _, file := range files {
+		if AnalyzeGit {
+			bar.Add(1)
+			bar.Describe(file)
+		}
+
 		if err := a.prepareFile(file); err != nil {
 			log.Printf("%s %v", file, err)
 		}
+	}
+
+	if AnalyzeGit {
+		bar.Finish()
+		log.Println()
+		log.Println()
 	}
 
 	// analyze CRUD

@@ -18,7 +18,7 @@ var mybatisCmd = &cobra.Command{
 	Long: `Analyze MyBatis MySQL mapper XML files in the specified directory.
 
 Example usage:
-  PROMPT_DOMAIN=WMS federate insight mybatis . --show-similar-queries --index-recommend --generate-prompt --prompt-sql`,
+  PROMPT_DOMAIN=WMS federate insight mybatis . --show-similar-queries --index-recommend --generate-prompt --prompt-sql --analyze-git-history`,
 	Run: func(cmd *cobra.Command, args []string) {
 		root := "."
 		if len(args) > 0 {
@@ -68,7 +68,13 @@ func init() {
 	mybatisCmd.Flags().BoolVarP(&mybatis.ShowSimilarity, "show-similar-queries", "s", false, "Show similar query pairs")
 	mybatisCmd.Flags().Float64VarP(&mybatis.SimilarityThreshold, "similarity-threshold", "S", 0.75, "Statement similary threhold")
 	mybatisCmd.Flags().StringVarP(&mybatis.Prompt, "prompt", "p", "zh", "Prompt template to use: (zh|en|mini)")
+	mybatisCmd.Flags().BoolVarP(&mybatis.AnalyzeGit, "analyze-git-history", "G", false, "Analyze XML Git History")
 	mybatisCmd.Flags().BoolVarP(&mybatis.GeneratePrompt, "generate-prompt", "g", false, "Generate LLM Prompt for further insight")
 	mybatisCmd.Flags().BoolVarP(&mybatis.PromptSQL, "prompt-sql", "l", false, "LLM Prompt contains SQL")
 	mybatisCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
+
+	if mybatis.GeneratePrompt {
+		color.NoColor = true
+		mybatis.ShowSimilarity = true
+	}
 }

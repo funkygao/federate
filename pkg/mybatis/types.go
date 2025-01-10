@@ -48,3 +48,13 @@ type SqlFragmentRef struct {
 	Refid  string
 	StmtID string
 }
+
+// <cache />
+type CacheConfig struct {
+	Type           string
+	EvictionPolicy string
+	FlushInterval  string
+	Size           string
+	ReadOnly       bool
+	Blocking       bool
+}
