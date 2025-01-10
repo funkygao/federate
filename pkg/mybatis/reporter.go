@@ -28,10 +28,15 @@ func NewReportGenerator() *ReportGenerator {
 
 func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	if GeneratePrompt {
-		rg.inlineBar = false
-		fmt.Fprintf(&rg.buffer, prompt.MyBatisMapperPromptCN)
-		fmt.Fprintf(&rg.buffer, "\n\n## MyBatis Mapper Analysis Report\n\n")
+		prompts := map[string]string{
+			"zh":   prompt.WMSMyBatisCN,
+			"en":   prompt.WMSMyBatisEN,
+			"mini": prompt.WMSMyBatisMini,
+		}
+		fmt.Fprintf(&rg.buffer, prompts[Prompt])
+		fmt.Fprintf(&rg.buffer, "\n\n## MyBatis Mapper XML Analysis Report\n\n")
 
+		rg.inlineBar = false
 		log.SetOutput(io.MultiWriter(os.Stdout, &rg.buffer))
 		defer func() {
 			log.SetOutput(os.Stdout)
@@ -111,7 +116,7 @@ func (rg *ReportGenerator) Generate(sa *Aggregator) {
 	log.Println()
 
 	if GeneratePrompt {
-		rg.writeDetailedPrompt(sa)
+		rg.writeExtraPrompt(sa)
 
 		promptContent := rg.buffer.String()
 		if err := util.ClipboardPut(promptContent); err == nil {
@@ -149,7 +154,7 @@ func (rg *ReportGenerator) showErrors(sa *Aggregator) {
 }
 
 // 专门给大模型的输出
-func (rg *ReportGenerator) writeDetailedPrompt(sa *Aggregator) {
+func (rg *ReportGenerator) writeExtraPrompt(sa *Aggregator) {
 	fmt.Fprintf(&rg.buffer, "\n### Statements with name\n\n```\n")
 	if PromptSQL {
 		fmt.Fprintf(&rg.buffer, "Mapper XML, Statement Name, ParameterType, ResultType, SQL\n")

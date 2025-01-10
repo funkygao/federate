@@ -6,6 +6,7 @@ var (
 	Verbosity           int
 	TopK                int
 	SimilarityThreshold float64
+	Prompt              string
 	GeneratePrompt      bool
 	PromptSQL           bool
 	ShowIndexRecommend  bool

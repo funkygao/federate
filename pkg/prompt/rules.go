@@ -18,18 +18,18 @@ var (
 		Domain: os.Getenv("PROMPT_DOMAIN"),
 	}
 
+	WMSMyBatisCN   = fs.ParseTemplateToString("templates/prompt/mybatis_mapper_zh.md", promptData)
+	WMSMyBatisEN   = fs.ParseTemplateToString("templates/prompt/mybatis_mapper.md", promptData)
+	WMSMyBatisMini = fs.ParseTemplateToString("templates/prompt/mybatis_mapper_mini.md", promptData)
+
 	rules = []Rule{
 		Rule{
 			Name:   "WMS-MyBatisMapper分析-中文",
-			Prompt: fs.ParseTemplateToString("templates/prompt/mybatis_mapper_zh.md", promptData),
+			Prompt: WMSMyBatisCN,
 		},
 		Rule{
 			Name:   "WMS-API分析",
 			Prompt: fs.ParseTemplateToString("templates/prompt/api_summary_zh.md", promptData),
-		},
-		Rule{
-			Name:   "WMS-MyBatisMapper分析",
-			Prompt: fs.ParseTemplateToString("templates/prompt/mybatis_mapper.md", promptData),
 		},
 		Rule{
 			Name:   "refactor",
