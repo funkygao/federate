@@ -46,11 +46,12 @@ func init() {
 	plus.CmdGroup.GroupID = "microservice"
 	workload.CmdGroup.GroupID = "microservice"
 
-	chatgpt.CmdGroup.GroupID = "utility"
 	debug.CmdGroup.GroupID = "utility"
 	image.CmdGroup.GroupID = "utility"
 	util.CmdGroup.GroupID = "utility"
-	insight.CmdGroup.GroupID = "utility"
+
+	chatgpt.CmdGroup.GroupID = "explore"
+	insight.CmdGroup.GroupID = "explore"
 
 	version.CmdGroup.GroupID = "system"
 	rootCmd.SetHelpCommandGroupID("system")
@@ -60,6 +61,10 @@ func init() {
 		&cobra.Group{
 			ID:    "microservice",
 			Title: "Microservice Commands:",
+		},
+		&cobra.Group{
+			ID:    "explore",
+			Title: "Exploration Commands:",
 		},
 		&cobra.Group{
 			ID:    "utility",
