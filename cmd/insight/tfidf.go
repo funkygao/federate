@@ -23,11 +23,11 @@ var tfidfCmd = &cobra.Command{
 Example usage:
   federate util tfidf ./my-maven-project`,
 	Run: func(cmd *cobra.Command, args []string) {
-		directory := args[0]
+		root := "."
 		if len(args) > 0 {
-			directory = args[0]
+			root = args[0]
 		}
-		showKeyFeatures(directory)
+		showKeyFeatures(root)
 	},
 }
 
