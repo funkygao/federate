@@ -31,23 +31,13 @@ func completer(d prompt.Document) []prompt.Suggest {
 	}
 }
 
-func handleRuleCompletion(text string) []prompt.Suggest {
-	suggestions := []prompt.Suggest{}
-	for _, rule := range rules {
-		if strings.HasPrefix(rule.Name, strings.TrimPrefix(text, rulePrefix)) {
-			suggestions = append(suggestions, prompt.Suggest{Text: rulePrefix + rule.Name})
-		}
-	}
-	return suggestions
-}
-
 func handleFileCompletion(text string) []prompt.Suggest {
 	prefix := text[strings.LastIndex(text, filePrefix):]
 	matches, _ := recursiveSearch(baseDir, strings.TrimPrefix(prefix, filePrefix), false)
 
 	suggestions := []prompt.Suggest{}
 	for _, match := range matches {
-		suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + match})
+		suggestions = append(suggestions, prompt.Suggest{Text: filePrefix + match})
 	}
 	return suggestions
 }
@@ -59,7 +49,17 @@ func handleDirCompletion(text string) []prompt.Suggest {
 	suggestions := []prompt.Suggest{}
 	for _, match := range matches {
 		if isDir(match) {
-			suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + match})
+			suggestions = append(suggestions, prompt.Suggest{Text: dirPrefix + match})
+		}
+	}
+	return suggestions
+}
+
+func handleRuleCompletion(text string) []prompt.Suggest {
+	suggestions := []prompt.Suggest{}
+	for _, rule := range rules {
+		if strings.HasPrefix(rule.Name, strings.TrimPrefix(text, rulePrefix)) {
+			suggestions = append(suggestions, prompt.Suggest{Text: rulePrefix + rule.Name})
 		}
 	}
 	return suggestions
@@ -72,9 +72,9 @@ func handleKillCompletion(text string) []prompt.Suggest {
 	suggestions := []prompt.Suggest{}
 	for _, match := range matches {
 		if isDir(match) {
-			suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + "k" + match + "/"})
+			suggestions = append(suggestions, prompt.Suggest{Text: killPrefix + match + "/"})
 		} else {
-			suggestions = append(suggestions, prompt.Suggest{Text: atPrefix + "k" + match})
+			suggestions = append(suggestions, prompt.Suggest{Text: killPrefix + match})
 		}
 	}
 	return suggestions

@@ -116,14 +116,21 @@ func (pg *PromptGenerator) processLineWithMention(line string) {
 	validMention := false
 	for _, match := range matches {
 		path := match[1]
-		if strings.HasPrefix(path, "r") {
-			validMention = pg.processRuleInput(path[1:])
-		} else if strings.HasPrefix(path, "k") {
-			validMention = pg.processKillInput(path[1:])
-		} else if isDir(path) {
-			validMention = pg.processDirInput(path)
-		} else {
-			validMention = pg.processFileInput(path)
+		switch {
+		case strings.HasPrefix(path, "r"):
+			validMention = pg.processRuleInput(strings.TrimSpace(path[1:]))
+		case strings.HasPrefix(path, "k"):
+			validMention = pg.processKillInput(strings.TrimSpace(path[1:]))
+		case strings.HasPrefix(path, "f"):
+			validMention = pg.processFileInput(strings.TrimSpace(path[1:]))
+		case strings.HasPrefix(path, "d"):
+			validMention = pg.processDirInput(strings.TrimSpace(path[1:]))
+		default:
+			if isDir(path) {
+				validMention = pg.processDirInput(path)
+			} else {
+				validMention = pg.processFileInput(path)
+			}
 		}
 	}
 
