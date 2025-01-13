@@ -7,6 +7,9 @@ var (
 
 	ignoredInterfaces  = primitive.NewStringSet()
 	ignoredAnnotations = primitive.NewStringSet()
+
+	significantInheritanceChildren = 2
+	significantInheritanceDepth    = 2
 )
 
 func init() {
