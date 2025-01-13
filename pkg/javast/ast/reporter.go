@@ -1,10 +1,10 @@
 package ast
 
 import (
-	"fmt"
 	"log"
+	"sort"
+	"strings"
 
-	"federate/pkg/primitive"
 	"federate/pkg/tabular"
 	"github.com/fatih/color"
 )
@@ -12,44 +12,38 @@ import (
 var TopK int
 
 func (i *Info) ShowReport() {
+	i.showInheritanceReport()
+
 	i.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
 	i.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
 	i.showNameCountSection("Variables", []string{"Declaration"}, topN(i.Variables, TopK))
+	i.showNameCountSection("Annotations", []string{"Annotation", "Custom"}, topN(i.Annotations, TopK))
+	i.showInterfacesReport()
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.MethodCalls))
 }
 
-func (i *Info) showNameCountSection(title string, namesHeader []string, nameCounts ...[]primitive.NameCount) {
-	var headers []string
-	for _, name := range namesHeader {
-		headers = append(headers, name, "Count")
+func (i *Info) showInheritanceReport() {
+	color.Magenta("Class Inheritance Hierarchy:")
+	var inheritanceData [][]string
+	for class, superclasses := range i.Inheritance {
+		inheritanceData = append(inheritanceData, []string{class, strings.Join(superclasses, " -> ")})
 	}
+	sort.Slice(inheritanceData, func(i, j int) bool {
+		return inheritanceData[i][0] < inheritanceData[j][0]
+	})
+	tabular.Display([]string{"Class", "Inheritance"}, inheritanceData, false, -1)
+}
 
-	// 找出最长的 nameCount 列表
-	maxLen := 0
-	for _, nc := range nameCounts {
-		if len(nc) > maxLen {
-			maxLen = len(nc)
-		}
-	}
-
-	// 准备单元格数据
-	cellData := make([][]string, maxLen)
-	for i := range cellData {
-		cellData[i] = make([]string, len(headers))
-	}
-
-	// 填充数据
-	for colIndex, nc := range nameCounts {
-		for rowIndex, item := range nc {
-			if rowIndex < maxLen {
-				cellData[rowIndex][colIndex*2] = item.Name
-				cellData[rowIndex][colIndex*2+1] = fmt.Sprintf("%d", item.Count)
+func (i *Info) showInterfacesReport() {
+	interfaceCounts := make(map[string]int)
+	for _, interfaces := range i.Interfaces {
+		for _, iface := range interfaces {
+			if !ignoreInteface(iface) {
+				interfaceCounts[iface]++
 			}
 		}
 	}
-
-	color.Magenta("Top %s: %d", title, TopK)
-	tabular.Display(headers, cellData, false, -1)
+	i.showNameCountSection("Implemented Interfaces", []string{"Interface"}, topN(mapToNameCount(interfaceCounts), TopK))
 }
