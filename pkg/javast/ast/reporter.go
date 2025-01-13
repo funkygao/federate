@@ -21,6 +21,7 @@ func (i *Info) ShowReport() {
 	filteredInfo.showInheritanceReport()
 	filteredInfo.showComplexConditionsReport()
 	filteredInfo.showCompositionReport()
+	filteredInfo.showComplexLoopsReport()
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))

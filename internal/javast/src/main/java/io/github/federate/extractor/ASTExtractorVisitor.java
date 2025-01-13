@@ -6,8 +6,7 @@ import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.*;
-import com.github.javaparser.ast.stmt.IfStmt;
-import com.github.javaparser.ast.stmt.SwitchStmt;
+import com.github.javaparser.ast.stmt.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -18,6 +17,7 @@ public class ASTExtractorVisitor extends BaseExtractor {
     private static final int SWITCH_SIZE = 5;
     private static final int IF_SIZE = 3;
 
+    private int currentNestingLevel = 0;
     private final ASTInfo astInfo;
 
     public ASTExtractorVisitor() {
@@ -152,6 +152,49 @@ public class ASTExtractorVisitor extends BaseExtractor {
                 String fieldName = variable.getNameAsString();
                 astInfo.compositions.add(new CompositionInfo(containingClassName, composedClassName, fieldName));
             });
+        }
+    }
+
+    @Override
+    public void visit(ForStmt n, Void arg) {
+        analyzeLoop(n, "for", n.getBody());
+        super.visit(n, arg);
+    }
+
+    @Override
+    public void visit(WhileStmt n, Void arg) {
+        analyzeLoop(n, "while", n.getBody());
+        super.visit(n, arg);
+    }
+
+    @Override
+    public void visit(ForEachStmt n, Void arg) {
+        analyzeLoop(n, "foreach", n.getBody());
+        super.visit(n, arg);
+    }
+
+    private void analyzeLoop(Statement loopStmt, String loopType, Statement body) {
+        currentNestingLevel++;
+
+        MethodDeclaration method = loopStmt.findAncestor(MethodDeclaration.class).orElse(null);
+        String methodName = method != null ? method.getNameAsString() : "Unknown";
+        String fileName = loopStmt.findCompilationUnit().get().getStorage().get().getFileName();
+        int lineNumber = loopStmt.getBegin().get().line;
+        int bodySize = getBodySize(body);
+
+        if (currentNestingLevel > 1 || bodySize > 10) { // 可以调整这些阈值
+            astInfo.complexLoops.add(new ComplexLoop(methodName, fileName, loopType, lineNumber, currentNestingLevel, bodySize));
+        }
+
+        body.accept(this, null);
+        currentNestingLevel--;
+    }
+
+    private int getBodySize(Statement body) {
+        if (body instanceof BlockStmt) {
+            return ((BlockStmt) body).getStatements().size();
+        } else {
+            return 1; // 如果循环体不是块语句，就当作一个语句计数
         }
     }
 

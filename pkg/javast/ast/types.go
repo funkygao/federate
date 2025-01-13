@@ -20,6 +20,15 @@ type ComplexCondition struct {
 	LineNumber int    `json:"lineNumber"`
 }
 
+type ComplexLoop struct {
+	MethodName   string `json:"methodName"`
+	FileName     string `json:"fileName"`
+	LoopType     string `json:"loopType"`
+	LineNumber   int    `json:"lineNumber"`
+	NestingLevel int    `json:"nestingLevel"`
+	BodySize     int    `json:"bodySize"`
+}
+
 type Info struct {
 	Imports            []string            `json:"imports"`
 	Classes            []string            `json:"classes"`
@@ -32,6 +41,7 @@ type Info struct {
 	Annotations        []string            `json:"annotations"`
 	ComplexConditions  []ComplexCondition  `json:"complexConditions"`
 	Compositions       []CompositionInfo   `json:"compositions"`
+	ComplexLoops       []ComplexLoop       `json:"complexLoops"`
 }
 
 func (i *Info) ApplyFilters(filters ...Filter) *Info {
