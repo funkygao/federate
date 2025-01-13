@@ -3,8 +3,9 @@ package ast
 import "federate/pkg/primitive"
 
 var (
-	TopK int
-	Web  bool
+	TopK           int
+	Web            bool
+	GeneratePrompt bool
 
 	ignoredInterfaces       = primitive.NewStringSet()
 	ignoredAnnotations      = primitive.NewStringSet()

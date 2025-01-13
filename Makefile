@@ -52,8 +52,7 @@ coverage:
 	go test $(PACKAGES) -cover | grep -w ok | column -t
 
 clean:
-	find . \( -name a -o -name .DS_Store \) -exec rm -f {} \;
-	rm -rf build cpu_*
+	git clean -df
 	cd $(JAVAST_DIR) && $(MAVEN) clean -q
 
 install:embed-javast test ## Check if Go is installed, install if not, then build and install federate.
