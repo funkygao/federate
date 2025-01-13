@@ -9,11 +9,14 @@ import (
 )
 
 var astCmd = &cobra.Command{
-	Use:   "ast <dir>",
-	Short: "Extract AST information from a Java source directory",
-	Args:  cobra.ExactArgs(1),
+	Use:   "javaast <dir>",
+	Short: "Mining AST graph knowledge from a Java source directory",
 	Run: func(cmd *cobra.Command, args []string) {
-		runASTCommand(args[0])
+		root := "."
+		if len(args) > 0 {
+			root = args[0]
+		}
+		runASTCommand(root)
 	},
 }
 
@@ -29,4 +32,5 @@ func runASTCommand(root string) {
 
 func init() {
 	astCmd.Flags().IntVarP(&ast.TopK, "top", "t", 20, "Number of top elements to display in chart")
+	astCmd.Flags().BoolVarP(&ast.Web, "web", "w", false, "Show report in web page")
 }

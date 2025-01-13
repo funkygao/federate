@@ -1,6 +1,15 @@
 package ast
 
-import "federate/pkg/primitive"
+import (
+	"strings"
+
+	"federate/pkg/primitive"
+)
+
+func (i *Info) ApplyFilters(filters ...Filter) *Info {
+	chain := NewFilterChain(filters...)
+	return chain.Apply(i)
+}
 
 type Filter interface {
 	Apply(info *Info) *Info
@@ -22,7 +31,6 @@ func (fc *FilterChain) Apply(info *Info) *Info {
 }
 
 type IgnoreInterfacesFilter struct {
-	IgnoredInterfaces *primitive.StringSet
 }
 
 func (f *IgnoreInterfacesFilter) Apply(info *Info) *Info {
@@ -30,7 +38,7 @@ func (f *IgnoreInterfacesFilter) Apply(info *Info) *Info {
 	for class, interfaces := range info.Interfaces {
 		var filtered []string
 		for _, iface := range interfaces {
-			if !f.IgnoredInterfaces.Contains(iface) {
+			if !ignoredInterfaces.Contains(iface) {
 				filtered = append(filtered, iface)
 			}
 		}
@@ -43,16 +51,29 @@ func (f *IgnoreInterfacesFilter) Apply(info *Info) *Info {
 }
 
 type IgnoreAnnotationsFilter struct {
-	IgnoredAnnotations *primitive.StringSet
 }
 
 func (f *IgnoreAnnotationsFilter) Apply(info *Info) *Info {
 	var filteredAnnotations []string
 	for _, annotation := range info.Annotations {
-		if !f.IgnoredAnnotations.Contains(annotation) {
+		if !ignoredAnnotations.Contains(annotation) {
 			filteredAnnotations = append(filteredAnnotations, annotation)
 		}
 	}
 	info.Annotations = filteredAnnotations
+	return info
+}
+
+type IgnoreCompositionsFilter struct {
+}
+
+func (f *IgnoreAnnotationsFilter) Apply(info *Info) *Info {
+	var compositions []CompositionInfo
+	for _, comp = range info.Compositions {
+		if !ignoredCompositionTypes.Contains(comp.ComposedClass) && !strings.Contains(comp.ComposedClass, "<") {
+			compositions = append(compositions, comp)
+		}
+	}
+	info.Compositions = compositions
 	return info
 }

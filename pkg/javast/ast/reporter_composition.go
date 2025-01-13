@@ -13,9 +13,7 @@ func (i *Info) showCompositionReport() {
 	// 统计每个类被组合的次数，同时过滤掉忽略的类型
 	compositionCounts := make(map[string]int)
 	for _, comp := range i.Compositions {
-		if !ignoredCompositionTypes.Contains(comp.ComposedClass) && !strings.Contains(comp.ComposedClass, "<") {
-			compositionCounts[comp.ComposedClass]++
-		}
+		compositionCounts[comp.ComposedClass]++
 	}
 
 	// 转换为切片并排序

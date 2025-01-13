@@ -4,6 +4,7 @@ import "federate/pkg/primitive"
 
 var (
 	TopK int
+	Web  bool
 
 	ignoredInterfaces       = primitive.NewStringSet()
 	ignoredAnnotations      = primitive.NewStringSet()
@@ -15,15 +16,12 @@ var (
 
 func init() {
 	ignoredInterfaces.Add("Serializable")
-	ignoredAnnotations.Add("Override", "Data", "NoArgsConstructor", "AllArgsConstructor", "Builder", "SuppressWarnings", "Slf4j")
-	ignoredTypes := []string{
-		"String", "Integer", "Long", "Float", "Double", "Boolean",
+	ignoredAnnotations.Add("Override", "SuppressWarnings",
+		"Data", "NoArgsConstructor", "AllArgsConstructor", "Builder", "Slf4j")
+
+	ignoredCompositionTypes.Add("String", "Integer", "Long", "Float", "Double", "Boolean",
 		"int", "long", "float", "double", "boolean",
 		"BigDecimal", "Date", "List", "Map", "Set",
 		"ArrayList", "HashMap", "HashSet",
-		"Object", "Enum",
-	}
-	for _, t := range ignoredTypes {
-		ignoredCompositionTypes.Add(t)
-	}
+		"Object", "Enum")
 }

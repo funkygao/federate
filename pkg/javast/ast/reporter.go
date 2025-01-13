@@ -7,10 +7,7 @@ import (
 )
 
 func (i *Info) ShowReport() {
-	filteredInfo := i.ApplyFilters(
-		&IgnoreInterfacesFilter{IgnoredInterfaces: ignoredInterfaces},
-		&IgnoreAnnotationsFilter{IgnoredAnnotations: ignoredAnnotations},
-	)
+	filteredInfo := i.ApplyFilters(&IgnoreInterfacesFilter{}, &IgnoreAnnotationsFilter{}, &IgnoreCompositionsFilter{})
 
 	filteredInfo.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
 	filteredInfo.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))

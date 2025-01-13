@@ -54,11 +54,6 @@ type Info struct {
 	FunctionalUsages   []FunctionalUsage   `json:"functionalUsages"`
 }
 
-func (i *Info) ApplyFilters(filters ...Filter) *Info {
-	chain := NewFilterChain(filters...)
-	return chain.Apply(i)
-}
-
 func topN(items any, n int) []primitive.NameCount {
 	var result []primitive.NameCount
 
