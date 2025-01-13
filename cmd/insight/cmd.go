@@ -10,5 +10,5 @@ var CmdGroup = &cobra.Command{
 }
 
 func init() {
-	CmdGroup.AddCommand(astCmd, taxonomyCmd, extensionCmd, mybatisCmd, gitInsightCmd, tfidfCmd)
+	CmdGroup.AddCommand(astCmd, mybatisCmd, gitInsightCmd, taxonomyCmd, extensionCmd, tfidfCmd)
 }
