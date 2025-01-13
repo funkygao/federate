@@ -2,6 +2,8 @@ package ast
 
 import (
 	"log"
+
+	"federate/internal/fs"
 )
 
 func (i *Info) ShowReport() {
@@ -20,6 +22,9 @@ func (i *Info) ShowReport() {
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))
+
+	log.Println()
+	fs.DisplayJPGInITerm2("templates/arch_layer.jpg")
 }
 
 func (i *Info) showInterfacesReport() {

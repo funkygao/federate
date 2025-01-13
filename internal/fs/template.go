@@ -3,6 +3,8 @@ package fs
 import (
 	"bytes"
 	"embed"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -97,7 +99,7 @@ func GenerateFileFromTmpl(templatePath, outputPath string, data any) (overwrite 
 	return
 }
 
-func ParseTemplateToString(templatePath string, data any) string {
+func ParseTemplate(templatePath string, data any) bytes.Buffer {
 	// 解析嵌入的模板文件
 	tmplName := filepath.Base(templatePath)
 	tmpl, err := template.New(tmplName).ParseFS(FS, templatePath)
@@ -114,6 +116,20 @@ func ParseTemplateToString(templatePath string, data any) string {
 		log.Fatalf("Error parsing template: %v", err)
 	}
 
-	// 返回渲染后的字符串
+	return buf
+}
+
+func ParseTemplateToString(templatePath string, data any) string {
+	buf := ParseTemplate(templatePath, data)
 	return buf.String()
+}
+
+func DisplayJPGInITerm2(templatePath string) {
+	buf := ParseTemplate(templatePath, nil)
+
+	// 将图像数据编码为 base64
+	encodedImage := base64.StdEncoding.EncodeToString(buf.Bytes())
+
+	// 构造 iTerm2 图像显示协议的转义序列
+	fmt.Printf("\033]1337;File=inline=1;width=auto;height=auto:%s\a\n", encodedImage)
 }
