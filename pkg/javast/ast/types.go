@@ -7,14 +7,20 @@ import (
 )
 
 type Info struct {
-	Imports     []string            `json:"imports"`
-	Classes     []string            `json:"classes"`
-	Methods     []string            `json:"methods"`
-	Variables   []string            `json:"variables"`
-	MethodCalls []string            `json:"methodCalls"`
-	Inheritance map[string][]string `json:"inheritance"`
-	Interfaces  map[string][]string `json:"interfaces"`
-	Annotations []string            `json:"annotations"`
+	Imports            []string            `json:"imports"`
+	Classes            []string            `json:"classes"`
+	Methods            []string            `json:"methods"`
+	Variables          []string            `json:"variables"`
+	VariableReferences []string            `json:"variableReferences"`
+	MethodCalls        []string            `json:"methodCalls"`
+	Inheritance        map[string][]string `json:"inheritance"`
+	Interfaces         map[string][]string `json:"interfaces"`
+	Annotations        []string            `json:"annotations"`
+}
+
+func (i *Info) ApplyFilters(filters ...Filter) *Info {
+	chain := NewFilterChain(filters...)
+	return chain.Apply(i)
 }
 
 func topN(items any, n int) []primitive.NameCount {

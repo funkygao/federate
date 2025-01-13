@@ -2,12 +2,14 @@ package ast
 
 import "federate/pkg/primitive"
 
-var ignoredInterfaces = primitive.NewStringSet()
+var (
+	TopK int
+
+	ignoredInterfaces  = primitive.NewStringSet()
+	ignoredAnnotations = primitive.NewStringSet()
+)
 
 func init() {
 	ignoredInterfaces.Add("Serializable")
-}
-
-func ignoreInteface(iface string) bool {
-	return ignoredInterfaces.Contains(iface)
+	ignoredAnnotations.Add("Override", "Data", "NoArgsConstructor", "AllArgsConstructor", "Builder", "SuppressWarnings", "Slf4j")
 }

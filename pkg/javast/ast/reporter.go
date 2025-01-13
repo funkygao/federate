@@ -9,19 +9,22 @@ import (
 	"github.com/fatih/color"
 )
 
-var TopK int
-
 func (i *Info) ShowReport() {
-	i.showInheritanceReport()
+	filteredInfo := i.ApplyFilters(
+		&IgnoreInterfacesFilter{IgnoredInterfaces: ignoredInterfaces},
+		&IgnoreAnnotationsFilter{IgnoredAnnotations: ignoredAnnotations},
+	)
 
-	i.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
-	i.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
-	i.showNameCountSection("Variables", []string{"Declaration"}, topN(i.Variables, TopK))
-	i.showNameCountSection("Annotations", []string{"Annotation", "Custom"}, topN(i.Annotations, TopK))
-	i.showInterfacesReport()
+	filteredInfo.showInheritanceReport()
 
-	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, method calls: %d",
-		len(i.Classes), len(i.Methods), len(i.Variables), len(i.MethodCalls))
+	filteredInfo.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
+	filteredInfo.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
+	filteredInfo.showNameCountSection("Variables", []string{"Declaration", "Reference"}, topN(i.Variables, TopK), topN(i.VariableReferences, TopK))
+	filteredInfo.showNameCountSection("Annotations", []string{"Annotation"}, topN(i.Annotations, TopK))
+	filteredInfo.showInterfacesReport()
+
+	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
+		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))
 }
 
 func (i *Info) showInheritanceReport() {
@@ -40,9 +43,7 @@ func (i *Info) showInterfacesReport() {
 	interfaceCounts := make(map[string]int)
 	for _, interfaces := range i.Interfaces {
 		for _, iface := range interfaces {
-			if !ignoreInteface(iface) {
-				interfaceCounts[iface]++
-			}
+			interfaceCounts[iface]++
 		}
 	}
 	i.showNameCountSection("Implemented Interfaces", []string{"Interface"}, topN(mapToNameCount(interfaceCounts), TopK))

@@ -6,6 +6,7 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MethodCallExpr;
+import com.github.javaparser.ast.expr.NameExpr;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -63,6 +64,12 @@ public class ASTExtractorVisitor extends BaseExtractor {
     private void processAnnotation(AnnotationExpr annotation) {
         String annotationName = annotation.getNameAsString();
         astInfo.annotations.add(annotationName);
+    }
+
+    @Override
+    public void visit(NameExpr n, Void arg) {
+        astInfo.variableReferences.add(n.getNameAsString());
+        super.visit(n, arg);
     }
 
     @Override
