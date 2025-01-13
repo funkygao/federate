@@ -15,6 +15,10 @@ type Filter interface {
 	Apply(info *Info) *Info
 }
 
+func DefaultFilters() []Filter {
+	return []Filter{&InterfacesFilter{}, &AnnotationsFilter{}, &CompositionsFilter{}}
+}
+
 type FilterChain struct {
 	filters []Filter
 }
@@ -30,10 +34,10 @@ func (fc *FilterChain) Apply(info *Info) *Info {
 	return info
 }
 
-type IgnoreInterfacesFilter struct {
+type InterfacesFilter struct {
 }
 
-func (f *IgnoreInterfacesFilter) Apply(info *Info) *Info {
+func (f *InterfacesFilter) Apply(info *Info) *Info {
 	filteredInterfaces := make(map[string][]string)
 	for class, interfaces := range info.Interfaces {
 		var filtered []string
@@ -50,10 +54,10 @@ func (f *IgnoreInterfacesFilter) Apply(info *Info) *Info {
 	return info
 }
 
-type IgnoreAnnotationsFilter struct {
+type AnnotationsFilter struct {
 }
 
-func (f *IgnoreAnnotationsFilter) Apply(info *Info) *Info {
+func (f *AnnotationsFilter) Apply(info *Info) *Info {
 	var filteredAnnotations []string
 	for _, annotation := range info.Annotations {
 		if !ignoredAnnotations.Contains(annotation) {
@@ -64,10 +68,10 @@ func (f *IgnoreAnnotationsFilter) Apply(info *Info) *Info {
 	return info
 }
 
-type IgnoreCompositionsFilter struct {
+type CompositionsFilter struct {
 }
 
-func (f *IgnoreAnnotationsFilter) Apply(info *Info) *Info {
+func (f *AnnotationsFilter) Apply(info *Info) *Info {
 	var compositions []CompositionInfo
 	for _, comp = range info.Compositions {
 		if !ignoredCompositionTypes.Contains(comp.ComposedClass) && !strings.Contains(comp.ComposedClass, "<") {

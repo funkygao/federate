@@ -4,6 +4,7 @@ import "federate/pkg/primitive"
 
 var (
 	TopK           int
+	Verbosity      int
 	Web            bool
 	GeneratePrompt bool
 

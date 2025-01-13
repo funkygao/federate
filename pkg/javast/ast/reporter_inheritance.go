@@ -22,8 +22,8 @@ type InheritanceCluster struct {
 
 func (i *Info) showInheritanceReport() {
 	tree := buildInheritanceTree(i.Inheritance)
-	significantClusters := []InheritanceCluster{}
 
+	significantClusters := []InheritanceCluster{}
 	for _, root := range findRootClusters(tree) {
 		if isSignificantTree(root) {
 			significantClusters = append(significantClusters, InheritanceCluster{
@@ -51,7 +51,7 @@ func (i *Info) showInheritanceReport() {
 	fmt.Println()
 
 	// Render the clusters
-	if len(significantClusters) > 0 {
+	if Verbosity > 1 && len(significantClusters) > 0 {
 		color.Magenta("%d Significant Class Inheritance Clusters Details:", len(significantClusters))
 
 		for i, cluster := range significantClusters {
@@ -61,8 +61,6 @@ func (i *Info) showInheritanceReport() {
 				fmt.Println() // Add a blank line between major inheritance trees
 			}
 		}
-	} else {
-		fmt.Println("  No significant inheritance clusters found.")
 	}
 }
 
