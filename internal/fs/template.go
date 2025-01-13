@@ -124,7 +124,16 @@ func ParseTemplateToString(templatePath string, data any) string {
 	return buf.String()
 }
 
+// IsRunningInITerm2 检查当前是否在 iTerm2 中运行
+func IsRunningInITerm2() bool {
+	return os.Getenv("TERM_PROGRAM") == "iTerm.app"
+}
+
 func DisplayJPGInITerm2(templatePath string) {
+	if !IsRunningInITerm2() {
+		return
+	}
+
 	buf := ParseTemplate(templatePath, nil)
 
 	// 将图像数据编码为 base64
