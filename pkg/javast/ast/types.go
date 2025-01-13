@@ -6,6 +6,14 @@ import (
 	"federate/pkg/primitive"
 )
 
+type ComplexCondition struct {
+	FileName   string `json:"fileName"`
+	MethodName string `json:"methodName"`
+	Condition  string `json:"condition"`
+	Complexity int    `json:"complexity"`
+	LineNumber int    `json:"lineNumber"`
+}
+
 type Info struct {
 	Imports            []string            `json:"imports"`
 	Classes            []string            `json:"classes"`
@@ -16,6 +24,7 @@ type Info struct {
 	Inheritance        map[string][]string `json:"inheritance"`
 	Interfaces         map[string][]string `json:"interfaces"`
 	Annotations        []string            `json:"annotations"`
+	ComplexConditions  []ComplexCondition  `json:"complexConditions"`
 }
 
 func (i *Info) ApplyFilters(filters ...Filter) *Info {

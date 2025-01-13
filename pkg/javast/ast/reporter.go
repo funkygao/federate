@@ -20,11 +20,15 @@ func (i *Info) ShowReport() {
 	filteredInfo.showInterfacesReport()
 	filteredInfo.showInheritanceReport()
 
+	filteredInfo.showComplexConditionsReport()
+
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))
 
-	log.Println()
-	fs.DisplayJPGInITerm2("templates/arch_layer.jpg")
+	if false && fs.IsRunningInITerm2() {
+		log.Println()
+		fs.DisplayJPGInITerm2("templates/arch_layer.jpg")
+	}
 }
 
 func (i *Info) showInterfacesReport() {

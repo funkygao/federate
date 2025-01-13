@@ -16,4 +16,6 @@ public class ASTInfo {
     Map<String, List<String>> inheritance = new HashMap<>();
     Map<String, List<String>> interfaces = new HashMap<>();
     List<String> annotations = new ArrayList<>();
+
+    List<ComplexCondition> complexConditions = new ArrayList<>();
 }
