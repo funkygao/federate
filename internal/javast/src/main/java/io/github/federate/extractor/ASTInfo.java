@@ -18,4 +18,5 @@ public class ASTInfo {
     List<String> annotations = new ArrayList<>();
 
     List<ComplexCondition> complexConditions = new ArrayList<>();
+    List<CompositionInfo> compositions = new ArrayList<>();
 }

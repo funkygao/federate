@@ -2,6 +2,7 @@ package io.github.federate.extractor;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
+import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.*;
@@ -137,6 +138,21 @@ public class ASTExtractorVisitor extends BaseExtractor {
             }
         });
         return complexity.get();
+    }
+
+    @Override
+    public void visit(FieldDeclaration field, Void arg) {
+        super.visit(field, arg);
+
+        ClassOrInterfaceDeclaration containingClass = field.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+        if (containingClass != null) {
+            String containingClassName = containingClass.getNameAsString();
+            field.getVariables().forEach(variable -> {
+                String composedClassName = variable.getType().asString();
+                String fieldName = variable.getNameAsString();
+                astInfo.compositions.add(new CompositionInfo(containingClassName, composedClassName, fieldName));
+            });
+        }
     }
 
     @Override

@@ -6,6 +6,12 @@ import (
 	"federate/pkg/primitive"
 )
 
+type CompositionInfo struct {
+	ContainingClass string `json:"containingClass"`
+	ComposedClass   string `json:"composedClass"`
+	FieldName       string `json:"fieldName"`
+}
+
 type ComplexCondition struct {
 	FileName   string `json:"fileName"`
 	MethodName string `json:"methodName"`
@@ -25,6 +31,7 @@ type Info struct {
 	Interfaces         map[string][]string `json:"interfaces"`
 	Annotations        []string            `json:"annotations"`
 	ComplexConditions  []ComplexCondition  `json:"complexConditions"`
+	Compositions       []CompositionInfo   `json:"compositions"`
 }
 
 func (i *Info) ApplyFilters(filters ...Filter) *Info {
@@ -64,4 +71,11 @@ func mapToNameCount(m map[string]int) []primitive.NameCount {
 		result = append(result, primitive.NameCount{Name: k, Count: v})
 	}
 	return result
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
