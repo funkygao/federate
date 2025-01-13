@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"federate/pkg/tabular"
 	"github.com/emirpasic/gods/trees/redblacktree"
 	"github.com/fatih/color"
 )
@@ -13,44 +14,56 @@ type ClassNode struct {
 	Children []*ClassNode
 }
 
+type InheritanceCluster struct {
+	Root       *ClassNode
+	Depth      int
+	ClassCount int
+}
+
 func (i *Info) showInheritanceReport() {
-	color.Magenta("Significant Class Inheritance Hierarchies:")
-
 	tree := buildInheritanceTree(i.Inheritance)
-	rootNodes := findRootNodes(tree)
+	significantClusters := []InheritanceCluster{}
 
-	significantHierarchies := []*ClassNode{}
-	maxDepth := 0
-
-	for _, root := range rootNodes {
-		depth := calculateDepth(root)
-		if depth > maxDepth {
-			maxDepth = depth
-		}
+	for _, root := range findRootClusters(tree) {
 		if isSignificantTree(root) {
-			significantHierarchies = append(significantHierarchies, root)
+			significantClusters = append(significantClusters, InheritanceCluster{
+				Root:       root,
+				Depth:      calculateDepth(root),
+				ClassCount: calculateClassCount(root),
+			})
 		}
 	}
 
 	// Render summary
-	color.Magenta("  - Total classes: %d", len(i.Classes))
-	color.Magenta("  - Classes involved in inheritance: %d", countClassesWithInheritance(tree))
-	color.Magenta("  - Maximum inheritance depth: %d\n", maxDepth)
+	color.Magenta("Significant Class Inheritance Hierarchies:")
+	color.Magenta("  - Total classes: %d, Classes involved in inheritance: %d", len(i.Classes), countClassesWithInheritance(tree))
+	color.Magenta("  - Significant inheritance clusters : %d", len(significantClusters))
 	fmt.Println()
 
-	// Render the tree
-	if len(significantHierarchies) > 0 {
-		for i, root := range significantHierarchies {
-			isLast := i == len(significantHierarchies)-1
-			printSignificantTree(root, 0, isLast, "")
+	// Show TopK deepest clusters
+	showTopKClusters(significantClusters, "Deepest", TopK, func(c1, c2 InheritanceCluster) bool {
+		return c1.Depth > c2.Depth
+	})
+	// Show TopK largest clusters
+	showTopKClusters(significantClusters, "Largest Size", TopK, func(c1, c2 InheritanceCluster) bool {
+		return c1.ClassCount > c2.ClassCount
+	})
+	fmt.Println()
+
+	// Render the clusters
+	if len(significantClusters) > 0 {
+		color.Magenta("%d Significant Class Inheritance Clusters Details:", len(significantClusters))
+
+		for i, cluster := range significantClusters {
+			isLast := i == len(significantClusters)-1
+			printSignificantTree(cluster.Root, 0, isLast, "")
 			if !isLast {
 				fmt.Println() // Add a blank line between major inheritance trees
 			}
 		}
 	} else {
-		fmt.Println("  No inheritance hierarchies with more than 2 children or depth > 2 found.")
+		fmt.Println("  No significant inheritance clusters found.")
 	}
-
 }
 
 func buildInheritanceTree(inheritance map[string][]string) *redblacktree.Tree {
@@ -82,7 +95,7 @@ func buildInheritanceTree(inheritance map[string][]string) *redblacktree.Tree {
 	return tree
 }
 
-func findRootNodes(tree *redblacktree.Tree) []*ClassNode {
+func findRootClusters(tree *redblacktree.Tree) []*ClassNode {
 	roots := []*ClassNode{}
 	it := tree.Iterator()
 	for it.Next() {
@@ -177,6 +190,31 @@ func countClassesWithInheritance(tree *redblacktree.Tree) int {
 		if len(node.Children) > 0 || key != node.Name {
 			count++
 		}
+	}
+	return count
+}
+
+func showTopKClusters(clusters []InheritanceCluster, label string, k int, less func(InheritanceCluster, InheritanceCluster) bool) {
+	sort.Slice(clusters, func(i, j int) bool {
+		return less(clusters[i], clusters[j])
+	})
+
+	if k > len(clusters) {
+		k = len(clusters)
+	}
+
+	var cellData [][]string
+	for _, cluster := range clusters[:k] {
+		cellData = append(cellData, []string{cluster.Root.Name, fmt.Sprintf("%d", cluster.Depth), fmt.Sprintf("%d", cluster.ClassCount)})
+	}
+	color.Magenta("Top %d %s Inheritance Clusters:", k, label)
+	tabular.Display([]string{"Root Class", "Depth", "Class Count"}, cellData, false, -1)
+}
+
+func calculateClassCount(node *ClassNode) int {
+	count := 1 // 计入当前节点
+	for _, child := range node.Children {
+		count += calculateClassCount(child)
 	}
 	return count
 }

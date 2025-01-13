@@ -14,8 +14,8 @@ func (i *Info) ShowReport() {
 	filteredInfo.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
 	filteredInfo.showNameCountSection("Variables", []string{"Declaration", "Reference"}, topN(i.Variables, TopK), topN(i.VariableReferences, TopK))
 	filteredInfo.showNameCountSection("Annotations", []string{"Annotation"}, topN(i.Annotations, TopK))
-	filteredInfo.showInterfacesReport()
 
+	filteredInfo.showInterfacesReport()
 	filteredInfo.showInheritanceReport()
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
