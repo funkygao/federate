@@ -31,5 +31,5 @@ func (i *Info) showComplexLoopsReport() {
 		})
 	}
 	color.Magenta("Top Complex Loop Structures: %d", TopK)
-	tabular.Display([]string{"File", "Method", "Line", "Loop Type", "Nested", "Body Size"}, cellData, false, -1)
+	tabular.Display([]string{"File", "Method", "Line", "Loop Type", "Nested", "Body"}, cellData, false, -1)
 }
