@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"federate/internal/fs"
+	"federate/pkg/javast/ast"
 	"federate/pkg/step"
 )
 
@@ -31,6 +32,8 @@ type Command struct {
 
 type JavastDriver interface {
 	Invoke(bar step.Bar, commands ...Command) error
+	ExtractAST(root string) (*ast.Info, error)
+	Verbose() JavastDriver
 }
 
 type javastDriver struct {
@@ -39,6 +42,11 @@ type javastDriver struct {
 
 func NewJavastDriver() JavastDriver {
 	return &javastDriver{verbose: false}
+}
+
+func (d *javastDriver) Verbose() JavastDriver {
+	d.verbose = true
+	return d
 }
 
 func (d *javastDriver) Invoke(bar step.Bar, commands ...Command) error {
