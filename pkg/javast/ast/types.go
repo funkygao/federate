@@ -29,6 +29,15 @@ type ComplexLoop struct {
 	BodySize     int    `json:"bodySize"`
 }
 
+type FunctionalUsage struct {
+	MethodName string `json:"methodName"`
+	FileName   string `json:"fileName"`
+	LineNumber int    `json:"lineNumber"`
+	Type       string `json:"type"`
+	Operation  string `json:"operation"`
+	Context    string `json:"context"`
+}
+
 type Info struct {
 	Imports            []string            `json:"imports"`
 	Classes            []string            `json:"classes"`
@@ -42,6 +51,7 @@ type Info struct {
 	ComplexConditions  []ComplexCondition  `json:"complexConditions"`
 	Compositions       []CompositionInfo   `json:"compositions"`
 	ComplexLoops       []ComplexLoop       `json:"complexLoops"`
+	FunctionalUsages   []FunctionalUsage   `json:"functionalUsages"`
 }
 
 func (i *Info) ApplyFilters(filters ...Filter) *Info {

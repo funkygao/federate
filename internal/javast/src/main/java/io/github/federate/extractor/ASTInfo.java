@@ -20,4 +20,5 @@ public class ASTInfo {
     List<ComplexCondition> complexConditions = new ArrayList<>();
     List<CompositionInfo> compositions = new ArrayList<>();
     List<ComplexLoop> complexLoops = new ArrayList<>();
+    List<FunctionalUsage> functionalUsages = new ArrayList<>();
 }

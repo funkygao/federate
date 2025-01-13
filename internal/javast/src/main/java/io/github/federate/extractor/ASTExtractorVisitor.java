@@ -1,6 +1,7 @@
 package io.github.federate.extractor;
 
 import com.github.javaparser.ast.CompilationUnit;
+import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.FieldDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
@@ -11,14 +12,49 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ASTExtractorVisitor extends BaseExtractor {
     private static final int SWITCH_SIZE = 5;
     private static final int IF_SIZE = 3;
+    private static final Set<String> STREAM_OPERATIONS;
 
     private int currentNestingLevel = 0;
     private final ASTInfo astInfo;
+
+    static {
+        STREAM_OPERATIONS = new HashSet<>(Arrays.asList(
+                // 中间操作
+                "filter", "map", "flatMap", "distinct", "sorted", "peek", "limit", "skip",
+                "parallel", "sequential", "unordered",
+
+                // 终端操作
+                "forEach", "forEachOrdered", "toArray", "reduce", "collect", "min", "max",
+                "count", "anyMatch", "allMatch", "noneMatch", "findFirst", "findAny",
+
+                // Short-circuiting 操作
+                "limit", "findFirst", "findAny", "anyMatch", "allMatch", "noneMatch",
+
+                // 并行操作
+                "parallelStream",
+
+                // Optional 相关操作
+                "ifPresent", "orElse", "orElseGet", "orElseThrow",
+
+                // Collectors 类的静态方法
+                "toList", "toSet", "toMap", "groupingBy", "joining", "counting",
+                "summarizingInt", "summarizingLong", "summarizingDouble",
+
+                // 其他常见的流操作或相关方法
+                "stream", "of", "generate", "iterate",
+                "mapToInt", "mapToLong", "mapToDouble",
+                "flatMapToInt", "flatMapToLong", "flatMapToDouble",
+                "boxed", "asLongStream", "asDoubleStream"
+        ));
+    }
 
     public ASTExtractorVisitor() {
         this.astInfo = new ASTInfo();
@@ -63,6 +99,9 @@ public class ASTExtractorVisitor extends BaseExtractor {
     @Override
     public void visit(MethodCallExpr n, Void arg) {
         astInfo.methodCalls.add(n.getNameAsString());
+        if (isStreamOperation(n)) {
+            analyzeFunctionalUsage(n, "stream", n.getNameAsString());
+        }
         super.visit(n, arg);
     }
 
@@ -196,6 +235,54 @@ public class ASTExtractorVisitor extends BaseExtractor {
         } else {
             return 1; // 如果循环体不是块语句，就当作一个语句计数
         }
+    }
+
+    @Override
+    public void visit(LambdaExpr n, Void arg) {
+        analyzeFunctionalUsage(n, "lambda", "lambda");
+        super.visit(n, arg);
+    }
+
+    private boolean isStreamOperation(MethodCallExpr n) {
+        String methodName = n.getNameAsString();
+
+        // 检查方法名是否在我们的操作列表中
+        if (STREAM_OPERATIONS.contains(methodName)) {
+            return true;
+        }
+
+        // 检查是否是 Collectors 的静态方法调用
+        if (n.getScope().isPresent() && n.getScope().get() instanceof NameExpr) {
+            String scope = ((NameExpr) n.getScope().get()).getNameAsString();
+            if ("Collectors".equals(scope) && STREAM_OPERATIONS.contains(methodName)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void analyzeFunctionalUsage(Node n, String type, String operation) {
+        MethodDeclaration method = n.findAncestor(MethodDeclaration.class).orElse(null);
+        String methodName = method != null ? method.getNameAsString() : "Unknown";
+        String fileName = n.findCompilationUnit().get().getStorage().get().getFileName();
+        int lineNumber = n.getBegin().get().line;
+        String context = getContext(n);
+
+        astInfo.functionalUsages.add(new FunctionalUsage(methodName, fileName, lineNumber, type, operation, context));
+    }
+
+    private String getContext(Node n) {
+        // 尝试获取上下文，例如方法调用的对象或变量名
+        if (n.getParentNode().isPresent()) {
+            Node parent = n.getParentNode().get();
+            if (parent instanceof VariableDeclarator) {
+                return ((VariableDeclarator) parent).getNameAsString();
+            } else if (parent instanceof MethodCallExpr) {
+                return ((MethodCallExpr) parent).getNameAsString();
+            }
+        }
+        return "Unknown";
     }
 
     @Override
