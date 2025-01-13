@@ -11,22 +11,28 @@ import (
 )
 
 func (i *Info) ShowReport() {
-	filteredInfo := i.ApplyFilters(&InterfacesFilter{}, &AnnotationsFilter{}, &CompositionsFilter{})
-
 	if Verbosity > 2 {
-		filteredInfo.showNameCountSection("Annotations", []string{"Annotation"}, topN(i.Annotations, TopK))
-		filteredInfo.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
+		i.showNameCountSection("Annotations", []string{"Annotation"}, topN(i.Annotations, TopK))
+		i.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
 	}
 
-	filteredInfo.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
-	filteredInfo.showNameCountSection("Variables", []string{"Declaration", "Reference"}, topN(i.Variables, TopK), topN(i.VariableReferences, TopK))
+	log.Println()
+	i.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
+	log.Println()
+	i.showNameCountSection("Variables", []string{"Declaration", "Reference"}, topN(i.Variables, TopK), topN(i.VariableReferences, TopK))
+	log.Println()
 
-	filteredInfo.showInterfacesReport()
-	filteredInfo.showInheritanceReport()
-	filteredInfo.showComplexConditionsReport()
-	filteredInfo.showCompositionReport()
-	filteredInfo.showComplexLoopsReport()
-	filteredInfo.showFunctionalUsageReport()
+	i.showInterfacesReport()
+	log.Println()
+	i.showInheritanceReport()
+	log.Println()
+	i.showComplexConditionsReport()
+	log.Println()
+	i.showCompositionReport()
+	log.Println()
+	i.showComplexLoopsReport()
+	log.Println()
+	i.showFunctionalUsageReport()
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))

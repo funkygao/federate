@@ -18,8 +18,9 @@ var (
 
 func init() {
 	ignoredInterfaces.Add("Serializable")
+
 	ignoredAnnotations.Add("Override", "SuppressWarnings",
-		"Data", "NoArgsConstructor", "AllArgsConstructor", "Builder", "Slf4j")
+		"Data", "NoArgsConstructor", "AllArgsConstructor", "Builder")
 
 	ignoredCompositionTypes.Add("String", "Integer", "Long", "Float", "Double", "Boolean",
 		"int", "long", "float", "double", "boolean",

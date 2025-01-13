@@ -11,7 +11,7 @@ import (
 
 var astCmd = &cobra.Command{
 	Use:   "javaast <dir>",
-	Short: "Mining AST graph knowledge from a Java source directory",
+	Short: "Mining AST Graph Knowledge from a Java source directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		root := "."
 		if len(args) > 0 {
