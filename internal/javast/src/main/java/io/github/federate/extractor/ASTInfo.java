@@ -21,4 +21,6 @@ public class ASTInfo {
     List<CompositionInfo> compositions = new ArrayList<>();
     List<ComplexLoop> complexLoops = new ArrayList<>();
     List<FunctionalUsage> functionalUsages = new ArrayList<>();
+    Map<String, FileStats> fileStats = new HashMap<>();
+    List<LambdaInfo> lambdaInfos = new ArrayList<>();
 }

@@ -64,6 +64,16 @@ public class ASTExtractorVisitor extends BaseExtractor {
     public void visit(CompilationUnit cu, Void arg) {
         cu.getImports().forEach(i -> astInfo.imports.add(i.getNameAsString()));
         super.visit(cu, arg);
+
+        String fileName = cu.getStorage().get().getFileName();
+        int netLinesOfCode = countNetLinesOfCode(cu);
+        int methodCount = cu.findAll(MethodDeclaration.class).size();
+        int fieldCount = cu.findAll(FieldDeclaration.class).stream()
+                .filter(field -> !field.isStatic())
+                .mapToInt(field -> field.getVariables().size())
+                .sum();
+
+        astInfo.fileStats.put(fileName, new FileStats(fileName, netLinesOfCode, methodCount, fieldCount));
     }
 
     @Override
@@ -240,6 +250,17 @@ public class ASTExtractorVisitor extends BaseExtractor {
     @Override
     public void visit(LambdaExpr n, Void arg) {
         analyzeFunctionalUsage(n, "lambda", "lambda");
+
+        LambdaInfo info = new LambdaInfo();
+        info.lineCount = n.getEnd().get().line - n.getBegin().get().line + 1;
+        info.parameterCount = n.getParameters().size();
+        info.context = n.findAncestor(MethodDeclaration.class)
+                .map(MethodDeclaration::getNameAsString)
+                .orElse("Unknown");
+        info.associatedStreamOp = findAssociatedStreamOp(n);
+        info.pattern = identifyPattern(n);
+        astInfo.lambdaInfos.add(info);
+        
         super.visit(n, arg);
     }
 
@@ -283,6 +304,47 @@ public class ASTExtractorVisitor extends BaseExtractor {
             }
         }
         return "Unknown";
+    }
+
+    private int countNetLinesOfCode(CompilationUnit cu) {
+        String[] lines = cu.toString().split("\n");
+        int count = 0;
+        boolean inBlockComment = false;
+        for (String line : lines) {
+            line = line.trim();
+            if (line.startsWith("/*")) inBlockComment = true;
+            if (!inBlockComment && !line.isEmpty() && !line.startsWith("//")) {
+                count++;
+            }
+            if (line.endsWith("*/")) inBlockComment = false;
+        }
+        return count;
+    }
+
+    private String identifyPattern(LambdaExpr n) {
+        if (n.getBody() instanceof ExpressionStmt) {
+            Expression expr = ((ExpressionStmt) n.getBody()).getExpression();
+            if (expr instanceof MethodCallExpr) {
+                return "Method Call";
+            } else if (expr instanceof BinaryExpr) {
+                return "Condition";
+            }
+        } else if (n.getBody() instanceof BlockStmt) {
+            BlockStmt block = (BlockStmt) n.getBody();
+            if (block.getStatements().size() == 1 && block.getStatement(0) instanceof ReturnStmt) {
+                return "Return";
+            }
+        } else if (n.getBody() instanceof ReturnStmt) {
+            return "Return";
+        }
+        return "Other";
+    }
+
+    private String findAssociatedStreamOp(LambdaExpr n) {
+        return n.getParentNode()
+                .filter(parent -> parent instanceof MethodCallExpr)
+                .map(parent -> ((MethodCallExpr) parent).getNameAsString())
+                .orElse("Unknown");
     }
 
     @Override

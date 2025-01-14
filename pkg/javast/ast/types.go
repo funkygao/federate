@@ -6,6 +6,21 @@ import (
 	"federate/pkg/primitive"
 )
 
+type LambdaInfo struct {
+	LineCount          int    `json:"lineCount"`
+	ParameterCount     int    `json:"parameterCount"`
+	Context            string `json:"context"`
+	AssociatedStreamOp string `json:"associatedStreamOp"`
+	Pattern            string `json:"pattern"`
+}
+
+type FileStats struct {
+	FileName       string `json:"fileName"`
+	NetLinesOfCode int    `json:"netLinesOfCode"`
+	MethodCount    int    `json:"methodCount"`
+	FieldCount     int    `json:"fieldCount"`
+}
+
 type CompositionInfo struct {
 	ContainingClass string `json:"containingClass"`
 	ComposedClass   string `json:"composedClass"`
@@ -39,19 +54,21 @@ type FunctionalUsage struct {
 }
 
 type Info struct {
-	Imports            []string            `json:"imports"`
-	Classes            []string            `json:"classes"`
-	Methods            []string            `json:"methods"`
-	Variables          []string            `json:"variables"`
-	VariableReferences []string            `json:"variableReferences"`
-	MethodCalls        []string            `json:"methodCalls"`
-	Inheritance        map[string][]string `json:"inheritance"`
-	Interfaces         map[string][]string `json:"interfaces"`
-	Annotations        []string            `json:"annotations"`
-	ComplexConditions  []ComplexCondition  `json:"complexConditions"`
-	Compositions       []CompositionInfo   `json:"compositions"`
-	ComplexLoops       []ComplexLoop       `json:"complexLoops"`
-	FunctionalUsages   []FunctionalUsage   `json:"functionalUsages"`
+	Imports            []string             `json:"imports"`
+	Classes            []string             `json:"classes"`
+	Methods            []string             `json:"methods"`
+	Variables          []string             `json:"variables"`
+	VariableReferences []string             `json:"variableReferences"`
+	MethodCalls        []string             `json:"methodCalls"`
+	Inheritance        map[string][]string  `json:"inheritance"`
+	Interfaces         map[string][]string  `json:"interfaces"`
+	Annotations        []string             `json:"annotations"`
+	ComplexConditions  []ComplexCondition   `json:"complexConditions"`
+	Compositions       []CompositionInfo    `json:"compositions"`
+	ComplexLoops       []ComplexLoop        `json:"complexLoops"`
+	FunctionalUsages   []FunctionalUsage    `json:"functionalUsages"`
+	LambdaInfos        []LambdaInfo         `json:"lambdaInfos"`
+	FileStats          map[string]FileStats `json:"fileStats"`
 }
 
 func topN(items any, n int) []primitive.NameCount {
@@ -90,6 +107,13 @@ func mapToNameCount(m map[string]int) []primitive.NameCount {
 
 func min(a, b int) int {
 	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
 		return a
 	}
 	return b
