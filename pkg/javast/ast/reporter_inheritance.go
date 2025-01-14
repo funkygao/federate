@@ -9,17 +9,6 @@ import (
 	"github.com/emirpasic/gods/trees/redblacktree"
 )
 
-type ClassNode struct {
-	Name     string
-	Children []*ClassNode
-}
-
-type InheritanceCluster struct {
-	Root       *ClassNode
-	Depth      int
-	ClassCount int
-}
-
 func (i *Info) showInheritanceReport() {
 	tree := buildInheritanceTree(i.Inheritance)
 
@@ -207,7 +196,7 @@ func (i *Info) showTopKClusters(clusters []InheritanceCluster, label string, k i
 	}
 	i.writeSectionHeader("Top %d %s Inheritance Clusters:", k, label)
 	i.writeSectionBody(func() {
-		tabular.Display([]string{"Root Class", "Depth", "Class Count"}, cellData, false, -1)
+		tabular.Display([]string{"Root Class", "Depth", "Cluster Size"}, cellData, false, -1)
 	})
 }
 

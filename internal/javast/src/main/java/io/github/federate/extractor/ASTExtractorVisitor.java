@@ -81,11 +81,16 @@ public class ASTExtractorVisitor extends BaseExtractor {
         String className = n.getNameAsString();
         astInfo.classes.add(className);
 
-        // 处理继承
+        // 处理继承（包括类的继承和接口的继承）
         n.getExtendedTypes().forEach(t -> astInfo.inheritance.computeIfAbsent(className, k -> new ArrayList<>()).add(t.getNameAsString()));
 
-        // 处理接口实现
-        n.getImplementedTypes().forEach(t -> astInfo.interfaces.computeIfAbsent(className, k -> new ArrayList<>()).add(t.getNameAsString()));
+        // 处理接口实现（只有类才会实现接口）
+        if (!n.isInterface()) {
+            n.getImplementedTypes().forEach(t -> astInfo.interfaces.computeIfAbsent(className, k -> new ArrayList<>()).add(t.getNameAsString()));
+        }
+
+        // 处理注解
+        n.getAnnotations().forEach(this::processAnnotation);
 
         // 处理注解
         n.getAnnotations().forEach(this::processAnnotation);

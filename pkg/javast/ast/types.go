@@ -7,6 +7,29 @@ import (
 	"federate/pkg/prompt"
 )
 
+type ClassNode struct {
+	Name     string
+	Children []*ClassNode
+}
+
+type InheritanceCluster struct {
+	Root       *ClassNode
+	Depth      int
+	ClassCount int
+}
+
+type InterfaceNode struct {
+	Name         string
+	Children     []*InterfaceNode
+	Implementors []string
+}
+
+type InterfaceCluster struct {
+	Root       *InterfaceNode
+	Depth      int
+	ClassCount int
+}
+
 type LambdaInfo struct {
 	LineCount          int    `json:"lineCount"`
 	ParameterCount     int    `json:"parameterCount"`
