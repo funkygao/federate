@@ -11,7 +11,7 @@ import com.github.javaparser.ast.stmt.*;
 import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.github.federate.extractor.data.*;
+import io.github.federate.extractor.info.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;

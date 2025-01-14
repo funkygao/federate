@@ -14,7 +14,7 @@ func (i *Info) ShowReport() {
 	if GeneratePrompt {
 		i.logger = prompt.NewPromptLogger()
 		i.logger.AddPrompt(prompt.JavaAST)
-		i.logger.AddPrompt("\n\n")
+		i.logger.AddPrompt("\n## The Detailed Java AST Report\n\n")
 		i.logger.Start()
 		defer func() {
 			i.logger.Stop()
