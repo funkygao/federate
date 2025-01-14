@@ -5,8 +5,6 @@ import (
 )
 
 func (i *Info) showLambdaReport() {
-	i.writeSectionHeader("Lambda and Stream Usage Analysis:")
-
 	// 行数分布
 	lineCounts := make(map[string]int)
 	for _, info := range i.LambdaInfos {

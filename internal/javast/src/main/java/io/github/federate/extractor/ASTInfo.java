@@ -1,6 +1,6 @@
 package io.github.federate.extractor;
 
-import io.github.federate.extractor.data.ReflectionUsage;
+import io.github.federate.extractor.data.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;

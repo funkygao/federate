@@ -5,7 +5,6 @@ import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.google.gson.Gson;
 import io.github.federate.extractor.ASTExtractorVisitor;
-import io.github.federate.extractor.BaseExtractor;
 import io.github.federate.visitor.*;
 
 import java.io.File;
@@ -13,7 +12,10 @@ import java.io.IOException;
 import java.nio.file.FileVisitor;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 
 public class App {
     private static final List<String> IGNORED_DIRECTORIES = Arrays.asList(
@@ -66,7 +68,7 @@ public class App {
         config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
         StaticJavaParser.setConfiguration(config);
 
-        List<BaseExtractor> extractors = new LinkedList<>();
+        ASTExtractorVisitor extractorVisitor = null;
         CompositeVisitor compositeVisitor = new CompositeVisitor();
         for (int i = 1; i < args.length; i += 2) {
             String commandName = args[i];
@@ -76,9 +78,8 @@ public class App {
                 compositeVisitor.addVisitor(visitor);
             }
 
-            BaseExtractor voidVisitor = createExtractor(commandName, commandArg);
-            if (voidVisitor != null) {
-                extractors.add(voidVisitor);
+            if (commandName.equals("extract-ast")) {
+                extractorVisitor = new ASTExtractorVisitor();
             }
         }
 
@@ -86,24 +87,14 @@ public class App {
             CompilationUnit cu = StaticJavaParser.parse(javaFile);
             compositeVisitor.visit(cu, javaFile);
 
-            for (BaseExtractor extractor : extractors) {
-                extractor.visit(cu, null);
+            if (extractorVisitor != null) {
+                extractorVisitor.visit(cu, null);
             }
         }
 
-        for (BaseExtractor extractor : extractors) {
-            extractor.finish();
+        if (extractorVisitor != null) {
+            extractorVisitor.finish();
         }
-    }
-
-    private static BaseExtractor createExtractor(String command, String cmdSpecificArg) {
-        switch (command) {
-            case "extract-ast":
-                return new ASTExtractorVisitor();
-            default:
-                return null;
-        }
-
     }
 
     private static BaseCodeModifier createVisitor(String command, String cmdSpecificArg) {

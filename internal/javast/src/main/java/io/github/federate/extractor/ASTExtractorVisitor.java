@@ -8,9 +8,10 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
+import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.github.federate.extractor.data.ReflectionUsage;
+import io.github.federate.extractor.data.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -18,7 +19,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ASTExtractorVisitor extends BaseExtractor {
+public class ASTExtractorVisitor extends VoidVisitorAdapter<Void> {
     private static final int SWITCH_SIZE = 5;
     private static final int IF_SIZE = 3;
     private static final Set<String> STREAM_OPERATIONS;
@@ -389,7 +390,6 @@ public class ASTExtractorVisitor extends BaseExtractor {
                 .orElse("Unknown");
     }
 
-    @Override
     public void finish() {
         Gson gson = new GsonBuilder().create();
         System.out.println(gson.toJson(astInfo));
