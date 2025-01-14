@@ -4,6 +4,7 @@ import (
 	"sort"
 
 	"federate/pkg/primitive"
+	"federate/pkg/prompt"
 )
 
 type LambdaInfo struct {
@@ -54,6 +55,8 @@ type FunctionalUsage struct {
 }
 
 type Info struct {
+	logger *prompt.PromptLogger `json:"-"`
+
 	Imports            []string             `json:"imports"`
 	Classes            []string             `json:"classes"`
 	Methods            []string             `json:"methods"`

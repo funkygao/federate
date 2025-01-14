@@ -2,9 +2,12 @@ package prompt
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"log"
 	"os"
+
+	"federate/pkg/util"
 )
 
 type PromptLogger struct {
@@ -12,15 +15,24 @@ type PromptLogger struct {
 }
 
 func NewPromptLogger() *PromptLogger {
-	logger := &PromptLogger{}
-	log.SetOutput(io.MultiWriter(os.Stdout, &logger.buffer))
-	return logger
+	return &PromptLogger{}
 }
 
-// Append to prompt only.
-func (p *PromptGenerator) AppendPrompt() {
+func (pl *PromptLogger) Start() {
+	log.SetOutput(io.MultiWriter(os.Stdout, &pl.buffer))
 }
 
-// Append both to log and prompt.
-func (p *PromptGenerator) Append() {
+func (pl *PromptLogger) Stop() {
+	log.SetOutput(os.Stdout)
+
+	promptContent := pl.buffer.String()
+	if err := util.ClipboardPut(promptContent); err == nil {
+		log.Printf("ChatGPT Prompt 已复制到剪贴板，约 %.2fK tokens", CountTokensInK(promptContent))
+	} else {
+		log.Printf("复制到剪贴板失败: %v", err)
+	}
+}
+
+func (pl *PromptLogger) AddPrompt(format string, v ...interface{}) {
+	fmt.Fprintf(&pl.buffer, format, v...)
 }

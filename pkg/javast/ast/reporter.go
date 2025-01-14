@@ -5,11 +5,23 @@ import (
 	"log"
 
 	"federate/pkg/primitive"
+	"federate/pkg/prompt"
 	"federate/pkg/tabular"
 	"github.com/fatih/color"
 )
 
 func (i *Info) ShowReport() {
+	if GeneratePrompt {
+		i.logger = prompt.NewPromptLogger()
+		i.logger.AddPrompt(prompt.JavaAST)
+		i.logger.AddPrompt("```\n")
+		i.logger.Start()
+		defer func() {
+			i.logger.AddPrompt("\n```\n")
+			i.logger.Stop()
+		}()
+	}
+
 	if Verbosity > 2 {
 		i.showFileStatsReport(TopK)
 		i.showNameCountSection("Annotations", []string{"Annotation"}, topN(i.Annotations, TopK))
