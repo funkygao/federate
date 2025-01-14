@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"federate/internal/fs"
 	"federate/pkg/primitive"
 	"federate/pkg/tabular"
 	"github.com/fatih/color"
@@ -39,11 +38,6 @@ func (i *Info) ShowReport() {
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))
-
-	if false && fs.IsRunningInITerm2() {
-		log.Println()
-		fs.DisplayJPGInITerm2("templates/arch_layer.jpg")
-	}
 }
 
 func (i *Info) showNameCountSection(title string, namesHeader []string, nameCounts ...[]primitive.NameCount) {
