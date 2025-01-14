@@ -97,7 +97,7 @@ func (i *Info) showNameCountSection(title string, namesHeader []string, nameCoun
 		}
 	}
 
-	i.writeSectionHeader("Top %s: %d", title, TopK)
+	i.writeSectionHeader("Top %d %s", TopK, title)
 	i.writeSectionBody(func() {
 		tabular.Display(headers, cellData, false, -1)
 	})

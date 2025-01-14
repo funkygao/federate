@@ -10,16 +10,8 @@ import (
 	"strings"
 
 	"federate/pkg/javast/ast"
+	"federate/pkg/util"
 )
-
-// ASTInfo 结构体用于解析 JSON 输出
-type ASTInfo struct {
-	Imports     []string `json:"imports"`
-	Classes     []string `json:"classes"`
-	Methods     []string `json:"methods"`
-	Variables   []string `json:"variables"`
-	MethodCalls []string `json:"methodCalls"`
-}
 
 func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 	tempDir, jarPath, err := prepareJavastJar()
@@ -43,7 +35,9 @@ func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 	}
 
 	var astInfo ast.Info
-	err = json.Unmarshal(stdout.Bytes(), &astInfo)
+	b := stdout.Bytes()
+	log.Printf("json size: %s", util.ByteSize(len(b)))
+	err = json.Unmarshal(b, &astInfo)
 	if err != nil {
 		return nil, fmt.Errorf("error parsing JSON output: %v", err)
 	}
