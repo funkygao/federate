@@ -28,7 +28,8 @@ func (i *Info) ShowReport() {
 	}
 
 	log.Println()
-	i.showNameCountSection("Methods", []string{"Declaration", "Call"}, topN(i.Methods, TopK), topN(i.MethodCalls, TopK))
+	i.showNameCountSection("Methods", []string{"NonStatic Declaration", "Static Declaration", "Call"},
+		topN(i.Methods, TopK), topN(i.StaticMethodDeclarations, TopK), topN(i.MethodCalls, TopK))
 	log.Println()
 	i.showNameCountSection("Variables", []string{"Declaration", "Reference"}, topN(i.Variables, TopK), topN(i.VariableReferences, TopK))
 	log.Println()

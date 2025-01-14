@@ -9,9 +9,10 @@ public class ASTInfo {
     List<String> imports = new ArrayList<>();
     List<String> classes = new ArrayList<>();
     List<String> methods = new ArrayList<>();
+    List<String> staticMethodDeclarations = new ArrayList<>();
+    List<String> methodCalls = new ArrayList<>();
     List<String> variables = new ArrayList<>();
     List<String> variableReferences = new ArrayList<>();
-    List<String> methodCalls = new ArrayList<>();
 
     Map<String, List<String>> inheritance = new HashMap<>();
     Map<String, List<String>> interfaces = new HashMap<>();

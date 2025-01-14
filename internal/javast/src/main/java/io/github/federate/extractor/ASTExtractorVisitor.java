@@ -95,7 +95,11 @@ public class ASTExtractorVisitor extends BaseExtractor {
 
     @Override
     public void visit(MethodDeclaration n, Void arg) {
-        astInfo.methods.add(n.getNameAsString());
+        if (n.isStatic()) {
+            astInfo.staticMethodDeclarations.add(n.getNameAsString());
+        } else {
+            astInfo.methods.add(n.getNameAsString());
+        }
         n.getAnnotations().forEach(this::processAnnotation);
         super.visit(n, arg);
     }
@@ -260,7 +264,7 @@ public class ASTExtractorVisitor extends BaseExtractor {
         info.associatedStreamOp = findAssociatedStreamOp(n);
         info.pattern = identifyPattern(n);
         astInfo.lambdaInfos.add(info);
-        
+
         super.visit(n, arg);
     }
 

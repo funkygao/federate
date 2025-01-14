@@ -57,21 +57,22 @@ type FunctionalUsage struct {
 type Info struct {
 	logger *prompt.PromptLogger `json:"-"`
 
-	Imports            []string             `json:"imports"`
-	Classes            []string             `json:"classes"`
-	Methods            []string             `json:"methods"`
-	Variables          []string             `json:"variables"`
-	VariableReferences []string             `json:"variableReferences"`
-	MethodCalls        []string             `json:"methodCalls"`
-	Inheritance        map[string][]string  `json:"inheritance"`
-	Interfaces         map[string][]string  `json:"interfaces"`
-	Annotations        []string             `json:"annotations"`
-	ComplexConditions  []ComplexCondition   `json:"complexConditions"`
-	Compositions       []CompositionInfo    `json:"compositions"`
-	ComplexLoops       []ComplexLoop        `json:"complexLoops"`
-	FunctionalUsages   []FunctionalUsage    `json:"functionalUsages"`
-	LambdaInfos        []LambdaInfo         `json:"lambdaInfos"`
-	FileStats          map[string]FileStats `json:"fileStats"`
+	Imports                  []string             `json:"imports"`
+	Classes                  []string             `json:"classes"`
+	Methods                  []string             `json:"methods"` // 非静态方法声明
+	StaticMethodDeclarations []string             `json:"staticMethodDeclarations"`
+	MethodCalls              []string             `json:"methodCalls"`
+	Variables                []string             `json:"variables"`
+	VariableReferences       []string             `json:"variableReferences"`
+	Inheritance              map[string][]string  `json:"inheritance"`
+	Interfaces               map[string][]string  `json:"interfaces"`
+	Annotations              []string             `json:"annotations"`
+	ComplexConditions        []ComplexCondition   `json:"complexConditions"`
+	Compositions             []CompositionInfo    `json:"compositions"`
+	ComplexLoops             []ComplexLoop        `json:"complexLoops"`
+	FunctionalUsages         []FunctionalUsage    `json:"functionalUsages"`
+	LambdaInfos              []LambdaInfo         `json:"lambdaInfos"`
+	FileStats                map[string]FileStats `json:"fileStats"`
 }
 
 func topN(items any, n int) []primitive.NameCount {
