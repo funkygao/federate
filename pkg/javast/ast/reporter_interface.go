@@ -36,6 +36,9 @@ func (i *Info) showInterfacesReport() {
 		}
 	}
 
+	// Store the significant clusters in Info struct
+	i.SignificantInterfaceClusters = significantClusters
+
 	// 显示集群摘要
 	i.writeSectionHeader("Significant Interface Hierarchies")
 	log.Printf("Interfaces involved in significant hierarchies: %d", len(tree))

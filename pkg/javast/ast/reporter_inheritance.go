@@ -23,6 +23,9 @@ func (i *Info) showInheritanceReport() {
 		}
 	}
 
+	// Store the significant clusters in Info struct
+	i.SignificantInheritanceClusters = significantClusters
+
 	// Render summary
 	i.writeSectionHeader("Significant Class Inheritance Hierarchies")
 	log.Printf("Classes involved in inheritance: %d", countClassesWithInheritance(tree))

@@ -1,0 +1,45 @@
+Business Logic Layer Identification:
+Service and Controller Mapping: Identify and map out service classes, controllers, and their interactions. This helps in understanding how the application's business logic is structured and how requests flow through the system.
+Implementation: Analyze package and class naming conventions (e.g., classes in service, controller, repository packages). Look for annotations like @Service, @Controller, @RestController, @Repository to categorize classes.
+Business Process Identification: Trace and report on sequences of method calls that represent high-level business processes.
+Implementation: Analyze method call chains starting from controller classes, following through services to repositories. Generate call graphs for these flows.
+
+Code Smell Detection:
+God Classes: Identify classes that have large size or too many responsibilities.
+Feature Envy: Detect methods that heavily use data or methods from other classes.
+Long Parameter Lists: Find methods with excessive parameters, which can indicate poor design.
+Implementation: Use established code smell detection heuristics on the AST data.
+
+
+Concurrency Analysis:
+Threading Constructs Usage: Identify usage of threads, locks, synchronization primitives, and potential concurrency issues like deadlocks or race conditions.
+Implementation: Look for usage of synchronized blocks, Thread class, ExecutorService, locks, and other concurrency utilities.
+
+
+Logging and Monitoring Analysis:
+Logging Usage: Analyze how logging is implemented, identify areas with excessive logging or lack of logging in critical areas.
+Implementation: Search for logging library usage (e.g., log.info, log.debug) and map their distribution across the codebase.
+
+
+Annotation and Framework Usage Report:
+Custom and Framework Annotations: Generate a report on the usage of annotations, which can provide insights into framework usage and configuration.
+Implementation: Collect and categorize annotations used in the code, highlighting those related to frameworks like Spring (@Autowired, @Transactional).
+
+
+Design Pattern Detection:
+Common Design Patterns: Identify implementations of common design patterns (Singleton, Factory, Observer, etc.).
+Implementation: Use pattern recognition in the AST, looking for specific class structures, method signatures, and relationships that match known patterns.
+
+
+API and Protocol Usage Analysis:
+External API Calls: Identify code that makes calls to external APIs, web services, or uses specific protocols.
+Implementation: Analyze import statements and method calls to classes known to perform external communication.
+
+Event Handling and Messaging Analysis:
+Publishers and Subscribers: Map out event producers and consumers within the codebase.
+Implementation: Identify usage of messaging frameworks (e.g., JMS, Kafka) and annotations or methods that define event handling.
+
+
+Potential Performance Issues:
+Heavy Operations in Loops: Detect inefficient code patterns like database queries or I/O operations inside loops.
+Implementation: Analyze loop constructs and the operations within them, flagging known expensive operations.

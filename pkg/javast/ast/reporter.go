@@ -38,6 +38,9 @@ func (i *Info) ShowReport() {
 	log.Println()
 	i.showInheritanceReport()
 	log.Println()
+	i.showClusterRelationships()
+	log.Println()
+
 	i.showComplexConditionsReport()
 	log.Println()
 	i.showCompositionReport()

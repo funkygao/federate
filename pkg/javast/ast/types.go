@@ -4,7 +4,6 @@ import (
 	"sort"
 
 	"federate/pkg/primitive"
-	"federate/pkg/prompt"
 )
 
 type ClassNode struct {
@@ -28,6 +27,12 @@ type InterfaceCluster struct {
 	Root       *InterfaceNode
 	Depth      int
 	ClassCount int
+}
+
+type ClusterRelationship struct {
+	FromCluster string
+	Relation    string
+	ToCluster   string
 }
 
 type ReflectionUsage struct {
@@ -82,28 +87,6 @@ type FunctionalUsage struct {
 	Type       string `json:"type"`
 	Operation  string `json:"operation"`
 	Context    string `json:"context"`
-}
-
-type Info struct {
-	logger *prompt.PromptLogger `json:"-"`
-
-	Imports                  []string             `json:"imports"`
-	Classes                  []string             `json:"classes"`
-	Methods                  []string             `json:"methods"` // 非静态方法声明
-	StaticMethodDeclarations []string             `json:"staticMethodDeclarations"`
-	MethodCalls              []string             `json:"methodCalls"`
-	Variables                []string             `json:"variables"`
-	VariableReferences       []string             `json:"variableReferences"`
-	Inheritance              map[string][]string  `json:"inheritance"`
-	Interfaces               map[string][]string  `json:"interfaces"`
-	Annotations              []string             `json:"annotations"`
-	ComplexConditions        []ComplexCondition   `json:"complexConditions"`
-	Compositions             []CompositionInfo    `json:"compositions"`
-	ComplexLoops             []ComplexLoop        `json:"complexLoops"`
-	FunctionalUsages         []FunctionalUsage    `json:"functionalUsages"`
-	LambdaInfos              []LambdaInfo         `json:"lambdaInfos"`
-	FileStats                map[string]FileStats `json:"fileStats"`
-	ReflectionUsages         []ReflectionUsage    `json:"reflectionUsages"`
 }
 
 func topN(items any, n int) []primitive.NameCount {
