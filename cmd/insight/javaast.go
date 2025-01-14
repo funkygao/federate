@@ -37,4 +37,8 @@ func init() {
 	astCmd.Flags().BoolVarP(&ast.GeneratePrompt, "generate-prompt", "g", false, "Generate LLM Prompt for further insight")
 	astCmd.Flags().IntVarP(&ast.Verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 	astCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
+
+	if ast.GeneratePrompt {
+		color.NoColor = true
+	}
 }
