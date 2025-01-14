@@ -2,8 +2,6 @@ package ast
 
 import (
 	"strings"
-
-	"federate/pkg/primitive"
 )
 
 func (i *Info) ApplyFilters(filters ...Filter) *Info {
@@ -71,9 +69,9 @@ func (f *AnnotationsFilter) Apply(info *Info) *Info {
 type CompositionsFilter struct {
 }
 
-func (f *AnnotationsFilter) Apply(info *Info) *Info {
+func (f *CompositionsFilter) Apply(info *Info) *Info {
 	var compositions []CompositionInfo
-	for _, comp = range info.Compositions {
+	for _, comp := range info.Compositions {
 		if !ignoredCompositionTypes.Contains(comp.ComposedClass) && !strings.Contains(comp.ComposedClass, "<") {
 			compositions = append(compositions, comp)
 		}

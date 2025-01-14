@@ -2,6 +2,7 @@ package ast
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -24,7 +25,7 @@ func (i *Info) showFunctionalUsageReport() {
 
 	// 显示使用统计
 	for usageType, operations := range usageMap {
-		fmt.Printf("\n%s usage:\n", strings.Title(usageType))
+		log.Printf("%s usage:", strings.Title(usageType))
 		var cellData [][]string
 		for op, count := range operations {
 			cellData = append(cellData, []string{op, fmt.Sprintf("%d", count)})
@@ -38,7 +39,7 @@ func (i *Info) showFunctionalUsageReport() {
 	}
 
 	// 显示一些示例用法
-	fmt.Println("\nSample Usages:")
+	log.Println("Sample Usages:")
 	var cellData [][]string
 	for _, usage := range i.FunctionalUsages[:min(10, len(i.FunctionalUsages))] {
 		cellData = append(cellData, []string{
