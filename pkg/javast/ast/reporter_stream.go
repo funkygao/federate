@@ -8,11 +8,10 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
-	"github.com/fatih/color"
 )
 
 func (i *Info) showFunctionalUsageReport() {
-	color.Magenta("Functional Programming Usage:")
+	i.writeSectionHeader("Functional Programming Usage:")
 
 	// 按类型和操作分组
 	usageMap := make(map[string]map[string]int)

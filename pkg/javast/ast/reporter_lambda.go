@@ -2,12 +2,10 @@ package ast
 
 import (
 	"fmt"
-
-	"github.com/fatih/color"
 )
 
 func (i *Info) showLambdaReport() {
-	color.Magenta("Lambda and Stream Usage Analysis:")
+	i.writeSectionHeader("Lambda and Stream Usage Analysis:")
 
 	// 行数分布
 	lineCounts := make(map[string]int)

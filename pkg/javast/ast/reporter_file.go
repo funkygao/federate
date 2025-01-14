@@ -7,11 +7,10 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
-	"github.com/fatih/color"
 )
 
 func (i *Info) showFileStatsReport(topN int) {
-	color.Magenta("Top %d Files by Different Metrics:", topN)
+	i.writeSectionHeader("Top %d Files by Different Metrics:", topN)
 
 	var fileStatsList []FileStats
 	for _, stats := range i.FileStats {

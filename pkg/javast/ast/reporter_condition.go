@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
-	"github.com/fatih/color"
 )
 
 func (i *Info) showComplexConditionsReport() {
@@ -26,6 +25,6 @@ func (i *Info) showComplexConditionsReport() {
 		})
 	}
 
-	color.Magenta("Complex Conditions:")
+	i.writeSectionHeader("Complex Conditions:")
 	tabular.Display([]string{"File", "Method", "Line", "Condition", "Score"}, cellData, false, -1)
 }

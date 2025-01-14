@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
-	"github.com/fatih/color"
 )
 
 func (i *Info) showComplexLoopsReport() {
@@ -30,6 +29,6 @@ func (i *Info) showComplexLoopsReport() {
 			fmt.Sprintf("%d", loop.BodySize),
 		})
 	}
-	color.Magenta("Top Complex Loop Structures: %d", TopK)
+	i.writeSectionHeader("Top Complex Loop Structures: %d", TopK)
 	tabular.Display([]string{"File", "Method", "Line", "Loop Type", "Nested", "Body"}, cellData, false, -1)
 }

@@ -2,11 +2,11 @@ package ast
 
 import (
 	"fmt"
+	"log"
 	"sort"
 
 	"federate/pkg/tabular"
 	"github.com/emirpasic/gods/trees/redblacktree"
-	"github.com/fatih/color"
 )
 
 type ClassNode struct {
@@ -35,30 +35,30 @@ func (i *Info) showInheritanceReport() {
 	}
 
 	// Render summary
-	color.Magenta("Significant Class Inheritance Hierarchies:")
-	color.Magenta("  - Total classes: %d, Classes involved in inheritance: %d", len(i.Classes), countClassesWithInheritance(tree))
-	color.Magenta("  - Significant inheritance clusters : %d", len(significantClusters))
-	fmt.Println()
+	i.writeSectionHeader("Significant Class Inheritance Hierarchies")
+	log.Printf("Classes involved in inheritance: %d", countClassesWithInheritance(tree))
+	log.Printf("Significant inheritance clusters: %d", len(significantClusters))
+	log.Println()
 
 	// Show TopK deepest clusters
-	showTopKClusters(significantClusters, "Deepest", TopK, func(c1, c2 InheritanceCluster) bool {
+	i.showTopKClusters(significantClusters, "Deepest", TopK, func(c1, c2 InheritanceCluster) bool {
 		return c1.Depth > c2.Depth
 	})
 	// Show TopK largest clusters
-	showTopKClusters(significantClusters, "Largest Size", TopK, func(c1, c2 InheritanceCluster) bool {
+	i.showTopKClusters(significantClusters, "Largest Size", TopK, func(c1, c2 InheritanceCluster) bool {
 		return c1.ClassCount > c2.ClassCount
 	})
-	fmt.Println()
+	log.Println()
 
 	// Render the clusters
 	if Verbosity > 1 && len(significantClusters) > 0 {
-		color.Magenta("%d Significant Class Inheritance Clusters Details:", len(significantClusters))
+		i.writeSectionHeader("%d Significant Class Inheritance Clusters Details:", len(significantClusters))
 
 		for i, cluster := range significantClusters {
 			isLast := i == len(significantClusters)-1
 			printSignificantTree(cluster.Root, 0, isLast, "")
 			if !isLast {
-				fmt.Println() // Add a blank line between major inheritance trees
+				log.Println()
 			}
 		}
 	}
@@ -158,7 +158,7 @@ func printSignificantTree(node *ClassNode, depth int, isLast bool, prefix string
 		}
 	}
 
-	fmt.Printf("%s%s\n", nodePrefix, node.Name)
+	log.Printf("%s%s\n", nodePrefix, node.Name)
 
 	sort.Slice(node.Children, func(i, j int) bool {
 		return node.Children[i].Name < node.Children[j].Name
@@ -192,7 +192,7 @@ func countClassesWithInheritance(tree *redblacktree.Tree) int {
 	return count
 }
 
-func showTopKClusters(clusters []InheritanceCluster, label string, k int, less func(InheritanceCluster, InheritanceCluster) bool) {
+func (i *Info) showTopKClusters(clusters []InheritanceCluster, label string, k int, less func(InheritanceCluster, InheritanceCluster) bool) {
 	sort.Slice(clusters, func(i, j int) bool {
 		return less(clusters[i], clusters[j])
 	})
@@ -205,7 +205,7 @@ func showTopKClusters(clusters []InheritanceCluster, label string, k int, less f
 	for _, cluster := range clusters[:k] {
 		cellData = append(cellData, []string{cluster.Root.Name, fmt.Sprintf("%d", cluster.Depth), fmt.Sprintf("%d", cluster.ClassCount)})
 	}
-	color.Magenta("Top %d %s Inheritance Clusters:", k, label)
+	i.writeSectionHeader("Top %d %s Inheritance Clusters:", k, label)
 	tabular.Display([]string{"Root Class", "Depth", "Class Count"}, cellData, false, -1)
 }
 

@@ -14,10 +14,9 @@ func (i *Info) ShowReport() {
 	if GeneratePrompt {
 		i.logger = prompt.NewPromptLogger()
 		i.logger.AddPrompt(prompt.JavaAST)
-		i.logger.AddPrompt("```\n")
+		i.logger.AddPrompt("\n\n")
 		i.logger.Start()
 		defer func() {
-			i.logger.AddPrompt("\n```\n")
 			i.logger.Stop()
 		}()
 	}
@@ -52,6 +51,15 @@ func (i *Info) ShowReport() {
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))
 }
 
+func (i *Info) writeSectionHeader(format string, v ...any) {
+	title := fmt.Sprintf(format, v...)
+	color.Magenta(title)
+
+	if GeneratePrompt {
+		i.logger.AddPrompt("\n### %s\n\n", title)
+	}
+}
+
 func (i *Info) showNameCountSection(title string, namesHeader []string, nameCounts ...[]primitive.NameCount) {
 	var headers []string
 	for _, name := range namesHeader {
@@ -79,6 +87,6 @@ func (i *Info) showNameCountSection(title string, namesHeader []string, nameCoun
 		}
 	}
 
-	color.Magenta("Top %s: %d", title, TopK)
+	i.writeSectionHeader("Top %s: %d", title, TopK)
 	tabular.Display(headers, cellData, false, -1)
 }

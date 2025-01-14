@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"federate/pkg/tabular"
-	"github.com/fatih/color"
 )
 
 func (i *Info) showCompositionReport() {
@@ -47,6 +46,6 @@ func (i *Info) showCompositionReport() {
 		})
 	}
 
-	color.Magenta("Top Class Compositions: %d", TopK)
+	i.writeSectionHeader("Top Class Compositions: %d", TopK)
 	tabular.Display([]string{"Composed Class", "Usage Count", "Sample Containing Classes"}, cellData, false, -1)
 }
