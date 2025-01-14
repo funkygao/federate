@@ -72,10 +72,31 @@ func (i *Info) showClusterRelationships() {
 		}
 	}
 
+	// Check for compositions where either the containing class or the composed class is a significant cluster root
+	for _, comp := range i.Compositions {
+		containingClass := comp.ContainingClass
+		composedClass := comp.ComposedClass
+
+		// Check if both the containing and composed classes are significant cluster roots
+		isContainingClassSignificant := inheritanceRoots[containingClass] != nil || interfaceRoots[containingClass] != nil
+		isComposedClassSignificant := inheritanceRoots[composedClass] != nil || interfaceRoots[composedClass] != nil
+
+		if isContainingClassSignificant && isComposedClassSignificant {
+			relationships = append(relationships, ClusterRelationship{
+				FromCluster: containingClass,
+				Relation:    "composes",
+				ToCluster:   composedClass,
+			})
+		}
+	}
+
 	// Sort relationships for better presentation
 	sort.Slice(relationships, func(a, b int) bool {
 		if relationships[a].FromCluster != relationships[b].FromCluster {
 			return relationships[a].FromCluster < relationships[b].FromCluster
+		}
+		if relationships[a].Relation != relationships[b].Relation {
+			return relationships[a].Relation < relationships[b].Relation
 		}
 		return relationships[a].ToCluster < relationships[b].ToCluster
 	})
