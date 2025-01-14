@@ -10,6 +10,7 @@ import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import io.github.federate.extractor.data.ReflectionUsage;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -122,6 +123,38 @@ public class ASTExtractorVisitor extends BaseExtractor {
             analyzeFunctionalUsage(n, "stream", n.getNameAsString());
         }
         super.visit(n, arg);
+
+        String methodName = n.getNameAsString();
+        if (isReflectionMethod(methodName)) {
+            astInfo.reflectionUsages.add(new ReflectionUsage(
+                    "method",
+                    methodName,
+                    getCurrentFileName(n),
+                    n.getBegin().get().line
+            ));
+        }
+    }
+
+    @Override
+    public void visit(ObjectCreationExpr n, Void arg) {
+        super.visit(n, arg);
+        if (n.getType().getNameAsString().equals("Proxy")) {
+            astInfo.reflectionUsages.add(new ReflectionUsage(
+                    "proxy",
+                    "Proxy.newProxyInstance",
+                    getCurrentFileName(n),
+                    n.getBegin().get().line
+            ));
+        }
+    }
+
+    private String getCurrentFileName(Node n) {
+        return n.findCompilationUnit().get().getStorage().get().getFileName();
+    }
+
+    private boolean isReflectionMethod(String methodName) {
+        return Arrays.asList("getClass", "forName", "newInstance", "getMethod", "getDeclaredMethod",
+                "getField", "getDeclaredField", "invoke", "setAccessible").contains(methodName);
     }
 
     private void processAnnotation(AnnotationExpr annotation) {

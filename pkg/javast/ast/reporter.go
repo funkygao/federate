@@ -47,6 +47,8 @@ func (i *Info) ShowReport() {
 	i.showFunctionalUsageReport()
 	log.Println()
 	i.showLambdaReport()
+	log.Println()
+	i.showReflectionReport()
 
 	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
 		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))

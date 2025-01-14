@@ -1,5 +1,7 @@
 package io.github.federate.extractor;
 
+import io.github.federate.extractor.data.ReflectionUsage;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,4 +26,5 @@ public class ASTInfo {
     List<FunctionalUsage> functionalUsages = new ArrayList<>();
     Map<String, FileStats> fileStats = new HashMap<>();
     List<LambdaInfo> lambdaInfos = new ArrayList<>();
+    List<ReflectionUsage> reflectionUsages = new ArrayList<>();
 }

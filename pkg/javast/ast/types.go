@@ -30,6 +30,13 @@ type InterfaceCluster struct {
 	ClassCount int
 }
 
+type ReflectionUsage struct {
+	Type       string `json:"type"`
+	Name       string `json:"name"`
+	Location   string `json:"location"`
+	LineNumber int    `json:"lineNumber"`
+}
+
 type LambdaInfo struct {
 	LineCount          int    `json:"lineCount"`
 	ParameterCount     int    `json:"parameterCount"`
@@ -96,6 +103,7 @@ type Info struct {
 	FunctionalUsages         []FunctionalUsage    `json:"functionalUsages"`
 	LambdaInfos              []LambdaInfo         `json:"lambdaInfos"`
 	FileStats                map[string]FileStats `json:"fileStats"`
+	ReflectionUsages         []ReflectionUsage    `json:"reflectionUsages"`
 }
 
 func topN(items any, n int) []primitive.NameCount {
