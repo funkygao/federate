@@ -64,7 +64,9 @@ func (i *Info) showFileStatsReport(topN int) {
 		combinedData = append(combinedData, row)
 	}
 
-	tabular.Display(headers, combinedData, false, -1)
+	i.writeSectionBody(func() {
+		tabular.Display(headers, combinedData, false, -1)
+	})
 }
 
 func getTopNDataByFields(stats []FileStats, n int) [][]string {

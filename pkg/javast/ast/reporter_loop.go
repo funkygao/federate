@@ -30,5 +30,7 @@ func (i *Info) showComplexLoopsReport() {
 		})
 	}
 	i.writeSectionHeader("Top Complex Loop Structures: %d", TopK)
-	tabular.Display([]string{"File", "Method", "Line", "Loop Type", "Nested", "Body"}, cellData, false, -1)
+	i.writeSectionBody(func() {
+		tabular.Display([]string{"File", "Method", "Line", "Loop Type", "Nested", "Body"}, cellData, false, -1)
+	})
 }

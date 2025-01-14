@@ -206,7 +206,9 @@ func (i *Info) showTopKClusters(clusters []InheritanceCluster, label string, k i
 		cellData = append(cellData, []string{cluster.Root.Name, fmt.Sprintf("%d", cluster.Depth), fmt.Sprintf("%d", cluster.ClassCount)})
 	}
 	i.writeSectionHeader("Top %d %s Inheritance Clusters:", k, label)
-	tabular.Display([]string{"Root Class", "Depth", "Class Count"}, cellData, false, -1)
+	i.writeSectionBody(func() {
+		tabular.Display([]string{"Root Class", "Depth", "Class Count"}, cellData, false, -1)
+	})
 }
 
 func calculateClassCount(node *ClassNode) int {

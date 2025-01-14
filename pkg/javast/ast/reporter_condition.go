@@ -26,5 +26,7 @@ func (i *Info) showComplexConditionsReport() {
 	}
 
 	i.writeSectionHeader("Complex Conditions:")
-	tabular.Display([]string{"File", "Method", "Line", "Condition", "Score"}, cellData, false, -1)
+	i.writeSectionBody(func() {
+		tabular.Display([]string{"File", "Method", "Line", "Condition", "Score"}, cellData, false, -1)
+	})
 }

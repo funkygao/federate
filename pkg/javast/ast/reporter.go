@@ -60,6 +60,16 @@ func (i *Info) writeSectionHeader(format string, v ...any) {
 	}
 }
 
+func (i *Info) writeSectionBody(content func()) {
+	if GeneratePrompt {
+		i.logger.AddPrompt("```\n")
+		content()
+		i.logger.AddPrompt("```\n\n")
+	} else {
+		content()
+	}
+}
+
 func (i *Info) showNameCountSection(title string, namesHeader []string, nameCounts ...[]primitive.NameCount) {
 	var headers []string
 	for _, name := range namesHeader {
@@ -88,5 +98,7 @@ func (i *Info) showNameCountSection(title string, namesHeader []string, nameCoun
 	}
 
 	i.writeSectionHeader("Top %s: %d", title, TopK)
-	tabular.Display(headers, cellData, false, -1)
+	i.writeSectionBody(func() {
+		tabular.Display(headers, cellData, false, -1)
+	})
 }

@@ -34,7 +34,10 @@ func (i *Info) showFunctionalUsageReport() {
 			countJ, _ := strconv.Atoi(cellData[j][1])
 			return countI > countJ
 		})
-		tabular.Display([]string{"Operation", "Count"}, cellData, false, -1)
+
+		i.writeSectionBody(func() {
+			tabular.Display([]string{"Operation", "Count"}, cellData, false, -1)
+		})
 	}
 
 	// 显示一些示例用法
@@ -50,5 +53,8 @@ func (i *Info) showFunctionalUsageReport() {
 			fmt.Sprintf("%d", usage.LineNumber),
 		})
 	}
-	tabular.Display([]string{"File", "Method", "Type", "Operation", "Context", "Line"}, cellData, false, -1)
+
+	i.writeSectionBody(func() {
+		tabular.Display([]string{"File", "Method", "Type", "Operation", "Context", "Line"}, cellData, false, -1)
+	})
 }

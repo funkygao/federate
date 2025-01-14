@@ -47,5 +47,7 @@ func (i *Info) showCompositionReport() {
 	}
 
 	i.writeSectionHeader("Top Class Compositions: %d", TopK)
-	tabular.Display([]string{"Composed Class", "Usage Count", "Sample Containing Classes"}, cellData, false, -1)
+	i.writeSectionBody(func() {
+		tabular.Display([]string{"Composed Class", "Usage Count", "Sample Containing Classes"}, cellData, false, -1)
+	})
 }
