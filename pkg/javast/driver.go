@@ -22,6 +22,7 @@ const (
 	CmdUpdatePropertyRefKey    CmdName = "update-property-keys"
 	CmdTransformImportResource CmdName = "transform-import-resource"
 	CmdTransformResourceInject CmdName = "transform-resource"
+	CmdExtractAST              CmdName = "extract-ast"
 )
 
 type Command struct {

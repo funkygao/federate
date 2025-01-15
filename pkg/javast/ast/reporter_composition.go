@@ -8,7 +8,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showCompositionReport() {
+func (i *Info) showCompositionReport() (empty bool) {
 	// 统计每个类被组合的次数，同时过滤掉忽略的类型
 	compositionCounts := make(map[string]int)
 	for _, comp := range i.Compositions {
@@ -50,4 +50,6 @@ func (i *Info) showCompositionReport() {
 	i.writeSectionBody(func() {
 		tabular.Display([]string{"Composed Class", "Usage Count", "Sample Containing Classes"}, cellData, false, -1)
 	})
+
+	return
 }

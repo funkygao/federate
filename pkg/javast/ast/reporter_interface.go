@@ -8,7 +8,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showInterfacesReport() {
+func (i *Info) showInterfacesReport() (empty bool) {
 	interfaceCounts := make(map[string]int)
 	for _, interfaces := range i.Interfaces {
 		for _, iface := range interfaces {
@@ -67,6 +67,8 @@ func (i *Info) showInterfacesReport() {
 			}
 		}
 	}
+
+	return
 }
 
 func (i *Info) showTopKInterfaceClusters(clusters []InterfaceCluster, label string, k int, less func(InterfaceCluster, InterfaceCluster) bool) {

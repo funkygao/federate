@@ -9,7 +9,7 @@ import (
 	"github.com/emirpasic/gods/trees/redblacktree"
 )
 
-func (i *Info) showInheritanceReport() {
+func (i *Info) showInheritanceReport() (empty bool) {
 	tree := buildInheritanceTree(i.Inheritance)
 
 	significantClusters := []InheritanceCluster{}
@@ -54,6 +54,8 @@ func (i *Info) showInheritanceReport() {
 			}
 		}
 	}
+
+	return
 }
 
 func buildInheritanceTree(inheritance map[string][]string) *redblacktree.Tree {

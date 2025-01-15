@@ -9,7 +9,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showComplexConditionsReport() {
+func (i *Info) showComplexConditionsReport() (empty bool) {
 	sort.Slice(i.ComplexConditions, func(a, b int) bool {
 		return i.ComplexConditions[a].Complexity > i.ComplexConditions[b].Complexity
 	})
@@ -29,4 +29,6 @@ func (i *Info) showComplexConditionsReport() {
 	i.writeSectionBody(func() {
 		tabular.Display([]string{"File", "Method", "Line", "Condition", "Score"}, cellData, false, -1)
 	})
+
+	return
 }

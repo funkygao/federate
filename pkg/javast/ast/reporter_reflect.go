@@ -7,7 +7,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showReflectionReport() {
+func (i *Info) showReflectionReport() (empty bool) {
 	// 按类型统计反射使用
 	typeCount := make(map[string]int)
 	for _, usage := range i.ReflectionUsages {
@@ -48,4 +48,6 @@ func (i *Info) showReflectionReport() {
 			tabular.Display([]string{"Type", "Name", "Location", "Line"}, cellData, false, -1)
 		})
 	}
+
+	return
 }

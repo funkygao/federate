@@ -10,51 +10,50 @@ import (
 	"github.com/fatih/color"
 )
 
+type SectionReporter func() (empty bool)
+
 func (i *Info) ShowReport() {
 	if GeneratePrompt {
 		i.logger = prompt.NewPromptLogger()
-		i.logger.AddPrompt(prompt.JavaAST)
-		i.logger.AddPrompt("\n## The Detailed Java AST Report\n\n")
+		i.logger.AddPrompt("# The Detailed Java AST Report\n\n")
 		i.logger.Start()
-		defer func() {
-			i.logger.Stop()
-		}()
+		defer i.logger.Stop()
 	}
 
-	if Verbosity > 2 {
-		i.showFileStatsReport(TopK)
-		i.showNameCountSection("Annotations", []string{"Annotation"}, topN(i.Annotations, TopK))
-		i.showNameCountSection("Imports", []string{"Import"}, topN(i.Imports, TopK))
+	sections := []SectionReporter{
+		// overview
+		i.showOverviewReport,
+
+		// clusters
+		i.showInterfacesReport,
+		i.showInheritanceReport,
+		i.showClusterRelationships,
+		i.showCompositionReport,
+
+		// computing/logic intensive
+		i.showComplexConditionsReport,
+		i.showComplexLoopsReport,
+		i.showReflectionReport,
+
+		// TODO: try catch, concurrency，哪个类 if/switch 最多
+
+		// FP
+		i.showFunctionalUsageReport,
+		i.showLambdaReport,
+
+		// Transaction
+		i.showTransactionReport,
 	}
 
-	log.Println()
-	i.showNameCountSection("Methods", []string{"NonStatic Declaration", "Static Declaration", "Call"},
-		topN(i.Methods, TopK), topN(i.StaticMethodDeclarations, TopK), topN(i.MethodCalls, TopK))
-	log.Println()
-	i.showNameCountSection("Variables", []string{"Declaration", "Reference"}, topN(i.Variables, TopK), topN(i.VariableReferences, TopK))
-	log.Println()
+	for i, section := range sections {
+		if empty := section(); !empty && i != len(sections)-1 {
+			log.Println()
+		}
+	}
 
-	i.showInterfacesReport()
-	log.Println()
-	i.showInheritanceReport()
-	log.Println()
-	i.showClusterRelationships()
-	log.Println()
-
-	i.showComplexConditionsReport()
-	log.Println()
-	i.showCompositionReport()
-	log.Println()
-	i.showComplexLoopsReport()
-	log.Println()
-	i.showFunctionalUsageReport()
-	log.Println()
-	i.showLambdaReport()
-	log.Println()
-	i.showReflectionReport()
-
-	log.Printf("\nTotal classes: %d, methods: %d, variables: %d, variable references: %d, method calls: %d",
-		len(i.Classes), len(i.Methods), len(i.Variables), len(i.VariableReferences), len(i.MethodCalls))
+	if GeneratePrompt {
+		i.logger.AddPrompt(prompt.JavaAST)
+	}
 }
 
 func (i *Info) writeSectionHeader(format string, v ...any) {
@@ -62,7 +61,7 @@ func (i *Info) writeSectionHeader(format string, v ...any) {
 	color.Magenta(title)
 
 	if GeneratePrompt {
-		i.logger.AddPrompt("\n### %s\n\n", title)
+		i.logger.AddPrompt("\n## %s\n\n", title)
 	}
 }
 

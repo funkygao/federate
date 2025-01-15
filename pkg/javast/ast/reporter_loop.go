@@ -9,7 +9,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showComplexLoopsReport() {
+func (i *Info) showComplexLoopsReport() (empty bool) {
 	// 按嵌套级别和循环体大小排序
 	sort.Slice(i.ComplexLoops, func(a, b int) bool {
 		if i.ComplexLoops[a].NestingLevel != i.ComplexLoops[b].NestingLevel {
@@ -33,4 +33,6 @@ func (i *Info) showComplexLoopsReport() {
 	i.writeSectionBody(func() {
 		tabular.Display([]string{"File", "Method", "Line", "Loop Type", "Nested", "Body Size"}, cellData, false, -1)
 	})
+
+	return
 }

@@ -6,7 +6,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showClusterRelationships() {
+func (i *Info) showClusterRelationships() (empty bool) {
 	var relationships []ClusterRelationship
 
 	// Build maps of cluster roots for quick lookup
@@ -117,4 +117,6 @@ func (i *Info) showClusterRelationships() {
 			tabular.Display([]string{"Inheritance Cluster Root", "Relation", "Interface Cluster Root"}, cellData, false, -1)
 		})
 	}
+
+	return
 }

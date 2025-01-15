@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"time"
 
 	"federate/pkg/javast/ast"
 	"federate/pkg/util"
@@ -20,7 +21,7 @@ func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	args := []string{"-jar", jarPath, root, "extract-ast"}
+	args := []string{"-jar", jarPath, root, CmdExtractAST}
 	cmd := exec.Command("java", args...)
 	if d.verbose {
 		log.Printf("[%s] Executing: %s", root, strings.Join(cmd.Args, " "))
@@ -29,17 +30,24 @@ func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
+	t0 := time.Now()
+
 	err = cmd.Run()
 	if err != nil {
 		return nil, fmt.Errorf("error running ASTExtractor: %v\nStderr: %s", err, stderr.String())
 	}
 
+	t1 := time.Now()
+
 	var astInfo ast.Info
 	b := stdout.Bytes()
-	log.Printf("json size: %s", util.ByteSize(len(b)))
-	err = json.Unmarshal(b, &astInfo)
-	if err != nil {
+	if err = json.Unmarshal(b, &astInfo); err != nil {
 		return nil, fmt.Errorf("error parsing JSON output: %v", err)
+	}
+
+	if d.verbose {
+		log.Printf("Java AST Extract cost: %s, AST JSON Unmarshal cost: %s, JSON Size: %s",
+			t1.Sub(t0), time.Since(t1), util.ByteSize(len(b)))
 	}
 
 	return &astInfo, nil

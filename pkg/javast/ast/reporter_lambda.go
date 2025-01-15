@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func (i *Info) showLambdaReport() {
+func (i *Info) showLambdaReport() (empty bool) {
 	// 行数分布
 	lineCounts := make(map[string]int)
 	for _, info := range i.LambdaInfos {
@@ -43,4 +43,6 @@ func (i *Info) showLambdaReport() {
 		patterns[info.Pattern]++
 	}
 	i.showNameCountSection("Lambda Patterns", []string{"Pattern"}, topN(mapToNameCount(patterns), TopK))
+
+	return
 }

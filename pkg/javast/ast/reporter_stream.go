@@ -10,9 +10,7 @@ import (
 	"federate/pkg/tabular"
 )
 
-func (i *Info) showFunctionalUsageReport() {
-	i.writeSectionHeader("Functional Programming Usage:")
-
+func (i *Info) showFunctionalUsageReport() (empty bool) {
 	// 按类型和操作分组
 	usageMap := make(map[string]map[string]int)
 	for _, usage := range i.FunctionalUsages {
@@ -54,7 +52,10 @@ func (i *Info) showFunctionalUsageReport() {
 		})
 	}
 
+	i.writeSectionHeader("Functional Programming Usage:")
 	i.writeSectionBody(func() {
 		tabular.Display([]string{"File", "Method", "Type", "Operation", "Context", "Line"}, cellData, false, -1)
 	})
+
+	return
 }

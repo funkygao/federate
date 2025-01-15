@@ -23,6 +23,9 @@ var astCmd = &cobra.Command{
 
 func runASTCommand(root string) {
 	driver := javast.NewJavastDriver()
+	if ast.Verbosity > 3 {
+		driver.Verbose()
+	}
 	astInfo, err := driver.ExtractAST(root)
 	if err != nil {
 		log.Fatalf("%s %v", root, err)
