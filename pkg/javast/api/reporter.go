@@ -32,7 +32,11 @@ func (i *Info) ShowReport() {
 		for _, method := range interfaceInfo.Methods {
 			params := make([]string, len(method.Parameters))
 			for j, param := range method.Parameters {
-				params[j] = param.Type + " " + param.Name
+				if isJDKType(param.Type) {
+					params[j] = param.Type + " " + param.Name
+				} else {
+					params[j] = param.Type
+				}
 			}
 			paramStr := strings.Join(params, ", ")
 
