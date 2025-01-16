@@ -10,45 +10,63 @@ import (
 	"strings"
 	"time"
 
+	"federate/pkg/javast/api"
 	"federate/pkg/javast/ast"
 	"federate/pkg/util"
 )
 
 func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
-	tempDir, jarPath, err := prepareJavastJar()
+	var info ast.Info
+	err := d.extractData(root, CmdExtractAST, &info)
 	if err != nil {
 		return nil, err
 	}
+	return &info, nil
+}
+
+func (d *javastDriver) ExtractAPI(root string) (*api.Info, error) {
+	var info api.Info
+	err := d.extractData(root, CmdExtractAPI, &info)
+	if err != nil {
+		return nil, err
+	}
+	return &info, nil
+}
+
+func (d *javastDriver) extractData(root string, cmd CmdName, result interface{}) error {
+	tempDir, jarPath, err := prepareJavastJar()
+	if err != nil {
+		return err
+	}
 	defer os.RemoveAll(tempDir)
 
-	args := []string{"-jar", jarPath, root, string(CmdExtractAST)}
-	cmd := exec.Command("java", args...)
+	args := []string{"-jar", jarPath, root, string(cmd)}
+	execCmd := exec.Command("java", args...)
 	if d.verbose {
-		log.Printf("[%s] Executing: %s", root, strings.Join(cmd.Args, " "))
+		log.Printf("[%s] Executing: %s", root, strings.Join(execCmd.Args, " "))
 	}
 	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	execCmd.Stdout = &stdout
+	execCmd.Stderr = &stderr
 
 	t0 := time.Now()
 
-	err = cmd.Run()
+	err = execCmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf("error running ASTExtractor: %v\nStderr: %s", err, stderr.String())
+		return fmt.Errorf("error running Extractor: %v\nStderr: %s", err, stderr.String())
 	}
 
 	t1 := time.Now()
 
-	var astInfo ast.Info
 	b := stdout.Bytes()
-	if err = json.Unmarshal(b, &astInfo); err != nil {
-		return nil, fmt.Errorf("error parsing JSON output: %v", err)
+	if err = json.Unmarshal(b, result); err != nil {
+		return fmt.Errorf("error parsing JSON output: %v", err)
 	}
 
 	if d.verbose {
-		log.Printf("Java AST Extract cost: %s, AST JSON Unmarshal cost: %s, JSON Size: %s",
+		log.Printf("Java Extract cost: %s, JSON Unmarshal cost: %s, JSON Size: %s",
 			t1.Sub(t0), time.Since(t1), util.ByteSize(len(b)))
 	}
 
-	return &astInfo, nil
+	return nil
 }

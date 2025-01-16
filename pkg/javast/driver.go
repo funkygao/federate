@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"federate/internal/fs"
+	"federate/pkg/javast/api"
 	"federate/pkg/javast/ast"
 	"federate/pkg/step"
 )
@@ -23,6 +24,7 @@ const (
 	CmdTransformImportResource CmdName = "transform-import-resource"
 	CmdTransformResourceInject CmdName = "transform-resource"
 	CmdExtractAST              CmdName = "extract-ast"
+	CmdExtractAPI              CmdName = "extract-api"
 )
 
 type Command struct {
@@ -34,6 +36,7 @@ type Command struct {
 type JavastDriver interface {
 	Invoke(bar step.Bar, commands ...Command) error
 	ExtractAST(root string) (*ast.Info, error)
+	ExtractAPI(root string) (*api.Info, error)
 	Verbose() JavastDriver
 }
 

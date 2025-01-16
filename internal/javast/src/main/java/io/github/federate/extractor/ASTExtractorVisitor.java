@@ -8,10 +8,9 @@ import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.VariableDeclarator;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
-import com.github.javaparser.ast.visitor.VoidVisitorAdapter;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import io.github.federate.extractor.info.*;
+import io.github.federate.extractor.ast.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -19,13 +18,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class ASTExtractorVisitor extends VoidVisitorAdapter<Void> {
+public class ASTExtractorVisitor extends BaseExtractor {
     private static final int SWITCH_SIZE = 5;
     private static final int IF_SIZE = 3;
     private static final Set<String> STREAM_OPERATIONS;
 
     private int currentNestingLevel = 0;
-    private final ASTInfo astInfo;
+    private final ASTInfo astInfo = new ASTInfo();
 
     static {
         STREAM_OPERATIONS = new HashSet<>(Arrays.asList(
@@ -56,10 +55,6 @@ public class ASTExtractorVisitor extends VoidVisitorAdapter<Void> {
                 "flatMapToInt", "flatMapToLong", "flatMapToDouble",
                 "boxed", "asLongStream", "asDoubleStream"
         ));
-    }
-
-    public ASTExtractorVisitor() {
-        this.astInfo = new ASTInfo();
     }
 
     @Override
@@ -390,7 +385,7 @@ public class ASTExtractorVisitor extends VoidVisitorAdapter<Void> {
                 .orElse("Unknown");
     }
 
-    public void finish() {
+    public void export() {
         Gson gson = new GsonBuilder().create();
         System.out.println(gson.toJson(astInfo));
     }

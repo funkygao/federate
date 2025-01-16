@@ -19,6 +19,7 @@ var (
 	}
 
 	JavaAST = fs.ParseTemplateToString("templates/prompt/java_ast.md", promptData)
+	JavaAPI = fs.ParseTemplateToString("templates/prompt/api_summary_zh.md", promptData)
 
 	WMSMyBatisCN   = fs.ParseTemplateToString("templates/prompt/mybatis_mapper_zh.md", promptData)
 	WMSMyBatisEN   = fs.ParseTemplateToString("templates/prompt/mybatis_mapper.md", promptData)

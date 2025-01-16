@@ -1,4 +1,4 @@
-package io.github.federate.extractor.info;
+package io.github.federate.extractor.ast;
 
 public class ComplexCondition {
     String fileName;

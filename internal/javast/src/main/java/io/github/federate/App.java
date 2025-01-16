@@ -4,7 +4,9 @@ import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.StaticJavaParser;
 import com.github.javaparser.ast.CompilationUnit;
 import com.google.gson.Gson;
+import io.github.federate.extractor.APIExtractorVisitor;
 import io.github.federate.extractor.ASTExtractorVisitor;
+import io.github.federate.extractor.BaseExtractor;
 import io.github.federate.visitor.*;
 
 import java.io.File;
@@ -68,7 +70,7 @@ public class App {
         config.setLanguageLevel(ParserConfiguration.LanguageLevel.JAVA_8);
         StaticJavaParser.setConfiguration(config);
 
-        ASTExtractorVisitor extractorVisitor = null;
+        BaseExtractor extractorVisitor = null;
         CompositeVisitor compositeVisitor = new CompositeVisitor();
         for (int i = 1; i < args.length; i += 2) {
             String commandName = args[i];
@@ -80,6 +82,8 @@ public class App {
 
             if (commandName.equals("extract-ast")) {
                 extractorVisitor = new ASTExtractorVisitor();
+            } else if (commandName.equals("extract-api")) {
+                extractorVisitor = new APIExtractorVisitor();
             }
         }
 
@@ -93,7 +97,7 @@ public class App {
         }
 
         if (extractorVisitor != null) {
-            extractorVisitor.finish();
+            extractorVisitor.export();
         }
     }
 
