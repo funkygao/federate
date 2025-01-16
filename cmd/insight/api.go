@@ -22,7 +22,7 @@ var apiCmd = &cobra.Command{
 }
 
 func runAPICommand(root string) {
-	driver := javast.NewJavastDriver().Verbose()
+	driver := javast.NewJavastDriver()
 	info, err := driver.ExtractAPI(root)
 	if err != nil {
 		log.Fatalf("%s %v", root, err)
