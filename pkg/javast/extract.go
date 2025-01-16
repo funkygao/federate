@@ -21,7 +21,7 @@ func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 	}
 	defer os.RemoveAll(tempDir)
 
-	args := []string{"-jar", jarPath, root, CmdExtractAST}
+	args := []string{"-jar", jarPath, root, string(CmdExtractAST)}
 	cmd := exec.Command("java", args...)
 	if d.verbose {
 		log.Printf("[%s] Executing: %s", root, strings.Join(cmd.Args, " "))

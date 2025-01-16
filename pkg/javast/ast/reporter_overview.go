@@ -1,5 +1,7 @@
 package ast
 
+import "log"
+
 func (i *Info) showOverviewReport() (empty bool) {
 	if Verbosity > 2 {
 		i.showFileStatsReport(TopK)
