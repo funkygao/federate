@@ -2,11 +2,15 @@ package util
 
 import (
 	"encoding/json"
+	"fmt"
 	"golang.org/x/term"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -182,4 +186,23 @@ func UniqueStrings(input []string) []string {
 func Beautify(d any) string {
 	b, _ := json.MarshalIndent(d, "", "  ")
 	return string(b)
+}
+
+func OpenBrowser(url string) {
+	var err error
+
+	switch runtime.GOOS {
+	case "linux":
+		err = exec.Command("xdg-open", url).Start()
+	case "windows":
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	case "darwin":
+		err = exec.Command("open", url).Start()
+	default:
+		err = fmt.Errorf("unsupported platform")
+	}
+
+	if err != nil {
+		log.Printf("Error opening browser: %v", err)
+	}
 }

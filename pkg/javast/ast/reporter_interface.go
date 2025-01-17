@@ -18,49 +18,22 @@ func (i *Info) showInterfacesReport() (empty bool) {
 
 	i.showNameCountSection("Implemented Interfaces", []string{"Interface"}, topN(mapToNameCount(interfaceCounts), TopK))
 
-	// 构建接口树并找出显著的集群
-	tree := i.buildInterfaceTree()
-	roots := findRootInterfaceClusters(tree)
-
-	significantClusters := []InterfaceCluster{}
-	for _, root := range roots {
-		// 只考虑接口节点
-		if isInterface(root, i.Interfaces) {
-			if isSignificantInterfaceTree(root, i.Interfaces) {
-				significantClusters = append(significantClusters, InterfaceCluster{
-					Root:       root,
-					Depth:      calculateInterfaceDepth(root),
-					ClassCount: calculateInterfaceClassCount(root),
-				})
-			}
-		}
-	}
-
-	// Store the significant clusters in Info struct
-	i.SignificantInterfaceClusters = significantClusters
-
-	// 显示集群摘要
-	i.writeSectionHeader("Significant Interface Hierarchies")
-	log.Printf("Interfaces involved in significant hierarchies: %d", len(tree))
-	log.Printf("Significant interface clusters: %d", len(significantClusters))
-	log.Println()
-
 	// 显示 TopK 最深的集群
-	i.showTopKInterfaceClusters(significantClusters, "Deepest", TopK, func(c1, c2 InterfaceCluster) bool {
+	i.showTopKInterfaceClusters(i.SignificantInterfaceClusters, "Deepest", TopK, func(c1, c2 InterfaceCluster) bool {
 		return c1.Depth > c2.Depth
 	})
 	// 显示 TopK 最大的集群
-	i.showTopKInterfaceClusters(significantClusters, "Largest Size", TopK, func(c1, c2 InterfaceCluster) bool {
+	i.showTopKInterfaceClusters(i.SignificantInterfaceClusters, "Largest Size", TopK, func(c1, c2 InterfaceCluster) bool {
 		return c1.ClassCount > c2.ClassCount
 	})
 	log.Println()
 
 	// 显示集群详情
-	if Verbosity > 1 && len(significantClusters) > 0 {
-		i.writeSectionHeader("%d Significant Interface Clusters Details:", len(significantClusters))
+	if Verbosity > 1 && len(i.SignificantInterfaceClusters) > 0 {
+		i.writeSectionHeader("%d Significant Interface Clusters Details:", len(i.SignificantInterfaceClusters))
 
-		for i, cluster := range significantClusters {
-			isLast := i == len(significantClusters)-1
+		for j, cluster := range i.SignificantInterfaceClusters {
+			isLast := j == len(i.SignificantInterfaceClusters)-1
 			printSignificantInterfaceTree(cluster.Root, 0, isLast, "")
 			if !isLast {
 				log.Println()

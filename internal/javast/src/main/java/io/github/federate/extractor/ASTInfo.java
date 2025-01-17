@@ -27,4 +27,5 @@ public class ASTInfo {
     Map<String, FileStats> fileStats = new HashMap<>();
     List<LambdaInfo> lambdaInfos = new ArrayList<>();
     List<ReflectionUsage> reflectionUsages = new ArrayList<>();
+    List<TransactionInfo> transactionInfos = new ArrayList<>();
 }

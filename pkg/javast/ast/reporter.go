@@ -13,6 +13,13 @@ import (
 type SectionReporter func() (empty bool)
 
 func (i *Info) ShowReport() {
+	i.PrepareData()
+
+	if Web {
+		i.StartWebServer("8080")
+		return
+	}
+
 	if GeneratePrompt {
 		i.logger = prompt.NewPromptLogger()
 		i.logger.AddPrompt("# The Detailed Java AST Report\n\n")

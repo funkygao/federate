@@ -16,3 +16,21 @@ Heavy Operations in Loops: Detect inefficient code patterns like database querie
 Implementation: Analyze loop constructs and the operations within them, flagging known expensive operations.
 
 业务意图的表达能力，业务还原度
+
+
+请提供 static/index.html， 要求：尽可能轻量级，界面简洁直观，顶部有导航，在不同区域间切换，全局可搜索，每个表格默认以数量降序排列，每个区域内部可搜索；
+表格要能够分页输出，对于数值类型的列，都可以升序、降序操作，默认降序，如果多个数值类型列，默认第一列降序；
+对于 js，考虑到这个页面功能简单，你需要使用最简单的js框架，页面代码不要臃肿，也要考虑复用性。
+interfaces.clusters 和 inheritance.clusters 都要显示为 如下 的树状形式，并可以搜索
+
+```
+AbstractAllocate
+├── AbstractLocatingAllocate
+│   ├── LocatingPickTimeFirst
+│   └── LocatingStorageEmptyFirst
+└── AbstractReplenishAllocate
+    ├── AbstractCommonReplenishAllocate
+    │   ├── ReplenishPickTimeFirst
+    │   └── ReplenishStorageEmptyFirst
+    └── ReplenishRequestQuantityAllocate
+```

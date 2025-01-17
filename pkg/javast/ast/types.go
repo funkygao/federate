@@ -50,6 +50,13 @@ type LambdaInfo struct {
 	Pattern            string `json:"pattern"`
 }
 
+type TransactionInfo struct {
+	MethodName string `json:"methodName"`
+	FileName   string `json:"fileName"`
+	LineNumber int    `json:"lineNumber"`
+	Type       string `json:"type"` // "Annotated" or "Imperative"
+}
+
 type FileStats struct {
 	FileName       string `json:"fileName"`
 	NetLinesOfCode int    `json:"netLinesOfCode"`

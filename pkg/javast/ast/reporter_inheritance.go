@@ -10,44 +10,22 @@ import (
 )
 
 func (i *Info) showInheritanceReport() (empty bool) {
-	tree := buildInheritanceTree(i.Inheritance)
-
-	significantClusters := []InheritanceCluster{}
-	for _, root := range findRootClusters(tree) {
-		if isSignificantTree(root) {
-			significantClusters = append(significantClusters, InheritanceCluster{
-				Root:       root,
-				Depth:      calculateDepth(root),
-				ClassCount: calculateClassCount(root),
-			})
-		}
-	}
-
-	// Store the significant clusters in Info struct
-	i.SignificantInheritanceClusters = significantClusters
-
-	// Render summary
-	i.writeSectionHeader("Significant Class Inheritance Hierarchies")
-	log.Printf("Classes involved in inheritance: %d", countClassesWithInheritance(tree))
-	log.Printf("Significant inheritance clusters: %d", len(significantClusters))
-	log.Println()
-
 	// Show TopK deepest clusters
-	i.showTopKClusters(significantClusters, "Deepest", TopK, func(c1, c2 InheritanceCluster) bool {
+	i.showTopKClusters(i.SignificantInheritanceClusters, "Deepest", TopK, func(c1, c2 InheritanceCluster) bool {
 		return c1.Depth > c2.Depth
 	})
 	// Show TopK largest clusters
-	i.showTopKClusters(significantClusters, "Largest Size", TopK, func(c1, c2 InheritanceCluster) bool {
+	i.showTopKClusters(i.SignificantInheritanceClusters, "Largest Size", TopK, func(c1, c2 InheritanceCluster) bool {
 		return c1.ClassCount > c2.ClassCount
 	})
 	log.Println()
 
 	// Render the clusters
-	if Verbosity > 1 && len(significantClusters) > 0 {
-		i.writeSectionHeader("%d Significant Class Inheritance Clusters Details:", len(significantClusters))
+	if Verbosity > 1 && len(i.SignificantInheritanceClusters) > 0 {
+		i.writeSectionHeader("%d Significant Class Inheritance Clusters Details:", len(i.SignificantInheritanceClusters))
 
-		for i, cluster := range significantClusters {
-			isLast := i == len(significantClusters)-1
+		for j, cluster := range i.SignificantInheritanceClusters {
+			isLast := j == len(i.SignificantInheritanceClusters)-1
 			printSignificantTree(cluster.Root, 0, isLast, "")
 			if !isLast {
 				log.Println()

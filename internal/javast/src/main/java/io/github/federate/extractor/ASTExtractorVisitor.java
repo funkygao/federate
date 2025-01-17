@@ -103,6 +103,8 @@ public class ASTExtractorVisitor extends BaseExtractor {
             astInfo.methods.add(n.getNameAsString());
         }
         n.getAnnotations().forEach(this::processAnnotation);
+        checkForTransactions(n);
+
         super.visit(n, arg);
     }
 
@@ -383,6 +385,37 @@ public class ASTExtractorVisitor extends BaseExtractor {
                 .filter(parent -> parent instanceof MethodCallExpr)
                 .map(parent -> ((MethodCallExpr) parent).getNameAsString())
                 .orElse("Unknown");
+    }
+
+    private void checkForTransactions(MethodDeclaration n) {
+        boolean isAnnotatedTransaction = n.getAnnotations().stream()
+                .anyMatch(a -> a.getNameAsString().equals("Transactional"));
+
+        boolean hasImperativeTransaction =n.getBody()
+                .map(body -> body.findAll(MethodCallExpr.class).stream()
+                        .anyMatch(this::isTransactionTemplateUsage))
+                .orElse(false);
+
+        if (isAnnotatedTransaction || hasImperativeTransaction) {
+            astInfo.transactionInfos.add(new TransactionInfo(
+                    n.getNameAsString(),
+                    getCurrentFileName(n),
+                    n.getBegin().get().line,
+                    isAnnotatedTransaction ? "Annotated" : "Imperative"
+            ));
+        }
+    }
+
+    private boolean isTransactionTemplateUsage(MethodCallExpr call) {
+        // 检查是否是TransactionTemplate的execute方法调用
+        if (call.getNameAsString().equals("execute")) {
+            return call.getScope()
+                    .filter(scope -> scope instanceof NameExpr)
+                    .map(scope -> ((NameExpr) scope).getNameAsString())
+                    .filter(name -> name.toLowerCase().contains("transactiontemplate"))
+                    .isPresent();
+        }
+        return false;
     }
 
     public void export() {

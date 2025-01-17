@@ -22,7 +22,9 @@ type Info struct {
 	LambdaInfos              []LambdaInfo         `json:"lambdaInfos"`
 	FileStats                map[string]FileStats `json:"fileStats"`
 	ReflectionUsages         []ReflectionUsage    `json:"reflectionUsages"`
+	TransactionInfos         []TransactionInfo    `json:"transactionInfos"`
 
 	SignificantInheritanceClusters []InheritanceCluster `json:"-"`
 	SignificantInterfaceClusters   []InterfaceCluster   `json:"-"`
+	Relations                      []ClusterRelationship
 }

@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AST Analysis Report</title>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        nav { 
+            background-color: #f8f9fa; 
+            padding: 10px 0; 
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        nav ul { 
+            list-style-type: none; 
+            padding: 0; 
+            margin: 0; 
+            display: flex; 
+            justify-content: center; 
+            flex-wrap: wrap; 
+        }
+        nav ul li { margin: 5px; }
+        nav ul li a { 
+            text-decoration: none; 
+            color: #007bff; 
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        nav ul li a:hover { background-color: #007bff; color: white; }
+        h1, h2 { color: #333; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; cursor: pointer; }
+        .search { margin-bottom: 10px; }
+        .search input { width: 100%; padding: 5px; }
+        .pagination { display: flex; justify-content: center; margin-top: 10px; }
+        .pagination button { margin: 0 5px; }
+        .tree-table { display: flex; justify-content: space-between; }
+        .tree-table > div { width: 48%; }
+        
+        /* 新增：为每个 section 添加不同的背景色 */
+        nav ul li a.file-stats { background-color: #e6f3ff; }
+        nav ul li a.annotations { background-color: #e6ffe6; }
+        nav ul li a.imports { background-color: #fff0e6; }
+        nav ul li a.classes { background-color: #f3e6ff; }
+        nav ul li a.methods { background-color: #ffe6e6; }
+        nav ul li a.variables { background-color: #e6fffa; }
+        nav ul li a.inheritance { background-color: #fff5e6; }
+        nav ul li a.interfaces { background-color: #e6f9ff; }
+        nav ul li a.relations { background-color: #ffe6f9; }
+        nav ul li a.compositions { background-color: #f0ffe6; }
+        nav ul li a.complex-conditions { background-color: #ffe6eb; }
+        nav ul li a.complex-loops { background-color: #e6ecff; }
+        nav ul li a.reflection-usages { background-color: #fff0f0; }
+        nav ul li a.functional-usages { background-color: #f0f0ff; }
+        nav ul li a.lambda-infos { background-color: #f0fff0; }
+    </style>
+</head>
+<body x-data="reportData()" x-init="fetchData">
+    <nav>
+        <ul>
+            <template x-for="section in sections" :key="section">
+                <li>
+                    <a :href="'#' + section.toLowerCase().replace(' ', '-')" 
+                       :class="section.toLowerCase().replace(' ', '-')"
+                       x-text="section"></a>
+                </li>
+            </template>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <h1>AST Analysis Report</h1>
+        <div class="search">
+            <input type="text" x-model="globalSearch" placeholder="Global search...">
+        </div>
+
+        <template x-for="section in sections" :key="section">
+            <div :id="section.toLowerCase().replace(' ', '-')">
+                <h2 x-text="section"></h2>
+                <div class="search">
+                    <input type="text" x-model="sectionSearch[section]" :placeholder="'Search ' + section.toLowerCase() + '...'">
+                </div>
+                <template x-if="['Inheritance', 'Interfaces'].includes(section)">
+                    <div class="tree-table">
+                        <div>
+                            <h3>Hierarchy</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Depth</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="item in filteredTreeData(section)" :key="item.Root.Name">
+                                        <tr>
+                                            <td x-text="item.Root.Name"></td>
+                                            <td x-text="item.Depth"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div>
+                            <h3>Details</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Root</th>
+                                        <th>Children</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <template x-for="item in filteredTreeData(section)" :key="item.Root.Name">
+                                        <tr>
+                                            <td x-text="item.Root.Name"></td>
+                                            <td x-text="item.Root.Children ? item.Root.Children.map(c => c.Name).join(', ') : ''"></td>
+                                        </tr>
+                                    </template>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </template>
+                <template x-if="!['Inheritance', 'Interfaces'].includes(section)">
+                    <table>
+                        <thead>
+                            <tr>
+                                <template x-for="column in getColumns(section)" :key="column">
+                                    <th @click="sortTable(section, column)" x-text="column"></th>
+                                </template>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="item in filteredData(section)" :key="item.id">
+                                <tr>
+                                    <template x-for="column in getColumns(section)" :key="column">
+                                        <td x-text="item[column]"></td>
+                                    </template>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </template>
+                <div class="pagination">
+                    <button @click="prevPage(section)" :disabled="currentPage[section] === 1">Previous</button>
+                    <span x-text="currentPage[section]"></span>
+                    <button @click="nextPage(section)" :disabled="currentPage[section] === totalPages(section)">Next</button>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <script>
+function reportData() {
+    return {
+        data: null,
+        sections: [
+            'File Stats', 'Annotations', 'Imports', 'Classes', 'Methods', 'Variables',
+            'Inheritance', 'Interfaces', 'Relations', 'Compositions', 'Complex Conditions',
+            'Complex Loops', 'Reflection Usages', 'Functional Usages', 'Lambda Infos'
+        ],
+        globalSearch: '',
+        sectionSearch: {},
+        currentPage: {},
+        itemsPerPage: 10,
+        sortColumn: {},
+        sortDirection: {},
+
+        fetchData() {
+            fetch('/report')
+                .then(response => response.json())
+                .then(data => {
+                    this.data = data;
+                    this.sections.forEach(section => {
+                        this.sectionSearch[section] = '';
+                        this.currentPage[section] = 1;
+                        this.sortColumn[section] = this.getColumns(section)[0] || '';
+                        this.sortDirection[section] = 'desc';
+                    });
+                });
+        },
+
+        getColumns(section) {
+            if (!this.data) return [];
+            const sectionKey = section.toLowerCase().replace(' ', '');
+            const sectionData = this.data[sectionKey];
+            if (Array.isArray(sectionData) && sectionData.length > 0) {
+                return Object.keys(sectionData[0]);
+            }
+            if (typeof sectionData === 'object' && sectionData !== null) {
+                return Object.keys(sectionData);
+            }
+            return [];
+        },
+
+        filteredData(section) {
+            if (!this.data) return [];
+            const sectionKey = section.toLowerCase().replace(' ', '');
+            let filteredData = this.data[sectionKey] || [];
+            if (!Array.isArray(filteredData)) {
+                filteredData = Object.entries(filteredData).map(([key, value]) => ({ name: key, ...value }));
+            }
+            const search = (this.sectionSearch[section] || '').toLowerCase();
+            const globalSearch = this.globalSearch.toLowerCase();
+
+            filteredData = filteredData.filter(item =>
+                Object.values(item).some(val =>
+                    String(val).toLowerCase().includes(search) &&
+                    String(val).toLowerCase().includes(globalSearch)
+                )
+            );
+
+            const column = this.sortColumn[section];
+            const direction = this.sortDirection[section];
+            if (column) {
+                filteredData.sort((a, b) => {
+                    if (a[column] < b[column]) return direction === 'asc' ? -1 : 1;
+                    if (a[column] > b[column]) return direction === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            const start = (this.currentPage[section] - 1) * this.itemsPerPage;
+            return filteredData.slice(start, start + this.itemsPerPage);
+        },
+
+        filteredTreeData(section) {
+            if (!this.data) return [];
+            const sectionKey = section.toLowerCase();
+            let treeData = this.data[sectionKey]?.clusters || [];
+            const search = (this.sectionSearch[section] || '').toLowerCase();
+            const globalSearch = this.globalSearch.toLowerCase();
+
+            return treeData.filter(item =>
+                item.Root.Name.toLowerCase().includes(search) &&
+                item.Root.Name.toLowerCase().includes(globalSearch)
+            );
+        },
+
+        sortTable(section, column) {
+            if (this.sortColumn[section] === column) {
+                this.sortDirection[section] = this.sortDirection[section] === 'asc' ? 'desc' : 'asc';
+            } else {
+                this.sortColumn[section] = column;
+                this.sortDirection[section] = 'desc';
+            }
+        },
+
+        prevPage(section) {
+            if (this.currentPage[section] > 1) {
+                this.currentPage[section]--;
+            }
+        },
+
+        nextPage(section) {
+            if (this.currentPage[section] < this.totalPages(section)) {
+                this.currentPage[section]++;
+            }
+        },
+
+        totalPages(section) {
+            if (!this.data) return 1;
+            const sectionKey = section.toLowerCase().replace(' ', '');
+            const filteredData = this.data[sectionKey] || [];
+            return Math.ceil(filteredData.length / this.itemsPerPage);
+        }
+    };
+}
+
+    </script>
+</body>
+</html>
