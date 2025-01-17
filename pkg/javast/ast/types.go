@@ -64,11 +64,25 @@ type FileStats struct {
 	FieldCount     int    `json:"fieldCount"`
 }
 
+type ConcurrencyUsage struct {
+	ClassName  string `json:"className"`
+	MethodName string `json:"methodName"`
+	Type       string `json:"type"`
+	Details    string `json:"details"`
+	LineNumber int    `json:"lineNumber"`
+}
+
 type ExceptionCatchInfo struct {
 	ClassName      string   `json:"className"`
 	MethodName     string   `json:"methodName"`
 	ExceptionTypes []string `json:"exceptionTypes"`
 	LineNumber     int      `json:"lineNumber"`
+}
+
+type MethodThrowsInfo struct {
+	ClassName        string   `json:"className"`
+	MethodName       string   `json:"methodName"`
+	ThrownExceptions []string `json:"thrownExceptions"`
 }
 
 type CompositionInfo struct {

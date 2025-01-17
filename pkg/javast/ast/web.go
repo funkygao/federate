@@ -88,7 +88,9 @@ func (i *Info) GenerateReportJSON() map[string]interface{} {
 		"functionalUsages": i.FunctionalUsages,
 		"lambdaInfos":      i.LambdaInfos,
 
-		"exceptionCatches": i.ExceptionCatches,
-		"transactions":     i.TransactionInfos,
+		"methodThrows":      i.MethodThrows,
+		"exceptionCatches":  i.ExceptionCatches,
+		"transactions":      i.TransactionInfos,
+		"concurrencyUsages": i.ConcurrencyUsages,
 	}
 }

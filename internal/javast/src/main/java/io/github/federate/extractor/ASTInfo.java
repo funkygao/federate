@@ -29,4 +29,6 @@ public class ASTInfo {
     List<ReflectionUsage> reflectionUsages = new ArrayList<>();
     List<TransactionInfo> transactionInfos = new ArrayList<>();
     List<ExceptionCatchInfo> exceptionCatches = new ArrayList<>();
+    List<MethodThrowsInfo> methodThrows = new ArrayList<>();
+    List<ConcurrencyUsage> concurrencyUsages = new ArrayList<>();
 }

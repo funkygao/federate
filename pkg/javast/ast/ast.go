@@ -24,6 +24,8 @@ type Info struct {
 	ReflectionUsages         []ReflectionUsage    `json:"reflectionUsages"`
 	TransactionInfos         []TransactionInfo    `json:"transactionInfos"`
 	ExceptionCatches         []ExceptionCatchInfo `json:"exceptionCatches"`
+	MethodThrows             []MethodThrowsInfo   `json:"methodThrows"`
+	ConcurrencyUsages        []ConcurrencyUsage   `json:"concurrencyUsages"`
 
 	SignificantInheritanceClusters []InheritanceCluster `json:"-"`
 	SignificantInterfaceClusters   []InterfaceCluster   `json:"-"`

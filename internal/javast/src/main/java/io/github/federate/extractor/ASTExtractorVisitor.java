@@ -102,7 +102,37 @@ public class ASTExtractorVisitor extends BaseExtractor {
         n.getAnnotations().forEach(this::processAnnotation);
         checkForTransactions(n);
 
+        // 检查方法体内的 throw 语句
+        ClassOrInterfaceDeclaration clazz = n.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+        if (clazz != null) {
+            String className = clazz.getNameAsString();
+            String methodName = n.getNameAsString();
+            MethodThrowsInfo methodThrowsInfo = new MethodThrowsInfo(className, methodName);
+
+            n.walk(Node.TreeTraversal.PREORDER, node -> {
+                if (node instanceof ThrowStmt) {
+                    ThrowStmt throwStmt = (ThrowStmt) node;
+                    String exceptionType = getExceptionTypeAsString(throwStmt.getExpression());
+                    methodThrowsInfo.addException(exceptionType);
+                }
+            });
+
+            if (!methodThrowsInfo.getThrownExceptions().isEmpty()) {
+                astInfo.methodThrows.add(methodThrowsInfo);
+            }
+        }
+
         super.visit(n, arg);
+    }
+
+    private String getExceptionTypeAsString(Expression expression) {
+        if (expression instanceof ObjectCreationExpr) {
+            return ((ObjectCreationExpr) expression).getType().asString();
+        } else if (expression instanceof NameExpr) {
+            return ((NameExpr) expression).getNameAsString();
+        } else {
+            return "Unknown";
+        }
     }
 
     @Override
@@ -128,17 +158,58 @@ public class ASTExtractorVisitor extends BaseExtractor {
                     n.getBegin().get().line
             ));
         }
+
+        // 检查线程池提交任务
+        if (isThreadPoolSubmit(n)) {
+            addConcurrencyUsage(n, "ThreadPool", n.getNameAsString());
+        }
     }
 
     @Override
     public void visit(ObjectCreationExpr n, Void arg) {
         super.visit(n, arg);
+
+        // 检查直接创建新线程
+        if (isNewThread(n)) {
+            addConcurrencyUsage(n, "NewThread", "new Thread()");
+        }
+
         if (n.getType().getNameAsString().equals("Proxy")) {
             astInfo.reflectionUsages.add(new ReflectionUsage(
                     "proxy",
                     "Proxy.newProxyInstance",
                     getCurrentFileName(n),
                     n.getBegin().get().line
+            ));
+        }
+    }
+
+    private boolean isThreadPoolSubmit(MethodCallExpr n) {
+        String methodName = n.getNameAsString();
+        return Arrays.asList("submit", "execute").contains(methodName) &&
+                n.getScope().isPresent() &&
+                n.getScope().get().toString().toLowerCase().contains("executor");
+    }
+
+    private boolean isNewThread(ObjectCreationExpr n) {
+        return n.getType().asString().equals("Thread");
+    }
+
+    private void addConcurrencyUsage(Node n, String type, String details) {
+        MethodDeclaration method = n.findAncestor(MethodDeclaration.class).orElse(null);
+        ClassOrInterfaceDeclaration clazz = n.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+
+        if (method != null && clazz != null) {
+            String className = clazz.getNameAsString();
+            String methodName = method.getNameAsString();
+            int lineNumber = n.getBegin().get().line;
+
+            astInfo.concurrencyUsages.add(new ConcurrencyUsage(
+                    className,
+                    methodName,
+                    type,
+                    details,
+                    lineNumber
             ));
         }
     }
