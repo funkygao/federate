@@ -50,6 +50,8 @@ func (i *Info) ShowReport() {
 
 		// Transaction
 		i.showTransactionReport,
+
+		i.showExceptionCatches,
 	}
 
 	for i, section := range sections {

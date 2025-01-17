@@ -12,10 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import io.github.federate.extractor.ast.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class ASTExtractorVisitor extends BaseExtractor {
@@ -284,6 +281,32 @@ public class ASTExtractorVisitor extends BaseExtractor {
             return ((BlockStmt) body).getStatements().size();
         } else {
             return 1; // 如果循环体不是块语句，就当作一个语句计数
+        }
+    }
+
+    @Override
+    public void visit(TryStmt n, Void arg) {
+        super.visit(n, arg);
+
+        MethodDeclaration method = n.findAncestor(MethodDeclaration.class).orElse(null);
+        ClassOrInterfaceDeclaration clazz = n.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
+
+        if (method != null && clazz != null) {
+            String className = clazz.getNameAsString();
+            String methodName = method.getNameAsString();
+            int lineNumber = n.getBegin().get().line;
+
+            List<String> exceptionTypes = new ArrayList<>();
+            for (CatchClause catchClause : n.getCatchClauses()) {
+                exceptionTypes.add(catchClause.getParameter().getType().asString());
+            }
+
+            astInfo.exceptionCatches.add(new ExceptionCatchInfo(
+                    className,
+                    methodName,
+                    exceptionTypes,
+                    lineNumber
+            ));
         }
     }
 

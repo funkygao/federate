@@ -28,4 +28,5 @@ public class ASTInfo {
     List<LambdaInfo> lambdaInfos = new ArrayList<>();
     List<ReflectionUsage> reflectionUsages = new ArrayList<>();
     List<TransactionInfo> transactionInfos = new ArrayList<>();
+    List<ExceptionCatchInfo> exceptionCatches = new ArrayList<>();
 }

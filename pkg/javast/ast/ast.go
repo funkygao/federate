@@ -23,6 +23,7 @@ type Info struct {
 	FileStats                map[string]FileStats `json:"fileStats"`
 	ReflectionUsages         []ReflectionUsage    `json:"reflectionUsages"`
 	TransactionInfos         []TransactionInfo    `json:"transactionInfos"`
+	ExceptionCatches         []ExceptionCatchInfo `json:"exceptionCatches"`
 
 	SignificantInheritanceClusters []InheritanceCluster `json:"-"`
 	SignificantInterfaceClusters   []InterfaceCluster   `json:"-"`

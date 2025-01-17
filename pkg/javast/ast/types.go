@@ -64,6 +64,13 @@ type FileStats struct {
 	FieldCount     int    `json:"fieldCount"`
 }
 
+type ExceptionCatchInfo struct {
+	ClassName      string   `json:"className"`
+	MethodName     string   `json:"methodName"`
+	ExceptionTypes []string `json:"exceptionTypes"`
+	LineNumber     int      `json:"lineNumber"`
+}
+
 type CompositionInfo struct {
 	ContainingClass string `json:"containingClass"`
 	ComposedClass   string `json:"composedClass"`
