@@ -26,6 +26,7 @@ type Info struct {
 	ExceptionCatches         []ExceptionCatchInfo `json:"exceptionCatches"`
 	MethodThrows             []MethodThrowsInfo   `json:"methodThrows"`
 	ConcurrencyUsages        []ConcurrencyUsage   `json:"concurrencyUsages"`
+	Enums                    []EnumInfo           `json:"enums"`
 
 	SignificantInheritanceClusters []InheritanceCluster `json:"-"`
 	SignificantInterfaceClusters   []InterfaceCluster   `json:"-"`

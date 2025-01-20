@@ -2,10 +2,7 @@ package io.github.federate.extractor;
 
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.Node;
-import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
-import com.github.javaparser.ast.body.FieldDeclaration;
-import com.github.javaparser.ast.body.MethodDeclaration;
-import com.github.javaparser.ast.body.VariableDeclarator;
+import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
 import com.google.gson.Gson;
@@ -121,6 +118,20 @@ public class ASTExtractorVisitor extends BaseExtractor {
                 astInfo.methodThrows.add(methodThrowsInfo);
             }
         }
+
+        super.visit(n, arg);
+    }
+
+    @Override
+    public void visit(EnumDeclaration n, Void arg) {
+        String enumName = n.getNameAsString();
+        List<String> enumValues = new ArrayList<>();
+        for (EnumConstantDeclaration constant : n.getEntries()) {
+            enumValues.add(constant.getNameAsString());
+        }
+        String fileName = n.findCompilationUnit().get().getStorage().get().getFileName();
+
+        astInfo.enums.add(new EnumInfo(enumName, enumValues, fileName));
 
         super.visit(n, arg);
     }

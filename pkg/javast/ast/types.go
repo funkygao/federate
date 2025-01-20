@@ -42,6 +42,12 @@ type ReflectionUsage struct {
 	LineNumber int    `json:"lineNumber"`
 }
 
+type EnumInfo struct {
+	Name     string   `json:"name"`
+	Values   []string `json:"values"`
+	FileName string   `json:"fileName"`
+}
+
 type LambdaInfo struct {
 	LineCount          int    `json:"lineCount"`
 	ParameterCount     int    `json:"parameterCount"`

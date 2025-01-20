@@ -54,6 +54,8 @@ func (i *Info) ShowReport() {
 		i.showExceptionCatches,
 		i.showMethodThrows,
 		i.showConcurrencyUsages,
+
+		i.showEnumReport,
 	}
 
 	for i, section := range sections {

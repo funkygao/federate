@@ -30,5 +30,6 @@ public class ASTInfo {
     List<TransactionInfo> transactionInfos = new ArrayList<>();
     List<ExceptionCatchInfo> exceptionCatches = new ArrayList<>();
     List<MethodThrowsInfo> methodThrows = new ArrayList<>();
+    List<EnumInfo> enums = new ArrayList<>();
     List<ConcurrencyUsage> concurrencyUsages = new ArrayList<>();
 }
