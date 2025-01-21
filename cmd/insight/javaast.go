@@ -10,7 +10,7 @@ import (
 )
 
 var astCmd = &cobra.Command{
-	Use:   "ast <dir>",
+	Use:   "java <dir>",
 	Short: "Mining Java AST Graph Knowledge from a Java source directory",
 	Run: func(cmd *cobra.Command, args []string) {
 		root := "."

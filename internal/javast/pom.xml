@@ -26,7 +26,7 @@
     <dependencies>
         <dependency>
             <groupId>com.github.javaparser</groupId>
-            <artifactId>javaparser-core</artifactId>
+            <artifactId>javaparser-symbol-solver-core</artifactId>
             <version>3.25.4</version>
         </dependency>
         <dependency>

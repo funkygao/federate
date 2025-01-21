@@ -25,6 +25,7 @@ const (
 	CmdTransformResourceInject CmdName = "transform-resource"
 	CmdExtractAST              CmdName = "extract-ast"
 	CmdExtractAPI              CmdName = "extract-api"
+	CmdExtractRef              CmdName = "extract-ref"
 )
 
 type Command struct {
@@ -37,6 +38,7 @@ type JavastDriver interface {
 	Invoke(bar step.Bar, commands ...Command) error
 	ExtractAST(root string) (*ast.Info, error)
 	ExtractAPI(root string) (*api.Info, error)
+	ExtractRef(root, name string) (map[string][]string, error)
 	Verbose() JavastDriver
 }
 

@@ -5,8 +5,6 @@ import com.github.javaparser.ast.Node;
 import com.github.javaparser.ast.body.*;
 import com.github.javaparser.ast.expr.*;
 import com.github.javaparser.ast.stmt.*;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.github.federate.extractor.ast.*;
 
 import java.util.*;
@@ -524,7 +522,6 @@ public class ASTExtractorVisitor extends BaseExtractor {
     }
 
     public void export() {
-        Gson gson = new GsonBuilder().create();
-        System.out.println(gson.toJson(astInfo));
+        super.export(astInfo);
     }
 }

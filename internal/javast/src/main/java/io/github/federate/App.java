@@ -7,6 +7,7 @@ import com.google.gson.Gson;
 import io.github.federate.extractor.APIExtractorVisitor;
 import io.github.federate.extractor.ASTExtractorVisitor;
 import io.github.federate.extractor.BaseExtractor;
+import io.github.federate.extractor.ReferenceExtractor;
 import io.github.federate.visitor.*;
 
 import java.io.File;
@@ -84,6 +85,8 @@ public class App {
                 extractorVisitor = new ASTExtractorVisitor();
             } else if (commandName.equals("extract-api")) {
                 extractorVisitor = new APIExtractorVisitor();
+            } else if (commandName.equals("extract-ref")) {
+                extractorVisitor = new ReferenceExtractor(commandArg, args[0]);
             }
         }
 

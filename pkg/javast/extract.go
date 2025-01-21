@@ -15,10 +15,17 @@ import (
 	"federate/pkg/util"
 )
 
+func (d *javastDriver) ExtractRef(root, name string) (map[string][]string, error) {
+	var info map[string][]string
+	if err := d.extractData(root, CmdExtractRef, &info, name); err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
 func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 	var info ast.Info
-	err := d.extractData(root, CmdExtractAST, &info)
-	if err != nil {
+	if err := d.extractData(root, CmdExtractAST, &info); err != nil {
 		return nil, err
 	}
 	return &info, nil
@@ -26,14 +33,13 @@ func (d *javastDriver) ExtractAST(root string) (*ast.Info, error) {
 
 func (d *javastDriver) ExtractAPI(root string) (*api.Info, error) {
 	var info api.Info
-	err := d.extractData(root, CmdExtractAPI, &info)
-	if err != nil {
+	if err := d.extractData(root, CmdExtractAPI, &info); err != nil {
 		return nil, err
 	}
 	return &info, nil
 }
 
-func (d *javastDriver) extractData(root string, cmd CmdName, result interface{}) error {
+func (d *javastDriver) extractData(root string, cmd CmdName, result interface{}, extra ...string) error {
 	tempDir, jarPath, err := prepareJavastJar()
 	if err != nil {
 		return err
@@ -41,6 +47,7 @@ func (d *javastDriver) extractData(root string, cmd CmdName, result interface{})
 	defer os.RemoveAll(tempDir)
 
 	args := []string{"-jar", jarPath, root, string(cmd)}
+	args = append(args, extra...)
 	execCmd := exec.Command("java", args...)
 	if d.verbose {
 		log.Printf("[%s] Executing: %s", root, strings.Join(execCmd.Args, " "))

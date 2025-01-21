@@ -4,8 +4,6 @@ import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.MethodDeclaration;
 import com.github.javaparser.ast.body.Parameter;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.github.federate.extractor.api.InterfaceInfo;
 import io.github.federate.extractor.api.MethodInfo;
 import io.github.federate.extractor.api.ParameterInfo;
@@ -82,7 +80,6 @@ public class APIExtractorVisitor extends BaseExtractor {
 
     @Override
     public void export() {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        System.out.println(gson.toJson(interfaces));
+        super.export(interfaces);
     }
 }
