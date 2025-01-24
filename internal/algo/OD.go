@@ -57,12 +57,17 @@ func (c *Courier) HasSkill(skill string) bool {
 }
 
 func (c *Courier) InGeoFence(geoFence GeoFence) bool {
-	return distance(c.Position, geoFence.Center) <= geoFence.Radius
+	return c.Position.Distance(geoFence.Center) <= geoFence.Radius
 }
 
 // 定义点结构体
 type Point struct {
 	X, Y float64
+}
+
+// 欧几里得距离
+func (p1 *Point) Distance(p2 Point) float64 {
+	return math.Sqrt(math.Pow(p1.X-p2.X, 2) + math.Pow(p1.Y-p2.Y, 2))
 }
 
 // 地理围栏
@@ -84,11 +89,6 @@ func (t *TrafficData) CourierFactor(courierID int) float64 {
 		trafficFactor = 1.0 // 默认无拥堵
 	}
 	return trafficFactor
-}
-
-// 欧几里得距离
-func distance(p1, p2 Point) float64 {
-	return math.Sqrt(math.Pow(p1.X-p2.X, 2) + math.Pow(p1.Y-p2.Y, 2))
 }
 
 func calculateScore(courier Courier, task Task, dist float64, currentTime time.Time) float64 {
@@ -125,7 +125,7 @@ func assignTasks(tasks []Task, couriers []Courier, geoFence GeoFence, trafficDat
 				continue
 			}
 
-			dist := distance(task.Origin, courier.Position)
+			dist := task.Origin.Distance(courier.Position)
 			dist *= trafficData.CourierFactor(courier.ID)
 
 			timeToComplete := time.Duration(dist / 10 * float64(time.Hour))
@@ -159,7 +159,7 @@ func assignTasks(tasks []Task, couriers []Courier, geoFence GeoFence, trafficDat
 			courier := &couriers[assignedCourierID]
 			courier.AssignedTasks = append(courier.AssignedTasks, task.ID)
 			courier.CurrentLoad += task.Size
-			timeToComplete := time.Duration(distance(task.Origin, courier.Position) / 10 * float64(time.Hour))
+			timeToComplete := time.Duration(task.Origin.Distance(courier.Position) / 10 * float64(time.Hour))
 			courier.AvailableTime = courier.AvailableTime.Add(timeToComplete)
 			courier.Position = task.Destination
 
