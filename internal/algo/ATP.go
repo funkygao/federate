@@ -5,10 +5,17 @@ import (
 	"time"
 )
 
+// Product 表示一个产品
 type Product struct {
+	ID   string
+	Name string
+}
+
+// InventoryLocation 表示一个库存位置
+type InventoryLocation struct {
 	ID       string
 	Name     string
-	Quantity int
+	Quantity map[string]int // 每个产品的库存数量
 }
 
 type Order struct {
@@ -16,69 +23,99 @@ type Order struct {
 	ProductID string
 	Quantity  int
 	DueDate   time.Time
+	Location  string // 订单关联的库存位置
 }
 
-type Inventory struct {
-	Products map[string]*Product
-}
-
-// ATPSystem manages the ATP(Available to Promise) calculation process.
-type ATPSystem struct {
-	Inventory *Inventory
+// ParallelInventorySystem 管理平行库存系统
+type ParallelInventorySystem struct {
+	Products  map[string]Product
+	Locations map[string]*InventoryLocation
 	Orders    []Order
 }
 
-func NewATPSystem() *ATPSystem {
-	return &ATPSystem{
-		Inventory: &Inventory{
-			Products: make(map[string]*Product),
-		},
-		Orders: []Order{},
+func NewParallelInventorySystem() *ParallelInventorySystem {
+	return &ParallelInventorySystem{
+		Products:  make(map[string]Product),
+		Locations: make(map[string]*InventoryLocation),
+		Orders:    []Order{},
 	}
 }
 
-func (a *ATPSystem) AddProduct(p Product) {
-	a.Inventory.Products[p.ID] = &p
+func (pis *ParallelInventorySystem) AddProduct(p Product) {
+	pis.Products[p.ID] = p
 }
 
-func (a *ATPSystem) AddOrder(o Order) {
-	a.Orders = append(a.Orders, o)
+func (pis *ParallelInventorySystem) AddLocation(loc InventoryLocation) {
+	pis.Locations[loc.ID] = &loc
 }
 
-// CalculateATP calculates the Available to Promise quantity for a given product at a specific date.
-func (a *ATPSystem) CalculateATP(productID string, date time.Time) int {
-	product, exists := a.Inventory.Products[productID]
-	if !exists {
-		return 0
+func (pis *ParallelInventorySystem) AddInventory(locationID, productID string, quantity int) {
+	if loc, exists := pis.Locations[locationID]; exists {
+		if loc.Quantity == nil {
+			loc.Quantity = make(map[string]int)
+		}
+		loc.Quantity[productID] += quantity
 	}
+}
 
-	availableQuantity := product.Quantity
+func (pis *ParallelInventorySystem) AddOrder(o Order) {
+	pis.Orders = append(pis.Orders, o)
+}
 
-	for _, order := range a.Orders {
-		if order.ProductID == productID && order.DueDate.Before(date) {
-			availableQuantity -= order.Quantity
+// CalculateATP 计算特定产品在给定日期的 ATP(Available to Promise)
+func (pis *ParallelInventorySystem) CalculateATP(productID string, date time.Time) map[string]int {
+	atp := make(map[string]int)
+
+	// 计算每个位置的 ATP
+	for locID, loc := range pis.Locations {
+		quantity, exists := loc.Quantity[productID]
+		if !exists {
+			continue
+		}
+
+		availableQuantity := quantity
+
+		// 减去该位置在指定日期前的所有订单数量
+		for _, order := range pis.Orders {
+			if order.ProductID == productID && order.Location == locID && order.DueDate.Before(date) {
+				availableQuantity -= order.Quantity
+			}
+		}
+
+		if availableQuantity > 0 {
+			atp[locID] = availableQuantity
 		}
 	}
 
-	if availableQuantity < 0 {
-		return 0
-	}
-
-	return availableQuantity
+	return atp
 }
 
 func main() {
-	atpSystem := NewATPSystem()
+	pis := NewParallelInventorySystem()
 
-	atpSystem.AddProduct(Product{ID: "P1", Name: "Product 1", Quantity: 100})
-	atpSystem.AddProduct(Product{ID: "P2", Name: "Product 2", Quantity: 150})
+	pis.AddProduct(Product{ID: "P1", Name: "Product 1"})
 
-	atpSystem.AddOrder(Order{ID: "O1", ProductID: "P1", Quantity: 30, DueDate: time.Now().Add(24 * time.Hour)})
-	atpSystem.AddOrder(Order{ID: "O2", ProductID: "P1", Quantity: 20, DueDate: time.Now().Add(48 * time.Hour)})
+	pis.AddLocation(InventoryLocation{ID: "L1", Name: "Warehouse A"})
+	pis.AddLocation(InventoryLocation{ID: "L2", Name: "Warehouse B"})
 
-	atp := atpSystem.CalculateATP("P1", time.Now().Add(72*time.Hour))
-	fmt.Printf("ATP for Product 1 in 3 days: %d\n", atp)
+	pis.AddInventory("L1", "P1", 100)
+	pis.AddInventory("L2", "P1", 150)
 
-	atp = atpSystem.CalculateATP("P2", time.Now().Add(72*time.Hour))
-	fmt.Printf("ATP for Product 2 in 3 days: %d\n", atp)
+	pis.AddOrder(Order{ID: "O1", ProductID: "P1", Quantity: 30, DueDate: time.Now().Add(24 * time.Hour), Location: "L1"})
+	pis.AddOrder(Order{ID: "O2", ProductID: "P1", Quantity: 50, DueDate: time.Now().Add(48 * time.Hour), Location: "L2"})
+
+	// 计算 ATP
+	atp := pis.CalculateATP("P1", time.Now().Add(72*time.Hour))
+
+	fmt.Println("ATP for Product P1 in 3 days:")
+	for locID, quantity := range atp {
+		fmt.Printf("Location %s: %d\n", locID, quantity)
+	}
+
+	// 计算总 ATP
+	totalATP := 0
+	for _, quantity := range atp {
+		totalATP += quantity
+	}
+	fmt.Printf("Total ATP: %d\n", totalATP)
 }
