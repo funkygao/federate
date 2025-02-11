@@ -222,13 +222,13 @@ func isSignificantInterfaceTree(node *InterfaceNode, interfaces map[string][]str
 	if !isInterface(node, interfaces) {
 		return false
 	}
-	if len(node.Children) > significantInheritanceChildren {
+	if len(node.Children) >= significantInheritanceChildren {
 		return true
 	}
 	if calculateInterfaceDepth(node) > significantInheritanceDepth {
 		return true
 	}
-	if len(node.Implementors) > significantInheritanceChildren {
+	if len(node.Implementors) >= significantInheritanceChildren {
 		return true
 	}
 	for _, child := range node.Children {
