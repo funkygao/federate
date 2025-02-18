@@ -98,7 +98,7 @@ func calculateScore(courier Courier, task Task, dist float64, currentTime time.T
 	return timeScore + priorityScore + distanceScore
 }
 
-// OD任务分配算法
+// OD任务分配算法：Origin-Destination
 func assignTasks(tasks []Task, couriers []Courier, geoFence GeoFence, trafficData TrafficData, currentTime time.Time) map[int][]int {
 	assignments := make(map[int][]int)
 
