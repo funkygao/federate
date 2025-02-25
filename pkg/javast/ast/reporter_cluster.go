@@ -29,7 +29,7 @@ func (i *Info) showClusterRelationships() (empty bool) {
 	}
 
 	if len(cellData) > 0 {
-		i.writeSectionHeader("i.Relations Between Significant Clusters")
+		i.writeSectionHeader("Relations Between Significant Clusters")
 		i.writeSectionBody(func() {
 			tabular.Display([]string{"Inheritance Cluster Root", "Relation", "Interface Cluster Root"}, cellData, false, -1)
 		})
