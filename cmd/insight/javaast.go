@@ -38,6 +38,7 @@ func init() {
 	astCmd.Flags().IntVarP(&ast.TopK, "top", "t", 20, "Number of top elements to display in chart")
 	astCmd.Flags().BoolVarP(&ast.Web, "web", "w", false, "Show report in web page")
 	astCmd.Flags().BoolVarP(&ast.GeneratePrompt, "generate-prompt", "g", false, "Generate LLM Prompt for further insight")
+	astCmd.Flags().BoolVarP(&ast.ShowException, "exception", "e", false, "Show Java Exception catch & throw")
 	astCmd.Flags().IntVarP(&ast.Verbosity, "verbosity", "v", 1, "Ouput verbosity level: 1-5")
 	astCmd.Flags().BoolVarP(&color.NoColor, "no-color", "n", false, "Disable colorized output")
 

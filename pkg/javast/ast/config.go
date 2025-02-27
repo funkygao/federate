@@ -7,6 +7,7 @@ var (
 	Verbosity      int
 	Web            bool
 	GeneratePrompt bool
+	ShowException  bool
 
 	ignoredInterfaces       = primitive.NewStringSet()
 	ignoredAnnotations      = primitive.NewStringSet()

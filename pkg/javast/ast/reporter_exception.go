@@ -7,7 +7,7 @@ import (
 )
 
 func (i *Info) showExceptionCatches() (empty bool) {
-	if len(i.ExceptionCatches) == 0 {
+	if !ShowException || len(i.ExceptionCatches) == 0 {
 		return true
 	}
 
@@ -30,7 +30,7 @@ func (i *Info) showExceptionCatches() (empty bool) {
 }
 
 func (i *Info) showMethodThrows() (empty bool) {
-	if len(i.MethodThrows) == 0 {
+	if !ShowException || len(i.MethodThrows) == 0 {
 		return true
 	}
 
