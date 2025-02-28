@@ -471,6 +471,10 @@ func (rg *ReportGenerator) writeTableUsageReport(sa *Aggregator) {
 }
 
 func (rg *ReportGenerator) writeTableRelationsReport(relations []TableRelation) {
+	if len(relations) == 0 {
+		return
+	}
+
 	var data [][]string
 	for _, r := range relations {
 		data = append(data, []string{
@@ -516,6 +520,9 @@ func (rg *ReportGenerator) writeLocksReport(optimisticLocks, pessimisticLocks []
 	for _, lock := range optimisticLocks {
 		cellData = append(cellData, []string{"Optimistic", strings.Trim(filepath.Base(lock.Filename), ".xml"), lock.ID})
 	}
+	if len(cellData) == 0 {
+		return
+	}
 
 	rg.writeSectionHeader("Locking Statements: %d", len(cellData))
 	rg.writeSectionBody(func() {
@@ -533,6 +540,10 @@ func (rg *ReportGenerator) writeSubStatmentReport(sa *Aggregator) {
 		}
 		return nil
 	})
+
+	if len(cellData) == 0 {
+		return
+	}
 
 	rg.writeSectionHeader("Statements With Sub Statements: %d", len(cellData))
 	rg.writeSectionBody(func() {
@@ -581,6 +592,10 @@ func (rg *ReportGenerator) writeParameterTypeReport(parameterTypes map[string]ma
 }
 
 func (rg *ReportGenerator) writeResultTypeReport(resultTypes map[string]map[string]int) {
+	if len(resultTypes) == 0 {
+		return
+	}
+
 	rg.writeSectionHeader("Result Types by SQL Operation")
 	rg.writeSectionBody(func() {
 		specials := map[string]struct{}{
@@ -638,6 +653,10 @@ func (rg *ReportGenerator) writeOrderByGroupByUsageReport(sa *Aggregator) {
 
 func (rg *ReportGenerator) writeGroupByFieldsReport(groupByFields map[string]int) {
 	n := len(groupByFields)
+	if n == 0 {
+		return
+	}
+
 	if n > rg.topN {
 		n = rg.topN
 	}
