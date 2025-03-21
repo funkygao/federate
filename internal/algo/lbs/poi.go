@@ -1,6 +1,6 @@
 package main
 
-// POI 表示兴趣点实体（如餐厅）
+// POI 表示兴趣点实体（如餐厅），存储在 PostGIS
 type POI struct {
 	ID           string   // 唯一标识
 	Name         string   // 名称
