@@ -31,4 +31,6 @@ type Info struct {
 	SignificantInheritanceClusters []InheritanceCluster `json:"-"`
 	SignificantInterfaceClusters   []InterfaceCluster   `json:"-"`
 	Relations                      []ClusterRelationship
+
+	RestControllers []RestControllerInfo `json:"restControllers"`
 }

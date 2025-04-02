@@ -123,6 +123,18 @@ type FunctionalUsage struct {
 	Context    string `json:"context"`
 }
 
+type RestControllerInfo struct {
+	ClassName string             `json:"className"`
+	BasePath  string             `json:"basePath"`
+	Endpoints []RestEndpointInfo `json:"endpoints"`
+}
+
+type RestEndpointInfo struct {
+	MethodName  string   `json:"methodName"`
+	Path        string   `json:"path"`
+	HttpMethods []string `json:"httpMethods"`
+}
+
 func topN(items any, n int) []primitive.NameCount {
 	var result []primitive.NameCount
 

@@ -32,4 +32,6 @@ public class ASTInfo {
     List<MethodThrowsInfo> methodThrows = new ArrayList<>();
     List<EnumInfo> enums = new ArrayList<>();
     List<ConcurrencyUsage> concurrencyUsages = new ArrayList<>();
+
+    List<RestControllerInfo> restControllers = new ArrayList<>();
 }

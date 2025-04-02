@@ -56,6 +56,7 @@ func (i *Info) ShowReport() {
 		i.showConcurrencyUsages,
 
 		i.showEnumReport,
+		i.showRestControllersReport,
 	}
 
 	for i, section := range sections {

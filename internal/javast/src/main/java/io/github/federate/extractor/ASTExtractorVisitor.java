@@ -17,6 +17,7 @@ public class ASTExtractorVisitor extends BaseExtractor {
 
     private int currentNestingLevel = 0;
     private final ASTInfo astInfo = new ASTInfo();
+    private RestControllerInfo currentController;
 
     static {
         STREAM_OPERATIONS = new HashSet<>(Arrays.asList(
@@ -70,6 +71,14 @@ public class ASTExtractorVisitor extends BaseExtractor {
         String className = n.getNameAsString();
         astInfo.classes.add(className);
 
+        if (isRestController(n)) {
+            currentController = new RestControllerInfo();
+            currentController.className = n.getName().getIdentifier();
+            currentController.endpoints = new ArrayList<>();
+            currentController.basePath = getBasePathFromRequestMapping(n);
+            astInfo.restControllers.add(currentController);
+        }
+
         // 处理继承（包括类的继承和接口的继承）
         n.getExtendedTypes().forEach(t -> astInfo.inheritance.computeIfAbsent(className, k -> new ArrayList<>()).add(t.getNameAsString()));
 
@@ -97,6 +106,13 @@ public class ASTExtractorVisitor extends BaseExtractor {
         n.getAnnotations().forEach(this::processAnnotation);
         checkForTransactions(n);
 
+        if (currentController != null) {
+            RestEndpointInfo endpoint = extractEndpointInfo(n);
+            if (endpoint != null) {
+                currentController.endpoints.add(endpoint);
+            }
+        }
+
         // 检查方法体内的 throw 语句
         ClassOrInterfaceDeclaration clazz = n.findAncestor(ClassOrInterfaceDeclaration.class).orElse(null);
         if (clazz != null) {
@@ -118,6 +134,41 @@ public class ASTExtractorVisitor extends BaseExtractor {
         }
 
         super.visit(n, arg);
+    }
+
+    private RestEndpointInfo extractEndpointInfo(MethodDeclaration node) {
+        RestEndpointInfo endpoint = new RestEndpointInfo();
+        endpoint.methodName = node.getName().getIdentifier();
+
+        if (hasAnnotation(node, "RequestMapping")) {
+            processRequestMapping(node, endpoint);
+        } else if (hasAnnotation(node, "GetMapping")) {
+            processGetMapping(node, endpoint);
+        } else if (hasAnnotation(node, "PostMapping")) {
+            processPostMapping(node, endpoint);
+        }
+
+        return endpoint.path == null || endpoint.path.isEmpty() ? null : endpoint;
+    }
+
+    private void processRequestMapping(MethodDeclaration node, RestEndpointInfo endpoint) {
+        AnnotationExpr annotation = findAnnotation(node, "RequestMapping");
+        endpoint.path = getAnnotationValue(annotation, "value");
+    }
+
+    private void processPostMapping(MethodDeclaration node, RestEndpointInfo endpoint) {
+        AnnotationExpr annotation = findAnnotation(node, "PostMapping");
+        endpoint.path = getAnnotationValue(annotation, "value");
+    }
+
+    private void processGetMapping(MethodDeclaration node, RestEndpointInfo endpoint) {
+        AnnotationExpr annotation = findAnnotation(node, "GetMapping");
+        endpoint.path = getAnnotationValue(annotation, "value");
+    }
+
+    private String getBasePathFromRequestMapping(TypeDeclaration node) {
+        AnnotationExpr annotation = findAnnotation(node, "RequestMapping");
+        return annotation != null ? getAnnotationValue(annotation, "value") : "";
     }
 
     @Override
@@ -519,6 +570,50 @@ public class ASTExtractorVisitor extends BaseExtractor {
                     .isPresent();
         }
         return false;
+    }
+
+    private boolean isRestController(ClassOrInterfaceDeclaration n) {
+        return n.getAnnotations().stream()
+                .anyMatch(a -> a.getNameAsString().equals("RestController"));
+    }
+
+    private String getAnnotationValue(AnnotationExpr annotation, String key) {
+        if (annotation instanceof SingleMemberAnnotationExpr) {
+            Expression value = ((SingleMemberAnnotationExpr) annotation).getMemberValue();
+            return extractValue(value);
+        } else if (annotation instanceof NormalAnnotationExpr) {
+            for (MemberValuePair pair : ((NormalAnnotationExpr) annotation).getPairs()) {
+                if (pair.getNameAsString().equals(key)) {
+                    return extractValue(pair.getValue());
+                }
+            }
+        }
+        return "";
+    }
+
+    private String extractValue(Expression expr) {
+        if (expr instanceof StringLiteralExpr) {
+            return ((StringLiteralExpr) expr).getValue();
+        } else if (expr instanceof NameExpr) {
+            return ((NameExpr) expr).getNameAsString();
+        } else if (expr instanceof FieldAccessExpr) {
+            return ((FieldAccessExpr) expr).getNameAsString();
+        }
+        // 处理其他可能的表达式类型...
+        return expr.toString();
+    }
+
+    private AnnotationExpr findAnnotation(BodyDeclaration<?> node, String annotationName) {
+        for (AnnotationExpr annotation : node.getAnnotations()) {
+            if (annotation.getNameAsString().endsWith(annotationName)) {
+                return annotation;
+            }
+        }
+        return null;
+    }
+
+    private boolean hasAnnotation(BodyDeclaration<?> node, String annotationName) {
+        return findAnnotation(node, annotationName) != null;
     }
 
     public void export() {
