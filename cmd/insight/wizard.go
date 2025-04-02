@@ -24,6 +24,7 @@ func runWizard(root string) {
 	minCount = 6
 	ast.Verbosity = 5
 	ast.TopK = 30
+	topN = 30
 
 	steps := []step.Step{
 		{
