@@ -13,9 +13,11 @@ type AOI struct {
 
 // AOI边界存储：PostGIS
 // CREATE TABLE aoi_boundaries (
+//
 //	id VARCHAR(36) PRIMARY KEY,
 //	name VARCHAR(255),
 //	boundary GEOMETRY(Polygon, 4326) -- WGS84坐标系
+//
 // );
 //
 // CREATE INDEX aoi_boundary_gist ON aoi_boundaries USING GIST (boundary);
