@@ -1,6 +1,8 @@
 package insight
 
 import (
+	"fmt"
+
 	"federate/pkg/javast/ast"
 	"federate/pkg/step"
 	"github.com/spf13/cobra"
@@ -61,6 +63,7 @@ func runWizard(root string) {
 
 	step.AutoConfirm = autoYes
 	step.Run(steps)
+	fmt.Println()
 }
 
 func init() {
