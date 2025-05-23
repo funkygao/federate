@@ -201,7 +201,7 @@ func (pg *PromptGenerator) processFileInput(path string) bool {
 	return true
 }
 
-func (pg *PromptGenerator) GenerateHighQualityPrompt() {
+func (pg *PromptGenerator) generatePrompt() string {
 	lines := strings.Split(pg.buffer.String(), "\n")
 	pg.buffer.Reset()
 
@@ -216,7 +216,7 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt() {
 
 	if pg.buffer.Len() == 0 {
 		fmt.Println("没有内容可保存。")
-		return
+		return ""
 	}
 
 	finalContent := pg.buffer.String()
@@ -224,6 +224,11 @@ func (pg *PromptGenerator) GenerateHighQualityPrompt() {
 		finalContent = pg.rule.Prompt + "\n\n" + finalContent
 	}
 
+	return finalContent
+}
+
+func (pg *PromptGenerator) GenerateHighQualityPrompt() {
+	finalContent := pg.generatePrompt()
 	if Dump {
 		if err := ioutil.WriteFile(promptFile, []byte(finalContent), 0644); err != nil {
 			log.Fatalf("%v", err)

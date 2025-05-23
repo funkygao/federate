@@ -3,6 +3,8 @@ package prompt
 import (
 	"os"
 	"strings"
+
+	"federate/pkg/llm"
 )
 
 func executor(input string) {
@@ -13,6 +15,11 @@ func executor(input string) {
 	switch {
 	case input == "go":
 		promptGenerator.GenerateHighQualityPrompt()
+		os.Exit(0)
+
+	case input == "jd":
+		r, _ := llm.CallRhino(promptGenerator.generatePrompt())
+		println(r.Choices[0].Message.Content)
 		os.Exit(0)
 
 	case strings.HasPrefix(input, "!!"):

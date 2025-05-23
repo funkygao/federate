@@ -1,4 +1,4 @@
-package ai
+package llm
 
 const (
 	Model750B = "Chatrhino-750B" // 60s
